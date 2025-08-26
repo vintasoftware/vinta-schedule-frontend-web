@@ -14,9 +14,8 @@ configureClientAuthentication(new ServerTokenStorageStrategy());
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Art School - Unleash Your Creativity',
-  description:
-    'Join our art school and discover your artistic potential with world-class instructors and cutting-edge techniques.',
+  title: 'Vinta Schedule',
+  description: 'An open source tool to schedule and sync events',
 };
 
 export default function RootLayout({
@@ -33,7 +32,7 @@ export default function RootLayout({
             defaultTheme='system'
             enableSystem
             disableTransitionOnChange={false}
-            storageKey='art-school-theme'
+            storageKey='vinta-schedule-theme'
           >
             {children}
           </ThemeProvider>
