@@ -5,6 +5,7 @@ import { useSignUp } from '@/hooks/authentication/use-sign-up';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
   Form,
@@ -132,6 +133,7 @@ export default function SignupPage() {
       <Card className='flex w-full max-w-3xl flex-col overflow-hidden p-0 md:flex-row'>
         {/* Left column: Info and Social */}
         <div className='flex flex-1 flex-col justify-center gap-8 border-b p-8 md:border-r md:border-b-0'>
+          <BackLink href='/' label='Back to home' />
           <div className='flex flex-col gap-4'>
             <h1 className='text-3xl font-bold tracking-tight'>
               Create your account

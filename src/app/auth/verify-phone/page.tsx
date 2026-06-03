@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/input-otp';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useState } from 'react';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
@@ -46,6 +47,7 @@ export default function VerifyPhonePage() {
   return (
     <div className='bg-muted flex min-h-screen items-center justify-center'>
       <Card className='w-full max-w-sm space-y-6 p-8'>
+        <BackLink href='/auth/login' label='Back to login' />
         <form onSubmit={handleSubmit} className='space-y-6'>
           <h1 className='text-center text-2xl font-bold'>Verify Phone</h1>
           <div className='flex flex-col items-center gap-4'>

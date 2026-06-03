@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
   Form,
@@ -109,7 +110,8 @@ export default function ProviderSignupPage() {
   return (
     <div className='bg-muted flex min-h-screen items-center justify-center p-8'>
       <Card className='w-full max-w-xl p-8'>
-        <h1 className='mb-4 text-2xl font-bold'>Complete your signup</h1>
+        <BackLink href='/auth/signup' label='Back to signup' />
+        <h1 className='mt-4 mb-4 text-2xl font-bold'>Complete your signup</h1>
         <p className='text-muted-foreground mb-6 text-sm'>
           Some information was received from your social provider. Please
           complete any missing fields to finish signing up.
