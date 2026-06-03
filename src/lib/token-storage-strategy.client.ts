@@ -36,4 +36,11 @@ export class ClientTokenStorageStrategy implements TokenStorageStrategy {
     localStorage.setItem('refreshToken', token);
     document.cookie = `refreshToken=${token}; path=/; Secure; SameSite=Lax`;
   }
+
+  async removeTokens() {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    document.cookie = `accessToken=; path=/; Secure; SameSite=Lax; Max-Age=0`;
+    document.cookie = `refreshToken=; path=/; Secure; SameSite=Lax; Max-Age=0`;
+  }
 }

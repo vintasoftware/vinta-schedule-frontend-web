@@ -43,6 +43,26 @@ class ServerTokenStorageStrategy implements TokenStorageStrategy {
 
     await cookieStorage.apply();
   }
+
+  async removeTokens() {
+    const cookieStorage = getCookieManager();
+    cookieStorage.set('accessToken', '', {
+      httpOnly: true,
+      path: '/',
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 0,
+    });
+    cookieStorage.set('refreshToken', '', {
+      httpOnly: true,
+      path: '/',
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 0,
+    });
+
+    await cookieStorage.apply();
+  }
 }
 
 

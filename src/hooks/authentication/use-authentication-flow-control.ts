@@ -55,24 +55,16 @@ export function useAuthenticationFlowControl(router: Router) {
           break;
       }
     } else if (isAuthenticatedResponse(response)) {
-      // Handle forbidden access
+      // native headless `app` flow: meta carries three separate tokens.
       if (response.meta?.access_token) {
-        const tokens = response.meta?.access_token as unknown as {
-          access_token: string;
-          refresh_token: string;
-        };
+        const accessToken = response.meta.access_token;
+        const refreshToken = response.meta.refresh_token ?? '';
         localStorage.removeItem('sessionToken');
         document.cookie = `sessionToken=; path=/; Secure; SameSite=Lax`;
-        localStorage.setItem(
-          'accessToken',
-          (tokens['access_token'] as string) || ''
-        );
-        document.cookie = `accessToken=${tokens['access_token']}; path=/; Secure; SameSite=Lax`;
-        localStorage.setItem(
-          'refreshToken',
-          (tokens['refresh_token'] as string) || ''
-        );
-        document.cookie = `refreshToken=${tokens['refresh_token']}; path=/; Secure; SameSite=Lax`;
+        localStorage.setItem('accessToken', accessToken);
+        document.cookie = `accessToken=${accessToken}; path=/; Secure; SameSite=Lax`;
+        localStorage.setItem('refreshToken', refreshToken);
+        document.cookie = `refreshToken=${refreshToken}; path=/; Secure; SameSite=Lax`;
       }
       router.push(`/`);
     } else {

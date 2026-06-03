@@ -304,6 +304,21 @@ components:
       required: true
       schema:
         type: string
+    PasswordLess:
+      allowEmptyValue: true
+      description:
+        'When present (regardless of its value), enables passwordless sign-in
+        via a WebAuthn credential (Passkey),
+
+        but may enforce additional multi-factor authentication (MFA) requirements.
+        Omit the parameter to disable.
+
+        '
+      in: query
+      name: passwordless
+      required: false
+      schema:
+        type: boolean
     PasswordResetKey:
       description: The password reset key
       in: header
@@ -317,6 +332,7 @@ components:
         '
       in: header
       name: X-Session-Token
+      required: false
       schema:
         type: string
   requestBodies:
@@ -389,11 +405,7 @@ components:
           schema:
             properties:
               email:
-                description: 'An email address.
-
-                  '
-                example: email@domain.org
-                type: string
+                $ref: '#/components/schemas/Email'
             required:
               - email
             type: object
@@ -528,6 +540,16 @@ components:
             type: object
       description: Reauthenticate using WebAuthn.
       required: true
+    RefreshToken:
+      content:
+        application/json:
+          schema:
+            properties:
+              refresh_token:
+                $ref: '#/components/schemas/RefreshToken'
+            required:
+              - refresh_token
+            type: object
     RequestLoginCode:
       content:
         application/json:
@@ -862,6 +884,8 @@ components:
                 meta:
                   is_authenticated: true
                 status: 401
+          schema:
+            $ref: '#/components/schemas/ReauthenticationResponse'
       description: 'The response indicates reauthentication is required.
 
         '
@@ -881,6 +905,27 @@ components:
       description: 'Information on the recovery codes.
 
         '
+    RefreshToken:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                properties:
+                  access_token:
+                    $ref: '#/components/schemas/AccessToken'
+                  refresh_token:
+                    $ref: '#/components/schemas/RefreshToken'
+                required:
+                  - access_token
+                type: object
+              status:
+                $ref: '#/components/schemas/StatusOK'
+            required:
+              - data
+              - status
+            type: object
+      description: A new access token (and optionally new refresh token).
     SessionGone:
       content:
         application/json:
@@ -931,6 +976,12 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/TOTPAuthenticator'
+              meta:
+                properties:
+                  recovery_codes_generated:
+                    description: Whether or not recovery codes where generated automatically.
+                    type: boolean
+                type: object
               status:
                 $ref: '#/components/schemas/StatusOK'
             required:
@@ -1046,6 +1097,12 @@ components:
             type: object
       description: WebAuthn credential request options.
   schemas:
+    AccessToken:
+      description: 'The access token.
+
+        '
+      example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW
+      type: string
     AccountConfiguration:
       description: 'Configuration of the Django `allauth.account` app.
 
@@ -1309,6 +1366,7 @@ components:
       enum:
         - recovery_codes
         - totp
+        - webauthn
       type: string
     BaseAuthenticationMeta:
       properties:
@@ -1347,12 +1405,9 @@ components:
           type: string
         phone:
           $ref: '#/components/schemas/Phone'
-        username:
-          $ref: '#/components/schemas/Username'
       required:
         - email
         - phone
-        - username
         - first_name
         - last_name
       type: object
@@ -1526,6 +1581,7 @@ components:
         id:
           enum:
             - login
+            - login_by_code
             - mfa_authenticate
             - mfa_reauthenticate
             - provider_redirect
@@ -1542,6 +1598,11 @@ components:
           type: boolean
         provider:
           $ref: '#/components/schemas/Provider'
+        types:
+          description: Matches `settings.MFA_SUPPORTED_TYPES`.
+          items:
+            $ref: '#/components/schemas/AuthenticatorType'
+          type: array
       required:
         - id
       type: object
@@ -1848,13 +1909,33 @@ components:
       required:
         - password
       type: object
+    ReauthenticationRequired:
+      properties:
+        flows:
+          items:
+            $ref: '#/components/schemas/Flow'
+          type: array
+        methods:
+          description: 'A list of methods used to authenticate.
+
+            '
+          items:
+            $ref: '#/components/schemas/AuthenticationMethod'
+          type: array
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - flows
+        - user
+        - methods
+      type: object
     ReauthenticationResponse:
       description: 'A response indicating reauthentication is required.
 
         '
       properties:
         data:
-          $ref: '#/components/schemas/Authenticated'
+          $ref: '#/components/schemas/ReauthenticationRequired'
         meta:
           $ref: '#/components/schemas/AuthenticatedMeta'
         status:
@@ -1895,6 +1976,12 @@ components:
             - total_code_count
             - unused_code_count
           type: object
+    RefreshToken:
+      description: 'The refresh token.
+
+        '
+      example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.QV30
+      type: string
     RequestLoginCode:
       anyOf:
         - properties:
@@ -2046,11 +2133,15 @@ components:
         id:
           description: The user ID.
           example: 123
-          type: string
+          type: integer
         username:
           description: The username.
           example: wizard
           type: string
+      required:
+        - display
+        - has_usable_password
+        - username
       type: object
     UserSessionsConfiguration:
       description: 'Configuration of the Django `allauth.usersessions` app.
@@ -2291,6 +2382,30 @@ info:
   version: '1'
 openapi: 3.0.3
 paths:
+  /auth/app/v1/tokens/refresh:
+    post:
+      description:
+        'Used to retrieve a new access token. Depending on `settings.HEADLESS_JWT_ROTATE_REFRESH_TOKEN`,
+
+        a new refresh token is returned as well.
+
+        '
+      requestBody:
+        $ref: '#/components/requestBodies/RefreshToken'
+      responses:
+        '200':
+          $ref: '#/components/responses/RefreshToken'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: The refresh token is invalid or expired.
+      summary: 'Refresh the access token
+
+        '
+      tags:
+        - Tokens
   /auth/browser/v1/auth/provider/redirect:
     post:
       description:
@@ -2436,6 +2551,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
           description: An input error occurred.
+        '401':
+          $ref: '#/components/responses/ReauthenticationRequired'
         '409':
           $ref: '#/components/responses/AddAuthenticatorConflict'
       summary: Activate TOTP
@@ -2467,7 +2584,7 @@ paths:
       tags:
         - 'Account: Email'
     get:
-      description: 'Retrieves the list of email addreses of the account.
+      description: 'Retrieves the list of email addresses of the account.
 
         '
       parameters:
@@ -2782,6 +2899,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Client'
         - $ref: '#/components/parameters/SessionToken'
+      requestBody:
+        $ref: '#/components/requestBodies/MFAAuthenticate'
       responses:
         '200':
           $ref: '#/components/responses/AuthenticatedByPasswordAnd2FA'
@@ -3601,3 +3720,6 @@ x-tagGroups:
       - 'Account: Providers'
       - 'Account: 2FA'
       - 'Account: WebAuthn'
+  - name: Tokens
+    tags:
+      - Tokens

@@ -18,7 +18,7 @@ import {
 import { useProviderInfo } from '@/hooks/authentication/use-provider-info';
 import { useProviderSignup } from '@/hooks/authentication/use-provider-signup';
 import type { ProviderSignup } from '@/auth-client';
-import type { UserReadable } from '@/client/types.gen';
+import type { User } from '@/client/types.gen';
 import { useRouter } from 'next/navigation';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
 
@@ -59,7 +59,7 @@ export default function ProviderSignupPage() {
 
   useEffect(() => {
     if (providerInfo && providerInfo.data) {
-      const user = (providerInfo.data.user || {}) as unknown as UserReadable;
+      const user = (providerInfo.data.user || {}) as unknown as User;
       // Email: prefer primary verified email from array
       let email = '';
       if (Array.isArray(providerInfo.data.email)) {
@@ -74,7 +74,7 @@ export default function ProviderSignupPage() {
         first_name: user?.profile?.first_name || '',
         last_name: user?.profile?.last_name || '',
         email,
-        username: user.username || '',
+        username: (user as { username?: string }).username || '',
         phone,
       });
     }

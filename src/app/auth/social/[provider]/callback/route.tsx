@@ -110,12 +110,11 @@ async function handleProviderLoginCallback(
         cookiesToUnset.push('refreshToken');
         return { url: `/auth/social/error`, cookiesToUnset };
       }
-      const tokens = response.meta?.access_token as unknown as {
-        access_token: string;
-        refresh_token: string;
-      };
+      // native headless `app` flow: meta carries three separate tokens.
+      const accessToken = response.meta.access_token;
+      const refreshToken = response.meta.refresh_token;
 
-      if (!tokens.access_token || !tokens.refresh_token) {
+      if (!accessToken || !refreshToken) {
         console.error(
           'Authentication successful, but access or refresh token is missing'
         );
@@ -124,7 +123,7 @@ async function handleProviderLoginCallback(
 
       cookiesToSet.push({
         name: 'accessToken',
-        value: tokens.access_token,
+        value: accessToken,
         options: {
           secure: true,
           httpOnly: false,
@@ -134,7 +133,7 @@ async function handleProviderLoginCallback(
 
       cookiesToSet.push({
         name: 'refreshToken',
-        value: tokens.refresh_token,
+        value: refreshToken,
         options: {
           secure: true,
           httpOnly: false,
@@ -143,8 +142,6 @@ async function handleProviderLoginCallback(
       });
 
       cookiesToUnset.push('sessionToken');
-
-      console.log('Access and refresh tokens set successfully:', tokens);
 
       return {
         url: `/auth/social/${provider}/success`,

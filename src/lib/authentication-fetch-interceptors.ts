@@ -30,8 +30,9 @@ function refreshTokenAndRetryOnFailure(tokenStore: TokenStorageStrategy) {
     if (
       !(
         response.status === 401 ||
-        (response.status === 403 && (await response.json()).detail === 'Authentication credentials were not provided.') ||
-        request.url.includes('/auth/app/v1/refresh-token/')
+        (response.status === 403 &&
+          (await response.clone().json().catch(() => ({}))).detail ===
+            'Authentication credentials were not provided.')
       )
     ) {
       return response; // Not an unauthorized error, return the response as is
@@ -43,8 +44,9 @@ function refreshTokenAndRetryOnFailure(tokenStore: TokenStorageStrategy) {
       return response; // No refresh token available, return the original response
     }
 
+    // django-allauth native headless refresh (rotating, single-use tokens).
     const refreshTokenResponse = await fetch(
-      `${authClient.getConfig().baseUrl}/auth/app/v1/refresh-token/`,
+      `${authClient.getConfig().baseUrl}/auth/app/v1/tokens/refresh`,
       {
         method: 'POST',
         headers: {
@@ -56,13 +58,27 @@ function refreshTokenAndRetryOnFailure(tokenStore: TokenStorageStrategy) {
       }
     );
 
-    if (!refreshTokenResponse.ok) {
-      return response; // Refresh token failed, return the original response
+    if (refreshTokenResponse.status === 400) {
+      // Refresh token is invalid/expired → force re-login.
+      await tokenStore.removeTokens();
+      return response;
     }
 
-    const { access_token: accessToken } = await refreshTokenResponse.json();
+    if (!refreshTokenResponse.ok) {
+      return response; // Transient failure, return the original response
+    }
+
+    // Shape: { status: 200, data: { access_token, refresh_token? } }
+    const { data } = await refreshTokenResponse.json();
+    const accessToken: string = data.access_token;
+    const rotatedRefreshToken: string | undefined = data.refresh_token;
 
     await tokenStore.setAccessToken(accessToken);
+    // Rotation: each refresh may return a NEW refresh token. Overwrite the
+    // stored one; the old token is invalidated immediately. If absent, keep current.
+    if (rotatedRefreshToken) {
+      await tokenStore.setRefreshToken(rotatedRefreshToken);
+    }
 
     const newHeaders = new Headers(request.headers);
     newHeaders.set('Authorization', `Bearer ${accessToken}`);

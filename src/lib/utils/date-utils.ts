@@ -1,4 +1,4 @@
-import { WeekdayEnum } from '@/client';
+type WeekdayEnum = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export function formatDateTime(dateTime: string | null): string | null {
   if (!dateTime) return null;
