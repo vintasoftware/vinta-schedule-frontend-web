@@ -25,7 +25,7 @@ import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authent
 const providerSignupSchema = z.object({
   first_name: z.string().min(1, { message: 'First name is required' }),
   last_name: z.string().min(1, { message: 'Last name is required' }),
-  email: z.string().email({ message: 'Invalid email address' }),
+  email: z.email({ message: 'Invalid email address' }),
   username: z
     .string()
     .min(3, { message: 'Username must be at least 3 characters' }),
@@ -88,7 +88,7 @@ export default function ProviderSignupPage() {
     if (!parsed.success) {
       const firstError =
         Object.values(parsed.error.flatten().fieldErrors)[0]?.[0] ||
-        parsed.error.errors[0]?.message ||
+        parsed.error.issues[0]?.message ||
         'Invalid input';
       setFormError(firstError);
       return;
@@ -107,7 +107,7 @@ export default function ProviderSignupPage() {
   };
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-50 p-8'>
+    <div className='bg-muted flex min-h-screen items-center justify-center p-8'>
       <Card className='w-full max-w-xl p-8'>
         <h1 className='mb-4 text-2xl font-bold'>Complete your signup</h1>
         <p className='text-muted-foreground mb-6 text-sm'>
@@ -119,7 +119,8 @@ export default function ProviderSignupPage() {
           <Alert variant='destructive' className='mb-4'>
             <AlertTitle>Provider info error</AlertTitle>
             <AlertDescription>
-              {error?.message || 'Could not fetch provider info.'}
+              {(error as { message?: string } | null)?.message ||
+                'Could not fetch provider info.'}
             </AlertDescription>
           </Alert>
         )}

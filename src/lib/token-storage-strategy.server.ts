@@ -1,12 +1,11 @@
-"use server";
+'use server';
 
-import { getCookieManager } from "./authentication-cookie-manager.server";
-import { TokenStorageStrategy } from "./base-token-storage-strategy";
-
+import { getCookieManager } from './authentication-cookie-manager.server';
+import { TokenStorageStrategy } from './base-token-storage-strategy';
 
 class ServerTokenStorageStrategy implements TokenStorageStrategy {
   shouldIntercept() {
-    return typeof window === "undefined"; // Always intercept on the server side
+    return typeof window === 'undefined'; // Always intercept on the server side
   }
 
   async getAccessToken() {
@@ -64,6 +63,5 @@ class ServerTokenStorageStrategy implements TokenStorageStrategy {
     await cookieStorage.apply();
   }
 }
-
 
 export { ServerTokenStorageStrategy };

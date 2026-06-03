@@ -4,6 +4,7 @@ import { useRequestPasswordReset } from '@/hooks/authentication/use-request-pass
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
   Form,
@@ -21,7 +22,6 @@ import { useState } from 'react';
 
 const requestPasswordResetSchema = z.object({
   login: z
-    .string()
     .email({ message: 'Invalid email address' })
     .min(1, { message: 'Email is required' }),
 });
@@ -51,8 +51,9 @@ export default function RequestPasswordResetPage() {
   };
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-50'>
+    <div className='bg-muted flex min-h-screen items-center justify-center'>
       <Card className='w-full max-w-sm space-y-6 p-8'>
+        <BackLink href='/auth/login' label='Back to login' />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
             <h1 className='text-center text-2xl font-bold'>Reset Password</h1>

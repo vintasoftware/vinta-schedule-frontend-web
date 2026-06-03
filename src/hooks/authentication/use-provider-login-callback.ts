@@ -1,4 +1,7 @@
-import { postAppV1AuthProviderCallbackJson, ProviderLoginCallbackParams } from '@/addicional-auth-client/provider-login-callback-json';
+import {
+  postAppV1AuthProviderCallbackJson,
+  ProviderLoginCallbackParams,
+} from '@/addicional-auth-client/provider-login-callback-json';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 

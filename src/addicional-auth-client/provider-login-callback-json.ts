@@ -1,4 +1,7 @@
-import { GetAuthByClientV1AuthSessionError, GetAuthByClientV1AuthSessionResponse } from '@/auth-client';
+import {
+  GetAuthByClientV1AuthSessionError,
+  GetAuthByClientV1AuthSessionResponse,
+} from '@/auth-client';
 import { client } from '@/auth-client/client.gen';
 
 export type ProviderLoginCallbackParams = {
@@ -27,12 +30,13 @@ type GenericFetchResponse<T> = {
   body?: ReadableStream<Uint8Array> | null;
 };
 
-
-export async function postAppV1AuthProviderCallbackJson(
-  { provider, queryParams, sessionToken }: ProviderLoginCallbackParams
-) {
+export async function postAppV1AuthProviderCallbackJson({
+  provider,
+  queryParams,
+  sessionToken,
+}: ProviderLoginCallbackParams) {
   try {
-    return await fetch(
+    return (await fetch(
       `${client.getConfig().baseUrl}/auth/app/v1/auth/provider/callback-json/`,
       {
         method: 'POST',
@@ -46,7 +50,7 @@ export async function postAppV1AuthProviderCallbackJson(
         }),
         redirect: 'manual',
       }
-    ) as GenericFetchResponse<GetAuthByClientV1AuthSessionResponse>;
+    )) as GenericFetchResponse<GetAuthByClientV1AuthSessionResponse>;
   } catch (error) {
     throw error as GetAuthByClientV1AuthSessionError;
   }

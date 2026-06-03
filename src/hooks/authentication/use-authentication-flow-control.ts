@@ -1,4 +1,8 @@
-import { isAuthenticationResponse, isAuthenticatedResponse, isInvalidSessionResponse } from '@/lib/authentication-response-type-checks';
+import {
+  isAuthenticationResponse,
+  isAuthenticatedResponse,
+  isInvalidSessionResponse,
+} from '@/lib/authentication-response-type-checks';
 
 interface Router {
   push: (path: string) => void;

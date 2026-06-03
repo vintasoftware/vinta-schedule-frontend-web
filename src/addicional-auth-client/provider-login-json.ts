@@ -9,7 +9,7 @@ export type ProviderLoginRedirectParams = {
 export type ProviderLoginRedirectResponse = {
   redirect_url: string;
   session_token: string;
-}
+};
 
 type GenericFetchResponse<T> = {
   data?: T;
@@ -31,7 +31,13 @@ type GenericFetchResponse<T> = {
   body?: ReadableStream<Uint8Array> | null;
 };
 
-export async function postAppV1AuthProviderRedirectJson({ provider, callbackUrl, process }: ProviderLoginRedirectParams): Promise<GenericFetchResponse<ProviderLoginRedirectResponse>> {
+export async function postAppV1AuthProviderRedirectJson({
+  provider,
+  callbackUrl,
+  process,
+}: ProviderLoginRedirectParams): Promise<
+  GenericFetchResponse<ProviderLoginRedirectResponse>
+> {
   return fetch(
     `${client.getConfig().baseUrl}/auth/app/v1/auth/provider/redirect-json/`,
     {

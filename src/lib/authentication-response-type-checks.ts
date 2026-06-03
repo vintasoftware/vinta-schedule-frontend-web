@@ -1,4 +1,8 @@
-import { AuthenticationResponse, AuthenticatedResponse, SessionGoneResponse } from '@/auth-client';
+import {
+  AuthenticationResponse,
+  AuthenticatedResponse,
+  SessionGoneResponse,
+} from '@/auth-client';
 
 export function isAuthenticationResponse(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +30,9 @@ export function isAuthenticatedResponse(
   );
 }
 
-export function isInvalidSessionResponse(response: unknown): response is SessionGoneResponse {
+export function isInvalidSessionResponse(
+  response: unknown
+): response is SessionGoneResponse {
   return (
     typeof response === 'object' &&
     response !== null &&

@@ -1,10 +1,9 @@
-"use client";
+'use client';
 import { TokenStorageStrategy } from './base-token-storage-strategy';
-
 
 export class ClientTokenStorageStrategy implements TokenStorageStrategy {
   shouldIntercept() {
-    return typeof window !== "undefined"; // Always intercept on the client side
+    return typeof window !== 'undefined'; // Always intercept on the client side
   }
 
   async getAccessToken() {
@@ -12,7 +11,7 @@ export class ClientTokenStorageStrategy implements TokenStorageStrategy {
     if (localToken !== null) return localToken;
     const cookieToken = document.cookie
       .split('; ')
-      .find(row => row.startsWith('accessToken='))
+      .find((row) => row.startsWith('accessToken='))
       ?.split('=')[1];
     return cookieToken ?? null;
   }
@@ -27,7 +26,7 @@ export class ClientTokenStorageStrategy implements TokenStorageStrategy {
     if (localToken !== null) return localToken;
     const cookieToken = document.cookie
       .split('; ')
-      .find(row => row.startsWith('refreshToken='))
+      .find((row) => row.startsWith('refreshToken='))
       ?.split('=')[1];
     return cookieToken ?? null;
   }

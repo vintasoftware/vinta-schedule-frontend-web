@@ -2,7 +2,6 @@ import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 
 import { cookies } from 'next/headers';
 
-
 type CookieUpdate = { value: string; options: Partial<ResponseCookie> };
 
 export class CookieManager {

@@ -1,18 +1,31 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { FlatCompat } from '@eslint/eslintrc';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
+import nextTypescript from 'eslint-config-next/typescript';
+import prettier from 'eslint-config-prettier';
 
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript', 'prettier'),
+  ...nextCoreWebVitals,
+  ...nextTypescript,
+  prettier,
   {
-    ignores: ['src/client'],
+    // Generated API clients — not linted.
+    ignores: ['src/client', 'src/auth-client'],
+  },
+  {
+    // The React Compiler lint rules (react-hooks v6) shipped with
+    // eslint-config-next 16 flag pre-existing, intentional patterns
+    // (SSR-safe localStorage-in-effect reads, document.cookie writes in
+    // event handlers). Keep them visible as warnings rather than blocking.
+    rules: {
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/immutability': 'warn',
+    },
+  },
+  {
+    // Tailwind config loads plugins via require(), the idiomatic pattern.
+    files: ['tailwind.config.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
   },
 ];
 

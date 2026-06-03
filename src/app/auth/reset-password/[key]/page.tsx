@@ -5,6 +5,7 @@ import { useResetPassword } from '@/hooks/authentication/use-reset-password';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
   Form,
@@ -17,7 +18,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState } from 'react';
+import { use, useState } from 'react';
 
 // The token should be passed via query string (?token=...) from the reset link
 const resetPasswordSchema = z.object({
@@ -32,8 +33,9 @@ type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
 export default function ResetPasswordPage({
   params,
 }: {
-  params: { key?: string };
+  params: Promise<{ key?: string }>;
 }) {
+  const { key } = use(params);
   const router = useRouter();
   const { resetPassword, resetPasswordMutation } = useResetPassword();
   const [success, setSuccess] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export default function ResetPasswordPage({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
       password: '',
-      key: params?.key || '',
+      key: key || '',
     },
   });
 
@@ -62,8 +64,9 @@ export default function ResetPasswordPage({
   };
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-50'>
+    <div className='bg-muted flex min-h-screen items-center justify-center'>
       <Card className='w-full max-w-sm space-y-6 p-8'>
+        <BackLink href='/auth/login' label='Back to login' />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
             <h1 className='text-center text-2xl font-bold'>Set New Password</h1>

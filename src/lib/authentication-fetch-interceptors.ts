@@ -2,16 +2,19 @@ import { client } from '@/client/client.gen';
 import { client as authClient } from '@/auth-client/client.gen';
 import { TokenStorageStrategy } from './base-token-storage-strategy';
 
-
 function configureClientAuthentication(tokenStore: TokenStorageStrategy) {
   if (tokenStore.shouldIntercept()) {
-    client.interceptors.request.use(includeTokenFromLocalStorageOrCookie(tokenStore));
+    client.interceptors.request.use(
+      includeTokenFromLocalStorageOrCookie(tokenStore)
+    );
     client.interceptors.response.use(refreshTokenAndRetryOnFailure(tokenStore));
   }
 }
 
 // Supports async functions
-function includeTokenFromLocalStorageOrCookie(tokenStore: TokenStorageStrategy) {
+function includeTokenFromLocalStorageOrCookie(
+  tokenStore: TokenStorageStrategy
+) {
   return async (request: Request) => {
     const token = await tokenStore.getAccessToken();
 
@@ -23,16 +26,17 @@ function includeTokenFromLocalStorageOrCookie(tokenStore: TokenStorageStrategy) 
 }
 
 function refreshTokenAndRetryOnFailure(tokenStore: TokenStorageStrategy) {
-  return async (
-    response: Response,
-    request: Request
-  ) => {
+  return async (response: Response, request: Request) => {
     if (
       !(
         response.status === 401 ||
         (response.status === 403 &&
-          (await response.clone().json().catch(() => ({}))).detail ===
-            'Authentication credentials were not provided.')
+          (
+            await response
+              .clone()
+              .json()
+              .catch(() => ({}))
+          ).detail === 'Authentication credentials were not provided.')
       )
     ) {
       return response; // Not an unauthorized error, return the response as is

@@ -52,7 +52,7 @@ export function SocialSuccess({
   return (
     <div className='flex min-h-screen flex-col items-center justify-center'>
       <div className='mb-2 text-lg font-semibold'>Connecting...</div>
-      <div className='text-gray-500'>
+      <div className='text-muted-foreground'>
         Please wait while we finish your social login.
       </div>
     </div>

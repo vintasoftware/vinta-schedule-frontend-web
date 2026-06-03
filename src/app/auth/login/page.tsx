@@ -1,18 +1,21 @@
 import { getAuthByClientV1Config } from '@/auth-client';
 import LoginForm from '@/components/authentication/login-form';
-import { redirect } from 'next/navigation';
 
 export default async function LoginPage() {
-  const authCofig = await getAuthByClientV1Config({
+  // Fetch the auth config to discover available social providers. If the
+  // backend is unreachable or returns an error, degrade gracefully and render
+  // the form without social login — never redirect back to this same page
+  // (that causes an infinite redirect loop).
+  const authConfig = await getAuthByClientV1Config({
     path: {
       client: 'app',
     },
   });
 
-  if (!authCofig || authCofig.data?.status !== 200 || !authCofig.data?.data) {
-    redirect('/auth/login');
-  }
-  const socialProviders = authCofig.data?.data.socialaccount?.providers || [];
+  const socialProviders =
+    authConfig.data?.status === 200
+      ? (authConfig.data.data.socialaccount?.providers ?? [])
+      : [];
 
   return <LoginForm socialProviders={socialProviders} />;
 }

@@ -44,7 +44,7 @@ export default function VerifyPhonePage() {
   };
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-50'>
+    <div className='bg-muted flex min-h-screen items-center justify-center'>
       <Card className='w-full max-w-sm space-y-6 p-8'>
         <form onSubmit={handleSubmit} className='space-y-6'>
           <h1 className='text-center text-2xl font-bold'>Verify Phone</h1>

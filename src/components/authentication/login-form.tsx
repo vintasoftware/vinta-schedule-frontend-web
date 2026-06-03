@@ -29,9 +29,9 @@ const loginFieldSchema = z
   .superRefine((val, ctx) => {
     // If contains @, must be a valid email
     if (val.includes('@')) {
-      if (!z.string().email().safeParse(val).success) {
+      if (!z.email().safeParse(val).success) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Invalid email address',
         });
       }
@@ -44,7 +44,7 @@ const loginFieldSchema = z
       const digits = val.replace(/\D/g, '');
       if (digits.length < 8) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Invalid phone number',
         });
       }
@@ -53,7 +53,7 @@ const loginFieldSchema = z
     // Otherwise, must be alphanumeric username
     if (!/^[a-zA-Z0-9]+$/.test(val)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Username must be alphanumeric',
       });
     }
@@ -131,7 +131,7 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
   };
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-50 p-8'>
+    <div className='bg-muted flex min-h-screen items-center justify-center p-8'>
       <Card className='flex w-full max-w-3xl flex-col overflow-hidden p-0 md:flex-row'>
         {/* Left column: Info and Social */}
         <div className='flex flex-1 flex-col justify-center gap-8 border-b p-8 md:border-r md:border-b-0'>
@@ -176,9 +176,9 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
           {/* Only show the separator if there are social providers */}
           {socialProviders.length > 0 && (
             <div className='mb-8 flex items-center sm:hidden'>
-              <div className='flex-grow border-t border-gray-200' />
-              <span className='mx-2 text-xs text-gray-400'>or</span>
-              <div className='flex-grow border-t border-gray-200' />
+              <div className='border-border flex-grow border-t' />
+              <span className='text-muted-foreground mx-2 text-xs'>or</span>
+              <div className='border-border flex-grow border-t' />
             </div>
           )}
           <Form {...form}>

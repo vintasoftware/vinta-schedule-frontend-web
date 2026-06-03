@@ -15,7 +15,7 @@ export default function SocialLoginErrorPage() {
             again or use another login method.
           </AlertDescription>
         </Alert>
-        <div className='my-2 w-full border-t border-gray-200' />
+        <div className='border-border my-2 w-full border-t' />
         <Button asChild variant='default' className='w-full'>
           <a href='/auth/login'>Back to Login</a>
         </Button>

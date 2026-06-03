@@ -37,7 +37,7 @@ const signupSchema = z
   .object({
     first_name: z.string().min(1, { message: 'First name is required' }),
     last_name: z.string().min(1, { message: 'Last name is required' }),
-    email: z.string().email({ message: 'Invalid email address' }),
+    email: z.email({ message: 'Invalid email address' }),
     username: z
       .string()
       .min(3, { message: 'Username must be at least 3 characters' }),
@@ -107,7 +107,7 @@ export default function SignupPage() {
     if (!parsed.success) {
       const firstError =
         Object.values(parsed.error.flatten().fieldErrors)[0]?.[0] ||
-        parsed.error.errors[0]?.message ||
+        parsed.error.issues[0]?.message ||
         'Invalid input';
       setError(firstError);
       return;
@@ -128,7 +128,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-50 p-8'>
+    <div className='bg-muted flex min-h-screen items-center justify-center p-8'>
       <Card className='flex w-full max-w-3xl flex-col overflow-hidden p-0 md:flex-row'>
         {/* Left column: Info and Social */}
         <div className='flex flex-1 flex-col justify-center gap-8 border-b p-8 md:border-r md:border-b-0'>
@@ -202,9 +202,9 @@ export default function SignupPage() {
           {/* Only show the separator if there are social providers */}
           {!isAuthConfigLoading && socialProviders.length > 0 && (
             <div className='mb-8 flex items-center sm:hidden'>
-              <div className='flex-grow border-t border-gray-200' />
-              <span className='mx-2 text-xs text-gray-400'>or</span>
-              <div className='flex-grow border-t border-gray-200' />
+              <div className='border-border flex-grow border-t' />
+              <span className='text-muted-foreground mx-2 text-xs'>or</span>
+              <div className='border-border flex-grow border-t' />
             </div>
           )}
           <Form {...form}>
