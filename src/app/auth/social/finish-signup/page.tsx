@@ -18,50 +18,66 @@ import {
 } from '@/components/ui/form';
 import { useProviderInfo } from '@/hooks/authentication/use-provider-info';
 import { useProviderSignup } from '@/hooks/authentication/use-provider-signup';
-import type { ProviderSignup } from '@/auth-client';
+import type { ErrorResponse, ProviderSignup } from '@/auth-client';
 import type { User } from '@/client/types.gen';
 import { useRouter } from 'next/navigation';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
+import { syncSessionTokenFromCookie } from '@/lib/session-token';
+import { isAuthenticationResponse } from '@/lib/authentication-response-type-checks';
 
+// Required signup fields that Google does not supply minus what it does.
+// `phone` must be E.164 (the field the provider never gives us).
 const providerSignupSchema = z.object({
   first_name: z.string().min(1, { message: 'First name is required' }),
   last_name: z.string().min(1, { message: 'Last name is required' }),
   email: z.email({ message: 'Invalid email address' }),
-  username: z
-    .string()
-    .min(3, { message: 'Username must be at least 3 characters' }),
   phone: z
     .string()
-    .min(8, { message: 'Phone number must be at least 8 digits' })
-    .regex(/^[\d\s()+-]+$/, { message: 'Invalid phone number' }),
+    .regex(/^\+[1-9]\d{1,14}$/, {
+      message: 'Enter a phone number in international format, e.g. +14155552671',
+    }),
 });
 
 type ProviderSignupSchema = z.infer<typeof providerSignupSchema>;
 
+const FIELD_NAMES: Array<keyof ProviderSignupSchema> = [
+  'first_name',
+  'last_name',
+  'email',
+  'phone',
+];
+
+function isFieldName(param: string): param is keyof ProviderSignupSchema {
+  return (FIELD_NAMES as string[]).includes(param);
+}
+
 export default function ProviderSignupPage() {
   const router = useRouter();
+  // Bridge the rotated `sessionToken` cookie (set by the callback route) into
+  // localStorage BEFORE the auth hooks read it, so their `X-Session-Token`
+  // header carries the freshest token. Runs once during the first render.
+  useState(() => syncSessionTokenFromCookie());
+
   const authenticationFlowControl = useAuthenticationFlowControl(router);
   const { providerInfo, isLoading, isError, error } = useProviderInfo();
   const { providerSignup, providerSignupMutation } = useProviderSignup();
   const [formError, setFormError] = useState<string | null>(null);
-  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
-  // Pre-fill form with provider info if available
   const form = useForm<ProviderSignupSchema>({
     resolver: zodResolver(providerSignupSchema),
     defaultValues: {
       first_name: '',
       last_name: '',
       email: '',
-      username: '',
       phone: '',
     },
   });
 
+  // Prefill from the pending social login (GET /auth/provider/signup).
   useEffect(() => {
     if (providerInfo && providerInfo.data) {
       const user = (providerInfo.data.user || {}) as unknown as User;
-      // Email: prefer primary verified email from array
       let email = '';
       if (Array.isArray(providerInfo.data.email)) {
         const primary = providerInfo.data.email.find(
@@ -69,14 +85,11 @@ export default function ProviderSignupPage() {
         );
         email = primary?.email || providerInfo.data.email[0]?.email || '';
       }
-      // Phone: not available in user, leave blank or extract from another source if available
-      const phone = user?.phone_number || '';
       form.reset({
         first_name: user?.profile?.first_name || '',
         last_name: user?.profile?.last_name || '',
         email,
-        username: (user as { username?: string }).username || '',
-        phone,
+        phone: user?.phone_number || '',
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,37 +97,86 @@ export default function ProviderSignupPage() {
 
   const onSubmit = async (values: ProviderSignupSchema) => {
     setFormError(null);
-    setFormSuccess(null);
-    const parsed = providerSignupSchema.safeParse(values);
-    if (!parsed.success) {
-      const firstError =
-        Object.values(parsed.error.flatten().fieldErrors)[0]?.[0] ||
-        parsed.error.issues[0]?.message ||
-        'Invalid input';
-      setFormError(firstError);
-      return;
-    }
-    // Remove confirm_password before sending to API
-    const signupValues = { ...values };
-    // @ts-expect-error confirm_password is not part of ProviderSignup type
-    delete signupValues.confirm_password;
+    setSessionExpired(false);
     try {
-      const response = await providerSignup(signupValues as ProviderSignup);
+      const response = await providerSignup(values as ProviderSignup);
+      // 200 -> AuthenticatedResponse: store tokens, route into the app.
       authenticationFlowControl(response);
     } catch (err) {
+      const status = (err as { status?: number })?.status;
+
+      // 409: the pending signup is gone (session lost) -> ask to restart.
+      if (status === 409) {
+        setSessionExpired(true);
+        return;
+      }
+
+      // 400: render allauth field errors against their inputs.
+      if (status === 400) {
+        const errors =
+          (err as ErrorResponse).errors ||
+          (err as { data?: ErrorResponse }).data?.errors ||
+          [];
+        let formLevelMessage: string | null = null;
+        errors.forEach((fieldError) => {
+          if (fieldError.param && isFieldName(fieldError.param)) {
+            form.setError(fieldError.param, { message: fieldError.message });
+          } else {
+            formLevelMessage = fieldError.message;
+          }
+        });
+        setFormError(
+          formLevelMessage || 'Please fix the highlighted fields and try again.'
+        );
+        return;
+      }
+
+      // 401 with pending flows: signup was accepted but more steps remain
+      // (e.g. `verify_phone` — the new number needs an OTP before login
+      // completes). Hand off to flow control, which threads the rotated
+      // session token and routes to the right step. No error to show.
+      if (isAuthenticationResponse(err)) {
+        authenticationFlowControl(err);
+        return;
+      }
+
+      // Anything else (e.g. 410 invalid session, unexpected) -> flow control.
       authenticationFlowControl(err);
       setFormError(err instanceof Error ? err.message : 'Signup failed');
     }
   };
 
+  if (sessionExpired) {
+    return (
+      <div className='bg-muted flex min-h-screen items-center justify-center p-8'>
+        <Card className='flex w-full max-w-md flex-col items-center gap-6 p-8'>
+          <Alert variant='destructive' className='w-full'>
+            <AlertTitle className='text-xl font-bold'>
+              Sign-in expired
+            </AlertTitle>
+            <AlertDescription>
+              Your sign-in session expired before you finished creating your
+              account. Please start the sign-in again.
+            </AlertDescription>
+          </Alert>
+          <Button asChild variant='default' className='w-full'>
+            <a href='/auth/login'>Restart sign-in</a>
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className='bg-muted flex min-h-screen items-center justify-center p-8'>
       <Card className='w-full max-w-xl p-8'>
         <BackLink href='/auth/signup' label='Back to signup' />
-        <h1 className='mt-4 mb-4 text-2xl font-bold'>Complete your signup</h1>
+        <h1 className='mt-4 mb-4 text-2xl font-bold'>
+          Finish creating your account
+        </h1>
         <p className='text-muted-foreground mb-6 text-sm'>
-          Some information was received from your social provider. Please
-          complete any missing fields to finish signing up.
+          We got some details from your social provider. Add the missing
+          information below to finish signing up.
         </p>
         {isLoading && <div className='mb-4'>Loading provider info...</div>}
         {isError && (
@@ -131,24 +193,6 @@ export default function ProviderSignupPage() {
             onSubmit={form.handleSubmit(onSubmit)}
             className='flex flex-col gap-4'
           >
-            <FormField
-              control={form.control}
-              name='username'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='text'
-                      autoComplete='username'
-                      placeholder='Username'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name='first_name'
@@ -211,9 +255,9 @@ export default function ProviderSignupPage() {
                   <FormLabel>Phone</FormLabel>
                   <FormControl>
                     <Input
-                      type='text'
+                      type='tel'
                       autoComplete='tel'
-                      placeholder='Phone'
+                      placeholder='+14155552671'
                       {...field}
                     />
                   </FormControl>
@@ -225,12 +269,6 @@ export default function ProviderSignupPage() {
               <Alert variant='destructive'>
                 <AlertTitle>Signup failed</AlertTitle>
                 <AlertDescription>{formError}</AlertDescription>
-              </Alert>
-            )}
-            {formSuccess && (
-              <Alert variant='default'>
-                <AlertTitle>Success</AlertTitle>
-                <AlertDescription>{formSuccess}</AlertDescription>
               </Alert>
             )}
             <Button

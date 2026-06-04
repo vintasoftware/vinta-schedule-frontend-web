@@ -5,6 +5,7 @@ import {
   isAuthenticationResponse,
 } from '@/lib/authentication-response-type-checks';
 import { cookies } from 'next/headers';
+import type { AuthenticationResponse, Flow } from '@/auth-client';
 // Removed invalid import of CookieOptions
 
 export async function POST(
@@ -72,10 +73,7 @@ type CookieOptions = {
   // Add other cookie options if needed
 };
 
-async function handleProviderLoginCallback(
-  provider: string,
-  params: Record<string, string>
-): Promise<{
+type CallbackResult = {
   url: string;
   cookiesToSet?: Array<{
     name: string;
@@ -83,8 +81,84 @@ async function handleProviderLoginCallback(
     options?: CookieOptions;
   }>;
   cookiesToUnset?: Array<string>;
-}> {
+};
+
+// Where each pending allauth flow continues. Mirrors the client-side
+// `useAuthenticationFlowControl` routing so the social callback and the
+// in-app session checks send the user to the same place.
+const PENDING_FLOW_ROUTES: Partial<Record<Flow['id'], string>> = {
+  provider_signup: '/auth/social/finish-signup',
+  verify_phone: '/auth/verify-phone',
+  verify_email: '/auth/verify-email',
+  mfa_authenticate: '/auth/mfa-authenticate',
+};
+
+/**
+ * A 401 with `data.flows` is the intended allauth "more steps required"
+ * contract — NOT an error. It happens both for a brand-new social account
+ * (`provider_signup`, still needs e.g. a phone) and for a returning user whose
+ * login needs another step (`verify_phone`, `mfa_authenticate`, …). Route to
+ * that step on the SAME session.
+ *
+ * Session-token rule: allauth only emits `meta.session_token` when the token is
+ * new or rotated, so these 401s often omit it. Keep using the token we already
+ * hold (from the `redirect-json` step, carried as the `sessionToken` cookie /
+ * `X-Session-Token` on the callback); only replace it when the response rotates
+ * it. The follow-up request must run on this same session or the backend 409s.
+ */
+function handlePendingAuthenticationResponse(
+  response: AuthenticationResponse,
+  incomingSessionToken: string | undefined
+): CallbackResult {
+  // Prefer a rotated token; otherwise keep the one we authenticated with.
+  const sessionToken = response.meta?.session_token ?? incomingSessionToken;
+  const pendingFlow = response.data.flows.find((flow) => flow.is_pending);
+  const nextUrl = pendingFlow && PENDING_FLOW_ROUTES[pendingFlow.id];
+
+  if (!nextUrl) {
+    console.error(
+      'Authentication response without a routable pending flow',
+      JSON.stringify(response)
+    );
+    return {
+      url: `/auth/social/error`,
+      cookiesToUnset: ['accessToken', 'refreshToken', 'sessionToken'],
+    };
+  }
+
+  if (!sessionToken) {
+    console.error(
+      `Pending ${pendingFlow.id} flow but no session token (none stored from redirect-json, none rotated)`
+    );
+    return {
+      url: `/auth/social/error`,
+      cookiesToUnset: ['accessToken', 'refreshToken', 'sessionToken'],
+    };
+  }
+
+  return {
+    url: nextUrl,
+    cookiesToSet: [
+      {
+        name: 'sessionToken',
+        value: sessionToken,
+        options: { secure: true, httpOnly: false, sameSite: 'lax' },
+      },
+    ],
+    cookiesToUnset: ['accessToken', 'refreshToken'],
+  };
+}
+
+export async function handleProviderLoginCallback(
+  provider: string,
+  params: Record<string, string>
+): Promise<CallbackResult> {
   const cookieStorage = await cookies();
+  // The session_token persisted by the `redirect-json` step. We must keep
+  // sending it as X-Session-Token on the callback (and forward it to signup),
+  // since the pending 401 won't re-issue it.
+  const incomingSessionToken =
+    cookieStorage.get('sessionToken')?.value || undefined;
   const cookiesToSet: Array<{
     name: string;
     value: string;
@@ -96,7 +170,7 @@ async function handleProviderLoginCallback(
       await postAppV1AuthProviderCallbackJson({
         provider,
         queryParams: params,
-        sessionToken: cookieStorage.get('sessionToken')?.value || undefined,
+        sessionToken: incomingSessionToken,
       })
     ).json();
 
@@ -149,43 +223,27 @@ async function handleProviderLoginCallback(
         cookiesToUnset,
       };
     }
+
+    // A 401 with `data.flows` is the intended allauth "more steps required"
+    // contract (e.g. a new Google user that still needs a phone number).
+    // `redirect: 'manual'` fetch does NOT throw on 401, so this arrives here as
+    // a normal response body — handle it instead of erroring.
+    if (isAuthenticationResponse(response)) {
+      return handlePendingAuthenticationResponse(
+        response,
+        incomingSessionToken
+      );
+    }
+
     console.error(
       'Response is not an authenticated response, redirecting to error page',
-      response
+      JSON.stringify(response)
     );
   } catch (error) {
+    // Defensive: if some transport ever surfaces the 401 as a throw instead of
+    // a response body, treat it the same way.
     if (isAuthenticationResponse(error)) {
-      const {
-        meta: { session_token: sessionToken },
-      } = error;
-
-      if (!sessionToken) {
-        console.error(
-          'Authentication response received, but no session token found'
-        );
-        return { url: `/auth/social/error` };
-      }
-
-      cookiesToSet.push({
-        name: 'sessionToken',
-        value: sessionToken,
-        options: {
-          secure: true,
-          httpOnly: false,
-          sameSite: 'lax',
-        },
-      });
-
-      cookiesToUnset.push('accessToken');
-      cookiesToUnset.push('refreshToken');
-
-      console.log('Session token set successfully:', sessionToken);
-
-      return {
-        url: `/auth/social/${provider}/success`,
-        cookiesToSet,
-        cookiesToUnset,
-      };
+      return handlePendingAuthenticationResponse(error, incomingSessionToken);
     } else {
       console.error('Error during provider login callback:', error);
       cookiesToUnset.push('accessToken');

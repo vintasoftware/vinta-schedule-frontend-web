@@ -15,9 +15,14 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useState } from 'react';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
 import { useResendPhoneVerificationCode } from '@/hooks/authentication/use-resend-phone-verification-code';
+import { syncSessionTokenFromCookie } from '@/lib/session-token';
 
 export default function VerifyPhonePage() {
   const router = useRouter();
+  // When reached via a server redirect (e.g. the social callback's
+  // `verify_phone` 401), the freshest session token is in the cookie, not yet
+  // in localStorage. Bridge it before the verify hook reads it. Runs once.
+  useState(() => syncSessionTokenFromCookie());
   const authenticationFlowControl = useAuthenticationFlowControl(router);
   const { verifyPhone, verifyPhoneMutation } = useVerifyPhone();
   const { resendPhoneVerificationCode, resendPhoneVerificationCodeMutation } =
@@ -31,8 +36,8 @@ export default function VerifyPhonePage() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    if (otp.length !== 6) {
-      setError('Please enter the 6-digit code.');
+    if (otp.length !== 8) {
+      setError('Please enter the 8-digit code.');
       return;
     }
     try {
@@ -52,7 +57,7 @@ export default function VerifyPhonePage() {
           <h1 className='text-center text-2xl font-bold'>Verify Phone</h1>
           <div className='flex flex-col items-center gap-4'>
             <InputOTP
-              maxLength={6}
+              maxLength={8}
               value={otp}
               onChange={setOtp}
               containerClassName='justify-center'
@@ -61,12 +66,14 @@ export default function VerifyPhonePage() {
                 <InputOTPSlot index={0} />
                 <InputOTPSlot index={1} />
                 <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
               </InputOTPGroup>
               <InputOTPSeparator />
               <InputOTPGroup>
-                <InputOTPSlot index={3} />
                 <InputOTPSlot index={4} />
                 <InputOTPSlot index={5} />
+                <InputOTPSlot index={6} />
+                <InputOTPSlot index={7} />
               </InputOTPGroup>
             </InputOTP>
 
