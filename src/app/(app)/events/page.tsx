@@ -3,6 +3,8 @@ import { Stack } from '@/components/layout/stack';
 import { PageHeader } from '@/components/layout/page-header';
 import { EventsView } from '@/components/events/events-view';
 import { NewBookingButton } from '@/components/bookings/new-booking-button';
+import { BookGroupButton } from '@/components/calendar-groups/book-group-button';
+import { HStack } from '@/components/layout';
 
 /**
  * EventsPage — member view of their calendar events.
@@ -28,7 +30,12 @@ export default function EventsPage() {
       <PageHeader
         title='Events'
         description='View your upcoming events.'
-        actions={<NewBookingButton />}
+        actions={
+          <HStack gap={2}>
+            <BookGroupButton />
+            <NewBookingButton />
+          </HStack>
+        }
       />
       <Suspense fallback={null}>
         <EventsView />
