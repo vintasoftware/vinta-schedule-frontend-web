@@ -87,6 +87,7 @@
 - **Gate**: typecheck/test(159)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
 ### Phase 2 — List pending invitations (admin) ✅
+
 - **Status**: done, PR opened.
 - **Model**: `claude-haiku-4-5` (plan Tier 2; template held with cheaper model + review).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-2` (base `phase-1`, stacked).
@@ -96,13 +97,23 @@
 - **Shared-infra change**: `useDataTableQuery({ prefix })` — reusable wherever two tables share a page.
 - **Gate**: typecheck/test(185)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 3 — Invite a member (admin) ✅
+- **Status**: done, PR opened.
+- **Model**: `claude-sonnet-4-6` (carries real idempotency logic).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-3` (base `phase-2`, stacked).
+- **PR**: (published below) — inline comments.
+- **Commits**: `745b9e2` invite dialog, `3b90a1f` review fixes.
+- **Summary**: `useCreateInvitation` (`invitationsCreate` + predicate invalidation), `useResendInvitation` (`invitationsResendCreate`, signature `(id, email)` — **Phase 4 reuses this**), `InviteMemberDialog` (rhf+zod; on existing pending+non-expired email → no create, surface existing + Resend). "Invite member" button in the Invitations toolbar (`toolbarActions` prop). Review (FIX-FIRST) fixed BLOCKER: resend empty body → `{email}`; + expired false-block, email trim, double-click race test, real-component story.
+- **Phase 4 dependency**: `use-resend-invitation.ts` already exists with the final `(id, email)` signature — Phase 4 imports/extends it (debounce + row action), does NOT recreate.
+- **Gate**: typecheck/test(197)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 3 — Invite a member (admin)** (Tier 2) — starting. (e2e specs now deferred per policy above.)
+- **Phase 4 — Resend an invitation (admin)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-3–38 (use-cases).
+4–38 (use-cases).
 
 ## Deferred / Superseded
 
