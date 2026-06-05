@@ -265,13 +265,20 @@
 - **Summary**: `useEditOccurrence` (this→`createException` modified fields, following→`bulkModify`, all→`partialUpdate`; non-recurring→`partialUpdate` direct), `EditEventDialog` (title/desc/time form; recurring→`ScopePromptDialog`→scoped edit; non-recurring→direct). Edit action on the event sheet. No `as any`. **Phases 23/24 op-level wiring already done here** — they become acceptance/test phases. Accepted on focused review.
 - **Gate**: typecheck/test(425)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 23 — Adjust this and following (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5` (light — op wired in Phase 22). **Branch**: `phase-23` (base `phase-22`).
+- **PR**: (published below). **Commits**: `6c17777`.
+- **Summary**: split-point acceptance test (`bulkModify` with `modification_start_date` = occurrence date → earlier untouched, this+later change), named `useEditThisAndFollowing()` wrapper, dialog integration tests. Accepted on focused review.
+- **Gate**: typecheck/test(428)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 23 — Adjust this and following (member)** (Tier 3) — starting (the `following`/`bulkModify` path is wired in Phase 22; this phase adds its acceptance test + any UI polish).
+- **Phase 24 — Adjust all instances (member)** (Tier 2) — starting (the `all`/`partialUpdate` path is wired in Phase 22; adds acceptance test + named hook).
 
 ## Remaining Phases
 
-23–38 (use-cases).
+24–38 (use-cases).
 
 ## Deferred / Superseded
 
