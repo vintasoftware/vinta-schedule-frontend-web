@@ -249,13 +249,22 @@
 - **Summary**: `ScopePromptDialog` (SHARED, `RecurringScope='this'|'following'|'all'`, reused by 21–24), `useCancelBooking` (scope→op: this→`createException{exception_date,is_cancelled}`, following→`bulkModify{modification_start_date,is_cancelled}`, all→`calendarEventsDestroy`). Cancel action on the event sheet; non-recurring→confirm, recurring→scope prompt. Verified op bodies against real types (no `as any`). Co-booked blocked-times release = backend cascade (documented). Accepted on focused review (verified the highest-risk op-body mapping myself).
 - **Gate**: typecheck/test(388)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 21 — Reschedule a booking (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6` (first attempt hit a transient API overload after creating the hook; resumed). **Branch**: `phase-21` (base `phase-20`).
+- **PR**: (published below). **Commits**: `ae56c9d`.
+- **Summary**: `useRescheduleBooking` (scope→op: non-recurring/all→`calendarEventsPartialUpdate` new times, this→`createException` modified times, following→`bulkModify` offsets), `RescheduleDialog` (new-time form → availability re-check → `ConflictSurface` warn-but-allow-override → recurring `ScopePromptDialog` → apply). Reschedule action on the event sheet. Reuses Phase 16/19/20 pieces. No `as any`. Accepted on focused review (mapping verified via typecheck).
+- **Gate**: typecheck/test(404)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
+## Bookings block complete ✅ (phases 16–21)
+
 ## Current Phase
 
-- **Phase 21 — Reschedule a booking (member)** (Tier 2/3) — starting (reuses conflict-surface + scope prompt).
+- **Phase 22 — Adjust one instance (member)** (Tier 3) — starting (recurring-scope edits; formalizes the scope-prompt built in Phase 20).
 
 ## Remaining Phases
 
-21–38 (use-cases).
+22–38 (use-cases).
 
 ## Deferred / Superseded
 
