@@ -5,6 +5,7 @@ import { Stack } from '@/components/layout/stack';
 import { PageHeader } from '@/components/layout/page-header';
 import { AvailabilityEditor } from '@/components/availability/availability-editor';
 import { BlockedTimeForm } from '@/components/availability/blocked-time-form';
+import { UserAvailabilityView } from '@/components/availability/user-availability-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /**
@@ -18,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
  *  - Tabs:
  *    - "Available times" tab: AvailabilityEditor (weekly patterns + ad-hoc dates)
  *    - "Blocked times" tab: BlockedTimeForm (one-off + recurring blocks)
+ *    - "Colleague availability" tab: UserAvailabilityView (free/busy for a colleague)
  */
 export default function AvailabilityPage() {
   return (
@@ -30,12 +32,16 @@ export default function AvailabilityPage() {
         <TabsList>
           <TabsTrigger value='available'>Available times</TabsTrigger>
           <TabsTrigger value='blocked'>Blocked times</TabsTrigger>
+          <TabsTrigger value='colleague'>Colleague availability</TabsTrigger>
         </TabsList>
         <TabsContent value='available'>
           <AvailabilityEditor />
         </TabsContent>
         <TabsContent value='blocked'>
           <BlockedTimeForm />
+        </TabsContent>
+        <TabsContent value='colleague'>
+          <UserAvailabilityView />
         </TabsContent>
       </Tabs>
     </Stack>
