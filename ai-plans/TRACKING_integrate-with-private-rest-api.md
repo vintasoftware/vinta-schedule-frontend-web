@@ -39,6 +39,7 @@
 - **Note**: `isInDstSpringForwardGap` flags the pre-transition window (Luxon normalizes the gap) — documented + tested.
 
 ### Phase 0d — Shared DataTable composition ✅
+
 - **Status**: done, PR opened.
 - **Model**: `claude-sonnet-4-6` (plan Tier 3).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-0d` (base `phase-0c`, stacked).
@@ -47,13 +48,23 @@
 - **Summary**: shadcn `table` atom added; `src/components/data-table/` — generic fully-controlled `DataTable<T>` (TanStack Table v8 in `manualSorting`/`manualPagination`/`manualFiltering`, `enableMultiSort:false`), `data-table-toolbar` (debounced search), `data-table-pagination` (wraps shadcn Pagination), `useDataTableQuery` hook syncing `page`/`page_size`/`ordering`/`search` to URL params + `DataTableQueryBoundary` (Suspense wrapper for Next 16 `useSearchParams`). Skeleton loading + empty-state slot. `DataTableColumn<T>`/`DataTableQuery` types. Consumed by phases 1,2,7,11,28,30,37. Review (FIX-FIRST) fixed: pagination interaction + skeletonRows tests, layout primitives, a11y tabIndex, Suspense hardening.
 - **Gate**: typecheck/test(120)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 0e — Calendar infrastructure (list / month / week) ✅
+- **Status**: done, PR opened.
+- **Model**: `claude-sonnet-4-6` (plan Tier 3).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-0e` (base `phase-0d`, stacked).
+- **PR**: (published below) — inline comments.
+- **Commits**: `10d68f1` calendar wrapper, `b7179d2` review fixes.
+- **Summary**: `src/components/calendar/` — `CalendarView` (react-big-calendar + `luxonLocalizer`, agenda/month/week), `event-vm.ts` (`CalendarEventVM`: JS Date for RBC grid + zoned Luxon `DateTime` + per-event tz label + typed `ApiRecurrenceRule`), `calendar-theme.css` (RBC themed to design tokens, no raw hex), `calendar-scope-picker` scaffold, `eventRenderer` render-prop hook point for Phase 18 overlays. Review (FIX-FIRST) fixed: typed recurrence (was stringified), 3 dark-mode color leaks, DST-winter label test, inline-style→primitives, `@types`→devDeps, scope-picker story.
+- **Spike**: RBC integrates cleanly via `components.event`; Phase 18 may need `eventWrapper` for pixel-positioned availability overlays — flagged forward.
+- **Gate**: typecheck/test(147)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 0e — Calendar infrastructure (list / month / week)** (Tier 3, `claude-sonnet-4-6`) — starting.
+- **Phase 0f — E2E harness & QA use-cases doc** (Tier 2, `claude-haiku-4-5`) — starting (last foundation phase).
 
 ## Remaining Phases
 
-0e, 0f (foundation); 1–38 (use-cases).
+0f (foundation); 1–38 (use-cases).
 
 ## Deferred / Superseded
 
