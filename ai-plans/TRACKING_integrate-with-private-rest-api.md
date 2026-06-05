@@ -98,6 +98,7 @@
 - **Gate**: typecheck/test(185)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
 ### Phase 3 — Invite a member (admin) ✅
+
 - **Status**: done, PR opened.
 - **Model**: `claude-sonnet-4-6` (carries real idempotency logic).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-3` (base `phase-2`, stacked).
@@ -107,13 +108,22 @@
 - **Phase 4 dependency**: `use-resend-invitation.ts` already exists with the final `(id, email)` signature — Phase 4 imports/extends it (debounce + row action), does NOT recreate.
 - **Gate**: typecheck/test(197)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 4 — Resend an invitation (admin) ✅
+- **Status**: done, PR opened.
+- **Model**: `claude-haiku-4-5` (small — reused Phase 3 hook).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-4` (base `phase-3`, stacked).
+- **PR**: (published below) — inline comments.
+- **Commits**: `21ece0a` resend row action.
+- **Summary**: per-row **Resend** action column on `InvitationsTable` via a `createColumns(pendingRowIds, onResend)` factory; per-row in-flight disable (`Set<number>`) prevents double-fire; success/error sonner toasts; reuses `useResendInvitation` from Phase 3 (expiry refreshes via its invalidation). Accepted on focused orchestrator review (low-risk row action; core handler read + gate verified) — no separate reviewer agent.
+- **Gate**: typecheck/test(201)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 4 — Resend an invitation (admin)** (Tier 2) — starting.
+- **Phase 5 — Revoke an invitation (admin)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-4–38 (use-cases).
+5–38 (use-cases).
 
 ## Deferred / Superseded
 
