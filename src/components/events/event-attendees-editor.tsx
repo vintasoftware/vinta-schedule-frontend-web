@@ -480,6 +480,7 @@ import {
 import { ScopePromptDialog } from '@/components/bookings/scope-prompt-dialog';
 import type { RecurringScope } from '@/components/bookings/scope-prompt-dialog';
 import { useCancelBooking } from '@/hooks/bookings/use-cancel-booking';
+import { RescheduleDialog } from '@/components/bookings/reschedule-dialog';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
 
 export interface EventAttendeesSheetProps {
@@ -489,12 +490,17 @@ export interface EventAttendeesSheetProps {
 }
 
 /**
- * EventAttendeesSheet — event detail sheet with the attendees editor and
- * cancel booking action.
+ * EventAttendeesSheet — event detail sheet with the attendees editor,
+ * cancel booking action, and reschedule booking action.
  *
  * Cancel flow:
  *  - Non-recurring event: AlertDialog confirm → calendarEventsDestroy
  *  - Recurring event: ScopePromptDialog → cancel with the chosen scope
+ *
+ * Reschedule flow:
+ *  - Opens RescheduleDialog with the event's current times pre-filled.
+ *  - RescheduleDialog handles availability check, conflict surface, and
+ *    scope prompt (for recurring events) internally.
  *
  * Opens when `event` is non-null. Populates the editor from `event._raw`
  * (the original API shape stored in the view-model).
@@ -507,6 +513,7 @@ export function EventAttendeesSheet({
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [scopeOpen, setScopeOpen] = React.useState(false);
   const [isCancelling, setIsCancelling] = React.useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = React.useState(false);
   const { cancelBooking } = useCancelBooking();
 
   if (!event) return null;
@@ -581,8 +588,20 @@ export function EventAttendeesSheet({
             />
           </div>
 
-          {/* Cancel booking action */}
-          <div className='mt-6 border-t pt-4'>
+          {/* Actions: Reschedule + Cancel */}
+          <div className='mt-6 space-y-2 border-t pt-4'>
+            {/* Reschedule action */}
+            <Button
+              variant='outline'
+              className='w-full'
+              onClick={() => setRescheduleOpen(true)}
+              disabled={isCancelling}
+              data-testid='reschedule-event-btn'
+            >
+              Reschedule event
+            </Button>
+
+            {/* Cancel action */}
             <Button
               variant='outline'
               className='text-destructive border-destructive/30 hover:bg-destructive/10 w-full'
@@ -628,6 +647,13 @@ export function EventAttendeesSheet({
         eventTitle={event.title}
         onSelect={handleScopeSelect}
         actionLabel='Cancel'
+      />
+
+      {/* Reschedule dialog */}
+      <RescheduleDialog
+        open={rescheduleOpen}
+        onOpenChange={setRescheduleOpen}
+        event={event}
       />
     </>
   );
