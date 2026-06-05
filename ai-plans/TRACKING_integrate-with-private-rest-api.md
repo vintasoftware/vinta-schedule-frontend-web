@@ -372,13 +372,20 @@
 
 ## Sync block complete ✅ (phases 33–35)
 
+### Phase 36 — Transfer an event between users' calendars (admin) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-36` (base `phase-35`).
+- **PR**: (published below). **Commits**: `7f0cc06`.
+- **Summary**: `useTransferEvent` (`calendarEventsTransferCreate` `{destination_calendar_id}` + `invalidateCalendarEvents`), `TransferEventDialog` (destination picker from `useAllCalendars`), Transfer action on the event sheet wrapped in `<RoleGate role='admin'>` (admin-only). No `as any`. Typecheck PASS. Accepted on focused review.
+- **Gate**: typecheck PASS / test(549) / lint(0 err) / format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 36 — Transfer an event between users' calendars (admin)** (Tier 2) — starting.
+- **Phase 37 — Generate an API token with permissions (admin)** (Tier 3) — starting (SECURITY-sensitive: show-once secret, never persisted/logged/refetched).
 
 ## Remaining Phases
 
-36–38 (use-cases).
+37–38 (use-cases).
 
 ## Deferred / Superseded
 
