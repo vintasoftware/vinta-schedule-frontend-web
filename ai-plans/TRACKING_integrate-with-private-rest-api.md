@@ -356,13 +356,20 @@
 - **Orchestrator fix**: implementer's test mocks used `as any` + misplaced eslint-disables → typecheck + lint FAILED (my masked `typecheck|tail-1` initially hid it). Fixed with typed `as unknown as <Type>` casts; now verified PASS. (Going forward: proper `typecheck && echo PASS || FAIL` exit checks.)
 - **Gate**: typecheck PASS / test(527) / lint(0 err) / format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 34 — Trigger a rooms sync (admin) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-34` (base `phase-33`).
+- **PR**: (published below). **Commits**: `5fce94b`.
+- **Summary**: `useTriggerRoomsSync` (`organizationsSyncRoomsCreate`, echoes org `name` — required `OrganizationWritable` field), "Sync rooms" button on `/sync-settings` (fire-and-toast, 500ms debounce). No `as any`. Typecheck verified PASS. Accepted on focused review.
+- **Gate**: typecheck PASS / test(537) / lint(0 err) / format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 34 — Trigger a rooms sync (admin)** (Tier 2) — starting.
+- **Phase 35 — Manually sync another user's calendar (admin)** (Tier 2) — starting (completes sync block; admin-sync row action on all-calendars).
 
 ## Remaining Phases
 
-34–38 (use-cases).
+35–38 (use-cases).
 
 ## Deferred / Superseded
 
