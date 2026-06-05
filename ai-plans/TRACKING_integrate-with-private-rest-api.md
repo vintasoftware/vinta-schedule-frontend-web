@@ -387,13 +387,20 @@
 - **Security review (FIX-FIRST)**: runtime handling correct, but the cache-no-secret + clear-on-reopen tests were vacuously passing → rewritten to genuinely assert the invariants (sanity-checked they fail when broken). Risk 6 proven.
 - **Gate**: typecheck PASS / test(571) / lint(0 err) / format green; build compiles, only pre-existing `/auth/verify-email`.
 
-## Current Phase
+### Phase 38 — Invalidate an API token (admin) ✅ [FINAL use-case]
 
-- **Phase 38 — Invalidate an API token (admin)** (Tier 2) — starting (FINAL use-case phase).
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-38` (base `phase-37`).
+- **PR**: (published below). **Commits**: `b98e6e0`.
+- **Summary**: `useRevokePublicApiToken` (`publicApiTokensRevokeCreate`, path-id only, invalidates `PUBLIC_API_TOKENS_QUERY_KEY`), Revoke row action on the tokens table (destructive confirm, per-row in-flight disable). Secret never re-shown (metadata-only list). No `as any`. Accepted on focused review.
+- **Gate**: typecheck PASS / test(577) / lint(0 err) / format green; build only pre-existing `/auth/verify-email`.
+
+## 🎉 ALL EXECUTABLE PHASES COMPLETE
+
+Foundation (0a, 0c, 0d, 0e, 0f) + use-cases (1–38) = 44 phases done, each stacked + PR'd (#1–#43). **0b** and **39** superseded (live API). No cross-repo phases; no flag-removal (no feature flag).
 
 ## Remaining Phases
 
-38 (final use-case).
+None — implementation complete.
 
 ## Deferred / Superseded
 
