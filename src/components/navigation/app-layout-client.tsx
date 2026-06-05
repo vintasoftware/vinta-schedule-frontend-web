@@ -36,7 +36,7 @@ const MEMBER_NAV_ITEMS: SidebarNavItem[] = [
     icon: CalendarSync,
     href: '/calendars',
   },
-  { id: 'events', label: 'Events', icon: Ticket },
+  { id: 'events', label: 'Events', icon: Ticket, href: '/events' },
   { id: 'availability', label: 'Availability', icon: Settings },
 ];
 
