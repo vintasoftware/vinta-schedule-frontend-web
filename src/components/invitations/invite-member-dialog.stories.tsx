@@ -1,150 +1,53 @@
-'use client';
-
 import * as React from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { VStack, Text } from '@/components/layout';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useForm } from 'react-hook-form';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { InviteMemberDialog } from './invite-member-dialog';
 
 // ---------------------------------------------------------------------------
-// Static story render — avoids tanstack-query / SDK dependency in Storybook.
-// Shows the two key states: default (empty form) and duplicate-warning.
+// Query client wrapper — provides TanStack Query context required by the
+// component's mutation hooks. Uses zero retries so network errors surface
+// immediately in Storybook instead of hanging.
 // ---------------------------------------------------------------------------
 
-function DialogDefault() {
-  const form = useForm({ defaultValues: { email: '' } });
+function makeStoryQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
+
+function QueryWrapper({ children }: { children: React.ReactNode }) {
+  const [client] = React.useState(makeStoryQueryClient);
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
+// ---------------------------------------------------------------------------
+// Story wrappers — keep `open` as state so the close button works.
+// ---------------------------------------------------------------------------
+
+function DefaultStory() {
   const [open, setOpen] = React.useState(true);
-
   return (
-    <>
-      <Button onClick={() => setOpen(true)}>Open dialog</Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Invite a member</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form className='flex flex-col gap-4'>
-              <FormField
-                control={form.control}
-                name='email'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email address</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='text'
-                        autoComplete='email'
-                        placeholder='colleague@example.com'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type='submit'>Send invitation</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </>
+    <QueryWrapper>
+      <InviteMemberDialog open={open} onOpenChange={setOpen} />
+    </QueryWrapper>
   );
 }
 
-function DialogDuplicateWarning() {
-  const form = useForm({
-    defaultValues: { email: 'alice@acme.com' },
-  });
+function DuplicateWarningStory() {
   const [open, setOpen] = React.useState(true);
-
   return (
-    <>
-      <Button onClick={() => setOpen(true)}>Open dialog</Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Invite a member</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form className='flex flex-col gap-4'>
-              <FormField
-                control={form.control}
-                name='email'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email address</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='text'
-                        autoComplete='email'
-                        placeholder='colleague@example.com'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Duplicate warning state */}
-              <VStack gap={2}>
-                <Alert>
-                  <AlertDescription>
-                    This email already has a pending invitation.
-                  </AlertDescription>
-                </Alert>
-                <Text size='sm' color='muted-foreground'>
-                  Would you like to resend the existing invitation instead?
-                </Text>
-                <Button type='button' variant='outline' size='sm'>
-                  Resend invitation
-                </Button>
-              </VStack>
-
-              <DialogFooter>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type='submit' disabled>
-                  Send invitation
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </>
+    <QueryWrapper>
+      {/* _storyInitialExistingInvite seeds the duplicate-detected UI state
+          without triggering a live API call. Story-use only. */}
+      <InviteMemberDialog
+        open={open}
+        onOpenChange={setOpen}
+        _storyInitialExistingInvite={{ id: 42, email: 'alice@acme.com' }}
+      />
+    </QueryWrapper>
   );
 }
 
@@ -168,10 +71,10 @@ type Story = StoryObj;
 
 /** Default — empty form ready to accept an email address. */
 export const Default: Story = {
-  render: () => <DialogDefault />,
+  render: () => <DefaultStory />,
 };
 
-/** DuplicateWarning — shows the inline notice + Resend button when an existing pending invite is detected. */
+/** DuplicateWarning — shows the inline notice and Resend button when an existing pending invite is detected. */
 export const DuplicateWarning: Story = {
-  render: () => <DialogDuplicateWarning />,
+  render: () => <DuplicateWarningStory />,
 };

@@ -33,8 +33,11 @@ import { invitationsList } from '@/client/sdk.gen';
 // ---------------------------------------------------------------------------
 
 const inviteMemberSchema = z.object({
+  // .trim() normalises whitespace before validation so leading/trailing spaces
+  // can't cause a false "new" invite when the same address was already invited.
   email: z
     .string()
+    .trim()
     .min(1, { message: 'Email is required' })
     .email({ message: 'Invalid email address' }),
 });
@@ -71,18 +74,26 @@ interface ExistingInvite {
 interface InviteMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Seed an initial existing-invite state. Intended only for Storybook stories
+   * that need to demonstrate the DuplicateWarning UI without triggering a live
+   * API call. Do not use in production code.
+   */
+  _storyInitialExistingInvite?: ExistingInvite | null;
 }
 
 export function InviteMemberDialog({
   open,
   onOpenChange,
+  _storyInitialExistingInvite,
 }: InviteMemberDialogProps) {
   const { createInvitation, createInvitationMutation } = useCreateInvitation();
   const { resendInvitation, resendInvitationMutation } = useResendInvitation();
 
   // Tracks an existing pending invite for the submitted email (duplicate path).
+  // `_storyInitialExistingInvite` seeds the initial value for Storybook only.
   const [existingInvite, setExistingInvite] =
-    React.useState<ExistingInvite | null>(null);
+    React.useState<ExistingInvite | null>(_storyInitialExistingInvite ?? null);
   // Tracks whether the duplicate-check fetch is in progress.
   const [isChecking, setIsChecking] = React.useState(false);
 
@@ -113,18 +124,34 @@ export function InviteMemberDialog({
     const emailLower = values.email.toLowerCase();
 
     // 1. Check for an existing pending invitation with an exact email match.
+    //    Raw SDK call (not a query hook) — we intentionally bypass the TanStack
+    //    Query cache to get a fresh, authoritative result immediately before
+    //    deciding whether to create or resend. A stale cached result could cause
+    //    a duplicate create.
     setIsChecking(true);
     let foundExisting: ExistingInvite | null = null;
     try {
       const { data } = await invitationsList({
         query: {
           email: values.email,
+          // Exclude accepted invitations and expired invitations — an expired
+          // pending invite must not block a fresh invite (resending an expired
+          // one would itself fail with 400 on the API).
           is_accepted: false,
-          limit: 20,
+          is_expired: false,
+          // Raise the limit to reduce the chance that a superstring partial
+          // match from the API pushes the exact address off the first page.
+          // The exact-match client-side filter below is the source of truth.
+          limit: 50,
         },
       });
       const results = data?.results ?? [];
-      // The API email filter is a partial match — do exact comparison client-side.
+      // The API email filter is a PARTIAL match — do exact comparison
+      // client-side (case-insensitive). This is the authoritative duplicate
+      // check; the API query only narrows the candidate set.
+      // Residual race: if > 50 invitations partially match the email prefix,
+      // the exact address could theoretically be absent from this page. This
+      // edge case is considered acceptable for typical org sizes.
       const exactMatch = results.find(
         (inv) => inv.email.toLowerCase() === emailLower
       );
@@ -165,7 +192,7 @@ export function InviteMemberDialog({
   const onResend = async () => {
     if (!existingInvite) return;
     try {
-      await resendInvitation(existingInvite.id);
+      await resendInvitation(existingInvite.id, existingInvite.email);
       toast.success('Invitation resent', {
         description: `The invitation to ${existingInvite.email} was resent.`,
       });
@@ -186,9 +213,12 @@ export function InviteMemberDialog({
         </DialogHeader>
 
         <Form {...form}>
+          {/* noValidate: zod (via react-hook-form) owns all validation; the
+              browser's native constraint validation must not intercept submit. */}
           <form
             onSubmit={form.handleSubmit(onSubmit)}
             className='flex flex-col gap-4'
+            noValidate
           >
             <FormField
               control={form.control}
@@ -198,7 +228,7 @@ export function InviteMemberDialog({
                   <FormLabel>Email address</FormLabel>
                   <FormControl>
                     <Input
-                      type='text'
+                      type='email'
                       autoComplete='email'
                       placeholder='colleague@example.com'
                       {...field}

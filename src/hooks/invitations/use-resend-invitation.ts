@@ -7,8 +7,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 // Wraps `invitationsResendCreate` (POST /invitations/{id}/resend/) which
 // regenerates the invitation token and refreshes the expiry. On success,
 // invalidates all invitations queries so the table picks up the updated
-// expires_at. The invitation id is passed as a path param when calling
-// `resendInvitation(id)`.
+// expires_at.
+//
+// The API endpoint requires a body of OrganizationInvitationWritable (email is
+// the only required field). Callers must pass the email of the invitation being
+// resent so the request body is valid.
 //
 // Phase 4 ownership note: This hook was stubbed here in Phase 3 to support
 // the duplicate-email Resend action inside the InviteMemberDialog. Phase 4
@@ -33,13 +36,12 @@ export function useResendInvitation() {
     },
   });
 
-  const resendInvitation = async (id: number) =>
+  // `email` is required by OrganizationInvitationWritable (the only required
+  // field on that type). The resend endpoint re-validates the body before
+  // regenerating the token, so an empty body would 400.
+  const resendInvitation = async (id: number, email: string) =>
     resendInvitationMutation.mutateAsync({
-      // The resend body field mirrors the invitation writable shape but the
-      // endpoint only uses it to re-validate; pass an empty object cast as any
-      // since the API doesn't require body fields for resend.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      body: {} as any,
+      body: { email },
       path: { id: String(id) },
     });
 

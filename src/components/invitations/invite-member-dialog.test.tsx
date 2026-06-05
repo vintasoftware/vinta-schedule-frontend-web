@@ -355,9 +355,11 @@ describe('InviteMemberDialog', () => {
         expect(vi.mocked(invitationsResendCreate)).toHaveBeenCalledOnce();
       });
 
-      // Verify the correct id was passed to resend.
+      // Verify the correct id and email body were passed to resend.
       const resendArgs = vi.mocked(invitationsResendCreate).mock.calls[0][0];
       expect(resendArgs?.path?.id).toBe('42');
+      // The body must include the email — OrganizationInvitationWritable requires it.
+      expect(resendArgs?.body?.email).toBe('alice@acme.com');
 
       // invitationsCreate must still NOT have been called.
       expect(vi.mocked(invitationsCreate)).not.toHaveBeenCalled();
@@ -452,6 +454,60 @@ describe('InviteMemberDialog', () => {
         const btn = screen.getByRole('button', { name: /sending/i });
         expect(btn).toBeDisabled();
       });
+    });
+
+    it('double-clicking submit does not call invitationsCreate more than once', async () => {
+      // Simulate a slow duplicate check so the second click hits the disabled
+      // state created by `isChecking`. `invitationsCreate` must be called at
+      // most once even if the user clicks rapidly.
+      const user = userEvent.setup();
+
+      // Resolve after a microtask tick so both clicks happen while isChecking
+      // is true (i.e., before the check settles and re-enables the button).
+      let resolveList!: (
+        v: Awaited<ReturnType<typeof invitationsList>>
+      ) => void;
+      const listPromise = new Promise<
+        Awaited<ReturnType<typeof invitationsList>>
+      >((res) => {
+        resolveList = res;
+      });
+      vi.mocked(invitationsList).mockReturnValue(listPromise as never);
+      vi.mocked(invitationsCreate).mockResolvedValue(
+        makeCreateResponse('double@acme.com')
+      );
+
+      renderDialog();
+
+      await user.type(
+        screen.getByLabelText(/email address/i),
+        'double@acme.com'
+      );
+
+      const submitBtn = screen.getByRole('button', {
+        name: /send invitation/i,
+      });
+
+      // First click — starts the check, button becomes disabled.
+      await user.click(submitBtn);
+
+      // Verify button is disabled (isChecking guard active).
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /sending/i })).toBeDisabled();
+      });
+
+      // Second click — button is disabled so userEvent won't fire the handler.
+      await user.click(screen.getByRole('button', { name: /sending/i }));
+
+      // Now resolve the list with no duplicates → create is called.
+      resolveList(makeEmptyListResponse());
+
+      await waitFor(() => {
+        expect(vi.mocked(invitationsCreate)).toHaveBeenCalledTimes(1);
+      });
+
+      // The critical assertion — create was called at most once.
+      expect(vi.mocked(invitationsCreate)).toHaveBeenCalledTimes(1);
     });
   });
 
