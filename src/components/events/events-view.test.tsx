@@ -49,12 +49,18 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     calendarEventsList: vi.fn(),
+    calendarList: vi.fn(),
   };
 });
 
-import { calendarEventsList } from '@/client/sdk.gen';
+import { calendarEventsList, calendarList } from '@/client/sdk.gen';
 import { EventsView } from './events-view';
-import type { CalendarEvent, PaginatedCalendarEventList } from '@/client';
+import type {
+  CalendarEvent,
+  PaginatedCalendarEventList,
+  Calendar,
+  PaginatedCalendarList,
+} from '@/client';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -112,6 +118,33 @@ const FIXTURE_LATER_SYD: CalendarEvent = {
   is_recurring_instance: false,
 };
 
+// Sample calendars for scope picker tests
+const FIXTURE_CALENDAR_1: Calendar = {
+  id: 1,
+  name: 'Personal',
+  description: undefined,
+  email: 'personal@example.com',
+  external_id: 'cal-1',
+  provider: 'internal',
+  calendar_type: 'personal',
+  capacity: null,
+  manage_available_windows: true,
+  is_active: true,
+};
+
+const FIXTURE_CALENDAR_2: Calendar = {
+  id: 2,
+  name: 'Work',
+  description: undefined,
+  email: 'work@example.com',
+  external_id: 'cal-2',
+  provider: 'internal',
+  calendar_type: 'personal',
+  capacity: null,
+  manage_available_windows: true,
+  is_active: true,
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -130,6 +163,20 @@ function makePagedResponse(
   } as unknown as Awaited<ReturnType<typeof calendarEventsList>>;
 }
 
+function makeCalendarsResponse(
+  results: Calendar[],
+  count = results.length
+): Awaited<ReturnType<typeof calendarList>> {
+  const body: PaginatedCalendarList = { count, results };
+  return {
+    data: body,
+    response: new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  } as unknown as Awaited<ReturnType<typeof calendarList>>;
+}
+
 /**
  * Render EventsView with a fixed initialDate anchored to 2024-06-15 so the
  * fixture events (June 15–16, 2024) fall within the 7-day visible window.
@@ -137,6 +184,19 @@ function makePagedResponse(
 const FIXTURE_ANCHOR = new Date('2024-06-15T00:00:00Z');
 
 function renderEventsView(props?: { calendarId?: number; initialDate?: Date }) {
+  // Default: mock calendars list to return two sample calendars.
+  // Also mock the events list by default.
+  if (!vi.mocked(calendarList).getMockImplementation?.()) {
+    vi.mocked(calendarList).mockResolvedValue(
+      makeCalendarsResponse([FIXTURE_CALENDAR_1, FIXTURE_CALENDAR_2])
+    );
+  }
+  if (!vi.mocked(calendarEventsList).getMockImplementation?.()) {
+    vi.mocked(calendarEventsList).mockResolvedValue(
+      makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
+    );
+  }
+
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -476,6 +536,115 @@ describe('EventsView', () => {
           0
         );
       });
+    });
+  });
+
+  describe('calendar scope picker (Phase 15)', () => {
+    it('renders the calendar scope picker with available calendars', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarsResponse([FIXTURE_CALENDAR_1, FIXTURE_CALENDAR_2])
+      );
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
+      );
+
+      renderEventsView();
+
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      // The picker should be present with "All calendars" option (the default selection)
+      expect(screen.getByText('All calendars')).toBeInTheDocument();
+
+      // The calendar scope picker should be present (with the calendar icon and label)
+      const pickerSlot = screen.getByTestId('calendar-scope-picker');
+      expect(pickerSlot).toBeInTheDocument();
+    });
+
+    it('passes the selected calendarId to useCalendarEvents', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarsResponse([FIXTURE_CALENDAR_1, FIXTURE_CALENDAR_2])
+      );
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY])
+      );
+
+      renderEventsView({ calendarId: 1 });
+
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      // Verify the hook was called with calendar: 1
+      expect(vi.mocked(calendarEventsList)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            calendar: 1,
+          }),
+        })
+      );
+    });
+
+    it('shows all events when no specific calendar is selected', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarsResponse([FIXTURE_CALENDAR_1, FIXTURE_CALENDAR_2])
+      );
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
+      );
+
+      renderEventsView();
+
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      // Both events should be visible when no calendar filter is active
+      expect(screen.getAllByText('Early NY Meeting').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Sydney Afternoon').length).toBeGreaterThan(0);
+
+      // Verify the hook was called without a calendar parameter
+      expect(vi.mocked(calendarEventsList)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.not.objectContaining({
+            calendar: expect.anything(),
+          }),
+        })
+      );
+    });
+
+    it('maintains calendar scope across view changes', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarsResponse([FIXTURE_CALENDAR_1, FIXTURE_CALENDAR_2])
+      );
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY])
+      );
+
+      renderEventsView({ calendarId: 1 });
+
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      // Switch to Month view
+      const monthTab = screen.getByRole('tab', { name: 'Month' });
+      await userEvent.click(monthTab);
+
+      // Event should still be visible
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      // Calendar scope filter should still be active (calendar: 1)
+      expect(vi.mocked(calendarEventsList)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            calendar: 1,
+          }),
+        })
+      );
     });
   });
 });
