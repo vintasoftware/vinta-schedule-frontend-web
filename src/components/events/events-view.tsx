@@ -45,6 +45,8 @@ import { Stack } from '@/components/layout/stack';
 import { Text } from '@/components/layout/text';
 import { HStack } from '@/components/layout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EventAttendeesSheet } from './event-attendees-editor';
+import type { CalendarEventVM } from '@/components/calendar/event-vm';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -88,6 +90,16 @@ export function EventsView({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  // Event detail sheet state (Phase 19).
+  const [selectedEvent, setSelectedEvent] =
+    React.useState<CalendarEventVM | null>(null);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
+
+  const handleSelectEvent = React.useCallback((event: CalendarEventVM) => {
+    setSelectedEvent(event);
+    setSheetOpen(true);
+  }, []);
 
   // view state — defaulting to agenda (list), controlled by a toggle below.
   // Maps: 'list' → agenda, 'month' → month, 'week'.
@@ -205,42 +217,52 @@ export function EventsView({
   // fetch window so days outside the fetched range don't appear empty.
   // ------------------------------------------------------------------
   return (
-    <Stack gap={4} data-slot='events-view'>
-      {/* Scope picker + View toggle in a horizontal layout */}
-      <HStack gap={4} align='center' justify='between'>
-        {/* Calendar scope picker (Phase 15) */}
-        <div data-testid='calendar-scope-picker'>
-          <CalendarScopePicker
-            calendars={calendarOptions}
-            value={selectedCalendarId}
-            onChange={handleCalendarChange}
-            disabled={calendarsLoading}
-          />
-        </div>
+    <>
+      <Stack gap={4} data-slot='events-view'>
+        {/* Scope picker + View toggle in a horizontal layout */}
+        <HStack gap={4} align='center' justify='between'>
+          {/* Calendar scope picker (Phase 15) */}
+          <div data-testid='calendar-scope-picker'>
+            <CalendarScopePicker
+              calendars={calendarOptions}
+              value={selectedCalendarId}
+              onChange={handleCalendarChange}
+              disabled={calendarsLoading}
+            />
+          </div>
 
-        {/* View toggle: List / Month / Week */}
-        <Tabs
-          value={view}
-          onValueChange={(v) => setView(v as CalendarViewMode)}
-        >
-          <TabsList>
-            <TabsTrigger value='agenda'>List</TabsTrigger>
-            <TabsTrigger value='week'>Week</TabsTrigger>
-            <TabsTrigger value='month'>Month</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </HStack>
+          {/* View toggle: List / Month / Week */}
+          <Tabs
+            value={view}
+            onValueChange={(v) => setView(v as CalendarViewMode)}
+          >
+            <TabsList>
+              <TabsTrigger value='agenda'>List</TabsTrigger>
+              <TabsTrigger value='week'>Week</TabsTrigger>
+              <TabsTrigger value='month'>Month</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </HStack>
 
-      {/* Calendar view — the range updates when view changes */}
-      <CalendarView
-        events={events}
-        view={view}
-        onViewChange={setView}
-        date={anchorDate}
-        onDateChange={handleDateChange}
-        agendaLength={AGENDA_WINDOW_DAYS}
-        minHeight={500}
+        {/* Calendar view — the range updates when view changes */}
+        <CalendarView
+          events={events}
+          view={view}
+          onViewChange={setView}
+          date={anchorDate}
+          onDateChange={handleDateChange}
+          agendaLength={AGENDA_WINDOW_DAYS}
+          minHeight={500}
+          onSelectEvent={handleSelectEvent}
+        />
+      </Stack>
+
+      {/* Event detail sheet (Phase 19) — opens when member clicks an event */}
+      <EventAttendeesSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        event={selectedEvent}
       />
-    </Stack>
+    </>
   );
 }
