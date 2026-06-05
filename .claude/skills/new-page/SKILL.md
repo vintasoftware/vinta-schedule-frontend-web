@@ -34,7 +34,11 @@ into a feature composition.
    export default async function SettingsPage() {
      // Fetch with the generated client. Degrade gracefully on error —
      // never redirect back to this same route (infinite-loop risk).
-     const res = await someOperation({ path: { /* … */ } });
+     const res = await someOperation({
+       path: {
+         /* … */
+       },
+     });
      const data = res.data?.status === 200 ? res.data.data : null;
 
      return <SettingsView data={data} />;

@@ -13,7 +13,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = { render: (args) => <Textarea className='w-80' {...args} /> };
+export const Default: Story = {
+  render: (args) => <Textarea className='w-80' {...args} />,
+};
 
 export const WithLabel: Story = {
   render: (args) => (

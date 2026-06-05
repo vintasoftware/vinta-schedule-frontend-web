@@ -468,6 +468,16 @@ export type ExternalAttendee = {
  */
 export type FrequencyEnum = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
 
+/**
+ * Serializer for Organization instances.
+ *
+ * The ``google_service_account`` field supports both reading and writing:
+ * - **Write**: accepts ``email``, ``audience``, ``public_key``,
+ * ``private_key_id`` (write-only), and ``private_key`` (write-only).
+ * Omitting the field on PATCH leaves existing credentials unchanged.
+ * - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+ * Secret fields are never returned.
+ */
 export type Organization = {
     readonly id: number;
     name: string;
@@ -475,6 +485,12 @@ export type Organization = {
      * Whether to sync rooms for this organization.
      */
     should_sync_rooms?: boolean;
+    /**
+     * Return read-only service account info (no secrets), or None if unconfigured.
+     */
+    readonly google_service_account: {
+        [key: string]: unknown;
+    } | null;
     readonly created: string;
     readonly modified: string;
 };
@@ -741,6 +757,16 @@ export type PatchedCalendarGroup = {
     readonly modified?: string;
 };
 
+/**
+ * Serializer for Organization instances.
+ *
+ * The ``google_service_account`` field supports both reading and writing:
+ * - **Write**: accepts ``email``, ``audience``, ``public_key``,
+ * ``private_key_id`` (write-only), and ``private_key`` (write-only).
+ * Omitting the field on PATCH leaves existing credentials unchanged.
+ * - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+ * Secret fields are never returned.
+ */
 export type PatchedOrganization = {
     readonly id?: number;
     name?: string;
@@ -748,6 +774,12 @@ export type PatchedOrganization = {
      * Whether to sync rooms for this organization.
      */
     should_sync_rooms?: boolean;
+    /**
+     * Return read-only service account info (no secrets), or None if unconfigured.
+     */
+    readonly google_service_account?: {
+        [key: string]: unknown;
+    } | null;
     readonly created?: string;
     readonly modified?: string;
 };
@@ -1180,6 +1212,16 @@ export type ExternalAttendeeWritable = {
     email: string;
 };
 
+/**
+ * Serializer for Organization instances.
+ *
+ * The ``google_service_account`` field supports both reading and writing:
+ * - **Write**: accepts ``email``, ``audience``, ``public_key``,
+ * ``private_key_id`` (write-only), and ``private_key`` (write-only).
+ * Omitting the field on PATCH leaves existing credentials unchanged.
+ * - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+ * Secret fields are never returned.
+ */
 export type OrganizationWritable = {
     name: string;
     /**
@@ -1359,6 +1401,16 @@ export type PatchedCalendarGroupWritable = {
     slots?: Array<CalendarGroupSlotWritable>;
 };
 
+/**
+ * Serializer for Organization instances.
+ *
+ * The ``google_service_account`` field supports both reading and writing:
+ * - **Write**: accepts ``email``, ``audience``, ``public_key``,
+ * ``private_key_id`` (write-only), and ``private_key`` (write-only).
+ * Omitting the field on PATCH leaves existing credentials unchanged.
+ * - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+ * Secret fields are never returned.
+ */
 export type PatchedOrganizationWritable = {
     name?: string;
     /**

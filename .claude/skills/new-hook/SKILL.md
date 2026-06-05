@@ -25,6 +25,7 @@ mutation/query object.
 
    If the operation doesn't exist, the OpenAPI schema may be stale — regenerate
    with `npm run openapi-ts` (or `npm run openapi-ts-auth`) before continuing.
+
 3. Pick the **domain folder** (`authentication`, `organizations`, or a new one)
    and file name `use-kebab-name.ts`.
 
@@ -48,7 +49,9 @@ export function useCreateOrganization() {
   const createOrganizationMutation = useMutation({
     ...organizationsCreateMutation(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CURRENT_ORGANIZATION_QUERY_KEY });
+      queryClient.invalidateQueries({
+        queryKey: CURRENT_ORGANIZATION_QUERY_KEY,
+      });
     },
   });
 
@@ -84,7 +87,7 @@ invalidation — check the `.gen` file.)
 - Types come from `@/client` / `@/auth-client` — don't redeclare request/response shapes.
 - Return both the ergonomic fn (`mutateAsync` wrapper) **and** the raw object
   (for `isPending`, `error`, etc. in the component).
-- Add a short doc comment explaining the *why*, especially for auth/token side
+- Add a short doc comment explaining the _why_, especially for auth/token side
   effects (see [`use-login.ts`](../../../src/hooks/authentication/use-login.ts)).
 - Side effects on success (cache invalidation, `localStorage`) go in `onSuccess`.
 

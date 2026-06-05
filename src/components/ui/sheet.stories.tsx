@@ -32,7 +32,7 @@ export const Default: Story = {
           <SheetTitle>Appointment details</SheetTitle>
           <SheetDescription>Dr. Lopez · Mon 9:00 AM</SheetDescription>
         </SheetHeader>
-        <div className='px-4 py-2 text-sm text-muted-foreground'>
+        <div className='text-muted-foreground px-4 py-2 text-sm'>
           Edit the visit, add notes, or reassign the provider.
         </div>
         <SheetFooter>

@@ -18,7 +18,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const Box = ({ children }: { children: React.ReactNode }) => (
-  <div className='rounded-md bg-vinta-50 px-4 py-2 text-sm text-vinta-700'>
+  <div className='bg-vinta-50 text-vinta-700 rounded-md px-4 py-2 text-sm'>
     {children}
   </div>
 );

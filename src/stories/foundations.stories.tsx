@@ -15,7 +15,7 @@ type Story = StoryObj;
 const Swatch = ({ name, className }: { name: string; className: string }) => (
   <div className='flex flex-col gap-2'>
     <div className={`h-16 w-full rounded-lg border ${className}`} />
-    <span className='font-mono text-xs text-muted-foreground'>{name}</span>
+    <span className='text-muted-foreground font-mono text-xs'>{name}</span>
   </div>
 );
 
@@ -105,13 +105,13 @@ export const Typography: Story = {
       <h2 className='text-4xl font-semibold tracking-tight'>Heading 1 / 4xl</h2>
       <h3 className='text-2xl font-semibold tracking-tight'>Heading 2 / 2xl</h3>
       <h4 className='text-xl font-semibold'>Heading 3 / xl</h4>
-      <p className='text-lg text-muted-foreground'>
+      <p className='text-muted-foreground text-lg'>
         Lead — reassuring, healthcare-aware copy in DM Sans.
       </p>
       <p className='text-base'>
         Body — the quick brown fox books an appointment at 9:00 AM.
       </p>
-      <p className='text-sm text-muted-foreground'>Small / caption text.</p>
+      <p className='text-muted-foreground text-sm'>Small / caption text.</p>
       <p className='font-mono text-sm'>Geist Mono — 09:00–09:30 · ID a1b2c3</p>
     </div>
   ),
@@ -130,8 +130,8 @@ export const Elevation: Story = {
     <div className='grid grid-cols-2 gap-8 p-12 sm:grid-cols-5'>
       {SHADOWS.map((s) => (
         <div key={s.name} className='flex flex-col items-center gap-2'>
-          <div className={`h-20 w-20 rounded-xl bg-card ${s.className}`} />
-          <span className='font-mono text-xs text-muted-foreground'>
+          <div className={`bg-card h-20 w-20 rounded-xl ${s.className}`} />
+          <span className='text-muted-foreground font-mono text-xs'>
             {s.name}
           </span>
         </div>
@@ -154,8 +154,8 @@ export const Radius: Story = {
     <div className='flex flex-wrap gap-8 p-12'>
       {RADII.map((r) => (
         <div key={r.name} className='flex flex-col items-center gap-2'>
-          <div className={`h-20 w-20 bg-primary ${r.className}`} />
-          <span className='font-mono text-xs text-muted-foreground'>
+          <div className={`bg-primary h-20 w-20 ${r.className}`} />
+          <span className='text-muted-foreground font-mono text-xs'>
             {r.name}
           </span>
         </div>
@@ -180,15 +180,15 @@ const SPACING = [
 export const Spacing: Story = {
   render: () => (
     <div className='space-y-2 p-8'>
-      <p className='mb-4 text-sm text-muted-foreground'>
+      <p className='text-muted-foreground mb-4 text-sm'>
         Strict 4px base grid. Every margin, pad &amp; gap snaps to a token.
       </p>
       {SPACING.map((s) => (
         <div key={s.token} className='flex items-center gap-4'>
-          <span className='w-20 flex-none font-mono text-xs text-muted-foreground'>
+          <span className='text-muted-foreground w-20 flex-none font-mono text-xs'>
             {s.token}
           </span>
-          <div className={`h-3.5 rounded-sm bg-vinta-600 ${s.className}`} />
+          <div className={`bg-vinta-600 h-3.5 rounded-sm ${s.className}`} />
           <span className='font-mono text-xs'>{s.px}</span>
         </div>
       ))}
@@ -199,15 +199,15 @@ export const Spacing: Story = {
 export const Grid: Story = {
   render: () => (
     <div className='space-y-3 p-8'>
-      <p className='text-sm text-muted-foreground'>
+      <p className='text-muted-foreground text-sm'>
         12-column grid · 1200px max · 24px gutters · 32px margins.
       </p>
-      <div className='rounded-lg border border-border p-2'>
+      <div className='border-border rounded-lg border p-2'>
         <div className='grid grid-cols-12 gap-6'>
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}
-              className='h-24 rounded-sm border-x border-vinta-200 bg-vinta-50'
+              className='border-vinta-200 bg-vinta-50 h-24 rounded-sm border-x'
             />
           ))}
         </div>

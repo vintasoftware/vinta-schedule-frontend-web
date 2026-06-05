@@ -41,10 +41,10 @@ The flow is destructive (force-push). Every modification is gated on user confir
 1. **Identify the plan file.** Same logic as the [implement-plan "Locate + parse plan" step](../implement-plan/SKILL.md#step-0--locate--parse-plan): ask the user (path or feature name); `ls ai-plans/` + grep; confirm before proceeding.
 
 2. **Capture the requested change.** The user's prompt is the source. If vague, interview via `AskUserQuestion`:
-   - *"Which phases are affected?"* — enumerate phase ids from the plan's **Phased Rollout** section.
-   - *"Is this a body rewrite of an existing phase, a new phase to slot in, or a **Guiding Decisions** change that cascades?"*
-   - *"What's the new acceptance criterion / change list?"* — verbatim.
-   Don't infer scope. The plan-amend is the user's contract, not yours.
+   - _"Which phases are affected?"_ — enumerate phase ids from the plan's **Phased Rollout** section.
+   - _"Is this a body rewrite of an existing phase, a new phase to slot in, or a **Guiding Decisions** change that cascades?"_
+   - _"What's the new acceptance criterion / change list?"_ — verbatim.
+     Don't infer scope. The plan-amend is the user's contract, not yours.
 
 3. **Parse the plan.** Same structured fields as [implement-plan's "Extract structured fields" step](../implement-plan/SKILL.md#step-0--locate--parse-plan): plan id, **Goals + Non-goals** / **Guiding Decisions** / **Data Model Changes** / phase records from **Phased Rollout** / **Risk & Rollout Notes** through **Touch List**.
 
@@ -52,19 +52,18 @@ The flow is destructive (force-push). Every modification is gated on user confir
 
 5. **Build a per-phase state map.** For every phase in the plan, record:
 
-   | Field | Source |
-   |---|---|
-   | `phase.id`, `phase.title` | plan's **Phased Rollout** section |
-   | `state` | one of `not-started` / `in-progress` / `implemented-not-merged` / `merged-to-default` |
-   | `branch` | tracking file or git, pattern `plan/{plan-id-kebab}/phase-{id}` |
-   | `base` | tracking file or `git merge-base origin/<branch> <prev-branch>`; root phase bases on `main` |
-   | `pr_status` | `.vinta-ai-workflows/prs-context/{feature-kebab}/phase-{id}.md` frontmatter (`pending` / `published`) when the file exists |
-   | `merged_to_default` | `git branch --merged origin/main | grep` against the branch |
+   | Field                     | Source                                                                                                                     |
+   | ------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+   | `phase.id`, `phase.title` | plan's **Phased Rollout** section                                                                                          |
+   | `state`                   | one of `not-started` / `in-progress` / `implemented-not-merged` / `merged-to-default`                                      |
+   | `branch`                  | tracking file or git, pattern `plan/{plan-id-kebab}/phase-{id}`                                                            |
+   | `base`                    | tracking file or `git merge-base origin/<branch> <prev-branch>`; root phase bases on `main`                                |
+   | `pr_status`               | `.vinta-ai-workflows/prs-context/{feature-kebab}/phase-{id}.md` frontmatter (`pending` / `published`) when the file exists |
+   | `merged_to_default`       | `git branch --merged origin/main                                                                                           | grep` against the branch |
 
    `merged-to-default = true` blocks any commit rewrite for that phase — see [Step 3 — Refuse force-pushes that can't work](#step-3--refuse-force-pushes-that-cant-work) below.
 
 6. **Classify the requested change** by phase impact, in priority order:
-
    - **`body-rewrite`** — existing phase keeps its id; body changes. Cascades downstream because rewritten commits get new SHAs.
    - **`insert-new`** — new phase between existing ones. Cascades downstream because every later phase rebases onto the new branch.
    - **`append-new`** — new phase tacked on after the last one. No downstream cascade. Implementation runs forward via [implement-plan](../implement-plan/SKILL.md) — this skill hands off after editing the plan file.
@@ -72,30 +71,27 @@ The flow is destructive (force-push). Every modification is gated on user confir
 
 7. **Evaluate amendment blast radius — recommend restart when too big.** Amending in place stops being a good deal once the rewrite work approaches re-implementation. Compute these signals from the per-phase state map + the requested change:
 
-   | Signal | Threshold suggesting RESTART |
-   |---|---|
-   | Phases needing `body-rewrite` ÷ total implemented phases | ≥ 50% |
-   | `guiding-decisions-change` cascading into | ≥ 50% of implemented phases |
-   | Phases in `merged-to-default` (immutable, must be `append-new`) | ≥ 2, AND remaining work also rewrites earlier phases |
-   | New body materially changes the data-model contract from **Data Model Changes** | rewrite of >2 phases hinges on it |
-   | Estimated touched LoC across rewrites | ≥ 70% of original implementation diff size (rough estimate via `git diff --stat <base>..<branch>` summed across affected branches) |
-   | Multi-author phase branches in the rewrite queue | ≥ 1 (force-push erases collaborator local state) |
-   | Approved PRs in the rewrite queue | ≥ 2 (re-review burden becomes non-trivial) |
+   | Signal                                                                          | Threshold suggesting RESTART                                                                                                       |
+   | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+   | Phases needing `body-rewrite` ÷ total implemented phases                        | ≥ 50%                                                                                                                              |
+   | `guiding-decisions-change` cascading into                                       | ≥ 50% of implemented phases                                                                                                        |
+   | Phases in `merged-to-default` (immutable, must be `append-new`)                 | ≥ 2, AND remaining work also rewrites earlier phases                                                                               |
+   | New body materially changes the data-model contract from **Data Model Changes** | rewrite of >2 phases hinges on it                                                                                                  |
+   | Estimated touched LoC across rewrites                                           | ≥ 70% of original implementation diff size (rough estimate via `git diff --stat <base>..<branch>` summed across affected branches) |
+   | Multi-author phase branches in the rewrite queue                                | ≥ 1 (force-push erases collaborator local state)                                                                                   |
+   | Approved PRs in the rewrite queue                                               | ≥ 2 (re-review burden becomes non-trivial)                                                                                         |
 
    Any **two** signals tripping → mark the amendment as `high-blast-radius`. **Three or more** → mark as `restart-recommended`.
 
    When `high-blast-radius` or `restart-recommended`, surface to the user via `AskUserQuestion` **before** showing the standard step-8 confirmation:
-
-   - *"This amendment looks large enough that restarting from scratch may cost less than rewriting in place. Tripping signals: <list>. Restarting means: rewrite the plan as a fresh `YYYY-MM-DD-FEATURE_NAME_PLAN.md` (today's date), abandon the current phase branches (leave them in place for audit), run [implement-plan](../implement-plan/SKILL.md) on the new plan from scratch. Amending in place keeps history but force-pushes <N> branches and re-spawns implementer/reviewer/fixer agents per phase."*
+   - _"This amendment looks large enough that restarting from scratch may cost less than rewriting in place. Tripping signals: <list>. Restarting means: rewrite the plan as a fresh `YYYY-MM-DD-FEATURE_NAME_PLAN.md` (today's date), abandon the current phase branches (leave them in place for audit), run [implement-plan](../implement-plan/SKILL.md) on the new plan from scratch. Amending in place keeps history but force-pushes <N> branches and re-spawns implementer/reviewer/fixer agents per phase."_
 
    Options:
-
    - `Restart — draft a new plan, abandon current branches`
    - `Amend in place — proceed knowing the cost (you'll show me the force-push plan next)`
    - `Stop — let me think / talk to the team first`
 
    On `Restart`:
-
    1. Help the user draft a new `YYYY-MM-DD-FEATURE_NAME_PLAN.md` with today's date (paired with the spec, same `FEATURE_NAME`). This skill does not write the new plan body — point at [plan-feature](../plan-feature/SKILL.md) (or [create-spec](../create-spec/SKILL.md) first if the spec also changed).
    2. Annotate the **old** plan: at the top, add `**Superseded YYYY-MM-DD by ../YYYY-MM-DD-FEATURE_NAME_PLAN.md** — reason: <one line>`. Append the same line under `## Amendments`.
    3. Leave the old phase branches alone — useful audit trail, no force-push needed.
@@ -107,7 +103,6 @@ The flow is destructive (force-push). Every modification is gated on user confir
    When the signals show `low-blast-radius` (≤1 tripping), skip the recommendation entirely and go straight to step 8. Don't pad easy amendments with restart questions.
 
 8. **Confirm with user before any write.** Show: requested change, classified type, list of affected phase branches with their state + merge status, downstream branches that will be rebased, the force-push plan. Use `AskUserQuestion`:
-
    - `Proceed — I authorize the force-pushes listed`
    - `Refine — let me adjust scope` (loop back to step 2)
    - `Stop`
@@ -123,7 +118,7 @@ Always the first write. Plan file is durable; commits get rewritten next.
 2. **Inserts** — choose a new id. Two conventions are common:
    - Decimal: `1.5` between `1` and `2` (matches existing patterns in some Vinta plans). Branch becomes `plan/{plan-id-kebab}/phase-1.5`.
    - Letter: `1b` between `1` (relabeled `1a`) and `2`. Requires renaming `1` → `1a` inside **Phased Rollout** + updating downstream references.
-   Ask the user. Default: decimal — no rename of existing ids.
+     Ask the user. Default: decimal — no rename of existing ids.
 
 3. **Appends** — new `## Phase N+1` block at end of **Phased Rollout**. Same shape as siblings: Goal, Suggested AI model, reusable_skills, Changes, Tests, Acceptance.
 
@@ -292,6 +287,7 @@ Always include in the publish-log block at the bottom of the file:
 ### 4g. Update tracking file
 
 Update `ai-plans/TRACKING_{plan-id}.md` for the rewritten phase:
+
 - Append to its `Completed Phases` entry: `Amended YYYY-MM-DD: <summary>; new SHA <x>; force-pushed`.
 - Don't remove the original summary — keep history.
 

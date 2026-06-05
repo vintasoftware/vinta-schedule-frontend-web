@@ -27,17 +27,17 @@ export const Default: Story = {
           <NavigationMenuContent>
             <ul className='grid w-64 gap-1 p-3'>
               <li>
-                <NavigationMenuLink className='block rounded-md p-2 text-sm hover:bg-accent'>
+                <NavigationMenuLink className='hover:bg-accent block rounded-md p-2 text-sm'>
                   Calendar sync
                 </NavigationMenuLink>
               </li>
               <li>
-                <NavigationMenuLink className='block rounded-md p-2 text-sm hover:bg-accent'>
+                <NavigationMenuLink className='hover:bg-accent block rounded-md p-2 text-sm'>
                   Booking pages
                 </NavigationMenuLink>
               </li>
               <li>
-                <NavigationMenuLink className='block rounded-md p-2 text-sm hover:bg-accent'>
+                <NavigationMenuLink className='hover:bg-accent block rounded-md p-2 text-sm'>
                   Availability
                 </NavigationMenuLink>
               </li>

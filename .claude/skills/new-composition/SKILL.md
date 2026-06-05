@@ -46,7 +46,9 @@ export function SettingsPanel({ title, onSave }: SettingsPanelProps) {
   return (
     <Card>
       <Stack gap={4} p={6}>
-        <Heading level={2} size='xl'>{title}</Heading>
+        <Heading level={2} size='xl'>
+          {title}
+        </Heading>
         <Text color='muted-foreground'>…</Text>
         <HStack gap={2} justify='end'>
           <Button variant='ghost'>Cancel</Button>

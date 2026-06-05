@@ -11,8 +11,10 @@ import { Text } from './text';
  * above, description below, and right-aligned actions. Built from layout
  * primitives (Stack / Heading / Text).
  */
-export interface PageHeaderProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+export interface PageHeaderProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  'title'
+> {
   title: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;

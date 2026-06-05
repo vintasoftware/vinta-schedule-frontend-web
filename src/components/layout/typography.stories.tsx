@@ -35,7 +35,13 @@ export const TextStyles: Story = {
       <Text size='sm' color='muted-foreground'>
         Small / caption text.
       </Text>
-      <Text size='xs' weight='semibold' tracking='wide' uppercase color='muted-foreground'>
+      <Text
+        size='xs'
+        weight='semibold'
+        tracking='wide'
+        uppercase
+        color='muted-foreground'
+      >
         Overline
       </Text>
       <Text family='mono' size='sm'>

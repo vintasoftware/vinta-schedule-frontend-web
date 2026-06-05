@@ -201,7 +201,8 @@ function SignupPageContent() {
                       window.location.href = redirectUrl;
                     }}
                     disabled={
-                      signUpMutation.isPending || providerLoginMutation.isPending
+                      signUpMutation.isPending ||
+                      providerLoginMutation.isPending
                     }
                     className='w-full'
                   >

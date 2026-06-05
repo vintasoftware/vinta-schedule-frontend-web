@@ -35,7 +35,9 @@ export const Default: Story = {
       </AccordionItem>
       <AccordionItem value='3'>
         <AccordionTrigger>Can I cancel anytime?</AccordionTrigger>
-        <AccordionContent>Yes — no contracts, cancel whenever.</AccordionContent>
+        <AccordionContent>
+          Yes — no contracts, cancel whenever.
+        </AccordionContent>
       </AccordionItem>
     </Accordion>
   ),

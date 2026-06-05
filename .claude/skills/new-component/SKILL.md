@@ -7,11 +7,11 @@ description: Scaffold a new atom — either a shadcn/ui component (cva variants,
 
 Two kinds of atom live in this repo. Pick the right one first.
 
-| You want… | Kind | Location |
-|-----------|------|----------|
-| A styled control with **variants** (button/badge/alert-like) | shadcn/ui atom | `src/components/ui/` |
-| A **layout/spacing/typography** building block driven by token props | layout primitive | `src/components/layout/` |
-| A stock shadcn component (dialog, select, table…) | install, don't write | `npx shadcn@latest add <name>` |
+| You want…                                                            | Kind                 | Location                       |
+| -------------------------------------------------------------------- | -------------------- | ------------------------------ |
+| A styled control with **variants** (button/badge/alert-like)         | shadcn/ui atom       | `src/components/ui/`           |
+| A **layout/spacing/typography** building block driven by token props | layout primitive     | `src/components/layout/`       |
+| A stock shadcn component (dialog, select, table…)                    | install, don't write | `npx shadcn@latest add <name>` |
 
 Always read [DESIGN.md](../../../DESIGN.md) and [AGENTS.md](../../../AGENTS.md) first.
 **No raw hex/rgb — tokens only.**
@@ -42,11 +42,17 @@ const thingVariants = cva('base classes here', {
 });
 
 export interface ThingProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof thingVariants> {}
 
 function Thing({ className, variant, size, ...props }: ThingProps) {
-  return <div className={cn(thingVariants({ variant, size }), className)} {...props} />;
+  return (
+    <div
+      className={cn(thingVariants({ variant, size }), className)}
+      {...props}
+    />
+  );
 }
 
 export { Thing, thingVariants };
@@ -79,7 +85,9 @@ const Thing = React.forwardRef<HTMLElement, ThingProps>(function Thing(
   { className, emphasis, ...props },
   ref
 ) {
-  return <Box ref={ref} className={cn(emphasis && '…', className)} {...props} />;
+  return (
+    <Box ref={ref} className={cn(emphasis && '…', className)} {...props} />
+  );
 });
 
 export { Thing, type ThingProps };

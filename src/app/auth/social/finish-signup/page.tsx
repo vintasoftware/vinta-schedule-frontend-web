@@ -34,11 +34,9 @@ const providerSignupSchema = z.object({
   first_name: z.string().min(1, { message: 'First name is required' }),
   last_name: z.string().min(1, { message: 'Last name is required' }),
   email: z.email({ message: 'Invalid email address' }),
-  phone: z
-    .string()
-    .regex(/^\+[1-9]\d{1,14}$/, {
-      message: 'Enter a phone number in international format, e.g. +14155552671',
-    }),
+  phone: z.string().regex(/^\+[1-9]\d{1,14}$/, {
+    message: 'Enter a phone number in international format, e.g. +14155552671',
+  }),
 });
 
 type ProviderSignupSchema = z.infer<typeof providerSignupSchema>;

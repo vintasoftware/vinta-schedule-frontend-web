@@ -46,10 +46,7 @@ const AUTHENTICATED = {
 const VERIFY_PHONE_PENDING = {
   status: 401,
   data: {
-    flows: [
-      { id: 'login' },
-      { id: 'verify_phone', is_pending: true },
-    ],
+    flows: [{ id: 'login' }, { id: 'verify_phone', is_pending: true }],
   },
   meta: { is_authenticated: false, session_token: 'rotated-after-signup' },
 };
@@ -105,7 +102,9 @@ describe('finish-signup page (pending social signup)', () => {
     installFetch(() => jsonResponse(200, AUTHENTICATED));
     renderPage();
     expect(
-      await screen.findByRole('heading', { name: /finish creating your account/i })
+      await screen.findByRole('heading', {
+        name: /finish creating your account/i,
+      })
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('+14155552671')).toBeInTheDocument();
   });
@@ -185,7 +184,9 @@ describe('finish-signup page (pending social signup)', () => {
     expect(
       await screen.findByRole('heading', { name: /sign-in expired/i })
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /restart sign-in/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /restart sign-in/i })
+    ).toBeInTheDocument();
     expect(push).not.toHaveBeenCalledWith('/');
   });
 
@@ -194,7 +195,11 @@ describe('finish-signup page (pending social signup)', () => {
       jsonResponse(400, {
         status: 400,
         errors: [
-          { code: 'invalid', param: 'phone', message: 'Enter a valid phone number.' },
+          {
+            code: 'invalid',
+            param: 'phone',
+            message: 'Enter a valid phone number.',
+          },
         ],
       })
     );

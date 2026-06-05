@@ -4304,7 +4304,18 @@ paths:
           description: ''
     put:
       operationId: organizations_update
-      description: A viewset for managing organizations.
+      description: |-
+        Override update to:
+
+        1. Upsert the org's ``GoogleCalendarServiceAccount`` when ``google_service_account``
+           is present in the request body (create-or-update, one per org, calendar FK=None).
+        2. Trigger rooms sync when ``should_sync_rooms`` flips False→True — but only when a
+           service account is configured (either already stored or just provided in this PATCH).
+           If the flag is being enabled and no service account is configured (neither stored
+           nor in the request), return **400** so the admin knows to configure first.
+
+        Uses select_for_update to lock the row during snapshot + write, serializing
+        concurrent PATCHes and preventing double-fire of the sync on False→True transition.
       parameters:
         - in: path
           name: id
@@ -4415,7 +4426,18 @@ paths:
           description: ''
     put:
       operationId: organizations_formatted_update
-      description: A viewset for managing organizations.
+      description: |-
+        Override update to:
+
+        1. Upsert the org's ``GoogleCalendarServiceAccount`` when ``google_service_account``
+           is present in the request body (create-or-update, one per org, calendar FK=None).
+        2. Trigger rooms sync when ``should_sync_rooms`` flips False→True — but only when a
+           service account is configured (either already stored or just provided in this PATCH).
+           If the flag is being enabled and no service account is configured (neither stored
+           nor in the request), return **400** so the admin knows to configure first.
+
+        Uses select_for_update to lock the row during snapshot + write, serializing
+        concurrent PATCHes and preventing double-fire of the sync on False→True transition.
       parameters:
         - in: path
           name: format
@@ -6611,6 +6633,15 @@ components:
         * `YEARLY` - Yearly
     Organization:
       type: object
+      description: |-
+        Serializer for Organization instances.
+
+        The ``google_service_account`` field supports both reading and writing:
+        - **Write**: accepts ``email``, ``audience``, ``public_key``,
+          ``private_key_id`` (write-only), and ``private_key`` (write-only).
+          Omitting the field on PATCH leaves existing credentials unchanged.
+        - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+          Secret fields are never returned.
       properties:
         id:
           type: integer
@@ -6621,6 +6652,14 @@ components:
         should_sync_rooms:
           type: boolean
           description: Whether to sync rooms for this organization.
+        google_service_account:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description:
+            Return read-only service account info (no secrets), or None
+            if unconfigured.
+          readOnly: true
         created:
           type: string
           format: date-time
@@ -6631,6 +6670,7 @@ components:
           readOnly: true
       required:
         - created
+        - google_service_account
         - id
         - modified
         - name
@@ -7301,6 +7341,15 @@ components:
           readOnly: true
     PatchedOrganization:
       type: object
+      description: |-
+        Serializer for Organization instances.
+
+        The ``google_service_account`` field supports both reading and writing:
+        - **Write**: accepts ``email``, ``audience``, ``public_key``,
+          ``private_key_id`` (write-only), and ``private_key`` (write-only).
+          Omitting the field on PATCH leaves existing credentials unchanged.
+        - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+          Secret fields are never returned.
       properties:
         id:
           type: integer
@@ -7311,6 +7360,14 @@ components:
         should_sync_rooms:
           type: boolean
           description: Whether to sync rooms for this organization.
+        google_service_account:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description:
+            Return read-only service account info (no secrets), or None
+            if unconfigured.
+          readOnly: true
         created:
           type: string
           format: date-time

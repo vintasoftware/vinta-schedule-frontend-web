@@ -20,8 +20,7 @@ const ALIGN: Record<Align, CSSProperties['alignItems']> = {
 };
 
 export interface GridProps
-  extends BoxStyleProps,
-    Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
+  extends BoxStyleProps, Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
   as?: React.ElementType;
   /** Number of equal columns, or a raw grid-template-columns string. */
   columns?: number | string;
@@ -85,8 +84,7 @@ const Grid = React.forwardRef<HTMLElement, GridProps>(function Grid(
 });
 
 export interface GridItemProps
-  extends BoxStyleProps,
-    Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
+  extends BoxStyleProps, Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
   as?: React.ElementType;
   /** Columns to span. */
   span?: number;
@@ -97,7 +95,16 @@ export interface GridItemProps
 }
 
 const GridItem = React.forwardRef<HTMLElement, GridItemProps>(function GridItem(
-  { as: Comp = 'div', className, style, span, rowSpan, colStart, colEnd, ...boxProps },
+  {
+    as: Comp = 'div',
+    className,
+    style,
+    span,
+    rowSpan,
+    colStart,
+    colEnd,
+    ...boxProps
+  },
   ref
 ) {
   const { style: resolved, rest } = splitBoxProps(boxProps);

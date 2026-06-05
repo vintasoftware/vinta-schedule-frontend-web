@@ -31,8 +31,7 @@ const JUSTIFY: Record<Justify, CSSProperties['justifyContent']> = {
 };
 
 export interface FlexProps
-  extends BoxStyleProps,
-    Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
+  extends BoxStyleProps, Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
   as?: React.ElementType;
   direction?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
   align?: Align;
@@ -73,7 +72,8 @@ const Flex = React.forwardRef<HTMLElement, FlexProps>(function Flex(
     flexDirection: direction,
     alignItems: align ? ALIGN[align] : undefined,
     justifyContent: justify ? JUSTIFY[justify] : undefined,
-    flexWrap: wrap === true ? 'wrap' : wrap === 'reverse' ? 'wrap-reverse' : undefined,
+    flexWrap:
+      wrap === true ? 'wrap' : wrap === 'reverse' ? 'wrap-reverse' : undefined,
     gap: gap != null ? resolveSpace(gap) : undefined,
     rowGap: rowGap != null ? resolveSpace(rowGap) : undefined,
     columnGap: columnGap != null ? resolveSpace(columnGap) : undefined,
@@ -91,12 +91,11 @@ const Flex = React.forwardRef<HTMLElement, FlexProps>(function Flex(
 export type StackProps = Omit<FlexProps, 'direction'>;
 
 /** Vertical flex stack. */
-const VStack = React.forwardRef<HTMLElement, StackProps>(function VStack(
-  props,
-  ref
-) {
-  return <Flex ref={ref} direction='column' {...props} />;
-});
+const VStack = React.forwardRef<HTMLElement, StackProps>(
+  function VStack(props, ref) {
+    return <Flex ref={ref} direction='column' {...props} />;
+  }
+);
 
 /** Horizontal flex stack (centers items vertically by default). */
 const HStack = React.forwardRef<HTMLElement, StackProps>(function HStack(

@@ -34,7 +34,7 @@ export const Default: Story = {
         </div>
         <div className='flex justify-between'>
           <span className='text-muted-foreground'>Status</span>
-          <Badge className='border-transparent bg-success text-white'>
+          <Badge className='bg-success border-transparent text-white'>
             Confirmed
           </Badge>
         </div>

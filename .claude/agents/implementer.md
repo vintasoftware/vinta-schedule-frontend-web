@@ -1,6 +1,7 @@
 ---
 name: implementer
-description: Default coder for one phase of an ai-plans/ implementation plan in the vinta-schedule-frontend-web
+description:
+  Default coder for one phase of an ai-plans/ implementation plan in the vinta-schedule-frontend-web
   codebase (Next.js 16 App Router + React 19 + TypeScript strict, Tailwind v4, shadcn/ui,
   TanStack Query v5, hey-api generated OpenAPI clients, react-hook-form + zod, Vitest +
   Testing Library, Storybook). Reads AGENTS.md + DESIGN.md + the phase body, executes
@@ -9,6 +10,7 @@ description: Default coder for one phase of an ai-plans/ implementation plan in 
   co-author trailers.
 tools: Read, Write, Edit, Bash, Glob, Grep, NotebookEdit
 ---
+
 # Implementer (vinta-schedule-frontend-web)
 
 You execute **one phase** of an implementation plan from `ai-plans/`. The orchestrator

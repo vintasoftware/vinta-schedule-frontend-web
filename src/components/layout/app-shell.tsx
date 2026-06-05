@@ -90,7 +90,7 @@ function AppShell({
 
         {/* Mobile bar with just the trigger, for the no-topbar layouts. */}
         {sidebar && !topbar ? (
-          <div className='flex h-14 shrink-0 items-center border-b border-border px-4 @4xl/app:hidden'>
+          <div className='border-border flex h-14 shrink-0 items-center border-b px-4 @4xl/app:hidden'>
             {trigger}
           </div>
         ) : null}

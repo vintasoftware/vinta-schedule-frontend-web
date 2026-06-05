@@ -5,7 +5,10 @@ import type {
   ServerSentEventsOptions,
   ServerSentEventsResult,
 } from '../core/serverSentEvents.gen';
-import type { Client as CoreClient, Config as CoreConfig } from '../core/types.gen';
+import type {
+  Client as CoreClient,
+  Config as CoreConfig,
+} from '../core/types.gen';
 import type { Middleware } from './utils.gen';
 
 export type ResponseStyle = 'data' | 'fields';
@@ -38,7 +41,14 @@ export interface Config<T extends ClientOptions = ClientOptions>
    *
    * @default 'auto'
    */
-  parseAs?: 'arrayBuffer' | 'auto' | 'blob' | 'formData' | 'json' | 'stream' | 'text';
+  parseAs?:
+    | 'arrayBuffer'
+    | 'auto'
+    | 'blob'
+    | 'formData'
+    | 'json'
+    | 'stream'
+    | 'text';
   /**
    * Should we return only data or multiple fields (data, error, response, etc.)?
    *
@@ -109,22 +119,32 @@ export type RequestResult<
           ? TData[keyof TData]
           : TData
         : {
-            data: TData extends Record<string, unknown> ? TData[keyof TData] : TData;
+            data: TData extends Record<string, unknown>
+              ? TData[keyof TData]
+              : TData;
             request: Request;
             response: Response;
           }
     >
   : Promise<
       TResponseStyle extends 'data'
-        ? (TData extends Record<string, unknown> ? TData[keyof TData] : TData) | undefined
+        ?
+            | (TData extends Record<string, unknown>
+                ? TData[keyof TData]
+                : TData)
+            | undefined
         : (
             | {
-                data: TData extends Record<string, unknown> ? TData[keyof TData] : TData;
+                data: TData extends Record<string, unknown>
+                  ? TData[keyof TData]
+                  : TData;
                 error: undefined;
               }
             | {
                 data: undefined;
-                error: TError extends Record<string, unknown> ? TError[keyof TError] : TError;
+                error: TError extends Record<string, unknown>
+                  ? TError[keyof TError]
+                  : TError;
               }
           ) & {
             /** request may be undefined, because error may be from building the request object itself */
@@ -146,7 +166,7 @@ type MethodFn = <
   ThrowOnError extends boolean = false,
   TResponseStyle extends ResponseStyle = 'fields',
 >(
-  options: Omit<RequestOptions<TData, TResponseStyle, ThrowOnError>, 'method'>,
+  options: Omit<RequestOptions<TData, TResponseStyle, ThrowOnError>, 'method'>
 ) => RequestResult<TData, TError, ThrowOnError, TResponseStyle>;
 
 type SseFn = <
@@ -156,7 +176,7 @@ type SseFn = <
   ThrowOnError extends boolean = false,
   TResponseStyle extends ResponseStyle = 'fields',
 >(
-  options: Omit<RequestOptions<never, TResponseStyle, ThrowOnError>, 'method'>,
+  options: Omit<RequestOptions<never, TResponseStyle, ThrowOnError>, 'method'>
 ) => Promise<ServerSentEventsResult<TData>>;
 
 type RequestFn = <
@@ -166,7 +186,10 @@ type RequestFn = <
   TResponseStyle extends ResponseStyle = 'fields',
 >(
   options: Omit<RequestOptions<TData, TResponseStyle, ThrowOnError>, 'method'> &
-    Pick<Required<RequestOptions<TData, TResponseStyle, ThrowOnError>>, 'method'>,
+    Pick<
+      Required<RequestOptions<TData, TResponseStyle, ThrowOnError>>,
+      'method'
+    >
 ) => RequestResult<TData, TError, ThrowOnError, TResponseStyle>;
 
 type BuildUrlFn = <
@@ -177,10 +200,16 @@ type BuildUrlFn = <
     url: string;
   },
 >(
-  options: TData & Options<TData>,
+  options: TData & Options<TData>
 ) => string;
 
-export type Client = CoreClient<RequestFn, Config, MethodFn, BuildUrlFn, SseFn> & {
+export type Client = CoreClient<
+  RequestFn,
+  Config,
+  MethodFn,
+  BuildUrlFn,
+  SseFn
+> & {
   interceptors: Middleware<Request, Response, unknown, ResolvedRequestOptions>;
 };
 
@@ -193,7 +222,7 @@ export type Client = CoreClient<RequestFn, Config, MethodFn, BuildUrlFn, SseFn> 
  * to ensure your client always has the correct values.
  */
 export type CreateClientConfig<T extends ClientOptions = ClientOptions> = (
-  override?: Config<ClientOptions & T>,
+  override?: Config<ClientOptions & T>
 ) => Config<Required<ClientOptions> & T>;
 
 export interface TDataShape {

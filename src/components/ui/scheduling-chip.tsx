@@ -26,7 +26,8 @@ const schedulingChipVariants = cva(
 );
 
 export interface SchedulingChipProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'>,
+  extends
+    Omit<React.HTMLAttributes<HTMLDivElement>, 'title'>,
     VariantProps<typeof schedulingChipVariants> {
   title: React.ReactNode;
   meta?: React.ReactNode;

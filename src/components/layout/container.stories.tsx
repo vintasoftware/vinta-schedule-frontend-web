@@ -17,7 +17,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const Demo = () => (
-  <div className='rounded-lg border border-dashed border-primary/40 bg-accent/40 p-6 text-center text-sm text-muted-foreground'>
+  <div className='border-primary/40 bg-accent/40 text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm'>
     Container content
   </div>
 );

@@ -97,10 +97,7 @@ export default function RequestPasswordResetPage() {
                 : 'Send Reset Link'}
             </Button>
             <Text as='div' size='sm' align='center' className='mt-2'>
-              <Link
-                href='/auth/login'
-                className='text-primary hover:underline'
-              >
+              <Link href='/auth/login' className='text-primary hover:underline'>
                 Back to Login
               </Link>
             </Text>

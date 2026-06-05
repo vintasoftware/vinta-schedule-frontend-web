@@ -59,12 +59,12 @@ react to its own container width, not the viewport.** Viewport breakpoints
 Tailwind v4 container sizes (built-in, no plugin):
 
 | name | width | name | width | name | width |
-|------|-------|------|-------|------|-------|
-| @3xs | 256 | @sm | 384 | @3xl | 768 |
-| @2xs | 288 | @md | 448 | @4xl | 896 |
-| @xs  | 320 | @lg | 512 | @5xl | 1024 |
-|      |     | @xl | 576 | @6xl | 1152 |
-|      |     | @2xl| 672 | @7xl | 1280 |
+| ---- | ----- | ---- | ----- | ---- | ----- |
+| @3xs | 256   | @sm  | 384   | @3xl | 768   |
+| @2xs | 288   | @md  | 448   | @4xl | 896   |
+| @xs  | 320   | @lg  | 512   | @5xl | 1024  |
+|      |       | @xl  | 576   | @6xl | 1152  |
+|      |       | @2xl | 672   | @7xl | 1280  |
 
 ## 5. Composition responsive behavior (current contracts)
 

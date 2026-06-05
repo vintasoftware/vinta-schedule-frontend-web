@@ -25,7 +25,7 @@ export const Default: Story = {
         {slots.map((s) => (
           <div
             key={s}
-            className='rounded px-2 py-1.5 font-mono text-sm hover:bg-accent'
+            className='hover:bg-accent rounded px-2 py-1.5 font-mono text-sm'
           >
             {s}
           </div>

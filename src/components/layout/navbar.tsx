@@ -28,7 +28,7 @@ function BrandMark({ className }: { className?: string }) {
         size='sm'
         weight='medium'
         color='muted-foreground'
-        className='border-l border-border pl-2.5'
+        className='border-border border-l pl-2.5'
       >
         Schedule
       </Text>
@@ -64,13 +64,19 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(function Navbar(
       as='header'
       ref={ref as React.Ref<HTMLElement>}
       className={cn(
-        'sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur',
+        'border-border bg-background/80 sticky top-0 z-40 w-full border-b backdrop-blur',
         className
       )}
       {...props}
     >
       <Container width={width}>
-        <HStack justify='between' gap={6} height={72} py={3} className='@container/nav'>
+        <HStack
+          justify='between'
+          gap={6}
+          height={72}
+          py={3}
+          className='@container/nav'
+        >
           <HStack gap={10}>
             {brand ?? <BrandMark />}
             {links ? (
@@ -107,7 +113,10 @@ const Navbar = React.forwardRef<HTMLElement, NavbarProps>(function Navbar(
                     </VStack>
                   ) : null}
                   {actions ? (
-                    <VStack gap={2} className='mt-6 border-t border-border pt-6'>
+                    <VStack
+                      gap={2}
+                      className='border-border mt-6 border-t pt-6'
+                    >
                       {actions}
                     </VStack>
                   ) : null}

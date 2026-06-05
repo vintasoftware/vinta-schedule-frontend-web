@@ -109,15 +109,24 @@
 
   /* ---- Layer 3 · Elevation (soft, cool-tinted) -------------------------- */
   --shadow-xs: 0 1px 2px 0 oklch(0.213 0.022 267 / 0.05);
-  --shadow-sm: 0 1px 3px 0 oklch(0.213 0.022 267 / 0.08), 0 1px 2px -1px oklch(0.213 0.022 267 / 0.06);
-  --shadow-md: 0 4px 12px -2px oklch(0.213 0.022 267 / 0.1), 0 2px 6px -2px oklch(0.213 0.022 267 / 0.06);
-  --shadow-lg: 0 12px 28px -6px oklch(0.213 0.022 267 / 0.14), 0 4px 10px -4px oklch(0.213 0.022 267 / 0.08);
+  --shadow-sm:
+    0 1px 3px 0 oklch(0.213 0.022 267 / 0.08),
+    0 1px 2px -1px oklch(0.213 0.022 267 / 0.06);
+  --shadow-md:
+    0 4px 12px -2px oklch(0.213 0.022 267 / 0.1),
+    0 2px 6px -2px oklch(0.213 0.022 267 / 0.06);
+  --shadow-lg:
+    0 12px 28px -6px oklch(0.213 0.022 267 / 0.14),
+    0 4px 10px -4px oklch(0.213 0.022 267 / 0.08);
   --shadow-xl: 0 24px 48px -12px oklch(0.213 0.022 267 / 0.18);
 
   /* ---- Layer 3 · Typography --------------------------------------------- */
   /* Families injected by next/font (see app/layout.tsx & .storybook/preview). */
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+  --font-sans:
+    var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --font-mono:
+    var(--font-geist-mono), ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
   --font-display: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -161,7 +170,8 @@
   --sidebar-ring: var(--vinta-500);
 
   --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.3);
-  --shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 0.4), 0 1px 2px -1px oklch(0 0 0 / 0.3);
+  --shadow-sm:
+    0 1px 3px 0 oklch(0 0 0 / 0.4), 0 1px 2px -1px oklch(0 0 0 / 0.3);
   --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.45);
   --shadow-lg: 0 12px 28px -6px oklch(0 0 0 / 0.55);
   --shadow-xl: 0 24px 48px -12px oklch(0 0 0 / 0.6);

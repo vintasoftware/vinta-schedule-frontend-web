@@ -4,8 +4,7 @@ import { cn } from '@/lib/utils/index';
 import { boxStyle, splitBoxProps, type BoxStyleProps } from './layout-style';
 
 export interface BoxProps
-  extends BoxStyleProps,
-    Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
+  extends BoxStyleProps, Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
   /** Element/component to render. Defaults to `div`. */
   as?: React.ElementType;
 }

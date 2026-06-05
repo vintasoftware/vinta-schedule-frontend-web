@@ -28,7 +28,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <Text
       as='span'
-      className='inline-flex items-center gap-2 rounded-full bg-vinta-50 px-3 py-1 text-[12.5px] font-semibold uppercase tracking-[0.06em] text-primary'
+      className='bg-vinta-50 text-primary inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12.5px] font-semibold tracking-[0.06em] uppercase'
     >
       {children}
     </Text>
@@ -49,7 +49,7 @@ function MarketingNav() {
         <a
           key={l}
           href='#'
-          className='text-sm font-medium text-muted-foreground transition-colors hover:text-foreground'
+          className='text-muted-foreground hover:text-foreground text-sm font-medium transition-colors'
         >
           {l}
         </a>
@@ -57,7 +57,12 @@ function MarketingNav() {
       actions={
         <>
           <ThemeToggle />
-          <Button asChild variant='ghost' size='sm' className='hidden sm:inline-flex'>
+          <Button
+            asChild
+            variant='ghost'
+            size='sm'
+            className='hidden sm:inline-flex'
+          >
             <Link href='/auth/login'>Sign in</Link>
           </Button>
           <Button asChild size='sm'>
@@ -72,23 +77,26 @@ function MarketingNav() {
 /* ---------------------------------------------------------------- Hero */
 function Hero() {
   return (
-    <Box as='section' className='relative overflow-hidden border-b border-border'>
+    <Box
+      as='section'
+      className='border-border relative overflow-hidden border-b'
+    >
       <Box
-        className='absolute inset-0 grid-bg opacity-60'
+        className='grid-bg absolute inset-0 opacity-60'
         style={{
           maskImage:
             'radial-gradient(120% 80% at 50% 0%, black, transparent 70%)',
         }}
       />
-      <Container className='relative grid items-center gap-14 pb-16 pt-20 md:pb-24 md:pt-28 lg:grid-cols-2'>
+      <Container className='relative grid items-center gap-14 pt-20 pb-16 md:pt-28 md:pb-24 lg:grid-cols-2'>
         <Box>
           <Eyebrow>
-            <Box as='span' className='size-1.5 rounded-full bg-primary' />
+            <Box as='span' className='bg-primary size-1.5 rounded-full' />
             Calendar infrastructure for healthcare
           </Eyebrow>
           <Text
             as='h1'
-            className='mt-5 block text-[40px] font-bold leading-[1.05] tracking-[-0.02em] text-balance md:text-[56px]'
+            className='mt-5 block text-[40px] leading-[1.05] font-bold tracking-[-0.02em] text-balance md:text-[56px]'
           >
             Every calendar in your organization,{' '}
             <Text as='span' color='primary'>
@@ -97,11 +105,11 @@ function Hero() {
           </Text>
           <Text
             as='p'
-            className='mt-5 block max-w-xl text-[18px] leading-relaxed text-muted-foreground'
+            className='text-muted-foreground mt-5 block max-w-xl text-[18px] leading-relaxed'
           >
             Vinta Schedule aggregates personal, resource, and virtual calendars,
-            then lets your patients find and book the right provider or room — in
-            seconds, in sync, HIPAA-ready.
+            then lets your patients find and book the right provider or room —
+            in seconds, in sync, HIPAA-ready.
           </Text>
           <Box className='mt-8 flex flex-wrap items-center gap-3'>
             <Button asChild size='lg'>
@@ -117,9 +125,9 @@ function Hero() {
           </Box>
           <Text
             as='p'
-            className='mt-6 flex items-center gap-2 text-[13px] text-muted-foreground'
+            className='text-muted-foreground mt-6 flex items-center gap-2 text-[13px]'
           >
-            <ShieldCheck className='size-[15px] text-success' />
+            <ShieldCheck className='text-success size-[15px]' />
             HIPAA-compliant · SOC 2 Type II · 99.99% sync uptime
           </Text>
         </Box>
@@ -135,20 +143,20 @@ function HeroMock() {
   const days = ['Mon 15', 'Tue 16', 'Wed 17', 'Thu 18'];
   return (
     <Box className='relative'>
-      <Box className='absolute -inset-4 -rotate-1 rounded-[28px] bg-vinta-50' />
-      <Box className='relative overflow-hidden rounded-2xl border border-border bg-card shadow-xl'>
-        <Box className='flex items-center gap-2.5 border-b border-border px-5 pb-3 pt-4'>
+      <Box className='bg-vinta-50 absolute -inset-4 -rotate-1 rounded-[28px]' />
+      <Box className='border-border bg-card relative overflow-hidden rounded-2xl border shadow-xl'>
+        <Box className='border-border flex items-center gap-2.5 border-b px-5 pt-4 pb-3'>
           <Box
             as='span'
-            className='flex size-8 items-center justify-center rounded-lg bg-vinta-600 text-[13px] font-bold text-white'
+            className='bg-vinta-600 flex size-8 items-center justify-center rounded-lg text-[13px] font-bold text-white'
           >
             Q
           </Box>
           <Box>
-            <Box className='text-[13px] font-semibold leading-tight'>
+            <Box className='text-[13px] leading-tight font-semibold'>
               Quilted Health
             </Box>
-            <Box className='text-[11.5px] leading-tight text-muted-foreground'>
+            <Box className='text-muted-foreground text-[11.5px] leading-tight'>
               Prenatal Intake · 30 min
             </Box>
           </Box>
@@ -173,11 +181,13 @@ function HeroMock() {
                 )}
               >
                 <Box className='opacity-80'>{d.split(' ')[0]}</Box>
-                <Box className='text-[14px] font-semibold'>{d.split(' ')[1]}</Box>
+                <Box className='text-[14px] font-semibold'>
+                  {d.split(' ')[1]}
+                </Box>
               </Box>
             ))}
           </Box>
-          <Box className='mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground'>
+          <Box className='text-muted-foreground mb-2 text-[11px] font-semibold tracking-wide uppercase'>
             Wed, Jun 17 · PT
           </Box>
           <Box className='grid grid-cols-3 gap-2'>
@@ -199,7 +209,7 @@ function HeroMock() {
           </Box>
           <button
             type='button'
-            className='mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-[14px] font-medium text-primary-foreground transition hover:bg-primary/90'
+            className='bg-primary text-primary-foreground hover:bg-primary/90 mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg text-[14px] font-medium transition'
           >
             Confirm {sel} AM
             <ArrowRight className='size-4' />
@@ -221,11 +231,11 @@ function LogoCloud() {
     'Northwind Clinic',
   ];
   return (
-    <Box as='section' className='border-b border-border bg-background py-12'>
+    <Box as='section' className='border-border bg-background border-b py-12'>
       <Container>
         <Text
           as='p'
-          className='mb-7 block text-center text-[13px] font-medium text-muted-foreground'
+          className='text-muted-foreground mb-7 block text-center text-[13px] font-medium'
         >
           Scheduling for modern care teams
         </Text>
@@ -276,13 +286,13 @@ function Features() {
           <Eyebrow>Why Vinta Schedule</Eyebrow>
           <Text
             as='h2'
-            className='mt-4 block text-[32px] font-bold leading-tight tracking-[-0.02em] md:text-[40px]'
+            className='mt-4 block text-[32px] leading-tight font-bold tracking-[-0.02em] md:text-[40px]'
           >
             Scheduling infrastructure, not another calendar app.
           </Text>
           <Text
             as='p'
-            className='mt-4 block text-[17px] leading-relaxed text-muted-foreground'
+            className='text-muted-foreground mt-4 block text-[17px] leading-relaxed'
           >
             You bring the calendars and the care model. We handle aggregation,
             availability, and booking — so your team can build the experience
@@ -295,11 +305,11 @@ function Features() {
             return (
               <Box
                 key={it.title}
-                className='rounded-2xl border border-border bg-card p-6 transition-shadow hover:shadow-md'
+                className='border-border bg-card rounded-2xl border p-6 transition-shadow hover:shadow-md'
               >
                 <Box
                   as='span'
-                  className='flex size-11 items-center justify-center rounded-xl bg-vinta-50 text-primary'
+                  className='bg-vinta-50 text-primary flex size-11 items-center justify-center rounded-xl'
                 >
                   <Icon className='size-[22px]' />
                 </Box>
@@ -308,7 +318,7 @@ function Features() {
                 </Text>
                 <Text
                   as='p'
-                  className='mt-1.5 block text-[13.5px] leading-relaxed text-muted-foreground'
+                  className='text-muted-foreground mt-1.5 block text-[13.5px] leading-relaxed'
                 >
                   {it.body}
                 </Text>
@@ -324,19 +334,22 @@ function Features() {
 /* ---------------------------------------------------------------- API showcase */
 function ApiShowcase() {
   return (
-    <Box as='section' className='border-y border-border bg-background py-20 md:py-24'>
+    <Box
+      as='section'
+      className='border-border bg-background border-y py-20 md:py-24'
+    >
       <Container className='grid items-center gap-12 lg:grid-cols-2'>
         <Box>
           <Eyebrow>For developers</Eyebrow>
           <Text
             as='h2'
-            className='mt-4 block text-[30px] font-bold leading-tight tracking-[-0.02em] md:text-[38px]'
+            className='mt-4 block text-[30px] leading-tight font-bold tracking-[-0.02em] md:text-[38px]'
           >
             Book a slot in one call.
           </Text>
           <Text
             as='p'
-            className='mt-4 block max-w-lg text-[16.5px] leading-relaxed text-muted-foreground'
+            className='text-muted-foreground mt-4 block max-w-lg text-[16.5px] leading-relaxed'
           >
             Query a Calendar Group for live availability, then confirm — Vinta
             resolves the right provider or resource and writes back to every
@@ -348,8 +361,12 @@ function ApiShowcase() {
               'Idempotent holds so slots never double-book',
               'Typed SDKs for Python, Node & Go',
             ].map((t) => (
-              <Box as='li' key={t} className='flex items-center gap-3 text-[14.5px]'>
-                <Check className='size-4 text-success' />
+              <Box
+                as='li'
+                key={t}
+                className='flex items-center gap-3 text-[14.5px]'
+              >
+                <Check className='text-success size-4' />
                 {t}
               </Box>
             ))}
@@ -366,7 +383,11 @@ function ApiShowcase() {
             <Box as='span' className='size-3 rounded-full bg-slate-700' />
             <Box as='span' className='size-3 rounded-full bg-slate-700' />
             <Box as='span' className='size-3 rounded-full bg-slate-700' />
-            <Text as='span' family='mono' className='ml-2 text-[12px] text-slate-400'>
+            <Text
+              as='span'
+              family='mono'
+              className='ml-2 text-[12px] text-slate-400'
+            >
               booking.sh
             </Text>
           </Box>
@@ -374,27 +395,54 @@ function ApiShowcase() {
             as='pre'
             className='overflow-x-auto bg-slate-950 p-5 font-mono text-[13px] leading-[1.7] text-slate-100'
           >
-            <Text as='span' className='text-slate-500'># Find availability in a Calendar Group</Text>
+            <Text as='span' className='text-slate-500'>
+              # Find availability in a Calendar Group
+            </Text>
             {'\n'}
-            <Text as='span' className='text-teal-300'>curl</Text>{' '}
+            <Text as='span' className='text-teal-300'>
+              curl
+            </Text>{' '}
             https://api.vinta.dev/v1/groups/
-            <Text as='span' className='text-vinta-300'>grp_8fk2</Text>/availability \{'\n'}
-            {'  '}-d type=<Text as='span' className='text-teal-300'>&quot;intake-30&quot;</Text>{' '}
-            -d date=<Text as='span' className='text-teal-300'>&quot;2026-06-17&quot;</Text>
+            <Text as='span' className='text-vinta-300'>
+              grp_8fk2
+            </Text>
+            /availability \{'\n'}
+            {'  '}-d type=
+            <Text as='span' className='text-teal-300'>
+              &quot;intake-30&quot;
+            </Text>{' '}
+            -d date=
+            <Text as='span' className='text-teal-300'>
+              &quot;2026-06-17&quot;
+            </Text>
             {'\n\n'}
-            <Text as='span' className='text-slate-500'># → confirm the slot</Text>
+            <Text as='span' className='text-slate-500'>
+              # → confirm the slot
+            </Text>
             {'\n'}
-            <Text as='span' className='text-teal-300'>POST</Text> /v1/groups/grp_8fk2/bookings
+            <Text as='span' className='text-teal-300'>
+              POST
+            </Text>{' '}
+            /v1/groups/grp_8fk2/bookings
             {'\n'}
             {'{ '}
-            <Text as='span' className='text-vinta-300'>&quot;start&quot;</Text>:{' '}
+            <Text as='span' className='text-vinta-300'>
+              &quot;start&quot;
+            </Text>
+            :{' '}
             <Text as='span' className='text-teal-300'>
               &quot;2026-06-17T10:30-07:00&quot;
             </Text>
             ,{'\n'}
             {'  '}
-            <Text as='span' className='text-vinta-300'>&quot;patient&quot;</Text>:{' '}
-            <Text as='span' className='text-teal-300'>&quot;pat_1a2b&quot;</Text> {'}'}
+            <Text as='span' className='text-vinta-300'>
+              &quot;patient&quot;
+            </Text>
+            :{' '}
+            <Text as='span' className='text-teal-300'>
+              &quot;pat_1a2b&quot;
+            </Text>{' '}
+            {'}'}
             {'\n\n'}
             <Text as='span' className='text-slate-500'>
               # ← 201 booked · synced to 3 calendars
@@ -448,11 +496,15 @@ function HowItWorks() {
                 <Box className='flex items-center gap-3'>
                   <Box
                     as='span'
-                    className='flex size-11 items-center justify-center rounded-xl border border-border bg-card text-primary shadow-sm'
+                    className='border-border bg-card text-primary flex size-11 items-center justify-center rounded-xl border shadow-sm'
                   >
                     <Icon className='size-[22px]' />
                   </Box>
-                  <Text as='span' family='mono' className='text-[13px] font-semibold text-slate-300'>
+                  <Text
+                    as='span'
+                    family='mono'
+                    className='text-[13px] font-semibold text-slate-300'
+                  >
                     {s.n}
                   </Text>
                 </Box>
@@ -461,7 +513,7 @@ function HowItWorks() {
                 </Text>
                 <Text
                   as='p'
-                  className='mt-1.5 block max-w-xs text-[14.5px] leading-relaxed text-muted-foreground'
+                  className='text-muted-foreground mt-1.5 block max-w-xs text-[14.5px] leading-relaxed'
                 >
                   {s.body}
                 </Text>
@@ -522,7 +574,10 @@ function Pricing() {
     },
   ];
   return (
-    <Box as='section' className='border-t border-border bg-background py-20 md:py-28'>
+    <Box
+      as='section'
+      className='border-border bg-background border-t py-20 md:py-28'
+    >
       <Container>
         <Box className='mx-auto max-w-2xl text-center'>
           <Eyebrow>Pricing</Eyebrow>
@@ -540,14 +595,14 @@ function Pricing() {
               className={cn(
                 'rounded-2xl border p-7',
                 t.highlight
-                  ? 'relative border-primary bg-card shadow-lg ring-1 ring-primary'
+                  ? 'border-primary bg-card ring-primary relative shadow-lg ring-1'
                   : 'border-border bg-card'
               )}
             >
               {t.highlight ? (
                 <Text
                   as='span'
-                  className='absolute -top-3 left-7 rounded-full bg-primary px-3 py-1 text-[11.5px] font-semibold uppercase tracking-wide text-primary-foreground'
+                  className='bg-primary text-primary-foreground absolute -top-3 left-7 rounded-full px-3 py-1 text-[11.5px] font-semibold tracking-wide uppercase'
                 >
                   Most popular
                 </Text>
@@ -555,14 +610,23 @@ function Pricing() {
               <Text as='h3' className='block text-[17px] font-semibold'>
                 {t.name}
               </Text>
-              <Text as='p' className='mt-1 block h-9 text-[13.5px] text-muted-foreground'>
+              <Text
+                as='p'
+                className='text-muted-foreground mt-1 block h-9 text-[13.5px]'
+              >
                 {t.desc}
               </Text>
               <Box className='mt-3 flex items-end gap-1'>
-                <Text as='span' className='text-[40px] font-bold leading-none tracking-tight'>
+                <Text
+                  as='span'
+                  className='text-[40px] leading-none font-bold tracking-tight'
+                >
                   {t.price}
                 </Text>
-                <Text as='span' className='mb-1 text-[14px] text-muted-foreground'>
+                <Text
+                  as='span'
+                  className='text-muted-foreground mb-1 text-[14px]'
+                >
                   {t.unit}
                 </Text>
               </Box>
@@ -577,8 +641,12 @@ function Pricing() {
               </Box>
               <Box as='ul' className='mt-6 flex flex-col gap-3'>
                 {t.feats.map((f) => (
-                  <Box as='li' key={f} className='flex items-start gap-2.5 text-[14px]'>
-                    <Check className='mt-0.5 size-4 text-success' />
+                  <Box
+                    as='li'
+                    key={f}
+                    className='flex items-start gap-2.5 text-[14px]'
+                  >
+                    <Check className='text-success mt-0.5 size-4' />
                     {f}
                   </Box>
                 ))}
@@ -596,16 +664,19 @@ function CTA() {
   return (
     <Box as='section' className='py-20 md:py-24'>
       <Container>
-        <Box className='relative overflow-hidden rounded-3xl bg-vinta-600 px-8 py-14 text-center md:py-20'>
-          <Box className='absolute inset-0 grid-bg opacity-[0.12]' />
+        <Box className='bg-vinta-600 relative overflow-hidden rounded-3xl px-8 py-14 text-center md:py-20'>
+          <Box className='grid-bg absolute inset-0 opacity-[0.12]' />
           <Box className='relative'>
             <Text
               as='h2'
-              className='mx-auto block max-w-2xl text-[32px] font-bold leading-[1.1] tracking-[-0.02em] text-white md:text-[44px]'
+              className='mx-auto block max-w-2xl text-[32px] leading-[1.1] font-bold tracking-[-0.02em] text-white md:text-[44px]'
             >
               Bring your calendars. We&apos;ll handle the booking.
             </Text>
-            <Text as='p' className='mx-auto mt-4 block max-w-xl text-[17px] text-white/85'>
+            <Text
+              as='p'
+              className='mx-auto mt-4 block max-w-xl text-[17px] text-white/85'
+            >
               Start free, or talk to us about your care model. Most teams are
               live the same day.
             </Text>
@@ -613,7 +684,7 @@ function CTA() {
               <Button
                 asChild
                 size='lg'
-                className='bg-white text-vinta-700 hover:bg-vinta-50'
+                className='text-vinta-700 hover:bg-vinta-50 bg-white'
               >
                 <Link href='/auth/signup'>
                   Start building
@@ -639,13 +710,22 @@ function Footer() {
   const cols = [
     {
       h: 'Product',
-      links: ['Overview', 'Calendar Groups', 'Booking API', 'Integrations', 'Pricing'],
+      links: [
+        'Overview',
+        'Calendar Groups',
+        'Booking API',
+        'Integrations',
+        'Pricing',
+      ],
     },
     {
       h: 'Developers',
       links: ['API docs', 'SDKs', 'Webhooks', 'Status', 'Changelog'],
     },
-    { h: 'Company', links: ['About', 'Customers', 'Careers', 'Blog', 'Contact'] },
+    {
+      h: 'Company',
+      links: ['About', 'Customers', 'Careers', 'Blog', 'Contact'],
+    },
     { h: 'Trust', links: ['HIPAA', 'SOC 2', 'Security', 'Privacy', 'Terms'] },
   ];
   const social = [
@@ -654,7 +734,7 @@ function Footer() {
     { key: 'rss', Icon: Rss },
   ];
   return (
-    <Box as='footer' className='border-t border-border bg-card'>
+    <Box as='footer' className='border-border bg-card border-t'>
       <Container className='grid gap-10 py-14 md:grid-cols-[1.4fr_repeat(4,1fr)]'>
         <Box>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -665,17 +745,17 @@ function Footer() {
           />
           <Text
             as='p'
-            className='mt-4 block max-w-[15rem] text-[13.5px] leading-relaxed text-muted-foreground'
+            className='text-muted-foreground mt-4 block max-w-[15rem] text-[13.5px] leading-relaxed'
           >
             Calendar aggregation &amp; booking infrastructure for healthcare.
             Building tech the human way.
           </Text>
-          <Box className='mt-4 flex items-center gap-2.5 text-muted-foreground'>
+          <Box className='text-muted-foreground mt-4 flex items-center gap-2.5'>
             {social.map(({ key, Icon }) => (
               <a
                 key={key}
                 href='#'
-                className='flex size-9 items-center justify-center rounded-lg border border-border transition hover:border-slate-300 hover:text-foreground'
+                className='border-border hover:text-foreground flex size-9 items-center justify-center rounded-lg border transition hover:border-slate-300'
               >
                 <Icon className='size-4' />
               </a>
@@ -686,7 +766,7 @@ function Footer() {
           <Box key={c.h}>
             <Text
               as='div'
-              className='mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground'
+              className='text-muted-foreground mb-3 text-[12px] font-semibold tracking-[0.06em] uppercase'
             >
               {c.h}
             </Text>
@@ -695,7 +775,7 @@ function Footer() {
                 <Box as='li' key={l}>
                   <a
                     href='#'
-                    className='text-[13.5px] text-foreground/80 transition-colors hover:text-primary'
+                    className='text-foreground/80 hover:text-primary text-[13.5px] transition-colors'
                   >
                     {l}
                   </a>
@@ -705,11 +785,11 @@ function Footer() {
           </Box>
         ))}
       </Container>
-      <Box className='border-t border-border'>
-        <Container className='flex flex-col items-center justify-between gap-3 py-5 text-[12.5px] text-muted-foreground sm:flex-row'>
+      <Box className='border-border border-t'>
+        <Container className='text-muted-foreground flex flex-col items-center justify-between gap-3 py-5 text-[12.5px] sm:flex-row'>
           <Text as='span'>© 2026 Vinta Schedule. All rights reserved.</Text>
           <Text as='span' className='inline-flex items-center gap-2'>
-            <ShieldCheck className='size-[14px] text-success' />
+            <ShieldCheck className='text-success size-[14px]' />
             HIPAA-compliant · SOC 2 Type II
           </Text>
         </Container>

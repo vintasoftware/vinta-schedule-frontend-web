@@ -30,10 +30,7 @@ const BookingForm = () => {
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(() => {})}
-        className='w-80 space-y-4'
-      >
+      <form onSubmit={form.handleSubmit(() => {})} className='w-80 space-y-4'>
         <FormField
           control={form.control}
           name='email'

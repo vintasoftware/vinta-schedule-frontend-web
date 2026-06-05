@@ -87,7 +87,7 @@ export const CenterAndDivider: Story = {
       </Center>
       <Divider />
       <Center bg='muted' radius='lg' height={80}>
-        <span className='text-sm text-muted-foreground'>Below the divider</span>
+        <span className='text-muted-foreground text-sm'>Below the divider</span>
       </Center>
     </VStack>
   ),

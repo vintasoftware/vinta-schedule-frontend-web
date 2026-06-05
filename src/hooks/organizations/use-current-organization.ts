@@ -4,7 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 
 // Query key for the caller's current organization/membership. Mutations that
 // change membership (create org, accept invite) should invalidate this key.
-export const CURRENT_ORGANIZATION_QUERY_KEY = ['organizations', 'current'] as const;
+export const CURRENT_ORGANIZATION_QUERY_KEY = [
+  'organizations',
+  'current',
+] as const;
 
 export type CurrentOrganizationResult =
   | { status: 'onboarded'; membership: CurrentMembership }

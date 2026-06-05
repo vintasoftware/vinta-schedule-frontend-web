@@ -76,9 +76,21 @@ function DashboardBody() {
               <CardDescription>3 slots</CardDescription>
             </CardHeader>
             <CardContent className='space-y-2'>
-              <SchedulingChip status='booked' title='Prenatal intake' meta='9:00 · Dr. Pires' />
-              <SchedulingChip status='available' title='Available' meta='10:00 · Open' />
-              <SchedulingChip status='tentative' title='Hold' meta='11:00 · Pending' />
+              <SchedulingChip
+                status='booked'
+                title='Prenatal intake'
+                meta='9:00 · Dr. Pires'
+              />
+              <SchedulingChip
+                status='available'
+                title='Available'
+                meta='10:00 · Open'
+              />
+              <SchedulingChip
+                status='tentative'
+                title='Hold'
+                meta='11:00 · Pending'
+              />
             </CardContent>
           </Card>
         ))}
@@ -92,7 +104,9 @@ function SignInCard() {
     <Card>
       <CardHeader>
         <CardTitle className='text-xl'>Welcome back</CardTitle>
-        <CardDescription>Sign in to your Vinta Schedule account.</CardDescription>
+        <CardDescription>
+          Sign in to your Vinta Schedule account.
+        </CardDescription>
       </CardHeader>
       <CardContent className='space-y-4'>
         <div className='grid gap-2'>
@@ -121,10 +135,10 @@ function SignUpTwoColumnCard() {
           Start aggregating calendars in minutes — no card required.
         </CardDescription>
       </CardHeader>
-      <CardContent className='@container/authcard grid gap-6 @xl/authcard:grid-cols-2 @xl/authcard:divide-x @xl/authcard:divide-border'>
+      <CardContent className='@xl/authcard:divide-border @container/authcard grid gap-6 @xl/authcard:grid-cols-2 @xl/authcard:divide-x'>
         {/* Left — social sign-in */}
         <div className='space-y-3 @xl/authcard:pr-6'>
-          <p className='text-sm font-medium text-muted-foreground'>
+          <p className='text-muted-foreground text-sm font-medium'>
             Sign up with
           </p>
           <Button variant='outline' className='w-full'>

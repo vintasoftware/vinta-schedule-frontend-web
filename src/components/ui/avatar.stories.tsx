@@ -32,7 +32,7 @@ export const Group: Story = {
   render: () => (
     <div className='flex -space-x-2'>
       {['1', '5', '9', '12'].map((i) => (
-        <Avatar key={i} className='ring-2 ring-background'>
+        <Avatar key={i} className='ring-background ring-2'>
           <AvatarImage src={`https://i.pravatar.cc/80?img=${i}`} alt='' />
           <AvatarFallback>U{i}</AvatarFallback>
         </Avatar>

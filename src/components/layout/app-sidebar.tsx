@@ -84,11 +84,11 @@ const AppSidebar = React.forwardRef<HTMLElement, AppSidebarProps>(
         height='full'
         shrink={0}
         bg='sidebar'
-        className={cn('border-r border-sidebar-border', className)}
+        className={cn('border-sidebar-border border-r', className)}
         {...props}
       >
         {/* Brand */}
-        <div className='flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5'>
+        <div className='border-sidebar-border flex h-16 items-center gap-2.5 border-b px-5'>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src='/vinta-wordmark.svg'
@@ -98,7 +98,7 @@ const AppSidebar = React.forwardRef<HTMLElement, AppSidebarProps>(
           <Text
             weight='medium'
             color='muted-foreground'
-            className='border-l border-border pl-2.5 text-[13px]'
+            className='border-border border-l pl-2.5 text-[13px]'
           >
             Schedule
           </Text>
@@ -150,7 +150,7 @@ const AppSidebar = React.forwardRef<HTMLElement, AppSidebarProps>(
                         as='span'
                         weight='semibold'
                         color='primary'
-                        className='rounded-full bg-vinta-50 px-1.5 py-0.5 text-[11px]'
+                        className='bg-vinta-50 rounded-full px-1.5 py-0.5 text-[11px]'
                       >
                         {item.badge}
                       </Text>
@@ -163,10 +163,10 @@ const AppSidebar = React.forwardRef<HTMLElement, AppSidebarProps>(
         </VStack>
 
         {/* Org + user */}
-        <VStack gap={1} p={3} className='border-t border-sidebar-border'>
+        <VStack gap={1} p={3} className='border-sidebar-border border-t'>
           <button
             type='button'
-            className='flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors hover:bg-sidebar-accent'
+            className='hover:bg-sidebar-accent flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
           >
             <Box
               width={28}
@@ -179,18 +179,29 @@ const AppSidebar = React.forwardRef<HTMLElement, AppSidebarProps>(
               {orgName.charAt(0)}
             </Box>
             <Box minWidth={0} grow={1}>
-              <Text as='div' weight='semibold' leading='tight' truncate className='text-[13px]'>
+              <Text
+                as='div'
+                weight='semibold'
+                leading='tight'
+                truncate
+                className='text-[13px]'
+              >
                 {orgName}
               </Text>
-              <Text as='div' color='muted-foreground' leading='tight' className='text-[11px]'>
+              <Text
+                as='div'
+                color='muted-foreground'
+                leading='tight'
+                className='text-[11px]'
+              >
                 {orgMeta}
               </Text>
             </Box>
-            <ChevronsUpDown className='size-[15px] text-muted-foreground' />
+            <ChevronsUpDown className='text-muted-foreground size-[15px]' />
           </button>
           <button
             type='button'
-            className='flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors hover:bg-sidebar-accent'
+            className='hover:bg-sidebar-accent flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
           >
             <Avatar className='size-7'>
               <AvatarFallback className='bg-teal-100 text-[11px] text-teal-700'>
@@ -198,14 +209,26 @@ const AppSidebar = React.forwardRef<HTMLElement, AppSidebarProps>(
               </AvatarFallback>
             </Avatar>
             <Box minWidth={0} grow={1}>
-              <Text as='div' weight='medium' leading='tight' truncate className='text-[13px]'>
+              <Text
+                as='div'
+                weight='medium'
+                leading='tight'
+                truncate
+                className='text-[13px]'
+              >
                 {userName}
               </Text>
-              <Text as='div' color='muted-foreground' leading='tight' truncate className='text-[11px]'>
+              <Text
+                as='div'
+                color='muted-foreground'
+                leading='tight'
+                truncate
+                className='text-[11px]'
+              >
                 {userEmail}
               </Text>
             </Box>
-            <LogOut className='size-[15px] text-muted-foreground' />
+            <LogOut className='text-muted-foreground size-[15px]' />
           </button>
         </VStack>
       </VStack>

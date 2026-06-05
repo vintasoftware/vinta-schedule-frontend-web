@@ -15,7 +15,10 @@ export interface PathSerializer {
 
 export const PATH_PARAM_RE: RegExp = /\{[^{}]+\}/g;
 
-export const defaultPathSerializer = ({ path, url: _url }: PathSerializer): string => {
+export const defaultPathSerializer = ({
+  path,
+  url: _url,
+}: PathSerializer): string => {
   let url = _url;
   const matches = _url.match(PATH_PARAM_RE);
   if (matches) {
@@ -44,7 +47,10 @@ export const defaultPathSerializer = ({ path, url: _url }: PathSerializer): stri
       }
 
       if (Array.isArray(value)) {
-        url = url.replace(match, serializeArrayParam({ explode, name, style, value }));
+        url = url.replace(
+          match,
+          serializeArrayParam({ explode, name, style, value })
+        );
         continue;
       }
 
@@ -57,7 +63,7 @@ export const defaultPathSerializer = ({ path, url: _url }: PathSerializer): stri
             style,
             value: value as Record<string, unknown>,
             valueOnly: true,
-          }),
+          })
         );
         continue;
       }
@@ -68,13 +74,13 @@ export const defaultPathSerializer = ({ path, url: _url }: PathSerializer): stri
           `;${serializePrimitiveParam({
             name,
             value: value as string,
-          })}`,
+          })}`
         );
         continue;
       }
 
       const replaceValue = encodeURIComponent(
-        style === 'label' ? `.${value as string}` : (value as string),
+        style === 'label' ? `.${value as string}` : (value as string)
       );
       url = url.replace(match, replaceValue);
     }

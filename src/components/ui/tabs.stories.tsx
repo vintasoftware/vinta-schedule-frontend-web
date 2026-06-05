@@ -19,13 +19,19 @@ export const Default: Story = {
         <TabsTrigger value='past'>Past</TabsTrigger>
         <TabsTrigger value='canceled'>Canceled</TabsTrigger>
       </TabsList>
-      <TabsContent value='upcoming' className='pt-3 text-sm text-muted-foreground'>
+      <TabsContent
+        value='upcoming'
+        className='text-muted-foreground pt-3 text-sm'
+      >
         3 upcoming appointments this week.
       </TabsContent>
-      <TabsContent value='past' className='pt-3 text-sm text-muted-foreground'>
+      <TabsContent value='past' className='text-muted-foreground pt-3 text-sm'>
         12 appointments in the last 30 days.
       </TabsContent>
-      <TabsContent value='canceled' className='pt-3 text-sm text-muted-foreground'>
+      <TabsContent
+        value='canceled'
+        className='text-muted-foreground pt-3 text-sm'
+      >
         No cancellations. Nice.
       </TabsContent>
     </Tabs>

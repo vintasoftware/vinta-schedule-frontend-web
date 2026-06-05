@@ -45,7 +45,13 @@ export const Surfaces: Story = {
       <Box p={6} bg='muted' radius='lg' width={180}>
         muted
       </Box>
-      <Box p={6} bg='primary' color='primary-foreground' radius='lg' width={180}>
+      <Box
+        p={6}
+        bg='primary'
+        color='primary-foreground'
+        radius='lg'
+        width={180}
+      >
         primary
       </Box>
       <Box p={6} bg='vinta-50' color='vinta-700' radius='xl' width={180}>

@@ -42,7 +42,10 @@ function Badge({ className, variant, ...props }: BadgeProps) {
 }
 
 /** Small leading status dot — pair with a soft Badge variant. */
-function BadgeDot({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
+function BadgeDot({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
       className={cn('size-1.5 shrink-0 rounded-full bg-current', className)}

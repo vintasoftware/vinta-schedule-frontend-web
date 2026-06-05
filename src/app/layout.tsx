@@ -35,7 +35,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang='en' suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body
+        className={`${dmSans.variable} ${geistMono.variable} font-sans antialiased`}
+      >
         <APIClientAuthInitializationProvider>
           <ThemeProvider
             attribute='class'

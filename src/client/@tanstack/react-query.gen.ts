@@ -2840,7 +2840,17 @@ export const organizationsPartialUpdateMutation = (options?: Partial<Options<Org
 };
 
 /**
- * A viewset for managing organizations.
+ * Override update to:
+ *
+ * 1. Upsert the org's ``GoogleCalendarServiceAccount`` when ``google_service_account``
+ * is present in the request body (create-or-update, one per org, calendar FK=None).
+ * 2. Trigger rooms sync when ``should_sync_rooms`` flips False→True — but only when a
+ * service account is configured (either already stored or just provided in this PATCH).
+ * If the flag is being enabled and no service account is configured (neither stored
+ * nor in the request), return **400** so the admin knows to configure first.
+ *
+ * Uses select_for_update to lock the row during snapshot + write, serializing
+ * concurrent PATCHes and preventing double-fire of the sync on False→True transition.
  */
 export const organizationsUpdateMutation = (options?: Partial<Options<OrganizationsUpdateData>>): UseMutationOptions<OrganizationsUpdateResponse, DefaultError, Options<OrganizationsUpdateData>> => {
     const mutationOptions: UseMutationOptions<OrganizationsUpdateResponse, DefaultError, Options<OrganizationsUpdateData>> = {
@@ -2909,7 +2919,17 @@ export const organizationsFormattedPartialUpdateMutation = (options?: Partial<Op
 };
 
 /**
- * A viewset for managing organizations.
+ * Override update to:
+ *
+ * 1. Upsert the org's ``GoogleCalendarServiceAccount`` when ``google_service_account``
+ * is present in the request body (create-or-update, one per org, calendar FK=None).
+ * 2. Trigger rooms sync when ``should_sync_rooms`` flips False→True — but only when a
+ * service account is configured (either already stored or just provided in this PATCH).
+ * If the flag is being enabled and no service account is configured (neither stored
+ * nor in the request), return **400** so the admin knows to configure first.
+ *
+ * Uses select_for_update to lock the row during snapshot + write, serializing
+ * concurrent PATCHes and preventing double-fire of the sync on False→True transition.
  */
 export const organizationsFormattedUpdateMutation = (options?: Partial<Options<OrganizationsFormattedUpdateData>>): UseMutationOptions<OrganizationsFormattedUpdateResponse, DefaultError, Options<OrganizationsFormattedUpdateData>> => {
     const mutationOptions: UseMutationOptions<OrganizationsFormattedUpdateResponse, DefaultError, Options<OrganizationsFormattedUpdateData>> = {

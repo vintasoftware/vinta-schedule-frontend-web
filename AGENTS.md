@@ -18,18 +18,18 @@ non-visual conventions: stack, commands, structure, and code patterns.
 
 ## Commands
 
-| Task | Command |
-|------|---------|
-| Dev server | `npm run dev` |
-| Build | `npm run build` |
-| Lint | `npm run lint` |
-| Format check / fix | `npm run format` / `npm run format:fix` |
-| Typecheck | `npm run typecheck` |
-| Test (all) | `npm run test` |
-| Test (scoped) | `npm run test -- <path-or-pattern>` |
-| Test (watch) | `npm run test:watch` |
-| Storybook | `npm run storybook` |
-| Regen API client | `npm run openapi-ts` (app) / `npm run openapi-ts-auth` (auth) |
+| Task               | Command                                                       |
+| ------------------ | ------------------------------------------------------------- |
+| Dev server         | `npm run dev`                                                 |
+| Build              | `npm run build`                                               |
+| Lint               | `npm run lint`                                                |
+| Format check / fix | `npm run format` / `npm run format:fix`                       |
+| Typecheck          | `npm run typecheck`                                           |
+| Test (all)         | `npm run test`                                                |
+| Test (scoped)      | `npm run test -- <path-or-pattern>`                           |
+| Test (watch)       | `npm run test:watch`                                          |
+| Storybook          | `npm run storybook`                                           |
+| Regen API client   | `npm run openapi-ts` (app) / `npm run openapi-ts-auth` (auth) |
 
 **Definition of done for any change:** `npm run typecheck`, `npm run lint`,
 `npm run test`, and `npm run format` all clean. Add/update a Storybook story for
@@ -76,7 +76,9 @@ export function useCreateOrganization() {
   const createOrganizationMutation = useMutation({
     ...organizationsCreateMutation(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CURRENT_ORGANIZATION_QUERY_KEY });
+      queryClient.invalidateQueries({
+        queryKey: CURRENT_ORGANIZATION_QUERY_KEY,
+      });
     },
   });
   const createOrganization = async (body: OrganizationWritable) =>
@@ -89,7 +91,7 @@ export function useCreateOrganization() {
 - Import types from `@/client` / `@/auth-client`; operation factories from the
   `@tanstack/react-query.gen` barrel.
 - Export a `*_QUERY_KEY` const from query hooks so mutations can invalidate it.
-- Add a short comment explaining the *why* (non-obvious auth/cache behavior).
+- Add a short comment explaining the _why_ (non-obvious auth/cache behavior).
 
 ### Pages (`src/app/**/page.tsx`)
 

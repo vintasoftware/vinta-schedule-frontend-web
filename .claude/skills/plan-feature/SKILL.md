@@ -9,7 +9,7 @@ Plans live in `ai-plans/` as `YYYY-MM-DD-FEATURE_NAME_IMPLEMENTATION_PLAN.md` (u
 
 ## Step 0 — Interrogate before drafting (NON-NEGOTIABLE)
 
-**Never assume requester want.** *"Plan bookmarks feature"* hide ≥dozen decisions cheaper to surface now than unwind in Phase 4.
+**Never assume requester want.** _"Plan bookmarks feature"_ hide ≥dozen decisions cheaper to surface now than unwind in Phase 4.
 
 Ask below in **batched, numbered groups**. Skip only when SPEC.md or prior conversation **explicitly** answers — never because guess. Can guess but not 100% sure → ask + state default ("default: per-user; confirm or override").
 
@@ -47,16 +47,19 @@ Closed-choice questions in same group still ride single `AskUserQuestion` call �
 Never flatten ten questions into one prose paragraph just because tool unavailable. Iteration = fallback, not consolidation.
 
 ### A. Problem & users
+
 1. Problem this solves, for whom (tenant admins, internal ops, external integrations, end-users via UI)?
 2. Success looks like — what behavior or metric changes?
-3. Workflows requester *thinks* in scope but actually belong to follow-up?
+3. Workflows requester _thinks_ in scope but actually belong to follow-up?
 4. Who else cares about this landing? Anyone need looping in on contract?
 
 ### B. Scope & non-goals
+
 1. **Explicitly out of scope** for v1? Force non-goals list — where most plans drift.
 2. v1.x / v2 already implied? Name it so we don't bake assumptions into v1's data model.
 
 ### C. Data model & storage
+
 1. New table, new column on existing, JSONB blob, side table, no persistence?
 2. Touching an existing table on a hot path (high-volume, frequently joined, partitioned)? Adding a column there has very different costs than a side table.
 3. Multi-tenancy: per-tenant, per-user-per-tenant, tenant-shared?
@@ -66,39 +69,46 @@ Never flatten ten questions into one prose paragraph just because tool unavailab
 7. Indexing: which predicates need index-friendly?
 
 ### D. API surface
+
 1. REST (internal versioned API), Public GraphQL, internal-only, or several?
 2. Auth: internal session/JWT, public API token (`Authorization: Bearer ...`), service-to-service?
 3. Bulk-upsert? Endpoints fed by integrations should be bulk-upsert.
 4. Client SDKs or external consumers locking in contract?
 
 ### E. Producers & consumers (cross-repo)
+
 1. Data flowing in from an upstream producer / integration repo? Which third-party providers feed it?
 2. Downstream system reading new data — warehouse / lake, analytics, exports?
 3. Deploy ordering between repos — what gets deployed first; what breaks if order flips?
 
 ### F. Backwards compatibility & semantics
+
 1. Existing clients/integrations — does omitting new field mean "don't change" vs "clear"? (omit-vs-empty-list = recurring bug source)
 2. Existing rules / records expected to keep behaving same when new field defaults to null/empty? Confirm explicitly.
 3. Replace vs merge semantics on writes?
 4. Case-sensitivity, normalization (trim, lowercase), dedupe — at which layer?
 
 ### G. Concurrency, transactions, idempotency
+
 1. Race conditions (concurrent batch edits, parallel workers / serverless invocations on the same row)?
 2. Atomic-batch semantics: all-or-nothing, best-effort?
 3. Upsert needs `last_updated_at` guard so we don't overwrite newer state?
 
 ### H. Rollout & risk
+
 1. **Feature flag** — declared in the project's feature-flag module (substitute the actual path during planning). **Default YES** when feature touches existing flows (changes shape of existing endpoint, alters query path on hot table, modifies routing/matching, mutates data on existing rows, adds branching to use case with callers). Confirm flag key + scope (per-tenant vs per-request, by whatever names the project's flag API uses). Skip only when **purely additive new surface** (brand-new endpoint, table, admin page no existing code reads/writes) — even then, ask before dropping.
 2. Backfill needed? Idempotent? Resumable?
 3. Migration safety: locks, rewrites, query-plan regressions on hot tables?
 4. Rollback plan: revert migration, flag-off, hot-patch?
 
 ### I. Observability & validation
+
 1. Metric / log / dashboard tells us it's working in prod?
 2. Audit logging requirements (whatever audit-trail app/module the project uses)?
 3. How measure producer adoption before downstream phases ship?
 
 ### J. Edge cases & failure modes
+
 1. Behavior when new field partially populated, malformed, oversized? Reject whole batch, drop offending entry?
 2. Cycle / depth / cardinality limits — where (serializer vs use case vs DB constraint)?
 3. Acceptable to silently truncate vs reject loudly?
@@ -108,6 +118,7 @@ Never flatten ten questions into one prose paragraph just because tool unavailab
 Don't treat Step 0 as one-pass. After each round of answers, **scan for new gaps**: contradictions, follow-ups the answer surfaces, decisions that depend on something earlier left vague. Open another batch of questions for those. Repeat.
 
 Loop exit conditions (all required):
+
 - Every group A–J either fully answered or explicitly waived.
 - Every answer's downstream questions also asked + answered.
 - No "we'll figure that out later" — that's **Open Questions** material; either it has a recommended default + owner, or it gets resolved now.
@@ -115,9 +126,9 @@ Loop exit conditions (all required):
 
 If any condition fails → another `AskUserQuestion` round. Don't shortcut to drafting.
 
-After answers stabilize: **read back decisions** as one-paragraph summary. Then issue one final `AskUserQuestion` with single question — *"Anything I got wrong before I draft?"* — options `Looks good`, `Some corrections (I'll list)`, `More to clarify`, `Stop, rethink`. `More to clarify` → another loop iteration. Only draft when user picks `Looks good`.
+After answers stabilize: **read back decisions** as one-paragraph summary. Then issue one final `AskUserQuestion` with single question — _"Anything I got wrong before I draft?"_ — options `Looks good`, `Some corrections (I'll list)`, `More to clarify`, `Stop, rethink`. `More to clarify` → another loop iteration. Only draft when user picks `Looks good`.
 
-Pushback *"just write the plan"*: write it but **mark every assumption explicitly** in "Guiding Decisions" table.
+Pushback _"just write the plan"_: write it but **mark every assumption explicitly** in "Guiding Decisions" table.
 
 ## Plan structure
 
@@ -125,44 +136,56 @@ Pushback *"just write the plan"*: write it but **mark every assumption explicitl
 # {Feature Name} — Implementation Plan
 
 ## 1. Goals
+
 - 2-5 numbered concrete goals (the contract).
 - Then "Non-goals:" bulleted list. **Always include non-goals.**
 
 ## 2. Guiding Decisions
-| Decision | Resolution |
-|---|---|
-| **Storage shape** | … with the *why*, not just the what. |
-| **Match semantics** | … |
-| ... | ... |
+
+| Decision            | Resolution                           |
+| ------------------- | ------------------------------------ |
+| **Storage shape**   | … with the _why_, not just the what. |
+| **Match semantics** | …                                    |
+| ...                 | ...                                  |
 
 ## 3. Data Model Changes
+
 ### 3.1 New {Model}
-   Code block with model. Reference @app/path/to/file.py for files
-   that need editing. Note exports in __init__.py.
+
+Code block with model. Reference @app/path/to/file.py for files
+that need editing. Note exports in **init**.py.
 
 ### 3.2 {Existing model}.{new_field}
-   ...
+
+...
 
 ### 3.3 Type plumbing
-   TypedDicts, dataclasses, NewType updates.
 
-## 4. API Design  (omit if no API surface)
+TypedDicts, dataclasses, NewType updates.
+
+## 4. API Design (omit if no API surface)
+
 ### 4.1 {Endpoint group}
-   Method / path / payload / response shape / errors.
+
+Method / path / payload / response shape / errors.
 
 ## 5. Phased Rollout
-   See "Phase structure" below.
+
+See "Phase structure" below.
 
 ## 6. Risk & Rollout Notes
-   Feature flag (key, scope, default, flip-on criterion, removal path),
-   locks, query-plan regressions, partition setup, view recreation,
-   backfill story, rollback story.
+
+Feature flag (key, scope, default, flip-on criterion, removal path),
+locks, query-plan regressions, partition setup, view recreation,
+backfill story, rollback story.
 
 ## 7. Open Questions
-   Decisions left to product/eng leadership, with recommended default.
+
+Decisions left to product/eng leadership, with recommended default.
 
 ## 8. Touch List
-   Files to be created / edited / cross-repo, grouped by phase.
+
+Files to be created / edited / cross-repo, grouped by phase.
 ```
 
 Don't invent new top-level sections. Skip non-applicable (e.g. omit "API Design" for pure data-pipeline) but keep numbering consecutive.
@@ -192,6 +215,7 @@ Reviewer reads diff in 30 minutes:
 Every spec use-case (entries under **Decisions → Use-cases** in the SPEC) gets **its own phase**. Never bundle two use-cases in one phase even when the diff is tiny. Bundling = larger PR + reviewer needs context for both flows + rollback drags both. Cost of an extra phase = one PR header. Cost of a bundled regression = hotfix + split-after-the-fact.
 
 Apply even when:
+
 - Two use-cases share the same endpoint — split anyway, the second phase is "wire use-case 2 into the existing endpoint." Reviewer reads ≤50 LoC.
 - Use-cases are CRUD on same entity — Create / Read / Update / Delete are four phases, not one.
 - "It's just one extra branch" — that branch hides edge cases. Separate phase forces explicit acceptance + tests for that branch.
@@ -214,12 +238,13 @@ Doesn't fit → split: `Phase 4a — Static validation`, `Phase 4b — Resolutio
 ### Phase N{a} — {Crisp imperative title, ≤8 words}
 
 **Goal**: one sentence on user-visible (or producer-visible) outcome.
-   "Ship value: none on its own" → say so explicitly + justify why scaffolding needed.
+"Ship value: none on its own" → say so explicitly + justify why scaffolding needed.
 
 **Feature flag**: `{flag-key}` — {gated path; what runs when off vs on}.
-   Omit only if phase is purely scaffolding (no reachable behavior) or **Guiding Decisions** explicitly marks "no flag — purely additive surface".
+Omit only if phase is purely scaffolding (no reachable behavior) or **Guiding Decisions** explicitly marks "no flag — purely additive surface".
 
 Changes:
+
 1. {File or module}: {what changes, what stays}.
 2. {Next thing}.
 3. ...
@@ -227,6 +252,7 @@ Changes:
 Spec use-case: {SPEC **Decisions → Use-cases** id/name this phase implements, or "shared scaffolding — no use-case yet"}.
 
 Tests:
+
 - **Unit**: {file path} — {what it covers}.
 - **Integration**: {file path} — {what it covers, including edge cases user flagged in Step 0, AND flag-off test proving existing callers see no behavior change}.
 - **E2E** (only when this phase reaches the browser): {e2e/tests/<app>/<id>-<slug>.spec.ts} — happy path covering the new flow. Spec writes screenshots to the Playwright default output dir via `testInfo.outputPath(...)`; post-run copy step moves them into `pr-screenshots/<id>-<step>.png`. Follow [add-e2e-test](../add-e2e-test/SKILL.md).
@@ -240,14 +266,14 @@ Acceptance: {one literal statement true after merge + deploy of this phase, only
 
 ### Gate behavior changes behind feature flag by default
 
-Feature touches **any existing flow** — existing callers hit new branches, new fields, new constraints, new query plans, differently-shaped responses → **plan for flag from Phase 1**. Default *flag on*, not off; ask in the Step 0 **Rollout & risk** group to confirm but don't silently drop.
+Feature touches **any existing flow** — existing callers hit new branches, new fields, new constraints, new query plans, differently-shaped responses → **plan for flag from Phase 1**. Default _flag on_, not off; ask in the Step 0 **Rollout & risk** group to confirm but don't silently drop.
 
 In plan:
 
 1. Declare flag in **Guiding Decisions**: key, scope (per-request vs per-tenant, using the project's flag API names), default (`false`), flip-on criterion ("after Phase 5 ships + reprocess job runs clean for 48h on staging").
 2. Show flag definition site (the project's feature-flag module) in **Touch List**.
 3. Every phase reachable from existing caller: name flag, describe what executes when **off** (must be pre-feature behavior, byte-for-byte where possible) vs **on**.
-4. Data model change unconditional (column existing can't be gated)? Make sure *reads + writes* of column gated; off-flag tenant has zero observable change. Test asserts.
+4. Data model change unconditional (column existing can't be gated)? Make sure _reads + writes_ of column gated; off-flag tenant has zero observable change. Test asserts.
 5. Phase N+1 (or **Risk & Rollout Notes** entry) for **flag rollout**: enable for one internal tenant → soak → staging → cohort → globally.
 6. **Always end with dedicated final phase to remove flag.** Name `Phase N — Remove the {flag-key} feature flag`. **Mandatory** when flag declared — flag debt = real debt.
 
@@ -272,6 +298,7 @@ Gated on real-world signal, not phase number — can't merge until flag on 100% 
 **Feature flag**: removed in this phase.
 
 Changes:
+
 1. Delete flag declaration in the project's feature-flag module.
 2. Every site calling the flag's check methods (`is_enabled(...)` / per-tenant variant, by whatever names the project uses): inline on-branch + delete off-branch. Touch list:
    - {file 1}
@@ -282,6 +309,7 @@ Changes:
 5. Search for stale references: `grep -r "{flag-key}"` + `grep -r "{FLAG_CONSTANT}"` should return zero.
 
 Tests:
+
 - Existing test suite passes unchanged on on-branch.
 - Remove flag-parametrized tests no longer make sense.
 
@@ -296,7 +324,7 @@ Place as separate, numbered, last-in-list entry inside **Phased Rollout**. Also 
 
 ### Order phases for slowest-moving dependency first
 
-Common mistake: leave cross-repo producer wiring for last, then discover the upstream repo's deploy cadence is two weeks. Order so slowest path starts in Phase 1 (e.g. *"accept field, validate, drop on floor"*) + fast in-repo work fills in behind. Typical sequencing: `Phase 1` (API stub) → `Phase 1b` (cross-repo producer, parallel) → `Phase 2`+ (in-repo persistence).
+Common mistake: leave cross-repo producer wiring for last, then discover the upstream repo's deploy cadence is two weeks. Order so slowest path starts in Phase 1 (e.g. _"accept field, validate, drop on floor"_) + fast in-repo work fills in behind. Typical sequencing: `Phase 1` (API stub) → `Phase 1b` (cross-repo producer, parallel) → `Phase 2`+ (in-repo persistence).
 
 ### Never give time estimates
 
@@ -307,6 +335,7 @@ Common mistake: leave cross-repo producer wiring for last, then discover the ups
 For each phase, suggest **cheapest/fastest model likely to one-shot work**. Iterating with cheap model usually beats burning Opus tokens on CRUD scaffold.
 
 ### Tier 1 — cheapest/fastest (boilerplate, exact-precedent edits)
+
 **Use for**: single migration adding column or index, exporting from `__init__.py`, registering admin, scaffolding empty Django app, thin serializer mirroring existing pattern verbatim.
 
 - Anthropic: `claude-haiku-4-5`
@@ -314,6 +343,7 @@ For each phase, suggest **cheapest/fastest model likely to one-shot work**. Iter
 - Google: `gemini-2.5-flash-lite`
 
 ### Tier 2 — standard pattern application
+
 **Use for**: repository methods, DRF serializer with non-trivial validation, ViewSet wiring with filterset, pytest unit/integration tests against established fixtures, simple HStore/ArrayField additions.
 
 - Anthropic: `claude-haiku-4-5` (with iteration), step up to `claude-sonnet-4-6` if phase touches >3 files
@@ -321,6 +351,7 @@ For each phase, suggest **cheapest/fastest model likely to one-shot work**. Iter
 - Google: `gemini-2.5-flash`
 
 ### Tier 3 — multi-file orchestration, business logic, SQL views
+
 **Use for**: use case coordinating across repositories with non-trivial branching, new `vw_*` view + non-managed model + migration, serializer with cross-field validation affecting use-case behavior, integration tests covering concurrency edges.
 
 - Anthropic: `claude-sonnet-4-6`
@@ -328,6 +359,7 @@ For each phase, suggest **cheapest/fastest model likely to one-shot work**. Iter
 - Google: `gemini-2.5-pro` (or `gemini-3-pro` for stronger code recall)
 
 ### Tier 4 — architectural / novel / hard
+
 **Use for**: cycle detection in user-mutable trees, transactional batch protocols with deferred constraints, partitioned-to-partitioned FK design, perf tuning slow query against partitioned hot table, debugging heisenbug.
 
 - Anthropic: `claude-opus-4-7` (`[1m]` 1M-context for large codebases)
@@ -348,16 +380,16 @@ When one tier doesn't fit:
 
 Skills under the project's `ai-tools/skills/` directory encode hard-won conventions. **Reference by name in each relevant phase** so implementer invokes via `Skill(name)` instead of re-deriving.
 
-| Skill | Invoke when phase… |
-|---|---|
-| `create-model` | adds new Django model / database table |
-| `create-postgres-view` | adds or modifies `vw_*` (or MV, function, type) |
-| `create-postgres-function` | adds or modifies `CREATE FUNCTION` / `upsert_ct_*` / `ft_*` / aggregate |
-| `create-cloud-function` | scaffolds new serverless function |
-| `create-data-export` | adds async CSV/Excel export |
-| `create-data-import` | adds CSV import |
-| `graphql-public-query` | adds a query/mutation under the project's public GraphQL module |
-| `write-tests` | writes pytest unit/integration tests following fixture catalog + snapshot conventions |
+| Skill                      | Invoke when phase…                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------- |
+| `create-model`             | adds new Django model / database table                                                |
+| `create-postgres-view`     | adds or modifies `vw_*` (or MV, function, type)                                       |
+| `create-postgres-function` | adds or modifies `CREATE FUNCTION` / `upsert_ct_*` / `ft_*` / aggregate               |
+| `create-cloud-function`    | scaffolds new serverless function                                                     |
+| `create-data-export`       | adds async CSV/Excel export                                                           |
+| `create-data-import`       | adds CSV import                                                                       |
+| `graphql-public-query`     | adds a query/mutation under the project's public GraphQL module                       |
+| `write-tests`              | writes pytest unit/integration tests following fixture catalog + snapshot conventions |
 
 In phase:
 
@@ -367,7 +399,7 @@ No clean skill match? Omit line — don't fabricate.
 
 ## File references
 
-`@path/to/file.py` for files relative to repo root when *naming* file inside plan body or discovery questions. Project convention; agent harness resolves.
+`@path/to/file.py` for files relative to repo root when _naming_ file inside plan body or discovery questions. Project convention; agent harness resolves.
 
 For inline links in narrative prose, GitHub-flavored markdown links work + preferred for line-range deep-links:
 
@@ -401,7 +433,7 @@ When in doubt, model the plan after a recent example in `ai-plans/` — look for
 - [ ] Step 0 questions answered (or explicitly waived); decisions echoed back.
 - [ ] Filename: `ai-plans/{TODAY}-{FEATURE_NAME}_IMPLEMENTATION_PLAN.md`.
 - [ ] **Goals + Non-goals** section present.
-- [ ] **Guiding Decisions** table — each row has *why*.
+- [ ] **Guiding Decisions** table — each row has _why_.
 - [ ] Phases MR-sized (~100–300 LoC) + independently mergeable.
 - [ ] Phase numbering uses numbers + letters consistently.
 - [ ] **At least one phase per spec use-case** (entries under SPEC **Decisions → Use-cases**). No phase implements two use-cases. Cross-cutting scaffolding is its own foundation phase.
