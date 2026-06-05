@@ -234,13 +234,21 @@
 - **SPIKE RESOLVED**: group model maps cleanly to the API (no type gaps; satisfiability is pure client-side). **Phase 29 (create group) is safe.** Calendar-grid availability _overlay_ (RBC background bands) is a separate unproven concern, NOT needed for group booking — Phase 0e `eventRenderer` untouched + sufficient.
 - **Gate**: typecheck/test(351)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 19 — Manage attendees on an event (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6`. **Branch**: `phase-19` (base `phase-18`).
+- **PR**: (published below). **Commits**: `dae1cb0`.
+- **Summary**: `useUpdateAttendees` (`calendarEventsPartialUpdate` + `invalidateCalendarEvents`), `EventAttendeesEditor` (3 sections: internal `attendances:[{user_id}]`, external `external_attendances:[{external_attendee:{email,name}}]`, resource `resource_allocations:[{calendar}]`; add/remove rows; PATCH-replaces-arrays). Wired to calendar event-click (`onSelectEvent` → sheet). Accepted on focused review (shapes verified, helper reused).
+- **API limitation**: internal attendee uses a manual numeric `user_id` (membership exposes no user id) — same as the booking form; flagged for backend enhancement.
+- **Gate**: typecheck/test(362)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 19 — Manage attendees on an event (member)** (Tier 2) — starting.
+- **Phase 20 — Cancel a booking (member)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-19–38 (use-cases).
+20–38 (use-cases).
 
 ## Deferred / Superseded
 
