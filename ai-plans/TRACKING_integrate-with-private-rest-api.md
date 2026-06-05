@@ -272,13 +272,22 @@
 - **Summary**: split-point acceptance test (`bulkModify` with `modification_start_date` = occurrence date → earlier untouched, this+later change), named `useEditThisAndFollowing()` wrapper, dialog integration tests. Accepted on focused review.
 - **Gate**: typecheck/test(428)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 24 — Adjust all instances (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5` (light — op wired in Phase 22). **Branch**: `phase-24` (base `phase-23`).
+- **PR**: (published below). **Commits**: `48f031c`.
+- **Summary**: whole-series acceptance test (`all` → `partialUpdate` on series root; createException/bulkModify not called), named `useEditWholeSeries()` wrapper. Accepted on focused review.
+- **Gate**: typecheck/test(431)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
+## Recurring-scope edits complete ✅ (phases 22–24)
+
 ## Current Phase
 
-- **Phase 24 — Adjust all instances (member)** (Tier 2) — starting (the `all`/`partialUpdate` path is wired in Phase 22; adds acceptance test + named hook).
+- **Phase 25 — Edit my availability (member)** (Tier 3) — starting (availability block; weekly + ad-hoc editor with bulk writes).
 
 ## Remaining Phases
 
-24–38 (use-cases).
+25–38 (use-cases).
 
 ## Deferred / Superseded
 
