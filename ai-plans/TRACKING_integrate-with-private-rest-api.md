@@ -242,13 +242,20 @@
 - **API limitation**: internal attendee uses a manual numeric `user_id` (membership exposes no user id) — same as the booking form; flagged for backend enhancement.
 - **Gate**: typecheck/test(362)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 20 — Cancel a booking (member) ✅ [builds shared scope-prompt-dialog]
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6`. **Branch**: `phase-20` (base `phase-19`).
+- **PR**: (published below). **Commits**: `5c7df63`.
+- **Summary**: `ScopePromptDialog` (SHARED, `RecurringScope='this'|'following'|'all'`, reused by 21–24), `useCancelBooking` (scope→op: this→`createException{exception_date,is_cancelled}`, following→`bulkModify{modification_start_date,is_cancelled}`, all→`calendarEventsDestroy`). Cancel action on the event sheet; non-recurring→confirm, recurring→scope prompt. Verified op bodies against real types (no `as any`). Co-booked blocked-times release = backend cascade (documented). Accepted on focused review (verified the highest-risk op-body mapping myself).
+- **Gate**: typecheck/test(388)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 20 — Cancel a booking (member)** (Tier 2) — starting.
+- **Phase 21 — Reschedule a booking (member)** (Tier 2/3) — starting (reuses conflict-surface + scope prompt).
 
 ## Remaining Phases
 
-20–38 (use-cases).
+21–38 (use-cases).
 
 ## Deferred / Superseded
 
