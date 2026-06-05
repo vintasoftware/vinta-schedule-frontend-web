@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { BundlesTable } from './bundles-table';
@@ -14,16 +14,25 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/client/sdk.gen')>();
   return {
     ...original,
     calendarList: vi.fn(),
+    calendarDestroy: vi.fn(),
   };
 });
 
 // After mocks, import modules under test.
-import { calendarList } from '@/client/sdk.gen';
+import { calendarList, calendarDestroy } from '@/client/sdk.gen';
+import { toast } from 'sonner';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -100,6 +109,11 @@ describe('BundlesTable', () => {
       data: { results: mockCalendars, count: 4 },
       response: new Response('{}', { status: 200 }),
     } as unknown as Awaited<ReturnType<typeof calendarList>>);
+
+    vi.mocked(calendarDestroy).mockResolvedValue({
+      data: undefined,
+      response: new Response(null, { status: 204 }),
+    } as unknown as Awaited<ReturnType<typeof calendarDestroy>>);
   });
 
   it('renders the bundles table', async () => {
@@ -131,5 +145,88 @@ describe('BundlesTable', () => {
     renderTable();
     const emptyMessage = await screen.findByText('No bundles created yet.');
     expect(emptyMessage).toBeInTheDocument();
+  });
+
+  it('shows delete button for each bundle', async () => {
+    renderTable();
+    await screen.findByText('Main Office Bundle');
+
+    const deleteButtons = screen.getAllByTestId(/^delete-bundle-/);
+    expect(deleteButtons).toHaveLength(2); // 2 bundles
+  });
+
+  it('calls calendarDestroy and shows success toast on delete confirm', async () => {
+    renderTable();
+    await screen.findByText('Main Office Bundle');
+
+    // Find and click the delete button for the first bundle
+    const deleteButton = screen.getByTestId('delete-bundle-3');
+    fireEvent.click(deleteButton);
+
+    // Confirm the delete in the alert dialog
+    const confirmButton = screen.getByRole('button', { name: 'Delete' });
+    fireEvent.click(confirmButton);
+
+    // Wait for calendarDestroy to be called
+    await waitFor(() => {
+      expect(vi.mocked(calendarDestroy)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: '3' },
+        })
+      );
+    });
+
+    // Check success toast was shown
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith(
+      'Bundle deleted',
+      expect.objectContaining({
+        description: 'Main Office Bundle was deleted.',
+      })
+    );
+  });
+
+  it('does not call calendarDestroy when delete is cancelled', async () => {
+    renderTable();
+    await screen.findByText('Main Office Bundle');
+
+    // Find and click the delete button for the first bundle
+    const deleteButton = screen.getByTestId('delete-bundle-3');
+    fireEvent.click(deleteButton);
+
+    // Cancel the delete in the alert dialog
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+    fireEvent.click(cancelButton);
+
+    // Wait a moment and verify calendarDestroy was NOT called
+    await waitFor(() => {
+      expect(vi.mocked(calendarDestroy)).not.toHaveBeenCalled();
+    });
+  });
+
+  it('shows error toast on delete failure', async () => {
+    vi.mocked(calendarDestroy).mockRejectedValue(
+      new Error('API error: Forbidden')
+    );
+
+    renderTable();
+    await screen.findByText('Main Office Bundle');
+
+    // Find and click the delete button for the first bundle
+    const deleteButton = screen.getByTestId('delete-bundle-3');
+    fireEvent.click(deleteButton);
+
+    // Confirm the delete in the alert dialog
+    const confirmButton = screen.getByRole('button', { name: 'Delete' });
+    fireEvent.click(confirmButton);
+
+    // Wait for error toast
+    await waitFor(() => {
+      expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+        'Failed to delete bundle',
+        expect.objectContaining({
+          description: 'API error: Forbidden',
+        })
+      );
+    });
   });
 });

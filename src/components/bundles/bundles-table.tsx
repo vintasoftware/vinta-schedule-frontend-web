@@ -5,27 +5,43 @@
  *
  * Fetches bundles (calendars with calendar_type === 'bundle') via useAllCalendars,
  * filters client-side to show only bundle type, and displays them in a DataTable
- * with columns: Name, Actions (Edit).
+ * with columns: Name, Actions (Edit, Delete).
  */
 
 import * as React from 'react';
+import { Plus, Pencil, Trash2, RotateCw } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Calendar } from '@/client';
 import { DataTable } from '@/components/data-table/data-table';
 import type { DataTableColumn } from '@/components/data-table/types';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
+import { useDeleteBundle } from '@/hooks/bundles/use-delete-bundle';
 import { VStack, Text, HStack } from '@/components/layout';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { CreateBundleDialog } from './create-bundle-dialog';
 import { EditBundleDialog } from './edit-bundle-dialog';
 
 // ---------------------------------------------------------------------------
 // Column definitions
+// Helper to create columns — accepts pendingRowIds (to disable actions for
+// in-flight rows), onEditClick, and onDelete (row action handlers).
 // ---------------------------------------------------------------------------
 
 function makeColumns(
-  onEditClick: (bundle: Calendar) => void
+  pendingRowIds: Set<number>,
+  onEditClick: (bundle: Calendar) => void,
+  onDelete: (bundle: Calendar) => Promise<void>
 ): DataTableColumn<Calendar>[] {
   return [
     {
@@ -45,15 +61,88 @@ function makeColumns(
             variant='ghost'
             size='sm'
             onClick={() => onEditClick(row.original)}
+            disabled={pendingRowIds.has(row.original.id)}
             aria-label={`Edit ${row.original.name}`}
             data-testid={`edit-bundle-${row.original.id}`}
           >
             <Pencil className='h-4 w-4' />
           </Button>
+          <DeleteButton
+            bundle={row.original}
+            isLoading={pendingRowIds.has(row.original.id)}
+            onDelete={onDelete}
+          />
         </HStack>
       ),
     },
   ];
+}
+
+// ---------------------------------------------------------------------------
+// DeleteButton — per-row action to delete a bundle with confirmation
+// ---------------------------------------------------------------------------
+
+interface DeleteButtonProps {
+  bundle: Calendar;
+  isLoading: boolean;
+  onDelete: (bundle: Calendar) => Promise<void>;
+}
+
+function DeleteButton({ bundle, isLoading, onDelete }: DeleteButtonProps) {
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+
+  const handleConfirm = React.useCallback(async () => {
+    await onDelete(bundle);
+    setDialogOpen(false);
+  }, [bundle, onDelete]);
+
+  return (
+    <>
+      <Button
+        size='sm'
+        variant='outline'
+        onClick={() => setDialogOpen(true)}
+        disabled={isLoading}
+        aria-label={`Delete bundle ${bundle.name}`}
+        data-testid={`delete-bundle-${bundle.id}`}
+      >
+        {isLoading ? (
+          <>
+            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            Deleting…
+          </>
+        ) : (
+          <>
+            <Trash2 className='mr-1 size-4' aria-hidden />
+            Delete
+          </>
+        )}
+      </Button>
+
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete bundle</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete{' '}
+              <span className='font-medium'>{bundle.name}</span>? This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirm}
+              disabled={isLoading}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -80,6 +169,9 @@ function BundlesTableInner() {
   const [selectedBundle, setSelectedBundle] = React.useState<Calendar | null>(
     null
   );
+  const [pendingRowIds, setPendingRowIds] = React.useState<Set<number>>(
+    new Set()
+  );
   const { query, setPage, setSearch, setOrdering } = useDataTableQuery();
 
   const handleQueryChange = React.useCallback(
@@ -97,11 +189,45 @@ function BundlesTableInner() {
   }, []);
 
   const { calendars, isLoading, isError, error } = useAllCalendars(query);
+  const { deleteBundle } = useDeleteBundle();
 
   // Filter to bundles only (calendar_type === 'bundle').
   const bundles = React.useMemo(
     () => calendars.filter((cal) => cal.calendar_type === 'bundle'),
     [calendars]
+  );
+
+  // Handle delete action: track in-flight row, call hook, show toast.
+  // The row is removed by invalidation after the mutation succeeds.
+  const handleDelete = React.useCallback(
+    async (bundle: Calendar) => {
+      // Mark this row as pending to disable its button.
+      setPendingRowIds((prev) => new Set(prev).add(bundle.id));
+
+      try {
+        await deleteBundle(bundle.id);
+        toast.success('Bundle deleted', {
+          description: `${bundle.name} was deleted.`,
+        });
+      } catch (err) {
+        toast.error('Failed to delete bundle', {
+          description:
+            err instanceof Error
+              ? err.message
+              : 'An unexpected error occurred.',
+        });
+      } finally {
+        // Always clear the pending state, even on error.
+        // Note: on success, the row is removed by invalidation, so this cleanup
+        // is mainly for error cases.
+        setPendingRowIds((prev) => {
+          const next = new Set(prev);
+          next.delete(bundle.id);
+          return next;
+        });
+      }
+    },
+    [deleteBundle]
   );
 
   if (isError) {
@@ -130,7 +256,7 @@ function BundlesTableInner() {
     </Button>
   );
 
-  const columns = makeColumns(handleEditClick);
+  const columns = makeColumns(pendingRowIds, handleEditClick, handleDelete);
 
   return (
     <>
