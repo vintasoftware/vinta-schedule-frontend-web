@@ -187,13 +187,21 @@
 - **Patterns for 13–15**: view/anchor/calendarId state on `EventsView`; `agendaLength` prop on `CalendarView`; overlap range; `invalidateCalendarEvents`.
 - **Gate**: typecheck/test(272)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 13 — View events as a month calendar (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-13` (base `phase-12`).
+- **PR**: (published below). **Commits**: `a680729`.
+- **Summary**: List/Month view toggle on `EventsView`; Month uses `eventRange('month',...)` + `CalendarView` month grid; same events as list. Structured so Phase 14 adds Week trivially. Accepted on focused review.
+- **Flake note**: one flaky run (2 transient timing failures, green on re-run ×2) — a debounce/async timing test under load, not Phase 13 logic. Watch in the test-hardening pass.
+- **Gate**: typecheck/test(276)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 13 — View events as a month calendar (member)** (Tier 2) — starting (extends EventsView).
+- **Phase 14 — View events as a week calendar (member)** (Tier 2) — starting (trivial Week toggle add).
 
 ## Remaining Phases
 
-13–38 (use-cases).
+14–38 (use-cases).
 
 ## Deferred / Superseded
 
