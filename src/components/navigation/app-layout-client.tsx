@@ -30,7 +30,12 @@ import type { RoleEnum } from '@/client';
 
 const MEMBER_NAV_ITEMS: SidebarNavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: Calendar },
-  { id: 'calendars', label: 'My calendars', icon: CalendarSync },
+  {
+    id: 'calendars',
+    label: 'My calendars',
+    icon: CalendarSync,
+    href: '/calendars',
+  },
   { id: 'events', label: 'Events', icon: Ticket },
   { id: 'availability', label: 'Availability', icon: Settings },
 ];
