@@ -268,6 +268,60 @@ describe('TeamTable', () => {
 
       expect(screen.getByLabelText(/go to next page/i)).toBeInTheDocument();
     });
+
+    it('page 2 query maps to offset = pageSize and limit = pageSize', async () => {
+      // This test verifies the core limit/offset arithmetic used by useTeamMembers.
+      // TeamTable drives pagination via URL → useDataTableQuery, but the mapping
+      // from DataTableQuery → API params is in useTeamMembers. We test that layer
+      // directly: render TeamTable with a page-2 scenario by pre-configuring the
+      // mock to return a page-1 response, then re-render with an overridden query.
+      //
+      // Strategy: mock organizationMembersList, render a DataTable driven by
+      // useTeamMembers with an explicit page-2 DataTableQuery to confirm offset/limit.
+
+      const PAGE_SIZE = 20;
+      const page2Response = makePagedResponse(MEMBER_FIXTURE, 50);
+      vi.mocked(organizationMembersList).mockResolvedValue(page2Response);
+
+      // Import and call useTeamMembers via a test component that accepts a query prop.
+      const { useTeamMembers } = await import('@/hooks/team/use-team-members');
+      const { renderHook } = await import('@testing-library/react');
+      const { QueryClient, QueryClientProvider } =
+        await import('@tanstack/react-query');
+      const { createElement } = await import('react');
+
+      const qc = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const wrapper = ({ children }: { children: React.ReactNode }) =>
+        createElement(QueryClientProvider, { client: qc }, children);
+
+      const page2Query = {
+        page: 2,
+        pageSize: PAGE_SIZE,
+        ordering: null,
+        search: null,
+      };
+      const { result } = renderHook(() => useTeamMembers(page2Query), {
+        wrapper,
+      });
+
+      // Wait for the query to resolve.
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // organizationMembersList should have been called with the right offset/limit.
+      const calls = vi.mocked(organizationMembersList).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const lastCall = calls[calls.length - 1];
+      const queryArgs = lastCall[0]?.query as {
+        limit?: number;
+        offset?: number;
+      };
+      expect(queryArgs?.limit).toBe(PAGE_SIZE);
+      expect(queryArgs?.offset).toBe(PAGE_SIZE); // page 2: offset = (2-1) * pageSize = 20
+    });
   });
 });
 

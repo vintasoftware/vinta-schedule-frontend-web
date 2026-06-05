@@ -56,6 +56,12 @@ export interface DataTableProps<T> {
   emptyState?: React.ReactNode;
   /** Extra toolbar content (e.g. filter buttons, action buttons). */
   toolbarActions?: React.ReactNode;
+  /**
+   * Whether to show the search input in the toolbar. Defaults to true.
+   * Pass false for APIs that do not support a search/filter parameter
+   * (e.g. /organization-members/ — limit/offset only).
+   */
+  showSearch?: boolean;
   /** Number of skeleton rows to show while loading. Defaults to 5. */
   skeletonRows?: number;
   /** Whether the table header should be sticky. Defaults to false. */
@@ -105,6 +111,7 @@ export function DataTable<T>({
   isLoading = false,
   emptyState,
   toolbarActions,
+  showSearch = true,
   skeletonRows = 5,
   stickyHeader = false,
   className,
@@ -146,6 +153,7 @@ export function DataTable<T>({
           onQueryChange({ ...query, search: value, page: 1 })
         }
         actions={toolbarActions}
+        showSearch={showSearch}
       />
 
       {/* Table */}

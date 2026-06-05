@@ -13,10 +13,12 @@ import { useRequireRole } from '@/components/navigation/role-gate';
  * redirected to '/' (degrade-don't-loop rule — never redirect back into (app)).
  */
 export default function TeamPage() {
-  // Gate: redirect non-admins out. The redirect fires in a useEffect, so the
-  // page still renders briefly; components should render nothing sensitive until
-  // isAllowed is true.
-  useRequireRole('admin');
+  // Gate: redirect non-admins out. The redirect fires in a useEffect, so
+  // we also check isAllowed before rendering the table to avoid firing the
+  // API call and rendering sensitive data before the redirect effect runs.
+  const { isAllowed } = useRequireRole('admin');
+
+  if (!isAllowed) return null;
 
   return (
     <Stack gap={6}>

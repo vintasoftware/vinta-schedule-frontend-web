@@ -3,14 +3,12 @@
 import * as React from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { DataTable } from '@/components/data-table/data-table';
-import type {
-  DataTableColumn,
-  DataTableQuery,
-} from '@/components/data-table/types';
+import type { DataTableQuery } from '@/components/data-table/types';
 import { DEFAULT_DATA_TABLE_QUERY } from '@/components/data-table/types';
-import { Badge } from '@/components/ui/badge';
 import { VStack, Text } from '@/components/layout';
 import type { TeamMember } from '@/hooks/team/use-team-members';
+// Import canonical columns/variants from the component so they can't drift.
+import { COLUMNS } from './team-table';
 
 // ---------------------------------------------------------------------------
 // Fixture data
@@ -55,61 +53,6 @@ const ALL_MEMBERS: TeamMember[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Column definitions (mirrors team-table.tsx but self-contained for stories)
-// ---------------------------------------------------------------------------
-
-const ROLE_VARIANT: Record<TeamMember['role'], 'default' | 'secondary'> = {
-  admin: 'default',
-  member: 'secondary',
-};
-
-const STATUS_VARIANT: Record<TeamMember['status'], 'success' | 'danger'> = {
-  active: 'success',
-  disabled: 'danger',
-};
-
-const COLUMNS: DataTableColumn<TeamMember>[] = [
-  {
-    accessorKey: 'name',
-    id: 'name',
-    header: 'Name',
-    enableSorting: false,
-    cell: ({ row }) => <span className='font-medium'>{row.original.name}</span>,
-  },
-  {
-    accessorKey: 'email',
-    id: 'email',
-    header: 'Email',
-    enableSorting: false,
-    cell: ({ row }) => (
-      <span className='text-muted-foreground'>{row.original.email}</span>
-    ),
-  },
-  {
-    accessorKey: 'role',
-    id: 'role',
-    header: 'Role',
-    enableSorting: false,
-    cell: ({ row }) => (
-      <Badge variant={ROLE_VARIANT[row.original.role]}>
-        {row.original.role}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: 'status',
-    id: 'status',
-    header: 'Status',
-    enableSorting: false,
-    cell: ({ row }) => (
-      <Badge variant={STATUS_VARIANT[row.original.status]}>
-        {row.original.status}
-      </Badge>
-    ),
-  },
-];
-
-// ---------------------------------------------------------------------------
 // Story wrapper — uses plain useState (no useSearchParams) so no router needed.
 // ---------------------------------------------------------------------------
 
@@ -147,6 +90,7 @@ function TeamTableStory({
         totalCount={count}
         isLoading={isLoading}
         emptyState={empty}
+        showSearch={false}
       />
     </div>
   );

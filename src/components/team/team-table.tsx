@@ -10,26 +10,32 @@ import { useTeamMembers, type TeamMember } from '@/hooks/team/use-team-members';
 
 // ---------------------------------------------------------------------------
 // Column definitions
+// Exported so stories and sibling modules can import them directly rather than
+// duplicating the definitions (which would let them silently drift).
 // ---------------------------------------------------------------------------
 
-const ROLE_VARIANT: Record<TeamMember['role'], 'default' | 'secondary'> = {
-  admin: 'default',
-  member: 'secondary',
-};
+export const ROLE_VARIANT: Record<TeamMember['role'], 'default' | 'secondary'> =
+  {
+    admin: 'default',
+    member: 'secondary',
+  };
 
-const STATUS_VARIANT: Record<TeamMember['status'], 'success' | 'danger'> = {
+export const STATUS_VARIANT: Record<
+  TeamMember['status'],
+  'success' | 'danger'
+> = {
   active: 'success',
   disabled: 'danger',
 };
 
-const COLUMNS: DataTableColumn<TeamMember>[] = [
+export const COLUMNS: DataTableColumn<TeamMember>[] = [
   {
     accessorKey: 'name',
     id: 'name',
     header: 'Name',
     // The /organization-members/ endpoint has no ordering param — disable sort.
     enableSorting: false,
-    cell: ({ row }) => <span className='font-medium'>{row.original.name}</span>,
+    cell: ({ row }) => <Text weight='medium'>{row.original.name}</Text>,
   },
   {
     accessorKey: 'email',
@@ -37,7 +43,7 @@ const COLUMNS: DataTableColumn<TeamMember>[] = [
     header: 'Email',
     enableSorting: false,
     cell: ({ row }) => (
-      <span className='text-muted-foreground'>{row.original.email}</span>
+      <Text color='muted-foreground'>{row.original.email}</Text>
     ),
   },
   {
@@ -121,6 +127,7 @@ function TeamTableInner() {
       totalCount={totalCount}
       isLoading={isLoading}
       emptyState={<TeamTableEmpty />}
+      showSearch={false}
     />
   );
 }

@@ -23,6 +23,11 @@ export interface DataTableToolbarProps {
   debounceMs?: number;
   /** Extra content to render on the right side of the toolbar (e.g. filter chips, action buttons). */
   actions?: React.ReactNode;
+  /**
+   * Whether to show the search input. Defaults to true.
+   * Pass false when the underlying API does not support search (e.g. /organization-members/).
+   */
+  showSearch?: boolean;
   className?: string;
 }
 
@@ -31,6 +36,7 @@ export function DataTableToolbar({
   onSearchChange,
   debounceMs = 300,
   actions,
+  showSearch = true,
   className,
 }: DataTableToolbarProps) {
   // Local input value allows typing without a URL push on every keystroke.
@@ -68,33 +74,41 @@ export function DataTableToolbar({
     };
   }, []);
 
+  // When there is nothing to render (no search, no actions), skip the toolbar row entirely.
+  if (!showSearch && !actions) return null;
+
   return (
     <div
       data-slot='data-table-toolbar'
       className={cn('flex items-center justify-between gap-2 py-2', className)}
     >
-      <div className='relative flex w-full max-w-sm items-center'>
-        <Search className='text-muted-foreground absolute left-2.5 size-4' />
-        <Input
-          aria-label='Search'
-          placeholder='Search…'
-          value={inputValue}
-          onChange={handleChange}
-          className='pr-8 pl-8'
-        />
-        {inputValue && (
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon'
-            aria-label='Clear search'
-            onClick={handleClear}
-            className='absolute right-1 size-6'
-          >
-            <X className='size-4' />
-          </Button>
-        )}
-      </div>
+      {showSearch ? (
+        <div className='relative flex w-full max-w-sm items-center'>
+          <Search className='text-muted-foreground absolute left-2.5 size-4' />
+          <Input
+            aria-label='Search'
+            placeholder='Search…'
+            value={inputValue}
+            onChange={handleChange}
+            className='pr-8 pl-8'
+          />
+          {inputValue && (
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon'
+              aria-label='Clear search'
+              onClick={handleClear}
+              className='absolute right-1 size-6'
+            >
+              <X className='size-4' />
+            </Button>
+          )}
+        </div>
+      ) : (
+        // Spacer so actions slot stays right-aligned even without a search box.
+        <div />
+      )}
       {actions && (
         <div className='flex shrink-0 items-center gap-2'>{actions}</div>
       )}

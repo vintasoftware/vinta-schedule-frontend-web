@@ -48,11 +48,10 @@ test.describe('PA001 — Admin: team list', () => {
     ).toBeVisible();
 
     // The table body must have at least one data row (org must have members).
+    // rows includes the header row, so count must be > 1 (header + ≥1 member).
     const rows = adminPage.getByRole('row');
-    // First row is the header — we need at least one data row.
-    await expect(rows).toHaveCount(
-      await rows.count() // just confirm count > 1 (header + rows)
-    );
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(1);
 
     // At least one "admin" or "member" role badge should be visible.
     const roleBadge = adminPage.getByText(/^(admin|member)$/).first();

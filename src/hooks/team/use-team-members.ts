@@ -28,12 +28,23 @@ export interface TeamMember {
 // TEAM_MEMBERS_QUERY_KEY
 //
 // Base query key for `organizationMembersList`. Exported so mutations
-// (disable/reactivate, phases 4/6) can invalidate all team-member queries
-// regardless of pagination params by passing `queryKey` as a prefix filter:
+// (disable/reactivate, phases 4/6) can invalidate all team-member queries.
+//
+// CAVEAT: the no-args key returned by `organizationMembersListQueryKey()` may
+// not be a true prefix of the per-page keys if the generated factory encodes
+// the query params inside the key array. Prefer the predicate form for robust
+// invalidation:
+//
+//   queryClient.invalidateQueries({
+//     predicate: (q) =>
+//       Array.isArray(q.queryKey) &&
+//       (q.queryKey[0] as { _id?: string })?._id === 'organizationMembersList',
+//   });
+//
+// The prefix form still works for the simplest cases where the factory emits a
+// flat key beginning with the op identifier:
 //
 //   queryClient.invalidateQueries({ queryKey: TEAM_MEMBERS_QUERY_KEY })
-//
-// This works because TanStack Query matches prefix sub-arrays.
 // ---------------------------------------------------------------------------
 
 export const TEAM_MEMBERS_QUERY_KEY = organizationMembersListQueryKey();
@@ -69,7 +80,7 @@ export function useTeamMembers(query: DataTableQuery) {
       m.user_email,
     email: m.user_email,
     role: m.role,
-    status: m.is_active ? 'active' : ('disabled' as TeamMemberStatus),
+    status: m.is_active ? 'active' : 'disabled',
   }));
 
   return {
