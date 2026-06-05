@@ -89,7 +89,10 @@ export function useCreateBooking() {
     // providing them — we assert here for early detection.
     const primaryResult = await calendarEventsCreate({ body: event });
 
-    const createdEvent = primaryResult.data!;
+    if (!primaryResult.data) {
+      throw new Error('Unexpected empty response from calendarEventsCreate');
+    }
+    const createdEvent = primaryResult.data;
 
     // Invalidate all calendar events queries so views refresh.
     await invalidateCalendarEvents(queryClient);

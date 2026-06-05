@@ -20,6 +20,7 @@ import {
   calendarUnavailableWindowsList,
 } from '@/client/sdk.gen';
 import type { AvailableTimeWindow, UnavailableTimeWindow } from '@/client';
+import { DateTime } from 'luxon';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -75,15 +76,18 @@ export async function checkAvailabilityForCalendar(
     unavailableResult.data?.results ?? [];
   const isFree = conflictingWindows.length === 0;
 
-  // Fetch the nearest available window starting from the range start.
-  // We request a small page so this is a lightweight lookup.
+  // Fetch the nearest available window AFTER the requested range.
+  // We query from the range end forward (+7 days) so we find the next free slot,
+  // not a window inside the conflict window (which would always be empty).
   let nearestFreeWindow: AvailableTimeWindow | null = null;
   try {
+    const searchStart = endDatetime;
+    const searchEnd = DateTime.fromISO(endDatetime).plus({ days: 7 }).toISO()!;
     const availableResult = await calendarAvailableWindowsList({
       path: { id: idStr },
       query: {
-        start_datetime: startDatetime,
-        end_datetime: endDatetime,
+        start_datetime: searchStart,
+        end_datetime: searchEnd,
         limit: 5,
       },
     });

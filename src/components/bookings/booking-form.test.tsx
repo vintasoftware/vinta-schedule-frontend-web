@@ -526,6 +526,195 @@ describe('BookingFormDialog', () => {
         screen.getByRole('button', { name: /create booking/i })
       ).toBeInTheDocument();
     });
+
+    it('create-once: calendarEventsCreate is NOT called on initial conflict-detecting submit', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarListResponse([FIXTURE_CALENDAR_1, FIXTURE_CALENDAR_2])
+      );
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableWindowsResponse(true)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableWindowsResponse()
+      );
+
+      renderForm();
+
+      await waitFor(() =>
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox', { name: /title/i }),
+        'My Meeting'
+      );
+
+      await userEvent.click(screen.getByRole('combobox'));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('option', { name: 'Personal' })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Personal' }));
+
+      // Submit — triggers availability check which detects conflict
+      await userEvent.click(
+        screen.getByRole('button', { name: /create booking/i })
+      );
+
+      // Wait for ConflictSurface to appear (availability check completed)
+      await waitFor(() =>
+        expect(screen.getByTestId('conflict-surface')).toBeInTheDocument()
+      );
+
+      // calendarEventsCreate must NOT have been called at this point
+      expect(calendarEventsCreate).not.toHaveBeenCalled();
+
+      // Now click "Book anyway" — calendarEventsCreate should be called EXACTLY ONCE
+      vi.mocked(calendarEventsCreate).mockResolvedValue(
+        makeCreateEventResponse(FIXTURE_CREATED_EVENT)
+      );
+      vi.mocked(blockedTimesCreate).mockResolvedValue(
+        makeCreateBlockedTimeResponse(FIXTURE_BLOCKED_TIME)
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', { name: /book anyway/i })
+      );
+
+      await waitFor(() => expect(calendarEventsCreate).toHaveBeenCalledOnce());
+      // Confirm it was called exactly once (not twice)
+      expect(calendarEventsCreate).toHaveBeenCalledTimes(1);
+    });
+
+    it('create-once: no-conflict submit calls calendarEventsCreate exactly once', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarListResponse([FIXTURE_CALENDAR_1])
+      );
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableWindowsResponse(false)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableWindowsResponse()
+      );
+      vi.mocked(calendarEventsCreate).mockResolvedValue(
+        makeCreateEventResponse(FIXTURE_CREATED_EVENT)
+      );
+
+      renderForm();
+
+      await waitFor(() =>
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox', { name: /title/i }),
+        'Clean Meeting'
+      );
+
+      await userEvent.click(screen.getByRole('combobox'));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('option', { name: 'Personal' })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Personal' }));
+
+      await userEvent.click(
+        screen.getByRole('button', { name: /create booking/i })
+      );
+
+      // Should proceed directly to booking (no conflict surface)
+      await waitFor(() => expect(calendarEventsCreate).toHaveBeenCalledOnce());
+      expect(calendarEventsCreate).toHaveBeenCalledTimes(1);
+    });
+
+    it('override rejected: error toast shown and no close when calendarEventsCreate rejects', async () => {
+      const { toast } = await import('sonner');
+
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarListResponse([FIXTURE_CALENDAR_1, FIXTURE_CALENDAR_2])
+      );
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableWindowsResponse(true)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableWindowsResponse()
+      );
+      // calendarEventsCreate rejects (backend refuses the override)
+      vi.mocked(calendarEventsCreate).mockRejectedValue(
+        new Error('Conflict not allowed by backend')
+      );
+
+      const onOpenChange = vi.fn();
+      const queryClient = new (
+        await import('@tanstack/react-query')
+      ).QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+      const { QueryClientProvider } = await import('@tanstack/react-query');
+      const {
+        render: rtlRender,
+        screen: rtlScreen,
+        waitFor: rtlWaitFor,
+      } = await import('@testing-library/react');
+
+      rtlRender(
+        <QueryClientProvider client={queryClient}>
+          <BookingFormDialog open onOpenChange={onOpenChange} />
+        </QueryClientProvider>
+      );
+
+      await rtlWaitFor(() =>
+        expect(rtlScreen.getByRole('combobox')).toBeInTheDocument()
+      );
+
+      await userEvent.type(
+        rtlScreen.getByRole('textbox', { name: /title/i }),
+        'Conflict Meeting'
+      );
+
+      await userEvent.click(rtlScreen.getByRole('combobox'));
+      await rtlWaitFor(() =>
+        expect(
+          rtlScreen.getByRole('option', { name: 'Personal' })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(
+        rtlScreen.getByRole('option', { name: 'Personal' })
+      );
+
+      await userEvent.click(
+        rtlScreen.getByRole('button', { name: /create booking/i })
+      );
+
+      await rtlWaitFor(() =>
+        expect(rtlScreen.getByTestId('conflict-surface')).toBeInTheDocument()
+      );
+
+      // Click "Book anyway" — backend rejects
+      await userEvent.click(
+        rtlScreen.getByRole('button', { name: /book anyway/i })
+      );
+
+      // Error toast must be shown
+      await rtlWaitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          'Failed to create booking',
+          expect.objectContaining({
+            description: expect.stringContaining(
+              'Conflict not allowed by backend'
+            ),
+          })
+        )
+      );
+
+      // Dialog must NOT have been closed (onOpenChange(false) not called)
+      expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    });
   });
 
   describe('submit disabled while pending', () => {

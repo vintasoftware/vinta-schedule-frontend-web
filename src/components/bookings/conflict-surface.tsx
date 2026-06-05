@@ -83,10 +83,7 @@ export function ConflictSurface({
   return (
     <VStack gap={4} data-testid='conflict-surface'>
       <Alert className='border-warning bg-background'>
-        <TriangleAlert
-          className='h-4 w-4'
-          style={{ color: 'var(--color-warning)' }}
-        />
+        <TriangleAlert className='text-warning h-4 w-4' />
         <AlertTitle>Scheduling conflict detected</AlertTitle>
         <AlertDescription>
           The selected time overlaps with existing blocks on the following
@@ -128,11 +125,7 @@ function ConflictItem({ conflict }: { conflict: CalendarConflict }) {
   const { calendarName, conflictingWindows, nearestFreeWindow } = conflict;
 
   return (
-    <VStack
-      gap={2}
-      className='border-border rounded-md border p-3'
-      data-testid='conflict-item'
-    >
+    <VStack gap={2} p={3} border radius='md' data-testid='conflict-item'>
       <Text size='sm' className='font-medium'>
         {calendarName}
       </Text>
@@ -160,16 +153,10 @@ function ConflictWindowDetail({
   const reason = w.reason_description || w.reason;
 
   return (
-    <HStack
-      gap={2}
-      className='text-muted-foreground text-sm'
-      data-testid='conflict-window'
-    >
-      <Text size='sm' color='muted-foreground'>
-        Busy: {start} – {end}
-        {reason ? ` · ${reason}` : ''}
-      </Text>
-    </HStack>
+    <Text size='sm' color='muted-foreground' data-testid='conflict-window'>
+      Busy: {start} – {end}
+      {reason ? ` · ${reason}` : ''}
+    </Text>
   );
 }
 

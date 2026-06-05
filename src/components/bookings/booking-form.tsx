@@ -340,208 +340,207 @@ export function BookingFormDialog({
           <DialogTitle>New booking</DialogTitle>
         </DialogHeader>
 
-        {/* Conflict surface overlay — shown above the form when conflicts are detected.
-            The Form provider stays mounted so portaled Radix UI children don't lose context. */}
-        {conflicts && (
-          <VStack gap={4}>
+        <Form {...form}>
+          {/* Conflict surface overlay — shown INSTEAD of the form when conflicts are detected.
+              The Form/rhf provider stays mounted around both branches so portaled
+              Select/Radix children don't lose context. */}
+          {conflicts ? (
             <ConflictSurface
               conflicts={conflicts}
               onProceed={onProceed}
               onAdjust={onAdjust}
               isPending={isPending}
             />
-          </VStack>
-        )}
-
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className={`flex flex-col gap-4${conflicts ? 'hidden' : ''}`}
-            noValidate
-            aria-hidden={conflicts ? true : undefined}
-          >
-            {/* Title */}
-            <FormField
-              control={form.control}
-              name='title'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='text'
-                      placeholder='Meeting title'
-                      autoComplete='off'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Date */}
-            <FormField
-              control={form.control}
-              name='date'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type='date' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Start time / End time */}
-            <HStack gap={3}>
+          ) : (
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className='flex flex-col gap-4'
+              noValidate
+            >
+              {/* Title */}
               <FormField
                 control={form.control}
-                name='startTime'
+                name='title'
                 render={({ field }) => (
-                  <FormItem className='flex-1'>
-                    <FormLabel>Start time</FormLabel>
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input type='time' {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='endTime'
-                render={({ field }) => (
-                  <FormItem className='flex-1'>
-                    <FormLabel>End time</FormLabel>
-                    <FormControl>
-                      <Input type='time' {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </HStack>
-
-            {/* Timezone */}
-            <FormField
-              control={form.control}
-              name='timezone'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Timezone</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='text'
-                      placeholder='America/New_York'
-                      autoComplete='off'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Primary calendar */}
-            <FormField
-              control={form.control}
-              name='primaryCalendarId'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Primary calendar</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={calendarsLoading}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder='Select a calendar' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {calendars
-                        .filter((c) => c.is_active)
-                        .map((cal) => (
-                          <SelectItem key={cal.id} value={String(cal.id)}>
-                            {cal.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Co-booked calendars (multi-select via checkboxes) */}
-            {primaryCalendarId && coBookableCalendars.length > 0 && (
-              <VStack gap={2}>
-                <label className='text-sm leading-none font-medium'>
-                  Also block on (co-booked)
-                </label>
-                <VStack gap={2}>
-                  {coBookableCalendars.map((cal) => (
-                    <HStack key={cal.id} gap={2} align='center'>
-                      <Checkbox
-                        id={`co-book-${cal.id}`}
-                        checked={coBookedCalendarIds.includes(cal.id)}
-                        onCheckedChange={(checked) =>
-                          handleCoBookToggle(cal.id, Boolean(checked))
-                        }
+                      <Input
+                        type='text'
+                        placeholder='Meeting title'
+                        autoComplete='off'
+                        {...field}
                       />
-                      <label
-                        htmlFor={`co-book-${cal.id}`}
-                        className='cursor-pointer text-sm select-none'
-                      >
-                        {cal.name}
-                      </label>
-                    </HStack>
-                  ))}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Date */}
+              <FormField
+                control={form.control}
+                name='date'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date</FormLabel>
+                    <FormControl>
+                      <Input type='date' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Start time / End time */}
+              <HStack gap={3}>
+                <FormField
+                  control={form.control}
+                  name='startTime'
+                  render={({ field }) => (
+                    <FormItem className='flex-1'>
+                      <FormLabel>Start time</FormLabel>
+                      <FormControl>
+                        <Input type='time' {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='endTime'
+                  render={({ field }) => (
+                    <FormItem className='flex-1'>
+                      <FormLabel>End time</FormLabel>
+                      <FormControl>
+                        <Input type='time' {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </HStack>
+
+              {/* Timezone */}
+              <FormField
+                control={form.control}
+                name='timezone'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Timezone</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='text'
+                        placeholder='America/New_York'
+                        autoComplete='off'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Primary calendar */}
+              <FormField
+                control={form.control}
+                name='primaryCalendarId'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Primary calendar</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={calendarsLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder='Select a calendar' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {calendars
+                          .filter((c) => c.is_active)
+                          .map((cal) => (
+                            <SelectItem key={cal.id} value={String(cal.id)}>
+                              {cal.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Co-booked calendars (multi-select via checkboxes) */}
+              {primaryCalendarId && coBookableCalendars.length > 0 && (
+                <VStack gap={2}>
+                  <label className='text-sm leading-none font-medium'>
+                    Also block on (co-booked)
+                  </label>
+                  <VStack gap={2}>
+                    {coBookableCalendars.map((cal) => (
+                      <HStack key={cal.id} gap={2} align='center'>
+                        <Checkbox
+                          id={`co-book-${cal.id}`}
+                          checked={coBookedCalendarIds.includes(cal.id)}
+                          onCheckedChange={(checked) =>
+                            handleCoBookToggle(cal.id, Boolean(checked))
+                          }
+                        />
+                        <label
+                          htmlFor={`co-book-${cal.id}`}
+                          className='cursor-pointer text-sm select-none'
+                        >
+                          {cal.name}
+                        </label>
+                      </HStack>
+                    ))}
+                  </VStack>
                 </VStack>
-              </VStack>
-            )}
-
-            {/* Internal attendee (optional) */}
-            <FormField
-              control={form.control}
-              name='internalAttendeeUserId'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Internal attendee user ID (optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='number'
-                      placeholder='User ID'
-                      autoComplete='off'
-                      {...field}
-                    />
-                  </FormControl>
-                  <Text size='xs' color='muted-foreground'>
-                    Leave blank to create a booking without internal attendees.
-                  </Text>
-                  <FormMessage />
-                </FormItem>
               )}
-            />
 
-            <DialogFooter>
-              <Button
-                type='button'
-                variant='outline'
-                onClick={() => onOpenChange(false)}
-                disabled={isPending}
-              >
-                Cancel
-              </Button>
-              <Button type='submit' disabled={isPending || calendarsLoading}>
-                {isPending ? 'Checking…' : 'Create booking'}
-              </Button>
-            </DialogFooter>
-          </form>
+              {/* Internal attendee (optional) */}
+              <FormField
+                control={form.control}
+                name='internalAttendeeUserId'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Internal attendee user ID (optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        placeholder='User ID'
+                        autoComplete='off'
+                        {...field}
+                      />
+                    </FormControl>
+                    <Text size='xs' color='muted-foreground'>
+                      Leave blank to create a booking without internal
+                      attendees.
+                    </Text>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => onOpenChange(false)}
+                  disabled={isPending}
+                >
+                  Cancel
+                </Button>
+                <Button type='submit' disabled={isPending || calendarsLoading}>
+                  {isPending ? 'Checking…' : 'Create booking'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </Form>
       </DialogContent>
     </Dialog>
