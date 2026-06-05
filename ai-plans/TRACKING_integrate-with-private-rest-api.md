@@ -162,13 +162,19 @@
 - **Summary**: `useDeleteCalendar` (`calendarDestroy` + predicate invalidation), Delete row action with destructive `AlertDialog` confirm + per-row in-flight disable; calendars table refactored to `createColumns` factory. NOTE: implementer didn't commit — orchestrator staged + committed the phase code (`2bd955f`).
 - **Gate**: typecheck/test(234)/lint(0 err)/format (phase files clean) green; build only pre-existing `/auth/verify-email`.
 
+### Phase 10 — Request a calendar to sync (member) ✅
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-10` (base `phase-9`).
+- **PR**: (published below). **Commits**: `e727b9d`.
+- **Summary**: `useRequestCalendarSync` (`calendarRequestSyncCreate`); Sync row action (non-destructive, fire-and-toast "Sync started", per-row debounce). `CalendarSyncRequest` needs a window → default range now−1mo→+3mo, `should_update_events:true` (no prompt, keeps one-click UX). No invalidation (async sync, no live tracking). Accepted on focused review.
+- **Gate**: typecheck/test(239)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 10 — Request a calendar to sync (member)** (Tier 2) — starting.
+- **Phase 11 — List all calendars incl. resources & bundles (admin)** (Tier 2) — starting (completes calendars block).
 
 ## Remaining Phases
 
-10–38 (use-cases).
+11–38 (use-cases).
 
 ## Deferred / Superseded
 
