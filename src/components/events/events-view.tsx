@@ -4,17 +4,21 @@
  * EventsView — member events list composition.
  *
  * Owns:
- *  - view mode state (currently fixed to 'agenda'; phases 13/14 add a toggle)
+ *  - view mode state ('list' / 'month'; 'week' added in Phase 14)
  *  - anchor date state (today by default)
  *  - visible range computation via eventRange
  *  - fetching via useCalendarEvents (bound to the visible range)
  *  - rendering via CalendarView
  *
+ * View toggle:
+ *   A tabs-style control (List / Month) lets the member switch views. The
+ *   range computation and fetch automatically recompute when the view changes.
+ *   Phases 13/14 add Month/Week views; the toggle is structured as a simple
+ *   controlled state so adding Week in Phase 14 is trivial (insert one more tab).
+ *
  * State contract for phases 13/14/15:
- *   `view` and `setView` are already threaded through the component so adding
- *   a view toggle in Phase 13 is purely additive — no structural refactor
- *   needed. `calendarId` (Phase 15) is already accepted and forwarded to the
- *   hook.
+ *   `view` and `setView` are already threaded through the component. `calendarId`
+ *   (Phase 15) is already accepted and forwarded to the hook.
  *
  * Timezone: the anchor is always `DateTime.now()` in the system local zone by
  * default.  When `initialDate` is a Luxon `DateTime`, its zone is preserved so
@@ -36,6 +40,7 @@ import { useCalendarEvents } from '@/hooks/events/use-calendar-events';
 import { eventRange } from '@/lib/datetime/index';
 import { Stack } from '@/components/layout/stack';
 import { Text } from '@/components/layout/text';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -72,8 +77,8 @@ export interface EventsViewProps {
 // ---------------------------------------------------------------------------
 
 export function EventsView({ calendarId, initialDate }: EventsViewProps) {
-  // view state — defaulting to agenda (list).
-  // Phases 13/14 replace this with a controlled toggle.
+  // view state — defaulting to agenda (list), controlled by a toggle below.
+  // Maps: 'list' → agenda, 'month' → month (Phase 14 adds 'week').
   const [view, setView] = React.useState<CalendarViewMode>('agenda');
 
   // Anchor as a Luxon DateTime — zone is preserved when initialDate is already
@@ -99,16 +104,14 @@ export function EventsView({ calendarId, initialDate }: EventsViewProps) {
   );
 
   // Compute the visible date range from the anchor + view mode.
-  // 'list' → 7-day window (AGENDA_WINDOW_DAYS).
-  const range = React.useMemo(
-    () =>
-      eventRange(
-        view === 'agenda' ? 'list' : view,
-        anchorDt,
-        anchorDt.zoneName ?? 'UTC'
-      ),
-    [view, anchorDt]
-  );
+  // Maps CalendarViewMode to eventRange view type:
+  // - 'agenda' → 'list' (7-day window)
+  // - 'month' → 'month' (full month padded to weeks)
+  // - 'week' (Phase 14) → 'week'
+  const range = React.useMemo(() => {
+    const rangeType = view === 'agenda' ? 'list' : view;
+    return eventRange(rangeType, anchorDt, anchorDt.zoneName ?? 'UTC');
+  }, [view, anchorDt]);
 
   const { events, isLoading, isError, error } = useCalendarEvents({
     range,
@@ -139,19 +142,30 @@ export function EventsView({ calendarId, initialDate }: EventsViewProps) {
   }
 
   // ------------------------------------------------------------------
-  // Populated / empty — delegate to CalendarView.
+  // Populated / empty — render view toggle + delegate to CalendarView.
   // agendaLength keeps the RBC agenda window (7 days) in sync with the
   // fetch window so days outside the fetched range don't appear empty.
   // ------------------------------------------------------------------
   return (
-    <CalendarView
-      events={events}
-      view={view}
-      onViewChange={setView}
-      date={anchorDate}
-      onDateChange={handleDateChange}
-      agendaLength={AGENDA_WINDOW_DAYS}
-      minHeight={500}
-    />
+    <Stack gap={4} data-slot='events-view'>
+      {/* View toggle: List / Month (Phase 14 adds Week) */}
+      <Tabs value={view} onValueChange={(v) => setView(v as CalendarViewMode)}>
+        <TabsList>
+          <TabsTrigger value='agenda'>List</TabsTrigger>
+          <TabsTrigger value='month'>Month</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Calendar view — the range updates when view changes */}
+      <CalendarView
+        events={events}
+        view={view}
+        onViewChange={setView}
+        date={anchorDate}
+        onDateChange={handleDateChange}
+        agendaLength={AGENDA_WINDOW_DAYS}
+        minHeight={500}
+      />
+    </Stack>
   );
 }

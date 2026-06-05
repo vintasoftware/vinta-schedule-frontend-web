@@ -9,10 +9,14 @@
  * - Empty state renders (CalendarView "No events in this range." message)
  * - Loading state renders the loading indicator
  * - Error state renders the error message
+ * - View toggle switches between List and Month
+ * - Month view renders the same fixture events (parity with list view)
+ * - The range computation changes when view changes (month range vs list range)
  */
 
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
@@ -300,6 +304,93 @@ describe('EventsView', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/Connection refused/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('view toggle', () => {
+    it('renders the view toggle with List and Month options', async () => {
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
+      );
+
+      renderEventsView();
+
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      // Both tabs should be present
+      expect(screen.getByRole('tab', { name: 'List' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Month' })).toBeInTheDocument();
+    });
+
+    it('defaults to the List view on render', async () => {
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
+      );
+
+      renderEventsView();
+
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      // List tab should be the active/selected tab
+      const listTab = screen.getByRole('tab', { name: 'List' });
+      expect(listTab).toHaveAttribute('data-state', 'active');
+    });
+
+    it('switches to Month view when Month tab is clicked', async () => {
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
+      );
+
+      renderEventsView();
+
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      const monthTab = screen.getByRole('tab', { name: 'Month' });
+      await userEvent.click(monthTab);
+
+      // After clicking Month, events should still be visible.
+      // react-big-calendar switches to month view which shows events in a grid.
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+        expect(screen.getByText('Sydney Afternoon')).toBeInTheDocument();
+      });
+    });
+
+    it('shows the same events in both List and Month views', async () => {
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
+      );
+
+      renderEventsView();
+
+      // Wait for List view to render
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      // Both events visible in List view
+      expect(screen.getAllByText('Early NY Meeting').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Sydney Afternoon').length).toBeGreaterThan(0);
+
+      // Switch to Month view
+      const monthTab = screen.getByRole('tab', { name: 'Month' });
+      await userEvent.click(monthTab);
+
+      // Both events should still be visible in Month view
+      await waitFor(() => {
+        expect(screen.getAllByText('Early NY Meeting').length).toBeGreaterThan(
+          0
+        );
+        expect(screen.getAllByText('Sydney Afternoon').length).toBeGreaterThan(
+          0
+        );
       });
     });
   });

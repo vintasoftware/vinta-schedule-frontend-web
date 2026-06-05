@@ -169,3 +169,14 @@ export const CalendarScoped: Story = {
     initialDate: STORY_ANCHOR,
   },
 };
+
+/**
+ * Month view — demonstrates the view toggle. The same events from the List
+ * view are rendered in the month grid. Use the tabs at the top to switch
+ * between List and Month (Phase 14 will add Week).
+ */
+export const MonthView: Story = {
+  args: {
+    initialDate: STORY_ANCHOR,
+  },
+};
