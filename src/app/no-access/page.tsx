@@ -4,16 +4,15 @@ import { Heading } from '@/components/layout/heading';
 import { Text } from '@/components/layout/text';
 import { Button } from '@/components/ui/button';
 import { Center } from '@/components/layout/center';
+import { Flex } from '@/components/layout/flex';
 
 /**
  * No-access page — shown when a disabled user tries to reach any (app) route.
  *
- * This page lives inside the (app) route group directory, but the AppLayout
- * routes disabled users HERE (not back into the shell), so it renders without
- * the shell wrapper to avoid an infinite redirect loop.
- *
- * Note: the layout.tsx redirect points to /no-access (absolute path), which
- * resolves to this page via the (app) group.
+ * This page intentionally lives OUTSIDE the (app) route group so the
+ * AppLayoutClient is NOT re-run. If this page were inside (app), a disabled
+ * user would hit AppLayoutClient again, re-detect the 403, and loop forever.
+ * The AppLayoutClient redirect target /no-access resolves here.
  */
 export default function NoAccessPage() {
   return (
@@ -28,11 +27,11 @@ export default function NoAccessPage() {
             administrator to regain access.
           </Text>
         </Stack>
-        <div className='flex justify-center'>
+        <Flex justify='center'>
           <Button variant='outline' asChild>
             <Link href='/auth/login'>Back to login</Link>
           </Button>
-        </div>
+        </Flex>
       </Stack>
     </Center>
   );

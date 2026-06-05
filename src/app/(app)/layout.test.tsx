@@ -33,7 +33,7 @@ vi.mock('next/image', () => ({
 }));
 
 import { organizationsCurrentRetrieve } from '@/client';
-import AppLayout from './layout';
+import { AppLayoutClient } from '@/components/navigation/app-layout-client';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -60,7 +60,7 @@ function renderLayout(ui: ReactNode = <div>page content</div>) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return render(<AppLayout>{ui}</AppLayout>, { wrapper });
+  return render(<AppLayoutClient>{ui}</AppLayoutClient>, { wrapper });
 }
 
 // ---------------------------------------------------------------------------
@@ -96,9 +96,11 @@ function mockOrg404() {
 }
 
 function mockOrg403() {
-  vi.mocked(organizationsCurrentRetrieve).mockRejectedValue(
-    new Error('Failed to load current organization (403)')
-  );
+  vi.mocked(organizationsCurrentRetrieve).mockResolvedValue({
+    data: undefined,
+    response: new Response(null, { status: 403 }),
+    error: undefined,
+  } as unknown as Awaited<ReturnType<typeof organizationsCurrentRetrieve>>);
 }
 
 // ---------------------------------------------------------------------------

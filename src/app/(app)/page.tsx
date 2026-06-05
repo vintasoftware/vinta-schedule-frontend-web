@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { PageHeader } from '@/components/layout/page-header';
 import { Stack } from '@/components/layout/stack';
 import {
@@ -52,7 +53,7 @@ function FeatureCard({
   href: string;
 }) {
   return (
-    <a
+    <Link
       href={href}
       className='focus-visible:ring-ring block rounded-xl focus-visible:ring-2 focus-visible:outline-none'
     >
@@ -63,6 +64,6 @@ function FeatureCard({
         </CardHeader>
         <CardContent />
       </Card>
-    </a>
+    </Link>
   );
 }

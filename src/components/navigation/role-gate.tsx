@@ -63,6 +63,10 @@ export function useRequireRole(
 // RoleGate — renders children only when the current user holds the required
 // role. Renders null (or `fallback`) otherwise. Useful for hiding admin-only
 // nav items without a full redirect.
+//
+// IMPORTANT: role matching is EXACT. An `admin` user does NOT implicitly
+// satisfy `role='member'`. If you want "at least member", check for both roles
+// explicitly or restructure so the default is member-accessible.
 // ---------------------------------------------------------------------------
 
 export interface RoleGateProps {
