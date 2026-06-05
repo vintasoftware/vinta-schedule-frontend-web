@@ -1,20 +1,31 @@
 'use client';
 
 import * as React from 'react';
-import { UserPlus, RotateCw } from 'lucide-react';
+import { UserPlus, RotateCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { VStack, Text } from '@/components/layout';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { VStack, Text, HStack } from '@/components/layout';
 import { DateTime, zonedFormat } from '@/lib/datetime';
 import {
   useInvitations,
   type Invitation,
 } from '@/hooks/invitations/use-invitations';
 import { useResendInvitation } from '@/hooks/invitations/use-resend-invitation';
+import { useRevokeInvitation } from '@/hooks/invitations/use-revoke-invitation';
 import { InviteMemberDialog } from './invite-member-dialog';
 
 // ---------------------------------------------------------------------------
@@ -28,12 +39,13 @@ function localZone(): string {
   return DateTime.local().zoneName ?? 'UTC';
 }
 
-// Helper to create columns — accepts pendingRowIds (to disable Resend for in-flight
-// rows) and onResend (row action handler). This allows the table to pass its local
-// pending-row state down into the column cell renderer.
+// Helper to create columns — accepts pendingRowIds (to disable actions for in-flight
+// rows), onResend, and onRevoke (row action handlers). This allows the table to pass
+// its local pending-row state down into the column cell renderer.
 export function createColumns(
   pendingRowIds: Set<number>,
-  onResend: (row: Invitation) => Promise<void>
+  onResend: (row: Invitation) => Promise<void>,
+  onRevoke: (row: Invitation) => Promise<void>
 ): DataTableColumn<Invitation>[] {
   return [
     {
@@ -68,18 +80,29 @@ export function createColumns(
       header: 'Actions',
       enableSorting: false,
       cell: ({ row }) => (
-        <ResendButton
-          invitation={row.original}
-          isLoading={pendingRowIds.has(row.original.id)}
-          onResend={onResend}
-        />
+        <HStack gap={2}>
+          <ResendButton
+            invitation={row.original}
+            isLoading={pendingRowIds.has(row.original.id)}
+            onResend={onResend}
+          />
+          <RevokeButton
+            invitation={row.original}
+            isLoading={pendingRowIds.has(row.original.id)}
+            onRevoke={onRevoke}
+          />
+        </HStack>
       ),
     },
   ];
 }
 
 // Legacy export for backward compatibility (stories/tests that build columns statically).
-export const COLUMNS = createColumns(new Set(), async () => {});
+export const COLUMNS = createColumns(
+  new Set(),
+  async () => {},
+  async () => {}
+);
 
 // ---------------------------------------------------------------------------
 // INV_URL_PREFIX
@@ -127,6 +150,72 @@ function ResendButton({ invitation, isLoading, onResend }: ResendButtonProps) {
 }
 
 // ---------------------------------------------------------------------------
+// RevokeButton — per-row action to revoke an invitation with confirmation
+// ---------------------------------------------------------------------------
+
+interface RevokeButtonProps {
+  invitation: Invitation;
+  isLoading: boolean;
+  onRevoke: (invitation: Invitation) => Promise<void>;
+}
+
+function RevokeButton({ invitation, isLoading, onRevoke }: RevokeButtonProps) {
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+
+  const handleConfirm = React.useCallback(async () => {
+    await onRevoke(invitation);
+    setDialogOpen(false);
+  }, [invitation, onRevoke]);
+
+  return (
+    <>
+      <Button
+        size='sm'
+        variant='outline'
+        onClick={() => setDialogOpen(true)}
+        disabled={isLoading}
+        aria-label={`Revoke invitation to ${invitation.email}`}
+      >
+        {isLoading ? (
+          <>
+            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            Revoking…
+          </>
+        ) : (
+          <>
+            <Trash2 className='mr-1 size-4' aria-hidden />
+            Revoke
+          </>
+        )}
+      </Button>
+
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke invitation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to revoke the invitation for{' '}
+              <span className='font-medium'>{invitation.email}</span>? This
+              action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirm}
+              disabled={isLoading}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              Revoke
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // InvitationsTableEmpty — custom empty state
 // ---------------------------------------------------------------------------
 
@@ -167,11 +256,12 @@ function InvitationsTableInner() {
     useInvitations(query);
 
   const { resendInvitation } = useResendInvitation();
+  const { revokeInvitation } = useRevokeInvitation();
 
   // Handle resend action: track in-flight row, call hook, show toast, update state.
   const handleResend = React.useCallback(
     async (invitation: Invitation) => {
-      // Mark this row as pending to disable its Resend button.
+      // Mark this row as pending to disable its buttons.
       setPendingRowIds((prev) => new Set(prev).add(invitation.id));
 
       try {
@@ -198,6 +288,39 @@ function InvitationsTableInner() {
     [resendInvitation]
   );
 
+  // Handle revoke action: track in-flight row, call hook, show toast.
+  // The row is removed by invalidation after the mutation succeeds.
+  const handleRevoke = React.useCallback(
+    async (invitation: Invitation) => {
+      // Mark this row as pending to disable its buttons.
+      setPendingRowIds((prev) => new Set(prev).add(invitation.id));
+
+      try {
+        await revokeInvitation(invitation.id);
+        toast.success('Invitation revoked', {
+          description: `The invitation to ${invitation.email} was revoked.`,
+        });
+      } catch (err) {
+        toast.error('Failed to revoke invitation', {
+          description:
+            err instanceof Error
+              ? err.message
+              : 'An unexpected error occurred.',
+        });
+      } finally {
+        // Always clear the pending state, even on error.
+        // Note: on success, the row is removed by invalidation, so this cleanup
+        // is mainly for error cases.
+        setPendingRowIds((prev) => {
+          const next = new Set(prev);
+          next.delete(invitation.id);
+          return next;
+        });
+      }
+    },
+    [revokeInvitation]
+  );
+
   if (isError) {
     return (
       <VStack gap={2} py={6} align='center'>
@@ -220,7 +343,7 @@ function InvitationsTableInner() {
     </Button>
   );
 
-  const columns = createColumns(pendingRowIds, handleResend);
+  const columns = createColumns(pendingRowIds, handleResend, handleRevoke);
 
   return (
     <>

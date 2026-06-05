@@ -82,7 +82,21 @@ function InvitationsTableStory({
     });
   }, []);
 
-  const columns = createColumns(pendingRowIds, handleResend);
+  // Story-only mock revoke handler: mark as pending, toast, then clear.
+  const handleRevoke = React.useCallback(async (invitation: Invitation) => {
+    setPendingRowIds((prev) => new Set(prev).add(invitation.id));
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate delay
+    toast.success('Invitation revoked', {
+      description: `The invitation to ${invitation.email} was revoked.`,
+    });
+    setPendingRowIds((prev) => {
+      const next = new Set(prev);
+      next.delete(invitation.id);
+      return next;
+    });
+  }, []);
+
+  const columns = createColumns(pendingRowIds, handleResend, handleRevoke);
 
   return (
     <div className='p-6'>

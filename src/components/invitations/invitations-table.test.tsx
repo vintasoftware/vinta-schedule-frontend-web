@@ -38,11 +38,16 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     ...original,
     invitationsList: vi.fn(),
     invitationsResendCreate: vi.fn(),
+    invitationsDestroy: vi.fn(),
   };
 });
 
 // After mocks are hoisted, import the modules under test.
-import { invitationsList, invitationsResendCreate } from '@/client/sdk.gen';
+import {
+  invitationsList,
+  invitationsResendCreate,
+  invitationsDestroy,
+} from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import { useInvitations } from '@/hooks/invitations/use-invitations';
 import { InvitationsTable } from './invitations-table';
@@ -505,6 +510,204 @@ describe('InvitationsTable', () => {
           body: { email: 'alice@acme.com' },
         })
       );
+    });
+  });
+
+  describe('revoke action', () => {
+    it('clicking Revoke opens a confirm dialog', async () => {
+      const user = userEvent.setup();
+      vi.mocked(invitationsList).mockResolvedValue(
+        makePagedResponse(INVITATION_FIXTURE)
+      );
+
+      renderInvitationsTable();
+
+      // Wait for initial data load.
+      await waitFor(() => {
+        expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
+      });
+
+      // Click the Revoke button for Alice (first row).
+      const revokeButtons = screen.getAllByRole('button', { name: /revoke/i });
+      expect(revokeButtons.length).toBeGreaterThan(0);
+      await user.click(revokeButtons[0]);
+
+      // Wait for the alert dialog to appear.
+      await waitFor(() => {
+        expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      });
+
+      // Verify the dialog contains the email address in the description.
+      const alertDialog = screen.getByRole('alertdialog');
+      expect(alertDialog.textContent).toContain('alice@acme.com');
+    });
+
+    it('confirming the revoke dialog calls invitationsDestroy with row id', async () => {
+      const user = userEvent.setup();
+      vi.mocked(invitationsList).mockResolvedValue(
+        makePagedResponse(INVITATION_FIXTURE)
+      );
+
+      // Mock the destroy endpoint to succeed.
+      vi.mocked(invitationsDestroy).mockResolvedValue({
+        data: null,
+        response: new Response(null, { status: 204 }),
+      } as unknown as Awaited<ReturnType<typeof invitationsDestroy>>);
+
+      renderInvitationsTable();
+
+      // Wait for initial data load.
+      await waitFor(() => {
+        expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
+      });
+
+      // Click the Revoke button for Alice.
+      const revokeButtons = screen.getAllByRole('button', { name: /revoke/i });
+      await user.click(revokeButtons[0]);
+
+      // Wait for the alert dialog to appear.
+      await waitFor(() => {
+        expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      });
+
+      // Click the Revoke confirm button (the one inside the dialog).
+      const confirmButton = screen
+        .getAllByRole('button', { name: /revoke/i })
+        .find(
+          (btn) =>
+            btn.closest('[role="alertdialog"]') !== null &&
+            btn.getAttribute('aria-label') === null
+        );
+      expect(confirmButton).toBeDefined();
+      await user.click(confirmButton!);
+
+      // Wait for the mutation to complete.
+      await waitFor(() => {
+        expect(invitationsDestroy).toHaveBeenCalled();
+      });
+
+      // Verify invitationsDestroy was called with the correct id.
+      const calls = vi.mocked(invitationsDestroy).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]?.path?.id).toBe('1');
+    });
+
+    it('shows a success toast on successful revoke', async () => {
+      const user = userEvent.setup();
+      vi.mocked(invitationsList).mockResolvedValue(
+        makePagedResponse(INVITATION_FIXTURE)
+      );
+      vi.mocked(invitationsDestroy).mockResolvedValue({
+        data: null,
+        response: new Response(null, { status: 204 }),
+      } as unknown as Awaited<ReturnType<typeof invitationsDestroy>>);
+
+      renderInvitationsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
+      });
+
+      // Click Revoke button.
+      const revokeButtons = screen.getAllByRole('button', { name: /revoke/i });
+      await user.click(revokeButtons[0]);
+
+      // Wait for dialog and click confirm.
+      await waitFor(() => {
+        expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      });
+
+      const confirmButton = screen
+        .getAllByRole('button', { name: /revoke/i })
+        .find(
+          (btn) =>
+            btn.closest('[role="alertdialog"]') !== null &&
+            btn.getAttribute('aria-label') === null
+        );
+      await user.click(confirmButton!);
+
+      // Verify toast was shown.
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('Invitation revoked', {
+          description: expect.stringContaining('alice@acme.com'),
+        });
+      });
+    });
+
+    it('shows an error toast on failed revoke', async () => {
+      const user = userEvent.setup();
+      vi.mocked(invitationsList).mockResolvedValue(
+        makePagedResponse(INVITATION_FIXTURE)
+      );
+
+      const error = new Error('Network error');
+      vi.mocked(invitationsDestroy).mockRejectedValue(error);
+
+      renderInvitationsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
+      });
+
+      // Click Revoke button.
+      const revokeButtons = screen.getAllByRole('button', { name: /revoke/i });
+      await user.click(revokeButtons[0]);
+
+      // Wait for dialog and click confirm.
+      await waitFor(() => {
+        expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      });
+
+      const confirmButton = screen
+        .getAllByRole('button', { name: /revoke/i })
+        .find(
+          (btn) =>
+            btn.closest('[role="alertdialog"]') !== null &&
+            btn.getAttribute('aria-label') === null
+        );
+      await user.click(confirmButton!);
+
+      // Verify error toast was shown.
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          'Failed to revoke invitation',
+          {
+            description: 'Network error',
+          }
+        );
+      });
+    });
+
+    it('canceling the confirm dialog does NOT call invitationsDestroy', async () => {
+      const user = userEvent.setup();
+      vi.mocked(invitationsList).mockResolvedValue(
+        makePagedResponse(INVITATION_FIXTURE)
+      );
+
+      renderInvitationsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
+      });
+
+      // Click Revoke button.
+      const revokeButtons = screen.getAllByRole('button', { name: /revoke/i });
+      await user.click(revokeButtons[0]);
+
+      // Wait for dialog.
+      await waitFor(() => {
+        expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      });
+
+      // Click Cancel button.
+      const cancelButton = screen.getByRole('button', { name: /cancel/i });
+      await user.click(cancelButton);
+
+      // Verify invitationsDestroy was NOT called.
+      expect(invitationsDestroy).not.toHaveBeenCalled();
+
+      // Verify the dialog is closed.
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     });
   });
 });
