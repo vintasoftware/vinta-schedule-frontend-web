@@ -444,6 +444,53 @@ describe('useEditOccurrence', () => {
       expect(calendarEventsCreateExceptionCreate).not.toHaveBeenCalled();
       expect(calendarEventsBulkModifyCreate).not.toHaveBeenCalled();
     });
+
+    it('ACCEPTANCE: whole-series semantics — entire series reflects the edit (Phase 24)', async () => {
+      /**
+       * Phase 24 acceptance test: "All events" scope edits the whole series.
+       *
+       * Semantic guarantee: calling partialUpdate on the series root (event id)
+       * modifies the recurrence-rule event itself, so all occurrences (past,
+       * present, future) reflect the change. No createException or bulkModify
+       * is called — only a single partialUpdate to the series.
+       *
+       * Example:
+       *   Series: Mon, Tue, Wed, Thu, Fri (weekly)
+       *   Editing with scope='all' and title="Updated"
+       *   → Result: ALL occurrences become "Updated"
+       */
+      vi.mocked(calendarEventsPartialUpdate).mockResolvedValue(
+        makeOkResponse()
+      );
+
+      const wrapper = makeQueryWrapper();
+      const { result } = renderHook(() => useEditOccurrence(), { wrapper });
+
+      // Any occurrence from the series can be edited with scope='all'.
+      const seriesEvent = makeRecurringEventVM({
+        _raw: makeRaw({
+          is_recurring: true,
+          is_recurring_instance: true,
+          start_time: '2024-06-15T09:00:00-04:00',
+          end_time: '2024-06-15T10:00:00-04:00',
+        }),
+      });
+
+      await result.current.editOccurrence(
+        seriesEvent,
+        { title: 'Updated Title' },
+        'all'
+      );
+
+      // Verify that ONLY partialUpdate is called on the series.
+      expect(calendarEventsPartialUpdate).toHaveBeenCalledOnce();
+      expect(calendarEventsCreateExceptionCreate).not.toHaveBeenCalled();
+      expect(calendarEventsBulkModifyCreate).not.toHaveBeenCalled();
+
+      const call = vi.mocked(calendarEventsPartialUpdate).mock.calls[0][0];
+      expect(call.path.id).toBe('42');
+      expect(call.body?.title).toBe('Updated Title');
+    });
   });
 
   describe('error propagation', () => {

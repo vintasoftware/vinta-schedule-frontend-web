@@ -276,3 +276,34 @@ export function useEditThisAndFollowing() {
 
   return { editThisAndFollowing };
 }
+
+/**
+ * useEditWholeSeries — Phase 24 named wrapper for scope='all'.
+ *
+ * Edits the entire recurring event series, applying changes to every occurrence.
+ *
+ * This is implemented via `calendarEventsPartialUpdate` on the series root,
+ * which modifies the recurrence-rule event itself. All occurrences (past,
+ * present, and future) reflect the change.
+ *
+ * Example:
+ *   Series: Mon, Tue, Wed, Thu, Fri (recurring weekly)
+ *   Editing with changes { title: "Updated" }
+ *   → Result: ALL occurrences become "Updated"
+ *
+ * @param event   The calendar event (may be a single occurrence or the series itself).
+ * @param changes The fields to modify (title, description, start/end times).
+ * @returns Promise that resolves when the modification completes.
+ */
+export function useEditWholeSeries() {
+  const { editOccurrence } = useEditOccurrence();
+
+  const editWholeSeries = async (
+    event: CalendarEventVM,
+    changes: EventChanges
+  ): Promise<void> => {
+    return editOccurrence(event, changes, 'all');
+  };
+
+  return { editWholeSeries };
+}

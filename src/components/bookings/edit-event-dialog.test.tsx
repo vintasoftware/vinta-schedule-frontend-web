@@ -520,5 +520,85 @@ describe('EditEventDialog', () => {
       expect(calendarEventsCreateExceptionCreate).not.toHaveBeenCalled();
       expect(calendarEventsPartialUpdate).not.toHaveBeenCalled();
     });
+
+    it('"All events" scope → calls calendarEventsPartialUpdate on the series (Phase 24)', async () => {
+      vi.mocked(calendarEventsPartialUpdate).mockResolvedValue(
+        makeOkResponse()
+      );
+
+      const wrapper = makeQueryWrapper();
+      render(
+        <EditEventDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          event={makeRecurringEventVM()}
+        />,
+        { wrapper }
+      );
+
+      // Submit form to open scope prompt.
+      await userEvent.click(screen.getByTestId('edit-event-submit'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/edit recurring event/i)).toBeInTheDocument();
+      });
+
+      // Select "All events" radio button.
+      const allEventsRadio = screen.getByRole('radio', {
+        name: /all events/i,
+      });
+      await userEvent.click(allEventsRadio);
+
+      // Click "Edit" to apply.
+      const editBtns = screen.getAllByRole('button', { name: 'Edit' });
+      await userEvent.click(editBtns[editBtns.length - 1]);
+
+      // Verify partialUpdate was called on the series.
+      await waitFor(() => {
+        expect(calendarEventsPartialUpdate).toHaveBeenCalledOnce();
+      });
+
+      const call = vi.mocked(calendarEventsPartialUpdate).mock.calls[0][0];
+      expect(call.path.id).toBe('42');
+      // The entire series (all occurrences) is modified.
+      expect(call.body?.title).toBe('Team Meeting');
+    });
+
+    it('"All events" scope → does NOT call createException or bulkModify (Phase 24)', async () => {
+      vi.mocked(calendarEventsPartialUpdate).mockResolvedValue(
+        makeOkResponse()
+      );
+
+      const wrapper = makeQueryWrapper();
+      render(
+        <EditEventDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          event={makeRecurringEventVM()}
+        />,
+        { wrapper }
+      );
+
+      await userEvent.click(screen.getByTestId('edit-event-submit'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/edit recurring event/i)).toBeInTheDocument();
+      });
+
+      const allEventsRadio = screen.getByRole('radio', {
+        name: /all events/i,
+      });
+      await userEvent.click(allEventsRadio);
+
+      const editBtns = screen.getAllByRole('button', { name: 'Edit' });
+      await userEvent.click(editBtns[editBtns.length - 1]);
+
+      await waitFor(() => {
+        expect(calendarEventsPartialUpdate).toHaveBeenCalledOnce();
+      });
+
+      expect(calendarEventsCreateExceptionCreate).not.toHaveBeenCalled();
+      expect(calendarEventsBulkModifyCreate).not.toHaveBeenCalled();
+    });
   });
 });
