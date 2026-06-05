@@ -7,7 +7,10 @@ export {
   DataTablePagination,
   type DataTablePaginationProps,
 } from './data-table-pagination';
-export { useDataTableQuery } from './use-data-table-query';
+export {
+  useDataTableQuery,
+  DataTableQueryBoundary,
+} from './use-data-table-query';
 export {
   type DataTableColumn,
   type DataTableQuery,

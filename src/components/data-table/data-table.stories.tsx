@@ -7,6 +7,7 @@ import type { DataTableColumn, DataTableQuery } from './types';
 import { DEFAULT_DATA_TABLE_QUERY } from './types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { VStack, HStack } from '@/components/layout';
 import { UserPlus } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -217,8 +218,7 @@ function DataTableDemo({
         : simulateServer(ALL_MEMBERS, query);
       setServerResult(result);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, isLoading]);
+  }, [query, isLoading, forceEmpty]);
 
   const handleQueryChange = (next: DataTableQuery) => {
     setQuery(next);
@@ -234,7 +234,7 @@ function DataTableDemo({
         totalCount={serverResult.total}
         isLoading={isLoading}
         emptyState={
-          <div className='flex flex-col items-center gap-2 py-4'>
+          <VStack align='center' gap={2} py={4}>
             <p className='text-muted-foreground text-sm'>
               No team members found.
             </p>
@@ -242,7 +242,7 @@ function DataTableDemo({
               <UserPlus className='size-4' />
               Invite a member
             </Button>
-          </div>
+          </VStack>
         }
         toolbarActions={
           <Button size='sm'>
@@ -298,8 +298,9 @@ export const Lifecycle: Story = {
     );
 
     return (
-      <div>
-        <div className='bg-muted/30 flex gap-2 p-4'>
+      <VStack>
+        {/* Lifecycle controls — bar-style spacing via className escape-hatch */}
+        <HStack gap={2} p={4} className='bg-muted/30'>
           <Button
             size='sm'
             variant={phase === 'populated' ? 'default' : 'outline'}
@@ -321,7 +322,7 @@ export const Lifecycle: Story = {
           >
             Empty
           </Button>
-        </div>
+        </HStack>
         {phase === 'populated' && (
           <DataTableDemo key='populated' pageSize={4} />
         )}
@@ -331,7 +332,7 @@ export const Lifecycle: Story = {
         {phase === 'empty' && (
           <DataTableDemo key='empty' forceEmpty pageSize={4} />
         )}
-      </div>
+      </VStack>
     );
   },
 };

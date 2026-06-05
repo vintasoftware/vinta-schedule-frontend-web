@@ -19,6 +19,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTableToolbar } from './data-table-toolbar';
 import { DataTablePagination } from './data-table-pagination';
+import { VStack, Box, Flex } from '@/components/layout';
 import { cn } from '@/lib/utils/index';
 import type { DataTableColumn, DataTableQuery } from './types';
 
@@ -120,6 +121,8 @@ export function DataTable<T>({
     manualSorting: true,
     manualPagination: true,
     manualFiltering: true,
+    // DRF supports only a single ordering field; prevent shift-click multi-sort.
+    enableMultiSort: false,
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: (updater) => {
       const next = typeof updater === 'function' ? updater(sorting) : updater;
@@ -135,10 +138,7 @@ export function DataTable<T>({
   const isEmpty = !isLoading && data.length === 0;
 
   return (
-    <div
-      data-slot='data-table'
-      className={cn('flex flex-col gap-0', className)}
-    >
+    <VStack data-slot='data-table' className={cn(className)}>
       {/* Toolbar */}
       <DataTableToolbar
         search={query.search}
@@ -149,7 +149,7 @@ export function DataTable<T>({
       />
 
       {/* Table */}
-      <div className='rounded-md border'>
+      <Box radius='md' border className='overflow-hidden'>
         <Table>
           <TableHeader
             className={cn(stickyHeader && 'bg-background sticky top-0 z-10')}
@@ -181,13 +181,13 @@ export function DataTable<T>({
                       }
                     >
                       {header.isPlaceholder ? null : (
-                        <span className='inline-flex items-center'>
+                        <Flex as='span' inline align='center'>
                           {flexRender(
                             header.column.columnDef.header,
                             header.getContext()
                           )}
                           {canSort && <SortIcon isSorted={isSorted} />}
-                        </span>
+                        </Flex>
                       )}
                     </TableHead>
                   );
@@ -242,7 +242,7 @@ export function DataTable<T>({
             )}
           </TableBody>
         </Table>
-      </div>
+      </Box>
 
       {/* Pagination */}
       <DataTablePagination
@@ -252,6 +252,6 @@ export function DataTable<T>({
         pageSize={query.pageSize}
         onPageChange={(p) => onQueryChange({ ...query, page: p })}
       />
-    </div>
+    </VStack>
   );
 }

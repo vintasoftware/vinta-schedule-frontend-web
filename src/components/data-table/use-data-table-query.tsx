@@ -11,13 +11,10 @@
 //   page_size   → "page_size" (default: pageSize arg, usually 20)
 //   ordering    → "ordering" (default: null / omitted)
 //   search      → "search"   (default: null / omitted)
-//
-// Next.js App Router note: useSearchParams() requires a Suspense boundary
-// around any component that calls this hook (as per Next.js 15+ rules).
-// Pages that use DataTable must wrap it in <Suspense>.
 // ---------------------------------------------------------------------------
 
-import { useCallback, useTransition } from 'react';
+import * as React from 'react';
+import { useCallback, useTransition, Suspense } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { DataTableQuery } from './types';
 import { DEFAULT_DATA_TABLE_QUERY } from './types';
@@ -45,6 +42,30 @@ function parseIntOrDefault(value: string | null, fallback: number): number {
   return isNaN(parsed) || parsed < 1 ? fallback : parsed;
 }
 
+/**
+ * Syncs DataTable query state (page, pageSize, ordering, search) to URL
+ * search params via Next.js App Router.
+ *
+ * @remarks
+ * **IMPORTANT — Suspense required.**
+ * This hook calls `useSearchParams()` internally. In Next.js 15+, any
+ * component that directly or indirectly calls `useSearchParams()` MUST be
+ * rendered inside a `<Suspense>` boundary; otherwise Next.js will deopt the
+ * entire route to client-side rendering and emit a build warning/error.
+ *
+ * Use the exported `DataTableQueryBoundary` wrapper to satisfy this
+ * requirement without boilerplate at every call site:
+ *
+ * ```tsx
+ * <DataTableQueryBoundary>
+ *   <MyTablePage />   // calls useDataTableQuery inside
+ * </DataTableQueryBoundary>
+ * ```
+ *
+ * @throws If rendered outside a `<Suspense>` boundary in a Next.js 15+
+ * app, the framework will either throw at build time or silently disable
+ * static optimisation for the containing route segment.
+ */
 export function useDataTableQuery(
   options: UseDataTableQueryOptions = {}
 ): UseDataTableQueryReturn {
@@ -134,4 +155,27 @@ export function useDataTableQuery(
     reset,
     isPending,
   };
+}
+
+// ---------------------------------------------------------------------------
+// DataTableQueryBoundary
+//
+// Convenience wrapper that satisfies the Suspense requirement for any subtree
+// that uses useDataTableQuery (and therefore useSearchParams). Wrap your
+// DataTable feature component at the page level to avoid per-call boilerplate.
+//
+// Usage:
+//   <DataTableQueryBoundary>
+//     <TeamMembersTable />
+//   </DataTableQueryBoundary>
+// ---------------------------------------------------------------------------
+
+export function DataTableQueryBoundary({
+  children,
+  fallback = null,
+}: {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}) {
+  return <Suspense fallback={fallback}>{children}</Suspense>;
 }

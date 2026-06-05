@@ -10,6 +10,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from '@/components/ui/pagination';
+import { Flex } from '@/components/layout';
 import { cn } from '@/lib/utils/index';
 
 // ---------------------------------------------------------------------------
@@ -90,10 +91,16 @@ export function DataTablePagination({
   const pageWindow = buildPageWindow(page, totalPages, windowSize);
 
   return (
-    <div
+    <Flex
+      as='div'
       data-slot='data-table-pagination'
+      direction='column'
+      align='center'
+      gap={2}
+      py={2}
+      // Responsive: switch to row layout at @md/content container breakpoint
       className={cn(
-        'flex flex-col items-center gap-2 py-2 @md/content:flex-row @md/content:justify-between',
+        '@md/content:flex-row @md/content:justify-between',
         className
       )}
     >
@@ -112,6 +119,7 @@ export function DataTablePagination({
               <PaginationPrevious
                 onClick={page > 1 ? () => onPageChange(page - 1) : undefined}
                 aria-disabled={page <= 1}
+                tabIndex={page <= 1 ? -1 : undefined}
                 className={page <= 1 ? 'pointer-events-none opacity-50' : ''}
               />
             </PaginationItem>
@@ -145,6 +153,7 @@ export function DataTablePagination({
                   page < totalPages ? () => onPageChange(page + 1) : undefined
                 }
                 aria-disabled={page >= totalPages}
+                tabIndex={page >= totalPages ? -1 : undefined}
                 className={
                   page >= totalPages ? 'pointer-events-none opacity-50' : ''
                 }
@@ -153,6 +162,6 @@ export function DataTablePagination({
           </PaginationContent>
         </Pagination>
       )}
-    </div>
+    </Flex>
   );
 }

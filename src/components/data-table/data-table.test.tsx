@@ -65,6 +65,7 @@ function renderTable(
     isLoading: boolean;
     emptyState: React.ReactNode;
     onQueryChange: (q: DataTableQuery) => void;
+    skeletonRows: number;
   }> = {}
 ) {
   const onQueryChange = overrides.onQueryChange ?? vi.fn();
@@ -77,6 +78,7 @@ function renderTable(
       totalCount={overrides.totalCount ?? FIXTURE_DATA.length}
       isLoading={overrides.isLoading ?? false}
       emptyState={overrides.emptyState}
+      skeletonRows={overrides.skeletonRows ?? 5}
     />
   );
 }
@@ -101,12 +103,10 @@ describe('DataTable', () => {
 
   describe('loading state', () => {
     it('renders skeleton rows when isLoading is true', () => {
-      renderTable({ isLoading: true, data: [], skeletonRows: 3 } as Parameters<
-        typeof renderTable
-      >[0]);
-      // Skeleton rows are aria-hidden; find the wrappers via the container
-      const skeletons = document.querySelectorAll('[aria-hidden]');
-      expect(skeletons.length).toBeGreaterThan(0);
+      renderTable({ isLoading: true, data: [], skeletonRows: 3 });
+      // Skeleton rows have aria-hidden="true" on the <tr> elements
+      const skeletonRows = document.querySelectorAll('tr[aria-hidden="true"]');
+      expect(skeletonRows).toHaveLength(3);
     });
 
     it('does not render data rows while loading', () => {
@@ -285,6 +285,42 @@ describe('DataTable', () => {
     it('shows "No results" when totalCount is 0', () => {
       renderTable({ data: [], totalCount: 0 });
       expect(screen.getByText('No results')).toBeInTheDocument();
+    });
+
+    it('calls onQueryChange with page 2 when Next page is clicked', () => {
+      const onQueryChange = vi.fn();
+      renderTable({
+        onQueryChange,
+        data: FIXTURE_DATA,
+        query: { ...DEFAULT_QUERY, page: 1, pageSize: 10 },
+        totalCount: 30,
+      });
+
+      // PaginationNext renders an <a> without href — query by aria-label
+      const nextBtn = screen.getByLabelText(/go to next page/i);
+      fireEvent.click(nextBtn);
+
+      expect(onQueryChange).toHaveBeenCalledOnce();
+      const call = onQueryChange.mock.calls[0][0] as DataTableQuery;
+      expect(call.page).toBe(2);
+    });
+
+    it('calls onQueryChange with page 1 when Previous page is clicked from page 2', () => {
+      const onQueryChange = vi.fn();
+      renderTable({
+        onQueryChange,
+        data: FIXTURE_DATA,
+        query: { ...DEFAULT_QUERY, page: 2, pageSize: 10 },
+        totalCount: 30,
+      });
+
+      // PaginationPrevious renders an <a> without href — query by aria-label
+      const prevBtn = screen.getByLabelText(/go to previous page/i);
+      fireEvent.click(prevBtn);
+
+      expect(onQueryChange).toHaveBeenCalledOnce();
+      const call = onQueryChange.mock.calls[0][0] as DataTableQuery;
+      expect(call.page).toBe(1);
     });
   });
 });
