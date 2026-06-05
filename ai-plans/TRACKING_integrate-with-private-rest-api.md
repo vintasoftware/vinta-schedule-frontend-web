@@ -363,13 +363,22 @@
 - **Summary**: `useTriggerRoomsSync` (`organizationsSyncRoomsCreate`, echoes org `name` — required `OrganizationWritable` field), "Sync rooms" button on `/sync-settings` (fire-and-toast, 500ms debounce). No `as any`. Typecheck verified PASS. Accepted on focused review.
 - **Gate**: typecheck PASS / test(537) / lint(0 err) / format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 35 — Manually sync another user's calendar (admin) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-35` (base `phase-34`).
+- **PR**: (published below). **Commits**: `04df2d1`.
+- **Summary**: `useTriggerUserCalendarSync` (`calendarAdminSyncCreate`, default window like Phase 10); all-calendars Sync row action repointed from the Phase 11 placeholder (member `calendarRequestSyncCreate`) to the admin op. Fire-and-toast, per-row debounce. No `as any`. Typecheck PASS. Accepted on focused review.
+- **Gate**: typecheck PASS / test(540) / lint(0 err) / format green; build only pre-existing `/auth/verify-email`.
+
+## Sync block complete ✅ (phases 33–35)
+
 ## Current Phase
 
-- **Phase 35 — Manually sync another user's calendar (admin)** (Tier 2) — starting (completes sync block; admin-sync row action on all-calendars).
+- **Phase 36 — Transfer an event between users' calendars (admin)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-35–38 (use-cases).
+36–38 (use-cases).
 
 ## Deferred / Superseded
 
