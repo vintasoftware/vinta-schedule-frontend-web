@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { VStack, Text, HStack } from '@/components/layout';
 import type { Calendar } from '@/client';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
-import { useRequestCalendarSync } from '@/hooks/calendars/use-request-calendar-sync';
+import { useTriggerUserCalendarSync } from '@/hooks/sync/use-trigger-user-calendar-sync';
 
 // ---------------------------------------------------------------------------
 // Badge variant maps for calendar properties
@@ -182,17 +182,18 @@ function AllCalendarsTableInner() {
   const { calendars, totalCount, isLoading, isError, error } =
     useAllCalendars(query);
 
-  const { requestSync } = useRequestCalendarSync();
+  const { triggerUserCalendarSync } = useTriggerUserCalendarSync();
 
   // Handle sync action: track in-flight row, call hook, show toast.
   // Fire-and-toast with no live tracking — the sync is async on the backend.
+  // Admin-only: calls calendarAdminSyncCreate to sync another user's calendar.
   const handleSync = React.useCallback(
     async (calendar: Calendar) => {
       // Mark this row as pending to disable its button.
       setPendingRowIds((prev) => new Set(prev).add(calendar.id));
 
       try {
-        await requestSync(calendar.id);
+        await triggerUserCalendarSync(calendar.id);
         toast.success('Sync started', {
           description: `${calendar.name} sync is in progress.`,
         });
@@ -212,7 +213,7 @@ function AllCalendarsTableInner() {
         });
       }
     },
-    [requestSync]
+    [triggerUserCalendarSync]
   );
 
   if (isError) {

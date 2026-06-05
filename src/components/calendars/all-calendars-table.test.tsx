@@ -26,7 +26,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     calendarList: vi.fn(),
-    calendarRequestSyncCreate: vi.fn(),
+    calendarAdminSyncCreate: vi.fn(),
   };
 });
 
@@ -39,7 +39,7 @@ vi.mock('sonner', () => ({
 }));
 
 // After mocks are hoisted, import the modules under test.
-import { calendarList, calendarRequestSyncCreate } from '@/client/sdk.gen';
+import { calendarList, calendarAdminSyncCreate } from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import userEvent from '@testing-library/user-event';
 import { AllCalendarsTable } from './all-calendars-table';
@@ -336,17 +336,17 @@ describe('AllCalendarsTable', () => {
       expect(syncButtons.length).toBe(4);
     });
 
-    it('calls calendarRequestSyncCreate when sync button is clicked', async () => {
+    it('calls calendarAdminSyncCreate when sync button is clicked', async () => {
       vi.mocked(calendarList).mockResolvedValue(
         makePagedResponse(ALL_CALENDARS_FIXTURE)
       );
-      vi.mocked(calendarRequestSyncCreate).mockResolvedValue({
+      vi.mocked(calendarAdminSyncCreate).mockResolvedValue({
         data: { status: 'success' },
         response: new Response(JSON.stringify({ status: 'success' }), {
           status: 202,
           headers: { 'Content-Type': 'application/json' },
         }),
-      } as unknown as Awaited<ReturnType<typeof calendarRequestSyncCreate>>);
+      } as unknown as Awaited<ReturnType<typeof calendarAdminSyncCreate>>);
 
       const user = userEvent.setup();
       renderAllCalendarsTable();
@@ -359,12 +359,12 @@ describe('AllCalendarsTable', () => {
       const syncButtons = screen.getAllByRole('button', { name: /sync/i });
       await user.click(syncButtons[0]);
 
-      // calendarRequestSyncCreate should have been called with the calendar id.
+      // calendarAdminSyncCreate should have been called with the calendar id.
       await waitFor(() => {
-        expect(vi.mocked(calendarRequestSyncCreate)).toHaveBeenCalled();
+        expect(vi.mocked(calendarAdminSyncCreate)).toHaveBeenCalled();
       });
 
-      const calls = vi.mocked(calendarRequestSyncCreate).mock.calls;
+      const calls = vi.mocked(calendarAdminSyncCreate).mock.calls;
       const lastCall = calls[calls.length - 1];
       expect(lastCall[0]?.path?.id).toBe('1');
 
@@ -381,7 +381,7 @@ describe('AllCalendarsTable', () => {
       vi.mocked(calendarList).mockResolvedValue(
         makePagedResponse(ALL_CALENDARS_FIXTURE)
       );
-      vi.mocked(calendarRequestSyncCreate).mockRejectedValue(
+      vi.mocked(calendarAdminSyncCreate).mockRejectedValue(
         new Error('Sync failed')
       );
 
@@ -412,7 +412,7 @@ describe('AllCalendarsTable', () => {
         makePagedResponse(ALL_CALENDARS_FIXTURE)
       );
       // Simulate a pending mutation.
-      vi.mocked(calendarRequestSyncCreate).mockImplementation(
+      vi.mocked(calendarAdminSyncCreate).mockImplementation(
         () =>
           new Promise(() => {
             /* never resolves */
@@ -441,13 +441,13 @@ describe('AllCalendarsTable', () => {
       vi.mocked(calendarList).mockResolvedValue(
         makePagedResponse(ALL_CALENDARS_FIXTURE)
       );
-      vi.mocked(calendarRequestSyncCreate).mockResolvedValue({
+      vi.mocked(calendarAdminSyncCreate).mockResolvedValue({
         data: { status: 'success' },
         response: new Response(JSON.stringify({ status: 'success' }), {
           status: 202,
           headers: { 'Content-Type': 'application/json' },
         }),
-      } as unknown as Awaited<ReturnType<typeof calendarRequestSyncCreate>>);
+      } as unknown as Awaited<ReturnType<typeof calendarAdminSyncCreate>>);
 
       const user = userEvent.setup();
       renderAllCalendarsTable();
@@ -468,11 +468,11 @@ describe('AllCalendarsTable', () => {
 
       // Wait for mutation to complete.
       await waitFor(() => {
-        expect(vi.mocked(calendarRequestSyncCreate)).toHaveBeenCalled();
+        expect(vi.mocked(calendarAdminSyncCreate)).toHaveBeenCalled();
       });
 
       // Only one request should have been made (not two).
-      const calls = vi.mocked(calendarRequestSyncCreate).mock.calls;
+      const calls = vi.mocked(calendarAdminSyncCreate).mock.calls;
       expect(calls.length).toBe(1);
     });
   });
