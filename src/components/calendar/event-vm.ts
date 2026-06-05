@@ -12,7 +12,10 @@
  */
 
 import { DateTime } from 'luxon';
-import type { CalendarEvent } from '@/client';
+import type {
+  CalendarEvent,
+  RecurrenceRule as ApiRecurrenceRule,
+} from '@/client';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,8 +63,11 @@ export interface CalendarEventVM {
   timezoneLabel: string;
   /** The calendar (owner) id from the API. */
   calendarId?: number;
-  /** Recurrence rule string if the event is recurring. */
-  recurrenceRule?: string;
+  /**
+   * Recurrence rule from the API — typed object (not stringified).
+   * Use this to inspect or display the rule without lossy serialization.
+   */
+  recurrenceRule?: ApiRecurrenceRule;
   /** Whether this is a recurring event or instance. */
   isRecurring: boolean;
   /** Whether this is an exception to a recurrence rule. */
@@ -138,9 +144,7 @@ export function toCalendarEventVM(
     timezone: zone,
     timezoneLabel,
     calendarId,
-    recurrenceRule: event.recurrence_rule
-      ? JSON.stringify(event.recurrence_rule)
-      : undefined,
+    recurrenceRule: event.recurrence_rule,
     isRecurring: event.is_recurring ?? false,
     isRecurringException: event.is_recurring_exception ?? false,
     status,

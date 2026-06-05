@@ -28,6 +28,7 @@ import {
 } from 'react-big-calendar';
 import { DateTime } from 'luxon';
 import './calendar-theme.css';
+import { Flex } from '@/components/layout';
 import type { CalendarEventVM } from './event-vm';
 
 // ---------------------------------------------------------------------------
@@ -139,8 +140,11 @@ export function CalendarView({
   // content while the outer RBC chrome (position, selection, overlap) stays.
   const EventContent = EventRendererProp ?? DefaultEventContent;
 
-  // Wrap EventContent in a named function component so React DevTools shows a
-  // useful name and the lint rule (no mutation of component refs) is satisfied.
+  // Wrap EventContent in a named function component. The named declaration
+  // (rather than an anonymous arrow) ensures React sees a stable component
+  // identity in DevTools and avoids RBC treating a new anonymous function
+  // reference as a new component type on every render (which would unmount/
+  // remount every event cell).
   const EventComponent = React.useMemo<
     React.ComponentType<EventProps<CalendarEventVM>>
   >(
@@ -167,10 +171,13 @@ export function CalendarView({
   );
 
   return (
-    <div
+    <Flex
+      as='div'
       data-slot='calendar-view'
+      direction='column'
       className={className}
-      style={{ minHeight, display: 'flex', flexDirection: 'column' }}
+      // minHeight is dynamic (prop-driven, no token); keep as style escape hatch
+      style={{ minHeight }}
     >
       <Calendar<CalendarEventVM>
         localizer={localizer}
@@ -198,8 +205,8 @@ export function CalendarView({
           noEventsInRange: 'No events in this range.',
           showMore: (count) => `+${count} more`,
         }}
-        style={{ flex: 1, minHeight }}
+        className='flex-1'
       />
-    </div>
+    </Flex>
   );
 }

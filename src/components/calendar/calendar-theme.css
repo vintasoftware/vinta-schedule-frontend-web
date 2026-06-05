@@ -288,6 +288,8 @@
   color: var(--primary);
   font-size: 0.75rem;
   font-weight: 500;
+  /* Override the base CSS rgba(255,255,255,0.3) leak */
+  background-color: transparent;
   background: none;
   border: none;
   cursor: pointer;
@@ -316,3 +318,46 @@
 .rbc-row-bg .rbc-day-bg + .rbc-day-bg {
   border-left: 1px solid var(--border);
 }
+
+/* ============================================================================
+   Missing overrides — selectors found in base CSS with raw color values
+   ============================================================================ */
+
+/*
+ * Day-slot event border (week/day views).
+ * Base CSS: border: 1px solid rgb(37.7, 89.4, 133.3) — hardcoded blue.
+ */
+.rbc-day-slot .rbc-event,
+.rbc-day-slot .rbc-background-event {
+  border-color: var(--primary);
+}
+
+/*
+ * Selected-cell highlight (slot/range selection drag in month view).
+ * Base CSS: background-color: rgba(0, 0, 0, 0.1) — visible in dark mode as
+ * a gray tint that clashes with token backgrounds.
+ */
+.rbc-selected-cell {
+  background-color: color-mix(in oklch, var(--primary) 15%, transparent);
+}
+
+/*
+ * Off-range text (days outside the current month in the month view header row
+ * and in the week view). Base CSS: color: #999999.
+ * Note: .rbc-date-cell.rbc-off-range is already overridden above; this rule
+ * covers the bare .rbc-off-range class applied to header cells in week view.
+ */
+.rbc-off-range {
+  color: var(--muted-foreground);
+}
+
+/*
+ * Current-time indicator (already overridden above with var(--primary)).
+ * Base CSS has background-color: #74ad31 (green) — token override is in the
+ * Time-grid section above; this comment documents it was verified.
+ */
+
+/*
+ * RBC today highlight in the time-grid (already overridden above with
+ * var(--accent)). Base CSS has background-color: #eaf6ff — verified covered.
+ */

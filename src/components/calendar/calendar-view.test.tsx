@@ -16,7 +16,10 @@ import * as React from 'react';
 import { CalendarView } from './calendar-view';
 import type { CalendarEventVM } from './event-vm';
 import { toCalendarEventVM } from './event-vm';
-import type { CalendarEvent } from '@/client';
+import type {
+  CalendarEvent,
+  RecurrenceRule as ApiRecurrenceRule,
+} from '@/client';
 
 // ---------------------------------------------------------------------------
 // Browser API stubs required by react-big-calendar in jsdom
@@ -91,8 +94,57 @@ const RAW_SYD: CalendarEvent = {
   is_recurring_instance: false,
 };
 
+// Event in America/New_York in November (EST = UTC-5, DST no longer active)
+const RAW_NY_WINTER: CalendarEvent = {
+  id: 3,
+  title: 'Winter NY Meeting',
+  start_time: '2024-11-15T14:00:00-05:00',
+  end_time: '2024-11-15T15:00:00-05:00',
+  timezone: 'America/New_York',
+  created: '2024-01-01T00:00:00Z',
+  modified: '2024-01-01T00:00:00Z',
+  external_id: 'ext-3',
+  external_attendances: [],
+  attendances: [],
+  resource_allocations: [],
+  parent_recurring_object: STUB_PARENT_EVENT,
+  is_recurring: false,
+  is_recurring_instance: false,
+};
+
+// Recurring event with a full recurrence_rule object
+const STUB_RECURRENCE_RULE: ApiRecurrenceRule = {
+  id: 10,
+  frequency: 'WEEKLY',
+  interval: 1,
+  by_weekday: 'MO',
+  rrule_string: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO',
+  created: '2024-01-01T00:00:00Z',
+  modified: '2024-01-01T00:00:00Z',
+};
+
+const RAW_RECURRING: CalendarEvent = {
+  id: 4,
+  title: 'Weekly Recurring',
+  start_time: '2024-06-17T10:00:00-04:00',
+  end_time: '2024-06-17T11:00:00-04:00',
+  timezone: 'America/New_York',
+  created: '2024-01-01T00:00:00Z',
+  modified: '2024-01-01T00:00:00Z',
+  external_id: 'ext-4',
+  external_attendances: [],
+  attendances: [],
+  resource_allocations: [],
+  parent_recurring_object: STUB_PARENT_EVENT,
+  is_recurring: true,
+  is_recurring_instance: false,
+  recurrence_rule: STUB_RECURRENCE_RULE,
+};
+
 const VM_NY: CalendarEventVM = toCalendarEventVM(RAW_NY);
 const VM_SYD: CalendarEventVM = toCalendarEventVM(RAW_SYD);
+const VM_NY_WINTER: CalendarEventVM = toCalendarEventVM(RAW_NY_WINTER);
+const VM_RECURRING: CalendarEventVM = toCalendarEventVM(RAW_RECURRING);
 
 const FIXTURE_EVENTS: CalendarEventVM[] = [VM_NY, VM_SYD];
 
@@ -146,9 +198,19 @@ describe('CalendarView', () => {
 
     it('renders event titles in month view', () => {
       renderCalendar({ view: 'month' });
-      // RBC month view renders event titles in the grid
-      expect(screen.getAllByText('New York Meeting').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Sydney Standup').length).toBeGreaterThan(0);
+      // Both fixture event titles must appear — if either vanishes a regression is caught.
+      // RBC month view renders event titles in the grid cells.
+      expect(
+        screen.getAllByText('New York Meeting').length
+      ).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText('Sydney Standup').length
+      ).toBeGreaterThanOrEqual(1);
+      // Verify at least 2 distinct event titles are rendered (guards against
+      // an implementation that shows only one event accidentally).
+      const nyCount = screen.getAllByText('New York Meeting').length;
+      const sydCount = screen.getAllByText('Sydney Standup').length;
+      expect(nyCount + sydCount).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -162,8 +224,19 @@ describe('CalendarView', () => {
 
     it('renders event titles in week view', () => {
       renderCalendar({ view: 'week' });
-      expect(screen.getAllByText('New York Meeting').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Sydney Standup').length).toBeGreaterThan(0);
+      // Both fixture event titles must appear. Week view in jsdom may not
+      // position events via DOM layout, but RBC still produces event container
+      // nodes. We assert on both title strings to catch regressions where
+      // events are dropped entirely.
+      expect(
+        screen.getAllByText('New York Meeting').length
+      ).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText('Sydney Standup').length
+      ).toBeGreaterThanOrEqual(1);
+      const nyCount = screen.getAllByText('New York Meeting').length;
+      const sydCount = screen.getAllByText('Sydney Standup').length;
+      expect(nyCount + sydCount).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -240,7 +313,7 @@ describe('CalendarView', () => {
       expect(onViewChange).toHaveBeenCalledWith('month');
     });
 
-    it('the date prop is passed through unchanged across view renders', () => {
+    it('does not call onDateChange when an external view switch re-renders with the same date prop', () => {
       const fixedDate = new Date('2024-06-15T00:00:00Z');
       const onDateChange = vi.fn();
 
@@ -318,5 +391,58 @@ describe('toCalendarEventVM', () => {
   it('sets isRecurring and isRecurringException from the API shape', () => {
     expect(VM_NY.isRecurring).toBe(false);
     expect(VM_NY.isRecurringException).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildTimezoneLabel DST boundary tests
+// ---------------------------------------------------------------------------
+
+describe('buildTimezoneLabel — DST boundary (America/New_York)', () => {
+  it('June event reflects EDT (UTC-4) — DST active', () => {
+    // RAW_NY is 2024-06-15 in America/New_York — DST active, offset = -240 min
+    expect(VM_NY.timezoneLabel).toContain('UTC-4');
+    // The abbreviated name may be EDT in environments with full TZ data,
+    // but the offset assertion is the load-bearing one regardless of env.
+    expect(VM_NY.timezoneLabel).not.toContain('UTC-5');
+  });
+
+  it('November event reflects EST (UTC-5) — DST no longer active', () => {
+    // RAW_NY_WINTER is 2024-11-15 in America/New_York — DST ended, offset = -300 min
+    expect(VM_NY_WINTER.timezoneLabel).toContain('UTC-5');
+    expect(VM_NY_WINTER.timezoneLabel).not.toContain('UTC-4');
+  });
+
+  it('summer and winter NY labels differ (DST transition captured correctly)', () => {
+    expect(VM_NY.timezoneLabel).not.toBe(VM_NY_WINTER.timezoneLabel);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Recurrence VM tests
+// ---------------------------------------------------------------------------
+
+describe('toCalendarEventVM — recurrence', () => {
+  it('sets isRecurring to true from is_recurring field', () => {
+    expect(VM_RECURRING.isRecurring).toBe(true);
+  });
+
+  it('carries the typed recurrenceRule object (not a string)', () => {
+    // Must be an object, not a JSON string
+    expect(typeof VM_RECURRING.recurrenceRule).toBe('object');
+    expect(VM_RECURRING.recurrenceRule).not.toBeNull();
+  });
+
+  it('recurrenceRule round-trips the original API object', () => {
+    // The typed field must equal the raw input without any transformation
+    expect(VM_RECURRING.recurrenceRule).toEqual(STUB_RECURRENCE_RULE);
+  });
+
+  it('recurrenceRule.frequency matches the stub', () => {
+    expect(VM_RECURRING.recurrenceRule?.frequency).toBe('WEEKLY');
+  });
+
+  it('non-recurring event has undefined recurrenceRule', () => {
+    expect(VM_NY.recurrenceRule).toBeUndefined();
   });
 });
