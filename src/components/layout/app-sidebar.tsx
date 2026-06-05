@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Calendar,
   CalendarSync,
@@ -24,6 +26,8 @@ export interface SidebarNavItem {
   label: string;
   icon: LucideIcon;
   badge?: string | number;
+  /** Optional route href. When present the item renders as a Next.js Link. */
+  href?: string;
 }
 
 export interface SidebarNavGroup {
@@ -76,6 +80,9 @@ const AppSidebar = React.forwardRef<HTMLElement, AppSidebarProps>(
     },
     ref
   ) {
+    // Detect current pathname so href-based items can show as active.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const pathname = usePathname();
     return (
       <VStack
         as='aside'
@@ -122,20 +129,14 @@ const AppSidebar = React.forwardRef<HTMLElement, AppSidebarProps>(
                 </Text>
               ) : null}
               {group.items.map((item) => {
-                const active = item.id === activeId;
+                // An item is active if it matches the explicit activeId prop OR
+                // (when it has an href) if the current pathname starts with that href.
+                const active =
+                  item.id === activeId ||
+                  (item.href != null && pathname.startsWith(item.href));
                 const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    type='button'
-                    onClick={() => onNavigate?.(item.id)}
-                    className={cn(
-                      'group flex h-9 items-center gap-3 rounded-md px-2.5 text-sm font-medium transition-colors',
-                      active
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                    )}
-                  >
+                const itemContent = (
+                  <>
                     <Icon
                       className={cn(
                         'size-[17px]',
@@ -155,6 +156,29 @@ const AppSidebar = React.forwardRef<HTMLElement, AppSidebarProps>(
                         {item.badge}
                       </Text>
                     ) : null}
+                  </>
+                );
+                const itemClass = cn(
+                  'group flex h-9 items-center gap-3 rounded-md px-2.5 text-sm font-medium transition-colors',
+                  active
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                );
+                if (item.href) {
+                  return (
+                    <Link key={item.id} href={item.href} className={itemClass}>
+                      {itemContent}
+                    </Link>
+                  );
+                }
+                return (
+                  <button
+                    key={item.id}
+                    type='button'
+                    onClick={() => onNavigate?.(item.id)}
+                    className={itemClass}
+                  >
+                    {itemContent}
                   </button>
                 );
               })}

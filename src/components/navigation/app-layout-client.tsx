@@ -36,7 +36,7 @@ const MEMBER_NAV_ITEMS: SidebarNavItem[] = [
 ];
 
 const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
-  { id: 'team', label: 'Team', icon: UsersRound },
+  { id: 'team', label: 'Team', icon: UsersRound, href: '/team' },
   { id: 'all-calendars', label: 'All calendars', icon: CalendarSync },
   { id: 'groups', label: 'Calendar groups', icon: UsersRound },
   { id: 'bundles', label: 'Bundles', icon: Calendar },
