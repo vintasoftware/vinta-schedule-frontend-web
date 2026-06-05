@@ -16,6 +16,7 @@
 ## Completed Phases
 
 ### Phase 0a — App shell, routing & role gating ✅
+
 - **Status**: done, PR opened.
 - **Model**: `claude-sonnet-4-6` (plan Tier 3).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-0a` (base `main`).
@@ -26,13 +27,23 @@
 - **Gate**: typecheck/test(33)/lint(0 err)/format green. `npm run build` fails ONLY on pre-existing `/auth/verify-email` prerender crash (input-otp SSR), untouched by this phase — flagged to the user.
 - **Tooling added this phase**: `.prettierignore` + eslint ignore for generated clients & `storybook-static`; format scripts wired to `.prettierignore`.
 
+### Phase 0c — Luxon date & timezone utilities ✅
+- **Status**: done, PR opened.
+- **Model**: `claude-sonnet-4-6` (plan Tier 3).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-0c` (base `phase-0a`, stacked).
+- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/2 (5 inline comments).
+- **Commits**: `6000d27` datetime lib + RRULE serde, `babd23c` review fixes.
+- **Summary**: `src/lib/datetime/` — `zonedFormat`, `eventRange`, `toApiRange`, `weekdayMatrix`, DST helpers (`isInDstFallBack`, `isInDstSpringForwardGap`, `dstStatus`). `date-utils.ts` migrated to Luxon with byte-identical output (parity test added). `RecurrenceRule` RFC-5545 subset + round-trippable `serializeRRule`/`parseRRule` (UNTIL>COUNT precedence). Review (FIX-FIRST) fixed: dstStatus mislabeling fixed-offset zones, formatDateTime Intl parity, `@types/luxon`→devDeps, list-view 7-day window, gap-helper coverage.
+- **Gate**: typecheck/test(102)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+- **Note**: `isInDstSpringForwardGap` flags the pre-transition window (Luxon normalizes the gap) — documented + tested.
+
 ## Current Phase
 
-- **Phase 0c — Luxon date & timezone utilities** (Tier 3, `claude-sonnet-4-6`) — starting (0b superseded).
+- **Phase 0d — Shared DataTable composition** (Tier 3, `claude-sonnet-4-6`) — starting.
 
 ## Remaining Phases
 
-0c, 0d, 0e, 0f (foundation); 1–38 (use-cases).
+0d, 0e, 0f (foundation); 1–38 (use-cases).
 
 ## Deferred / Superseded
 
