@@ -1,16 +1,19 @@
 'use client';
 
 import * as React from 'react';
+import { UserPlus } from 'lucide-react';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { VStack, Text } from '@/components/layout';
 import { DateTime, zonedFormat } from '@/lib/datetime';
 import {
   useInvitations,
   type Invitation,
 } from '@/hooks/invitations/use-invitations';
+import { InviteMemberDialog } from './invite-member-dialog';
 
 // ---------------------------------------------------------------------------
 // Column definitions
@@ -83,6 +86,8 @@ function InvitationsTableEmpty() {
 // ---------------------------------------------------------------------------
 
 function InvitationsTableInner() {
+  const [inviteOpen, setInviteOpen] = React.useState(false);
+
   const { query, setPage, setSearch, setOrdering } = useDataTableQuery({
     prefix: INV_URL_PREFIX,
   });
@@ -114,17 +119,28 @@ function InvitationsTableInner() {
     );
   }
 
+  const toolbarActions = (
+    <Button size='sm' onClick={() => setInviteOpen(true)}>
+      <UserPlus className='size-4' aria-hidden />
+      Invite member
+    </Button>
+  );
+
   return (
-    <DataTable<Invitation>
-      data={invitations}
-      columns={COLUMNS}
-      query={query}
-      onQueryChange={handleQueryChange}
-      totalCount={totalCount}
-      isLoading={isLoading}
-      emptyState={<InvitationsTableEmpty />}
-      showSearch={true}
-    />
+    <>
+      <DataTable<Invitation>
+        data={invitations}
+        columns={COLUMNS}
+        query={query}
+        onQueryChange={handleQueryChange}
+        totalCount={totalCount}
+        isLoading={isLoading}
+        emptyState={<InvitationsTableEmpty />}
+        showSearch={true}
+        toolbarActions={toolbarActions}
+      />
+      <InviteMemberDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+    </>
   );
 }
 
