@@ -20,6 +20,14 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 // The generated invitationsListOptions (in @/client/@tanstack/react-query.gen)
 // internally calls invitationsList from @/client/sdk.gen.
 // We mock at the sdk.gen boundary so both the TanStack options factory AND any
@@ -29,11 +37,13 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     invitationsList: vi.fn(),
+    invitationsResendCreate: vi.fn(),
   };
 });
 
 // After mocks are hoisted, import the modules under test.
-import { invitationsList } from '@/client/sdk.gen';
+import { invitationsList, invitationsResendCreate } from '@/client/sdk.gen';
+import { toast } from 'sonner';
 import { useInvitations } from '@/hooks/invitations/use-invitations';
 import { InvitationsTable } from './invitations-table';
 
@@ -345,6 +355,156 @@ describe('InvitationsTable', () => {
       };
       expect(queryArgs?.limit).toBe(PAGE_SIZE);
       expect(queryArgs?.offset).toBe(PAGE_SIZE); // page 2: offset = (2-1) * pageSize = 20
+    });
+  });
+
+  describe('resend action', () => {
+    it('clicking Resend calls invitationsResendCreate with row id and email', async () => {
+      const user = userEvent.setup();
+      vi.mocked(invitationsList).mockResolvedValue(
+        makePagedResponse(INVITATION_FIXTURE)
+      );
+
+      // Mock the resend endpoint to succeed.
+      vi.mocked(invitationsResendCreate).mockResolvedValue({
+        data: {
+          id: 1,
+          email: 'alice@acme.com',
+          expires_at: '2025-12-31T23:59:59Z',
+        },
+        response: new Response(JSON.stringify({}), { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof invitationsResendCreate>>);
+
+      renderInvitationsTable();
+
+      // Wait for initial data load.
+      await waitFor(() => {
+        expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
+      });
+
+      // Click the Resend button for Alice (first row).
+      const resendButtons = screen.getAllByRole('button', { name: /resend/i });
+      expect(resendButtons.length).toBeGreaterThan(0);
+      await user.click(resendButtons[0]);
+
+      // Wait for the mutation to complete.
+      await waitFor(() => {
+        expect(invitationsResendCreate).toHaveBeenCalled();
+      });
+
+      // Verify the resend was called with the correct id and email.
+      const calls = vi.mocked(invitationsResendCreate).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]?.path?.id).toBe('1');
+      expect(lastCall[0]?.body?.email).toBe('alice@acme.com');
+    });
+
+    it('shows a success toast on successful resend', async () => {
+      const user = userEvent.setup();
+      vi.mocked(invitationsList).mockResolvedValue(
+        makePagedResponse(INVITATION_FIXTURE)
+      );
+      vi.mocked(invitationsResendCreate).mockResolvedValue({
+        data: {
+          id: 1,
+          email: 'alice@acme.com',
+          expires_at: '2025-12-31T23:59:59Z',
+        },
+        response: new Response(JSON.stringify({}), { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof invitationsResendCreate>>);
+
+      renderInvitationsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
+      });
+
+      const resendButtons = screen.getAllByRole('button', { name: /resend/i });
+      await user.click(resendButtons[0]);
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('Invitation resent', {
+          description: expect.stringContaining('alice@acme.com'),
+        });
+      });
+    });
+
+    it('shows an error toast on failed resend', async () => {
+      const user = userEvent.setup();
+      vi.mocked(invitationsList).mockResolvedValue(
+        makePagedResponse(INVITATION_FIXTURE)
+      );
+
+      const error = new Error('Network error');
+      vi.mocked(invitationsResendCreate).mockRejectedValue(error);
+
+      renderInvitationsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
+      });
+
+      const resendButtons = screen.getAllByRole('button', { name: /resend/i });
+      await user.click(resendButtons[0]);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          'Failed to resend invitation',
+          {
+            description: 'Network error',
+          }
+        );
+      });
+    });
+
+    it('clicking multiple Resend buttons fires separate mutations per row', async () => {
+      const user = userEvent.setup();
+      vi.mocked(invitationsList).mockResolvedValue(
+        makePagedResponse(INVITATION_FIXTURE)
+      );
+
+      // Mock resend to succeed
+      vi.mocked(invitationsResendCreate).mockResolvedValue({
+        data: {
+          id: 1,
+          email: 'alice@acme.com',
+          expires_at: '2025-12-31T23:59:59Z',
+        },
+        response: new Response(JSON.stringify({}), { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof invitationsResendCreate>>);
+
+      renderInvitationsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
+      });
+
+      // Find all Resend buttons
+      const allButtons = screen.getAllByRole('button');
+      const resendButtons = allButtons.filter((btn) =>
+        btn.getAttribute('aria-label')?.includes('Resend invitation')
+      );
+
+      // Should have 2 Resend buttons (one for Alice, one for Bob)
+      expect(resendButtons.length).toBe(2);
+
+      // Click the first (Alice)
+      await user.click(resendButtons[0]);
+
+      // Wait for toast.success to be called
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('Invitation resent', {
+          description: expect.stringContaining('alice@acme.com'),
+        });
+      });
+
+      // Verify the resend mutation was called
+      expect(invitationsResendCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: '1' },
+          body: { email: 'alice@acme.com' },
+        })
+      );
     });
   });
 });
