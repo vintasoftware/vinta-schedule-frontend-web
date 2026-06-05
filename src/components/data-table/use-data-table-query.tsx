@@ -6,11 +6,17 @@
 // Syncs DataTableQuery state to/from URL search params so that sort,
 // search, and page survive navigation and can be deep-linked.
 //
-// URL params:
+// URL params (no prefix):
 //   page        → "page"     (default: 1)
 //   page_size   → "page_size" (default: pageSize arg, usually 20)
 //   ordering    → "ordering" (default: null / omitted)
 //   search      → "search"   (default: null / omitted)
+//
+// With prefix (e.g. prefix='inv'):
+//   inv_page, inv_page_size, inv_ordering, inv_search
+//
+// Using a prefix allows multiple DataTables on the same page (e.g. tabs)
+// to maintain independent URL state without contaminating each other.
 // ---------------------------------------------------------------------------
 
 import * as React from 'react';
@@ -22,6 +28,13 @@ import { DEFAULT_DATA_TABLE_QUERY } from './types';
 interface UseDataTableQueryOptions {
   /** Default page size. Defaults to 20. */
   defaultPageSize?: number;
+  /**
+   * Optional URL param prefix for namespacing when multiple tables share the
+   * same URL (e.g. tabs on a page). With prefix='inv' the keys become
+   * inv_page, inv_page_size, inv_ordering, inv_search.
+   * Defaults to '' (no prefix, backward-compatible).
+   */
+  prefix?: string;
 }
 
 interface UseDataTableQueryReturn {
@@ -69,29 +82,39 @@ function parseIntOrDefault(value: string | null, fallback: number): number {
 export function useDataTableQuery(
   options: UseDataTableQueryOptions = {}
 ): UseDataTableQueryReturn {
-  const { defaultPageSize = DEFAULT_DATA_TABLE_QUERY.pageSize } = options;
+  const { defaultPageSize = DEFAULT_DATA_TABLE_QUERY.pageSize, prefix = '' } =
+    options;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
+  // Build the URL param key, optionally prefixed (e.g. prefix='inv' → 'inv_page').
+  const key = useCallback(
+    (name: string) => (prefix ? `${prefix}_${name}` : name),
+    [prefix]
+  );
+
   // Read current query state from URL.
   const query: DataTableQuery = {
-    page: parseIntOrDefault(searchParams.get('page'), 1),
-    pageSize: parseIntOrDefault(searchParams.get('page_size'), defaultPageSize),
-    ordering: searchParams.get('ordering'),
-    search: searchParams.get('search') || null,
+    page: parseIntOrDefault(searchParams.get(key('page')), 1),
+    pageSize: parseIntOrDefault(
+      searchParams.get(key('page_size')),
+      defaultPageSize
+    ),
+    ordering: searchParams.get(key('ordering')),
+    search: searchParams.get(key('search')) || null,
   };
 
   // Build a new URLSearchParams from the current ones + overrides.
   const buildParams = useCallback(
     (overrides: Partial<Record<string, string | null>>): string => {
       const params = new URLSearchParams(searchParams.toString());
-      for (const [key, value] of Object.entries(overrides)) {
+      for (const [k, value] of Object.entries(overrides)) {
         if (value === null || value === undefined || value === '') {
-          params.delete(key);
+          params.delete(k);
         } else {
-          params.set(key, value);
+          params.set(k, value);
         }
       }
       const str = params.toString();
@@ -111,33 +134,37 @@ export function useDataTableQuery(
 
   const setPage = useCallback(
     (page: number) => {
-      navigate(buildParams({ page: String(page) }));
+      navigate(buildParams({ [key('page')]: String(page) }));
     },
-    [navigate, buildParams]
+    [navigate, buildParams, key]
   );
 
   const setPageSize = useCallback(
     (size: number) => {
       // Reset to page 1 when page size changes.
-      navigate(buildParams({ page_size: String(size), page: '1' }));
+      navigate(
+        buildParams({ [key('page_size')]: String(size), [key('page')]: '1' })
+      );
     },
-    [navigate, buildParams]
+    [navigate, buildParams, key]
   );
 
   const setOrdering = useCallback(
     (ordering: string | null) => {
       // Reset to page 1 when sort changes.
-      navigate(buildParams({ ordering, page: '1' }));
+      navigate(
+        buildParams({ [key('ordering')]: ordering, [key('page')]: '1' })
+      );
     },
-    [navigate, buildParams]
+    [navigate, buildParams, key]
   );
 
   const setSearch = useCallback(
     (search: string | null) => {
       // Reset to page 1 when search changes.
-      navigate(buildParams({ search, page: '1' }));
+      navigate(buildParams({ [key('search')]: search, [key('page')]: '1' }));
     },
-    [navigate, buildParams]
+    [navigate, buildParams, key]
   );
 
   const reset = useCallback(() => {

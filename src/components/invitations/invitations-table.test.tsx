@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type { PaginatedOrganizationInvitationList } from '@/client';
+import { DateTime } from '@/lib/datetime';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -31,6 +34,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
 
 // After mocks are hoisted, import the modules under test.
 import { invitationsList } from '@/client/sdk.gen';
+import { useInvitations } from '@/hooks/invitations/use-invitations';
 import { InvitationsTable } from './invitations-table';
 
 // ---------------------------------------------------------------------------
@@ -136,7 +140,7 @@ describe('InvitationsTable', () => {
       expect(queryArgs?.is_accepted).toBe(false);
     });
 
-    it('shows expiry dates formatted as dates', async () => {
+    it('shows expiry dates formatted as dates in local zone', async () => {
       vi.mocked(invitationsList).mockResolvedValue(
         makePagedResponse(INVITATION_FIXTURE)
       );
@@ -147,9 +151,17 @@ describe('InvitationsTable', () => {
         expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
       });
 
-      // Expiry should be formatted as "Dec 31, 2025" (zonedFormat with UTC)
-      expect(screen.getByText('Dec 31, 2025')).toBeInTheDocument();
-      expect(screen.getByText('Dec 25, 2025')).toBeInTheDocument();
+      // Compute expected date strings using the same local-zone logic as the component.
+      const localZone = DateTime.local().zoneName ?? 'UTC';
+      const aliceExpiry = DateTime.fromISO('2025-12-31T23:59:59Z', {
+        zone: localZone,
+      }).toFormat('MMM d, yyyy');
+      const bobExpiry = DateTime.fromISO('2025-12-25T23:59:59Z', {
+        zone: localZone,
+      }).toFormat('MMM d, yyyy');
+
+      expect(screen.getByText(aliceExpiry)).toBeInTheDocument();
+      expect(screen.getByText(bobExpiry)).toBeInTheDocument();
     });
 
     it('renders pending status badges', async () => {
@@ -213,45 +225,62 @@ describe('InvitationsTable', () => {
     });
   });
 
-  describe('search', () => {
-    it('passes search query to email param', async () => {
-      const mockResponse = makePagedResponse(INVITATION_FIXTURE);
-      vi.mocked(invitationsList).mockResolvedValue(mockResponse);
+  describe('search — integration (renders table → types → asserts URL navigation)', () => {
+    it('typing into search input fires router.push with prefixed inv_search param', async () => {
+      const user = userEvent.setup();
+      vi.mocked(invitationsList).mockResolvedValue(
+        makePagedResponse(INVITATION_FIXTURE)
+      );
 
       renderInvitationsTable();
 
-      // Wait for initial load
+      // Wait for initial load.
       await waitFor(() => {
         expect(screen.getByText('alice@acme.com')).toBeInTheDocument();
       });
 
-      // Clear the calls recorded so far
-      vi.mocked(invitationsList).mockClear();
+      push.mockClear();
 
-      // Simulate a search interaction by calling useInvitations with search set.
-      // For simplicity, we'll just verify that when the hook receives a search query,
-      // it gets passed to the email param. We do this by calling the hook directly.
-      const { renderHook } = await import('@testing-library/react');
-      const { useInvitations } =
-        await import('@/hooks/invitations/use-invitations');
-      const React = await import('react');
-      const qc = new QueryClient({
-        defaultOptions: { queries: { retry: false } },
-      });
-      const wrapper = ({ children }: { children: React.ReactNode }) =>
-        React.createElement(QueryClientProvider, { client: qc }, children);
+      // Type into the search input in the rendered table.
+      const searchInput = screen.getByRole('textbox', { name: /search/i });
+      await user.type(searchInput, 'alice');
+
+      // Wait for the debounced search to fire (debounce default is 300ms).
+      // userEvent uses fake timers internally with jest-fake-timers API; we
+      // use waitFor to let the debounce settle within a real-time timeout.
+      await waitFor(
+        () => {
+          expect(push).toHaveBeenCalled();
+          const url = push.mock.calls[push.mock.calls.length - 1][0] as string;
+          // URL should contain the prefixed search key (inv_search=alice)
+          // and reset the page (inv_page=1).
+          expect(url).toContain('inv_search=alice');
+          expect(url).toContain('inv_page=1');
+        },
+        { timeout: 2000 }
+      );
+    });
+  });
+
+  describe('search — hook-level (unit)', () => {
+    it('passes search query to email param', async () => {
+      const mockResponse = makePagedResponse(INVITATION_FIXTURE);
+      vi.mocked(invitationsList).mockResolvedValue(mockResponse);
+
+      const qc = makeQueryClient();
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+      );
 
       const query = {
         page: 1,
         pageSize: 20,
         ordering: null,
-        search: 'alice', // Search for a specific email substring
+        search: 'alice',
       };
 
-      vi.mocked(invitationsList).mockResolvedValue(mockResponse);
       const { result } = renderHook(() => useInvitations(query), { wrapper });
 
-      // Wait for the query to resolve.
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
@@ -260,9 +289,7 @@ describe('InvitationsTable', () => {
       const calls = vi.mocked(invitationsList).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
       const lastCall = calls[calls.length - 1];
-      const queryArgs = lastCall[0]?.query as {
-        email?: string;
-      };
+      const queryArgs = lastCall[0]?.query as { email?: string };
       expect(queryArgs?.email).toBe('alice');
     });
   });
@@ -288,18 +315,10 @@ describe('InvitationsTable', () => {
       const page2Response = makePagedResponse(INVITATION_FIXTURE, 50);
       vi.mocked(invitationsList).mockResolvedValue(page2Response);
 
-      const { useInvitations } =
-        await import('@/hooks/invitations/use-invitations');
-      const { renderHook } = await import('@testing-library/react');
-      const { QueryClient, QueryClientProvider } =
-        await import('@tanstack/react-query');
-      const { createElement } = await import('react');
-
-      const qc = new QueryClient({
-        defaultOptions: { queries: { retry: false } },
-      });
-      const wrapper = ({ children }: { children: React.ReactNode }) =>
-        createElement(QueryClientProvider, { client: qc }, children);
+      const qc = makeQueryClient();
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+      );
 
       const page2Query = {
         page: 2,

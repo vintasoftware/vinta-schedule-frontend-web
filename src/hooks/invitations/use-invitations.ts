@@ -8,12 +8,13 @@ import type { DataTableQuery } from '@/components/data-table/types';
 // ---------------------------------------------------------------------------
 // Invitation
 //
-// View-level type derived from OrganizationInvitation. Adds a `status` field
-// to indicate whether the invitation is pending or (unlikely in this context)
-// accepted. Maps `expires_at` for display.
+// View-level type derived from OrganizationInvitation. The hook always filters
+// for is_accepted: false, so every row is pending — status is always 'pending'.
+// The field is kept in the type for the column definition but is a constant
+// value; accepted_at is not mapped to avoid a dead branch.
 // ---------------------------------------------------------------------------
 
-export type InvitationStatus = 'pending' | 'accepted';
+export type InvitationStatus = 'pending';
 
 export interface Invitation {
   id: number;
@@ -81,11 +82,12 @@ export function useInvitations(query: DataTableQuery) {
   const totalCount = invitationsQuery.data?.count ?? 0;
 
   // Map API shape → Invitation view model.
+  // The hook always passes is_accepted: false, so every row is pending.
   const invitations: Invitation[] = raw.map((inv) => ({
     id: inv.id,
     email: inv.email,
     expiresAt: inv.expires_at,
-    status: inv.accepted_at ? 'accepted' : 'pending',
+    status: 'pending',
   }));
 
   return {

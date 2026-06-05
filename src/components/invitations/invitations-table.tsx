@@ -6,7 +6,7 @@ import { useDataTableQuery } from '@/components/data-table/use-data-table-query'
 import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from '@/components/ui/badge';
 import { VStack, Text } from '@/components/layout';
-import { zonedFormat } from '@/lib/datetime';
+import { DateTime, zonedFormat } from '@/lib/datetime';
 import {
   useInvitations,
   type Invitation,
@@ -18,11 +18,10 @@ import {
 // duplicating the definitions (which would let them silently drift).
 // ---------------------------------------------------------------------------
 
-export const STATUS_VARIANT: Record<Invitation['status'], 'info' | 'warning'> =
-  {
-    pending: 'info',
-    accepted: 'warning', // unlikely but shown for completeness
-  };
+/** Get the viewer's local IANA zone name (e.g. "America/New_York"). */
+function localZone(): string {
+  return DateTime.local().zoneName ?? 'UTC';
+}
 
 export const COLUMNS: DataTableColumn<Invitation>[] = [
   {
@@ -40,7 +39,7 @@ export const COLUMNS: DataTableColumn<Invitation>[] = [
     enableSorting: false,
     cell: ({ row }) => (
       <Text color='muted-foreground' size='sm'>
-        {zonedFormat(row.original.expiresAt, 'UTC', 'MMM d, yyyy')}
+        {zonedFormat(row.original.expiresAt, localZone(), 'MMM d, yyyy')}
       </Text>
     ),
   },
@@ -49,13 +48,21 @@ export const COLUMNS: DataTableColumn<Invitation>[] = [
     id: 'status',
     header: 'Status',
     enableSorting: false,
-    cell: ({ row }) => (
-      <Badge variant={STATUS_VARIANT[row.original.status]}>
-        {row.original.status}
-      </Badge>
-    ),
+    // All rows in this table are pending (hook always filters is_accepted: false).
+    cell: () => <Badge variant='info'>pending</Badge>,
   },
 ];
+
+// ---------------------------------------------------------------------------
+// INV_URL_PREFIX
+//
+// URL param prefix for the invitations table so its pagination/search state
+// is independent from the team members table on the same /team route.
+// With this prefix the keys are: inv_page, inv_page_size, inv_ordering,
+// inv_search — distinct from the unprefixed team table keys.
+// ---------------------------------------------------------------------------
+
+export const INV_URL_PREFIX = 'inv';
 
 // ---------------------------------------------------------------------------
 // InvitationsTableEmpty — custom empty state
@@ -76,7 +83,9 @@ function InvitationsTableEmpty() {
 // ---------------------------------------------------------------------------
 
 function InvitationsTableInner() {
-  const { query, setPage, setSearch, setOrdering } = useDataTableQuery();
+  const { query, setPage, setSearch, setOrdering } = useDataTableQuery({
+    prefix: INV_URL_PREFIX,
+  });
 
   const handleQueryChange = React.useCallback(
     (next: typeof query) => {
