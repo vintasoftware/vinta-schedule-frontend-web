@@ -60,7 +60,12 @@ const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
     href: '/groups',
   },
   { id: 'bundles', label: 'Bundles', icon: Calendar, href: '/bundles' },
-  { id: 'sync-settings', label: 'Sync settings', icon: CalendarSync },
+  {
+    id: 'sync-settings',
+    label: 'Sync settings',
+    icon: CalendarSync,
+    href: '/sync-settings',
+  },
   { id: 'api-tokens', label: 'API tokens', icon: Settings },
 ];
 
