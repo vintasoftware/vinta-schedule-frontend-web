@@ -483,6 +483,8 @@ import { useCancelBooking } from '@/hooks/bookings/use-cancel-booking';
 import { RescheduleDialog } from '@/components/bookings/reschedule-dialog';
 import { EditEventDialog } from '@/components/bookings/edit-event-dialog';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
+import { RoleGate } from '@/components/navigation/role-gate';
+import { TransferEventDialog } from '@/components/events/transfer-event-dialog';
 
 export interface EventAttendeesSheetProps {
   open: boolean;
@@ -520,6 +522,7 @@ export function EventAttendeesSheet({
   const [isCancelling, setIsCancelling] = React.useState(false);
   const [rescheduleOpen, setRescheduleOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
+  const [transferOpen, setTransferOpen] = React.useState(false);
   const { cancelBooking } = useCancelBooking();
 
   if (!event) return null;
@@ -627,6 +630,19 @@ export function EventAttendeesSheet({
             >
               {isCancelling ? 'Cancelling…' : 'Cancel event'}
             </Button>
+
+            {/* Transfer action (admin-only) */}
+            <RoleGate role='admin'>
+              <Button
+                variant='outline'
+                className='w-full'
+                onClick={() => setTransferOpen(true)}
+                disabled={isCancelling}
+                data-testid='transfer-event-btn'
+              >
+                Transfer event
+              </Button>
+            </RoleGate>
           </div>
         </SheetContent>
       </Sheet>
@@ -678,6 +694,15 @@ export function EventAttendeesSheet({
         open={rescheduleOpen}
         onOpenChange={setRescheduleOpen}
         event={event}
+      />
+
+      {/* Transfer dialog */}
+      <TransferEventDialog
+        open={transferOpen}
+        onOpenChange={setTransferOpen}
+        eventId={raw.id}
+        eventTitle={event.title}
+        onTransferred={() => onOpenChange(false)}
       />
     </>
   );
