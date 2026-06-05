@@ -15,15 +15,24 @@
 
 ## Completed Phases
 
-_None yet._
+### Phase 0a — App shell, routing & role gating ✅
+- **Status**: done, PR opened.
+- **Model**: `claude-sonnet-4-6` (plan Tier 3).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-0a` (base `main`).
+- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/1 (6 inline comments).
+- **Commits**: `72f5aa1` baseline (client regen + plan amendment), `4e16f50` phase code, `140a72c` lint/format ignores, `ff51182` review fixes.
+- **E2E**: deferred to Phase 0f (Playwright harness lands there).
+- **Summary**: `(app)` route group + thin server `layout.tsx` delegating to `AppLayoutClient` (auth bootstrap via localStorage mirroring `OnboardingGate`). `RoleProvider`/`RoleGate` (exact match) + `useRequireRole` (degrade-don't-loop, default `/`). Disabled-user gating extended into `useCurrentOrganization`: 403 → typed `{ status: 'disabled' }` sentinel surfaced as `isDisabled`; layout redirects disabled users to top-level `/no-access` (placed outside `(app)` to avoid a re-wrap loop). Dashboard placeholder. Independent review found 3 blockers (unreachable no-access, fragile 403 detection + test bypass, client root layout) — all fixed.
+- **Gate**: typecheck/test(33)/lint(0 err)/format green. `npm run build` fails ONLY on pre-existing `/auth/verify-email` prerender crash (input-otp SSR), untouched by this phase — flagged to the user.
+- **Tooling added this phase**: `.prettierignore` + eslint ignore for generated clients & `storybook-static`; format scripts wired to `.prettierignore`.
 
 ## Current Phase
 
-- **Phase 0a — App shell, routing & role gating** (Tier 3, `claude-sonnet-4-6`) — in progress.
+- **Phase 0c — Luxon date & timezone utilities** (Tier 3, `claude-sonnet-4-6`) — starting (0b superseded).
 
 ## Remaining Phases
 
-0a, 0c, 0d, 0e, 0f (foundation); 1–38 (use-cases).
+0c, 0d, 0e, 0f (foundation); 1–38 (use-cases).
 
 ## Deferred / Superseded
 
