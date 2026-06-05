@@ -457,6 +457,7 @@ export function EventAttendeesEditor({
 
 // ---------------------------------------------------------------------------
 // EventAttendeesSheet — wraps the editor in a Sheet for the event detail surface.
+// Includes a Cancel booking action (Phase 20).
 // ---------------------------------------------------------------------------
 
 import {
@@ -466,6 +467,19 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ScopePromptDialog } from '@/components/bookings/scope-prompt-dialog';
+import type { RecurringScope } from '@/components/bookings/scope-prompt-dialog';
+import { useCancelBooking } from '@/hooks/bookings/use-cancel-booking';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
 
 export interface EventAttendeesSheetProps {
@@ -475,7 +489,12 @@ export interface EventAttendeesSheetProps {
 }
 
 /**
- * EventAttendeesSheet — event detail sheet with the attendees editor.
+ * EventAttendeesSheet — event detail sheet with the attendees editor and
+ * cancel booking action.
+ *
+ * Cancel flow:
+ *  - Non-recurring event: AlertDialog confirm → calendarEventsDestroy
+ *  - Recurring event: ScopePromptDialog → cancel with the chosen scope
  *
  * Opens when `event` is non-null. Populates the editor from `event._raw`
  * (the original API shape stored in the view-model).
@@ -485,31 +504,131 @@ export function EventAttendeesSheet({
   onOpenChange,
   event,
 }: EventAttendeesSheetProps) {
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [scopeOpen, setScopeOpen] = React.useState(false);
+  const [isCancelling, setIsCancelling] = React.useState(false);
+  const { cancelBooking } = useCancelBooking();
+
   if (!event) return null;
 
   const raw = event._raw;
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side='right' className='overflow-y-auto sm:max-w-lg'>
-        <SheetHeader>
-          <SheetTitle>{event.title}</SheetTitle>
-          <SheetDescription>
-            {event.startDt.toFormat('ccc, d LLL yyyy · HH:mm')} (
-            {event.timezoneLabel})
-          </SheetDescription>
-        </SheetHeader>
+  const handleCancelClick = () => {
+    if (event.isRecurring) {
+      setScopeOpen(true);
+    } else {
+      setConfirmOpen(true);
+    }
+  };
 
-        <div className='mt-6'>
-          <EventAttendeesEditor
-            eventId={raw.id}
-            initialAttendances={raw.attendances}
-            initialExternalAttendances={raw.external_attendances}
-            initialResourceAllocations={raw.resource_allocations}
-            onSaved={() => onOpenChange(false)}
-          />
-        </div>
-      </SheetContent>
-    </Sheet>
+  const handleConfirmCancel = async () => {
+    setIsCancelling(true);
+    try {
+      await cancelBooking(event);
+      toast.success('Event cancelled', {
+        description: `"${event.title}" has been cancelled.`,
+      });
+      setConfirmOpen(false);
+      onOpenChange(false);
+    } catch (err) {
+      toast.error('Failed to cancel event', {
+        description:
+          err instanceof Error ? err.message : 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleScopeSelect = async (scope: RecurringScope) => {
+    setIsCancelling(true);
+    try {
+      await cancelBooking(event, scope);
+      toast.success('Event cancelled', {
+        description: `"${event.title}" has been cancelled.`,
+      });
+      setScopeOpen(false);
+      onOpenChange(false);
+    } catch (err) {
+      toast.error('Failed to cancel event', {
+        description:
+          err instanceof Error ? err.message : 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side='right' className='overflow-y-auto sm:max-w-lg'>
+          <SheetHeader>
+            <SheetTitle>{event.title}</SheetTitle>
+            <SheetDescription>
+              {event.startDt.toFormat('ccc, d LLL yyyy · HH:mm')} (
+              {event.timezoneLabel})
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className='mt-6'>
+            <EventAttendeesEditor
+              eventId={raw.id}
+              initialAttendances={raw.attendances}
+              initialExternalAttendances={raw.external_attendances}
+              initialResourceAllocations={raw.resource_allocations}
+              onSaved={() => onOpenChange(false)}
+            />
+          </div>
+
+          {/* Cancel booking action */}
+          <div className='mt-6 border-t pt-4'>
+            <Button
+              variant='outline'
+              className='text-destructive border-destructive/30 hover:bg-destructive/10 w-full'
+              onClick={handleCancelClick}
+              disabled={isCancelling}
+            >
+              {isCancelling ? 'Cancelling…' : 'Cancel event'}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Non-recurring: simple confirm dialog */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel event</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel{' '}
+              <span className='font-medium'>{event.title}</span>? This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>
+              Keep event
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancel}
+              disabled={isCancelling}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              {isCancelling ? 'Cancelling…' : 'Cancel event'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Recurring: scope-prompt dialog */}
+      <ScopePromptDialog
+        open={scopeOpen}
+        onOpenChange={setScopeOpen}
+        eventTitle={event.title}
+        onSelect={handleScopeSelect}
+        actionLabel='Cancel'
+      />
+    </>
   );
 }
