@@ -481,6 +481,7 @@ import { ScopePromptDialog } from '@/components/bookings/scope-prompt-dialog';
 import type { RecurringScope } from '@/components/bookings/scope-prompt-dialog';
 import { useCancelBooking } from '@/hooks/bookings/use-cancel-booking';
 import { RescheduleDialog } from '@/components/bookings/reschedule-dialog';
+import { EditEventDialog } from '@/components/bookings/edit-event-dialog';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
 
 export interface EventAttendeesSheetProps {
@@ -491,7 +492,11 @@ export interface EventAttendeesSheetProps {
 
 /**
  * EventAttendeesSheet — event detail sheet with the attendees editor,
- * cancel booking action, and reschedule booking action.
+ * edit booking action, cancel booking action, and reschedule booking action.
+ *
+ * Edit flow:
+ *  - Opens EditEventDialog pre-filled with the event's current fields.
+ *  - EditEventDialog handles the scope prompt (for recurring events) internally.
  *
  * Cancel flow:
  *  - Non-recurring event: AlertDialog confirm → calendarEventsDestroy
@@ -514,6 +519,7 @@ export function EventAttendeesSheet({
   const [scopeOpen, setScopeOpen] = React.useState(false);
   const [isCancelling, setIsCancelling] = React.useState(false);
   const [rescheduleOpen, setRescheduleOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
   const { cancelBooking } = useCancelBooking();
 
   if (!event) return null;
@@ -588,8 +594,19 @@ export function EventAttendeesSheet({
             />
           </div>
 
-          {/* Actions: Reschedule + Cancel */}
+          {/* Actions: Edit + Reschedule + Cancel */}
           <div className='mt-6 space-y-2 border-t pt-4'>
+            {/* Edit action */}
+            <Button
+              variant='outline'
+              className='w-full'
+              onClick={() => setEditOpen(true)}
+              disabled={isCancelling}
+              data-testid='edit-event-btn'
+            >
+              Edit event
+            </Button>
+
             {/* Reschedule action */}
             <Button
               variant='outline'
@@ -647,6 +664,13 @@ export function EventAttendeesSheet({
         eventTitle={event.title}
         onSelect={handleScopeSelect}
         actionLabel='Cancel'
+      />
+
+      {/* Edit dialog */}
+      <EditEventDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        event={event}
       />
 
       {/* Reschedule dialog */}
