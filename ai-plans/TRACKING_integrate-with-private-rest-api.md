@@ -148,18 +148,27 @@
 - **Gate**: typecheck/test(217)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
 ### Phase 8 — Create a calendar (member) ✅
+
 - **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-8` (base `phase-7`).
 - **PR**: (published below). **Commits**: `75bd56b`.
 - **Summary**: `useCreateCalendar` (`calendarCreate` + predicate invalidation of my-calendars), `CreateCalendarDialog` (rhf+zod; `CalendarWritable` requires only `name`, + optional description — no missing-field 400), "New calendar" toolbar action. Accepted on focused review (mirrors reviewed Phase 3 dialog).
 - **Gate**: typecheck/test(228)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 9 — Delete a calendar (member) ✅ [re-scoped from Disable]
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-9` (base `phase-8`).
+- **PR**: (published below). **Commits**: `d23f248` plan re-scope, `2bd955f` delete row action.
+- **Re-scope**: `Calendar.is_active` is read-only (not on `CalendarWritable`/`PatchedCalendarWritable`), no disable endpoint → user chose hard DELETE. Plan Phase 9 + Open Q1 amended. Resolves Open Question #1.
+- **Summary**: `useDeleteCalendar` (`calendarDestroy` + predicate invalidation), Delete row action with destructive `AlertDialog` confirm + per-row in-flight disable; calendars table refactored to `createColumns` factory. NOTE: implementer didn't commit — orchestrator staged + committed the phase code (`2bd955f`).
+- **Gate**: typecheck/test(234)/lint(0 err)/format (phase files clean) green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 9 — Disable a calendar (member)** (Tier 2) — starting.
+- **Phase 10 — Request a calendar to sync (member)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-9–38 (use-cases).
+10–38 (use-cases).
 
 ## Deferred / Superseded
 
