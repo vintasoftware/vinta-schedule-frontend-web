@@ -352,6 +352,55 @@ describe('useEditOccurrence', () => {
       expect(calendarEventsPartialUpdate).not.toHaveBeenCalled();
       expect(calendarEventsCreateExceptionCreate).not.toHaveBeenCalled();
     });
+
+    it('ACCEPTANCE: split-point semantics — earlier occurrences untouched, this+following change', async () => {
+      /**
+       * Phase 23 acceptance test: "This and following" scope splits the series.
+       *
+       * Semantic guarantee: modification_start_date is set to the occurrence's
+       * start date (YYYY-MM-DD), which is the split point. The backend's
+       * bulk-modify endpoint applies the modification only to occurrences on or
+       * after that date, leaving earlier occurrences unchanged.
+       *
+       * Example:
+       *   Series: Mon, Tue, Wed, Thu, Fri (weekly)
+       *   Editing Wed with scope='following' and title="Updated"
+       *   → modification_start_date = '2024-06-19' (Wed's date)
+       *   → Result: Mon, Tue unchanged; Wed, Thu, Fri updated to "Updated"
+       */
+      vi.mocked(calendarEventsBulkModifyCreate).mockResolvedValue(
+        makeOkResponse()
+      );
+
+      const wrapper = makeQueryWrapper();
+      const { result } = renderHook(() => useEditOccurrence(), { wrapper });
+
+      // Simulate editing the third occurrence in a series (2024-06-19, Wednesday).
+      const occurrenceDate = '2024-06-19T09:00:00-04:00';
+      const recurringEvent = makeRecurringEventVM({
+        _raw: makeRaw({
+          is_recurring: true,
+          is_recurring_instance: true,
+          start_time: occurrenceDate,
+          end_time: '2024-06-19T10:00:00-04:00',
+        }),
+      });
+
+      await result.current.editOccurrence(
+        recurringEvent,
+        { title: 'Updated Title' },
+        'following'
+      );
+
+      // Verify bulk-modify was called with the occurrence's date as the split point.
+      expect(calendarEventsBulkModifyCreate).toHaveBeenCalledOnce();
+      const call = vi.mocked(calendarEventsBulkModifyCreate).mock.calls[0][0];
+      // modification_start_date = '2024-06-19' (occurrence date) is the split point:
+      // - Occurrences before 2024-06-19 are NOT modified
+      // - Occurrence 2024-06-19 and later ARE modified
+      expect(call.body.modification_start_date).toBe('2024-06-19');
+      expect(call.body.modified_title).toBe('Updated Title');
+    });
   });
 
   describe('recurring event, scope = "all"', () => {

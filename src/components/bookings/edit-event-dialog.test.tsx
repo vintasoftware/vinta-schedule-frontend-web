@@ -70,6 +70,7 @@ vi.mock('next/navigation', () => ({
 import {
   calendarEventsPartialUpdate,
   calendarEventsCreateExceptionCreate,
+  calendarEventsBulkModifyCreate,
 } from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import { EditEventDialog } from './edit-event-dialog';
@@ -438,6 +439,85 @@ describe('EditEventDialog', () => {
         expect(calendarEventsCreateExceptionCreate).toHaveBeenCalledOnce();
       });
 
+      expect(calendarEventsPartialUpdate).not.toHaveBeenCalled();
+    });
+
+    it('"This and following" scope → calls calendarEventsBulkModifyCreate (Phase 23)', async () => {
+      vi.mocked(calendarEventsBulkModifyCreate).mockResolvedValue(
+        makeOkResponse()
+      );
+
+      const wrapper = makeQueryWrapper();
+      render(
+        <EditEventDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          event={makeRecurringEventVM()}
+        />,
+        { wrapper }
+      );
+
+      // Submit form to open scope prompt.
+      await userEvent.click(screen.getByTestId('edit-event-submit'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/edit recurring event/i)).toBeInTheDocument();
+      });
+
+      // Select "This and following events" radio button.
+      const followingRadio = screen.getByRole('radio', {
+        name: /this and following events/i,
+      });
+      await userEvent.click(followingRadio);
+
+      // Click "Edit" to apply.
+      const editBtns = screen.getAllByRole('button', { name: 'Edit' });
+      await userEvent.click(editBtns[editBtns.length - 1]);
+
+      // Verify bulk-modify was called.
+      await waitFor(() => {
+        expect(calendarEventsBulkModifyCreate).toHaveBeenCalledOnce();
+      });
+
+      const call = vi.mocked(calendarEventsBulkModifyCreate).mock.calls[0][0];
+      // modification_start_date is the occurrence's date (split point).
+      expect(call.body.modification_start_date).toBe('2024-06-15');
+    });
+
+    it('"This and following" scope → does NOT call createException or partialUpdate', async () => {
+      vi.mocked(calendarEventsBulkModifyCreate).mockResolvedValue(
+        makeOkResponse()
+      );
+
+      const wrapper = makeQueryWrapper();
+      render(
+        <EditEventDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          event={makeRecurringEventVM()}
+        />,
+        { wrapper }
+      );
+
+      await userEvent.click(screen.getByTestId('edit-event-submit'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/edit recurring event/i)).toBeInTheDocument();
+      });
+
+      const followingRadio = screen.getByRole('radio', {
+        name: /this and following events/i,
+      });
+      await userEvent.click(followingRadio);
+
+      const editBtns = screen.getAllByRole('button', { name: 'Edit' });
+      await userEvent.click(editBtns[editBtns.length - 1]);
+
+      await waitFor(() => {
+        expect(calendarEventsBulkModifyCreate).toHaveBeenCalledOnce();
+      });
+
+      expect(calendarEventsCreateExceptionCreate).not.toHaveBeenCalled();
       expect(calendarEventsPartialUpdate).not.toHaveBeenCalled();
     });
   });

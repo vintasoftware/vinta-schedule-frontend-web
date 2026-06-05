@@ -101,6 +101,12 @@ function toTimeOffset(dt: DateTime): string {
 // useEditOccurrence
 // ---------------------------------------------------------------------------
 
+/**
+ * useEditOccurrence — edit a calendar event with scope control.
+ *
+ * The default export provides the full `editOccurrence` function with all scopes.
+ * See the named export `useEditThisAndFollowing` for Phase 23's split-series scope.
+ */
 export function useEditOccurrence() {
   const queryClient = useQueryClient();
 
@@ -237,4 +243,36 @@ export function useEditOccurrence() {
   };
 
   return { editOccurrence };
+}
+
+/**
+ * useEditThisAndFollowing — Phase 23 named wrapper for scope='following'.
+ *
+ * Splits a recurring event series at a chosen occurrence:
+ * - Occurrences before the chosen one remain unchanged.
+ * - The chosen occurrence and all later ones are modified.
+ *
+ * This is implemented via `calendarEventsBulkModifyCreate`, which uses
+ * `modification_start_date` (the occurrence's date) as the split point.
+ *
+ * Example:
+ *   Series: Mon, Tue, Wed, Thu, Fri (recurring weekly)
+ *   Editing Wed with changes { title: "Updated" }
+ *   → Result: Mon, Tue unchanged; Wed, Thu, Fri become "Updated"
+ *
+ * @param event   The calendar event occurrence to edit (must have `_raw.id`).
+ * @param changes The fields to modify (title, description, start/end times).
+ * @returns Promise that resolves when the modification completes.
+ */
+export function useEditThisAndFollowing() {
+  const { editOccurrence } = useEditOccurrence();
+
+  const editThisAndFollowing = async (
+    event: CalendarEventVM,
+    changes: EventChanges
+  ): Promise<void> => {
+    return editOccurrence(event, changes, 'following');
+  };
+
+  return { editThisAndFollowing };
 }
