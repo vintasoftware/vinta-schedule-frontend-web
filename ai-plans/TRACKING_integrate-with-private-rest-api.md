@@ -281,13 +281,21 @@
 
 ## Recurring-scope edits complete ✅ (phases 22–24)
 
+### Phase 25 — Edit my availability (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6`. **Branch**: `phase-25` (base `phase-24`).
+- **PR**: (published below). **Commits**: `818bb20`.
+- **Summary**: `useAvailableTimes` (`availableTimesList` + `availableTimesBulkCreateCreate`; weekly = `rrule_string` FREQ=WEEKLY;BYDAY, ad-hoc = no rrule), `AvailabilityEditor` (7-row weekly grid via `weekdayMatrix` + ad-hoc section), member route `/availability`, nav href. No `as any`. Accepted on focused review.
+- **Known limitation (follow-up)**: form starts EMPTY — doesn't yet de-serialize existing rrule windows back into the grid (would use Phase 0c `parseRRule`). Round-trip + recompute acceptance met; load-existing is a flagged follow-up.
+- **Gate**: typecheck/test(451)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 25 — Edit my availability (member)** (Tier 3) — starting (availability block; weekly + ad-hoc editor with bulk writes).
+- **Phase 26 — Create blocked times (member)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-25–38 (use-cases).
+26–38 (use-cases).
 
 ## Deferred / Superseded
 
