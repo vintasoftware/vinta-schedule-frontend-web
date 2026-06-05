@@ -330,13 +330,21 @@
 - **Summary**: `useCreateBundle` (`calendarBundleCreate` `{name, bundle_calendars, primary_calendar}` + predicate invalidation), `CreateBundleDialog` (children multi-select + primary selector, primary∈children validation), admin-gated `/bundles` route + bundles list (`useAllCalendars` filtered to bundle type), nav href. No `as any`. Accepted on focused review.
 - **Gate**: typecheck/test(506)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 31 — Update a bundle (admin) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-31` (base `phase-30`).
+- **PR**: (published below). **Commits**: `69f541d`.
+- **Summary**: `useUpdateBundle` (`calendarBundlePartialUpdate`), `EditBundleDialog` (children/primary, primary∈children), Edit row action on bundles table. No `as any`. Accepted on focused review.
+- **API limits**: patch body has no `name` (rename unsupported) and no pre-population source (Calendar type doesn't expose bundle children/primary) — both documented follow-ups.
+- **Gate**: typecheck/test(515)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 31 — Update a bundle (admin)** (Tier 2) — starting.
+- **Phase 32 — Disable a bundle (admin)** (Tier 2) — starting. NOTE: `is_active` is read-only (not on the bundle/calendar writable) — likely re-scope to hard DELETE per the Phase 9 precedent (user chose delete for the same `is_active` gap).
 
 ## Remaining Phases
 
-31–38 (use-cases).
+32–38 (use-cases).
 
 ## Deferred / Superseded
 
