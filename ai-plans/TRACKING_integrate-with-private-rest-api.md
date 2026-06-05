@@ -109,6 +109,7 @@
 - **Gate**: typecheck/test(197)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
 ### Phase 4 — Resend an invitation (admin) ✅
+
 - **Status**: done, PR opened.
 - **Model**: `claude-haiku-4-5` (small — reused Phase 3 hook).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-4` (base `phase-3`, stacked).
@@ -117,13 +118,22 @@
 - **Summary**: per-row **Resend** action column on `InvitationsTable` via a `createColumns(pendingRowIds, onResend)` factory; per-row in-flight disable (`Set<number>`) prevents double-fire; success/error sonner toasts; reuses `useResendInvitation` from Phase 3 (expiry refreshes via its invalidation). Accepted on focused orchestrator review (low-risk row action; core handler read + gate verified) — no separate reviewer agent.
 - **Gate**: typecheck/test(201)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 5 — Revoke an invitation (admin) ✅
+- **Status**: done, PR opened.
+- **Model**: `claude-haiku-4-5` (small — mirrors Phase 4 row-action pattern).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-5` (base `phase-4`, stacked).
+- **PR**: (published below) — inline comments.
+- **Commits**: `cf747e2` revoke row action.
+- **Summary**: `useRevokeInvitation` (`invitationsDestroy` + predicate invalidation), Revoke row action with `AlertDialog` confirm beside Resend; per-row in-flight disable; cancel = no-op; success toast. Accepted on focused orchestrator review (low-risk mirror; hook + confirm/cancel tests + gate verified).
+- **Gate**: typecheck/test(206)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 5 — Revoke an invitation (admin)** (Tier 2) — starting.
+- **Phase 6 — Disable a user (admin)** (Tier 2) — starting (last of the team/invitations block).
 
 ## Remaining Phases
 
-5–38 (use-cases).
+6–38 (use-cases).
 
 ## Deferred / Superseded
 
