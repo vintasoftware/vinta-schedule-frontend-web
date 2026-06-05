@@ -5,6 +5,9 @@ import { useResetPassword } from '@/hooks/authentication/use-reset-password';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { AuthLayout } from '@/components/layout/auth-layout';
+import { Heading } from '@/components/layout';
+import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
@@ -64,12 +67,14 @@ export default function ResetPasswordPage({
   };
 
   return (
-    <div className='bg-muted flex min-h-screen items-center justify-center'>
+    <AuthLayout navbar={<AuthNavbar />} variant='single'>
       <Card className='w-full max-w-sm space-y-6 p-8'>
         <BackLink href='/auth/login' label='Back to login' />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
-            <h1 className='text-center text-2xl font-bold'>Set New Password</h1>
+            <Heading level={1} size='2xl' align='center'>
+              Set New Password
+            </Heading>
             <FormField
               control={form.control}
               name='password'
@@ -114,6 +119,6 @@ export default function ResetPasswordPage({
           </form>
         </Form>
       </Card>
-    </div>
+    </AuthLayout>
   );
 }

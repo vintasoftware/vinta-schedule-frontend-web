@@ -10,6 +10,9 @@ import {
 } from '@/components/ui/input-otp';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { AuthLayout } from '@/components/layout/auth-layout';
+import { VStack, Text, Heading } from '@/components/layout';
+import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useState } from 'react';
@@ -50,12 +53,14 @@ export default function VerifyPhonePage() {
   };
 
   return (
-    <div className='bg-muted flex min-h-screen items-center justify-center'>
+    <AuthLayout navbar={<AuthNavbar />} variant='single'>
       <Card className='w-full max-w-sm space-y-6 p-8'>
         <BackLink href='/auth/login' label='Back to login' />
         <form onSubmit={handleSubmit} className='space-y-6'>
-          <h1 className='text-center text-2xl font-bold'>Verify Phone</h1>
-          <div className='flex flex-col items-center gap-4'>
+          <Heading level={1} size='2xl' align='center'>
+            Verify Phone
+          </Heading>
+          <VStack align='center' gap={4}>
             <InputOTP
               maxLength={8}
               value={otp}
@@ -93,7 +98,7 @@ export default function VerifyPhonePage() {
                 <AlertDescription>{resendMessage}</AlertDescription>
               </Alert>
             )}
-          </div>
+          </VStack>
           {error && (
             <Alert variant='destructive'>
               <AlertTitle>Verification failed</AlertTitle>
@@ -113,7 +118,7 @@ export default function VerifyPhonePage() {
           >
             {verifyPhoneMutation.isPending ? 'Verifying...' : 'Verify'}
           </Button>
-          <div className='mt-2 text-center text-sm'>
+          <Text as='div' size='sm' align='center' className='mt-2'>
             <a
               href=''
               role='button'
@@ -129,15 +134,15 @@ export default function VerifyPhonePage() {
                   );
                 }
               }}
-              className='text-blue-600 hover:underline'
+              className='text-primary hover:underline'
             >
               {resendPhoneVerificationCodeMutation.isPending
                 ? 'Resending...'
                 : 'Resend Code'}
             </a>
-          </div>
+          </Text>
         </form>
       </Card>
-    </div>
+    </AuthLayout>
   );
 }

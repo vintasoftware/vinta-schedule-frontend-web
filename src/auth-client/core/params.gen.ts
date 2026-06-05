@@ -98,21 +98,13 @@ type ParamsSlotMap = Record<Slot, unknown>;
 
 function stripEmptySlots(params: ParamsSlotMap): void {
   for (const [slot, value] of Object.entries(params)) {
-    if (
-      value &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      !Object.keys(value).length
-    ) {
+    if (value && typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length) {
       delete params[slot as Slot];
     }
   }
 }
 
-export function buildClientParams(
-  args: ReadonlyArray<unknown>,
-  fields: FieldsConfig
-): Params {
+export function buildClientParams(args: ReadonlyArray<unknown>, fields: FieldsConfig): Params {
   const params: ParamsSlotMap = {
     body: Object.create(null),
     headers: Object.create(null),
@@ -155,15 +147,11 @@ export function buildClientParams(
             params[field.map] = value;
           }
         } else {
-          const extra = extraPrefixes.find(([prefix]) =>
-            key.startsWith(prefix)
-          );
+          const extra = extraPrefixes.find(([prefix]) => key.startsWith(prefix));
 
           if (extra) {
             const [prefix, slot] = extra;
-            (params[slot] as Record<string, unknown>)[
-              key.slice(prefix.length)
-            ] = value;
+            (params[slot] as Record<string, unknown>)[key.slice(prefix.length)] = value;
           } else if ('allowExtra' in config && config.allowExtra) {
             for (const [slot, allowed] of Object.entries(config.allowExtra)) {
               if (allowed) {

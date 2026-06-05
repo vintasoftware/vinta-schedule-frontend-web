@@ -1,10 +1,12 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AuthLayout } from '@/components/layout/auth-layout';
+import { AuthNavbar } from '@/components/authentication/auth-navbar';
 
 export default function SocialLoginErrorPage() {
   return (
-    <div className='bg-muted flex min-h-screen flex-col items-center justify-center'>
+    <AuthLayout navbar={<AuthNavbar />} variant='single'>
       <Card className='flex w-full max-w-md flex-col items-center gap-6 p-8'>
         <Alert variant='destructive' className='w-full'>
           <AlertTitle className='text-xl font-bold'>
@@ -20,6 +22,6 @@ export default function SocialLoginErrorPage() {
           <a href='/auth/login'>Back to Login</a>
         </Button>
       </Card>
-    </div>
+    </AuthLayout>
   );
 }

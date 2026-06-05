@@ -4,6 +4,10 @@ import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authent
 import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { AuthLayout } from '@/components/layout/auth-layout';
+import { Text } from '@/components/layout';
+import { AuthNavbar } from '@/components/authentication/auth-navbar';
 
 export interface SocialSuccessProps {
   sessionToken?: string;
@@ -50,11 +54,15 @@ export function SocialSuccess({
   ]);
 
   return (
-    <div className='flex min-h-screen flex-col items-center justify-center'>
-      <div className='mb-2 text-lg font-semibold'>Connecting...</div>
-      <div className='text-muted-foreground'>
-        Please wait while we finish your social login.
-      </div>
-    </div>
+    <AuthLayout navbar={<AuthNavbar />} variant='single'>
+      <Card className='flex flex-col items-center gap-2 p-8 text-center'>
+        <Text as='div' size='lg' weight='semibold'>
+          Connecting…
+        </Text>
+        <Text as='div' size='sm' color='muted-foreground'>
+          Please wait while we finish your social login.
+        </Text>
+      </Card>
+    </AuthLayout>
   );
 }

@@ -5,6 +5,9 @@ import { useLogin } from '@/hooks/authentication/use-login';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { AuthLayout } from '@/components/layout/auth-layout';
+import { Box, Stack, HStack, VStack, Heading, Text } from '@/components/layout';
+import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
@@ -23,21 +26,12 @@ import type { Provider } from '@/auth-client';
 import { useProviderLogin } from '@/hooks/authentication/use-provider-login';
 import { SocialProviderIcon } from './social-provider-icon';
 
-// Shared Zod schema for login: login can be email, username, or phone
+// Shared Zod schema for login: login can be email or phone (email-only account
+// model — usernames are not supported).
 const loginFieldSchema = z
   .string()
   .min(1, { message: 'Login is required' })
   .superRefine((val, ctx) => {
-    // If contains @, must be a valid email
-    if (val.includes('@')) {
-      if (!z.email().safeParse(val).success) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Invalid email address',
-        });
-      }
-      return;
-    }
     // If only numbers, spaces, or phone symbols, must be a valid phone
     if (/^[\d\s()+-]+$/.test(val)) {
       // Accepts numbers, spaces, +, (, ) and -
@@ -51,11 +45,11 @@ const loginFieldSchema = z
       }
       return;
     }
-    // Otherwise, must be alphanumeric username
-    if (!/^[a-zA-Z0-9]+$/.test(val)) {
+    // Otherwise, must be a valid email
+    if (!z.email().safeParse(val).success) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Username must be alphanumeric',
+        message: 'Invalid email address',
       });
     }
   });
@@ -101,19 +95,16 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
       return;
     }
     try {
-      // Map login field to correct key for API (email/username/phone)
+      // Map login field to correct key for API (email/phone)
       type LoginPayload = { password: string } & (
-        | { email: string; username?: never; phone?: never }
-        | { username: string; email?: never; phone?: never }
-        | { phone: string; email?: never; username?: never }
+        | { email: string; phone?: never }
+        | { phone: string; email?: never }
       );
       let loginPayload: LoginPayload;
-      if (values.login.includes('@')) {
-        loginPayload = { email: values.login, password: values.password };
-      } else if (/^[\d\s()+-]+$/.test(values.login)) {
+      if (/^[\d\s()+-]+$/.test(values.login)) {
         loginPayload = { phone: values.login, password: values.password };
       } else {
-        loginPayload = { username: values.login, password: values.password };
+        loginPayload = { email: values.login, password: values.password };
       }
       await login(loginPayload);
       // Get tokens from localStorage (set by useLogin)
@@ -132,21 +123,29 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
   };
 
   return (
-    <div className='bg-muted flex min-h-screen items-center justify-center p-8'>
+    <AuthLayout navbar={<AuthNavbar />} variant='two-column'>
       <Card className='flex w-full max-w-3xl flex-col overflow-hidden p-0 md:flex-row'>
         {/* Left column: Info and Social */}
-        <div className='flex flex-1 flex-col justify-center gap-8 border-b p-8 md:border-r md:border-b-0'>
+        <VStack
+          grow={1}
+          justify='center'
+          gap={8}
+          p={8}
+          className='border-b md:border-r md:border-b-0'
+        >
           <BackLink href='/' label='Back to home' />
-          <div className='flex flex-col gap-4'>
-            <h1 className='text-3xl font-bold tracking-tight'>Welcome back</h1>
-            <p className='text-muted-foreground text-sm'>
+          <Stack gap={4}>
+            <Heading level={1} size='3xl'>
+              Welcome back
+            </Heading>
+            <Text size='sm' color='muted-foreground'>
               Sign in to your account
-            </p>
-          </div>
+            </Text>
+          </Stack>
           {/* Social login buttons */}
-          <div>
+          <Box>
             {socialProviders.length > 0 ? (
-              <div className='mt-4 flex flex-col gap-2'>
+              <VStack gap={2} mt={4}>
                 {socialProviders.map((provider) => (
                   <Button
                     key={provider.id}
@@ -169,19 +168,21 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
                     Sign in with {provider.name}
                   </Button>
                 ))}
-              </div>
+              </VStack>
             ) : null}
-          </div>
-        </div>
+          </Box>
+        </VStack>
         {/* Right column: Form */}
-        <div className='flex flex-1 flex-col justify-center p-8'>
+        <VStack grow={1} justify='center' p={8}>
           {/* Only show the separator if there are social providers */}
           {socialProviders.length > 0 && (
-            <div className='mb-8 flex items-center sm:hidden'>
-              <div className='border-border flex-grow border-t' />
-              <span className='text-muted-foreground mx-2 text-xs'>or</span>
-              <div className='border-border flex-grow border-t' />
-            </div>
+            <HStack align='center' mb={8} className='sm:hidden'>
+              <Box grow={1} className='border-border border-t' />
+              <Text size='xs' color='muted-foreground' className='mx-2'>
+                or
+              </Text>
+              <Box grow={1} className='border-border border-t' />
+            </HStack>
           )}
           <Form {...form}>
             <form
@@ -193,12 +194,12 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
                 name='login'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email, Username, or Phone</FormLabel>
+                    <FormLabel>Email or Phone</FormLabel>
                     <FormControl>
                       <Input
                         type='text'
                         autoComplete='username'
-                        placeholder='Email, username, or phone'
+                        placeholder='Email or phone'
                         {...field}
                       />
                     </FormControl>
@@ -237,18 +238,18 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
               >
                 {loginMutation.isPending ? 'Logging in...' : 'Login'}
               </Button>
-              <div className='mt-2 text-center text-sm'>
+              <Text as='div' size='sm' align='center' className='mt-2'>
                 <a
                   href='/auth/request-password-reset'
-                  className='text-blue-600 hover:underline'
+                  className='text-primary hover:underline'
                 >
                   Forgot your password?
                 </a>
-              </div>
+              </Text>
             </form>
           </Form>
-        </div>
+        </VStack>
       </Card>
-    </div>
+    </AuthLayout>
   );
 }

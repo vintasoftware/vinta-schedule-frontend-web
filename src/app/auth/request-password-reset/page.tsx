@@ -4,6 +4,9 @@ import { useRequestPasswordReset } from '@/hooks/authentication/use-request-pass
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { AuthLayout } from '@/components/layout/auth-layout';
+import { Text, Heading } from '@/components/layout';
+import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
@@ -51,12 +54,14 @@ export default function RequestPasswordResetPage() {
   };
 
   return (
-    <div className='bg-muted flex min-h-screen items-center justify-center'>
+    <AuthLayout navbar={<AuthNavbar />} variant='single'>
       <Card className='w-full max-w-sm space-y-6 p-8'>
         <BackLink href='/auth/login' label='Back to login' />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
-            <h1 className='text-center text-2xl font-bold'>Reset Password</h1>
+            <Heading level={1} size='2xl' align='center'>
+              Reset Password
+            </Heading>
             <FormField
               control={form.control}
               name='login'
@@ -91,17 +96,17 @@ export default function RequestPasswordResetPage() {
                 ? 'Sending...'
                 : 'Send Reset Link'}
             </Button>
-            <div className='mt-2 text-center text-sm'>
+            <Text as='div' size='sm' align='center' className='mt-2'>
               <Link
                 href='/auth/login'
-                className='text-blue-600 hover:underline'
+                className='text-primary hover:underline'
               >
                 Back to Login
               </Link>
-            </div>
+            </Text>
           </form>
         </Form>
       </Card>
-    </div>
+    </AuthLayout>
   );
 }

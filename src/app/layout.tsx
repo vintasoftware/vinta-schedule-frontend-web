@@ -1,6 +1,6 @@
 import type React from 'react';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { DM_Sans, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { APIClientAuthInitializationProvider } from '@/providers/api-client-auth-initialization-provider';
@@ -11,7 +11,17 @@ import { ServerTokenStorageStrategy } from '@/lib/token-storage-strategy.server'
 // Configure authentication for server-side rendering
 configureClientAuthentication(new ServerTokenStorageStrategy());
 
-const inter = Inter({ subsets: ['latin'] });
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  weight: ['300', '400', '500', '600', '700'],
+});
+
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
+  weight: ['400', '500', '600'],
+});
 
 export const metadata: Metadata = {
   title: 'Vinta Schedule',
@@ -25,7 +35,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang='en' suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${dmSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <APIClientAuthInitializationProvider>
           <ThemeProvider
             attribute='class'

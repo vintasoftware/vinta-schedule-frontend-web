@@ -6,6 +6,9 @@ import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { AuthLayout } from '@/components/layout/auth-layout';
+import { Heading, Text } from '@/components/layout';
+import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
@@ -148,7 +151,7 @@ export default function ProviderSignupPage() {
 
   if (sessionExpired) {
     return (
-      <div className='bg-muted flex min-h-screen items-center justify-center p-8'>
+      <AuthLayout navbar={<AuthNavbar />} variant='single'>
         <Card className='flex w-full max-w-md flex-col items-center gap-6 p-8'>
           <Alert variant='destructive' className='w-full'>
             <AlertTitle className='text-xl font-bold'>
@@ -163,21 +166,21 @@ export default function ProviderSignupPage() {
             <a href='/auth/login'>Restart sign-in</a>
           </Button>
         </Card>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className='bg-muted flex min-h-screen items-center justify-center p-8'>
+    <AuthLayout navbar={<AuthNavbar />} variant='two-column'>
       <Card className='w-full max-w-xl p-8'>
         <BackLink href='/auth/signup' label='Back to signup' />
-        <h1 className='mt-4 mb-4 text-2xl font-bold'>
+        <Heading level={1} size='2xl' className='mt-4 mb-4'>
           Finish creating your account
-        </h1>
-        <p className='text-muted-foreground mb-6 text-sm'>
+        </Heading>
+        <Text as='p' size='sm' color='muted-foreground' className='mb-6'>
           We got some details from your social provider. Add the missing
           information below to finish signing up.
-        </p>
+        </Text>
         {isLoading && <div className='mb-4'>Loading provider info...</div>}
         {isError && (
           <Alert variant='destructive' className='mb-4'>
@@ -281,6 +284,6 @@ export default function ProviderSignupPage() {
           </form>
         </Form>
       </Card>
-    </div>
+    </AuthLayout>
   );
 }
