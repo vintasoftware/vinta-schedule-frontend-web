@@ -37,7 +37,12 @@ const MEMBER_NAV_ITEMS: SidebarNavItem[] = [
     href: '/calendars',
   },
   { id: 'events', label: 'Events', icon: Ticket, href: '/events' },
-  { id: 'availability', label: 'Availability', icon: Settings },
+  {
+    id: 'availability',
+    label: 'Availability',
+    icon: Settings,
+    href: '/availability',
+  },
 ];
 
 const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
