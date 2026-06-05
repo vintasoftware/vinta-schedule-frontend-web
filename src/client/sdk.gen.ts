@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AvailableTimesBulkCreateCreateData, AvailableTimesBulkCreateCreateResponses, AvailableTimesBulkCreateFormattedCreateData, AvailableTimesBulkCreateFormattedCreateResponses, AvailableTimesBulkModifyCreateData, AvailableTimesBulkModifyCreateResponses, AvailableTimesBulkModifyFormattedCreateData, AvailableTimesBulkModifyFormattedCreateResponses, AvailableTimesCreateData, AvailableTimesCreateExceptionCreateData, AvailableTimesCreateExceptionCreateResponses, AvailableTimesCreateExceptionFormattedCreateData, AvailableTimesCreateExceptionFormattedCreateResponses, AvailableTimesCreateResponses, AvailableTimesDestroyData, AvailableTimesDestroyResponses, AvailableTimesExpandedFormattedListData, AvailableTimesExpandedFormattedListResponses, AvailableTimesExpandedListData, AvailableTimesExpandedListResponses, AvailableTimesFormattedCreateData, AvailableTimesFormattedCreateResponses, AvailableTimesFormattedDestroyData, AvailableTimesFormattedDestroyResponses, AvailableTimesFormattedListData, AvailableTimesFormattedListResponses, AvailableTimesFormattedPartialUpdateData, AvailableTimesFormattedPartialUpdateResponses, AvailableTimesFormattedRetrieveData, AvailableTimesFormattedRetrieveResponses, AvailableTimesFormattedUpdateData, AvailableTimesFormattedUpdateResponses, AvailableTimesListData, AvailableTimesListResponses, AvailableTimesPartialUpdateData, AvailableTimesPartialUpdateResponses, AvailableTimesRetrieveData, AvailableTimesRetrieveResponses, AvailableTimesUpdateData, AvailableTimesUpdateResponses, BillingProfileCreateBillingProfileCreateData, BillingProfileCreateBillingProfileCreateResponses, BillingProfileCreateBillingProfileFormattedCreateData, BillingProfileCreateBillingProfileFormattedCreateResponses, BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateData, BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateResponses, BillingProfilePartialUpdateBillingProfilePartialUpdateData, BillingProfilePartialUpdateBillingProfilePartialUpdateResponses, BillingProfileRetrieveBillingProfileFormattedRetrieveData, BillingProfileRetrieveBillingProfileFormattedRetrieveResponses, BillingProfileRetrieveBillingProfileRetrieveData, BillingProfileRetrieveBillingProfileRetrieveResponses, BillingProfileUpdateBillingProfileFormattedUpdateData, BillingProfileUpdateBillingProfileFormattedUpdateResponses, BillingProfileUpdateBillingProfileUpdateData, BillingProfileUpdateBillingProfileUpdateResponses, BlockedTimesBulkCreateCreateData, BlockedTimesBulkCreateCreateResponses, BlockedTimesBulkCreateFormattedCreateData, BlockedTimesBulkCreateFormattedCreateResponses, BlockedTimesBulkModifyCreateData, BlockedTimesBulkModifyCreateResponses, BlockedTimesBulkModifyFormattedCreateData, BlockedTimesBulkModifyFormattedCreateResponses, BlockedTimesCreateData, BlockedTimesCreateExceptionCreateData, BlockedTimesCreateExceptionCreateResponses, BlockedTimesCreateExceptionFormattedCreateData, BlockedTimesCreateExceptionFormattedCreateResponses, BlockedTimesCreateResponses, BlockedTimesDestroyData, BlockedTimesDestroyResponses, BlockedTimesExpandedFormattedListData, BlockedTimesExpandedFormattedListResponses, BlockedTimesExpandedListData, BlockedTimesExpandedListResponses, BlockedTimesFormattedCreateData, BlockedTimesFormattedCreateResponses, BlockedTimesFormattedDestroyData, BlockedTimesFormattedDestroyResponses, BlockedTimesFormattedListData, BlockedTimesFormattedListResponses, BlockedTimesFormattedPartialUpdateData, BlockedTimesFormattedPartialUpdateResponses, BlockedTimesFormattedRetrieveData, BlockedTimesFormattedRetrieveResponses, BlockedTimesFormattedUpdateData, BlockedTimesFormattedUpdateResponses, BlockedTimesListData, BlockedTimesListResponses, BlockedTimesPartialUpdateData, BlockedTimesPartialUpdateResponses, BlockedTimesRetrieveData, BlockedTimesRetrieveResponses, BlockedTimesUpdateData, BlockedTimesUpdateResponses, CalendarAvailableWindowsFormattedListData, CalendarAvailableWindowsFormattedListResponses, CalendarAvailableWindowsListData, CalendarAvailableWindowsListResponses, CalendarBundleCreateData, CalendarBundleCreateResponses, CalendarBundleFormattedCreateData, CalendarBundleFormattedCreateResponses, CalendarCreateData, CalendarCreateResponses, CalendarDestroyData, CalendarDestroyResponses, CalendarEventsBulkModifyCreateData, CalendarEventsBulkModifyCreateResponses, CalendarEventsBulkModifyFormattedCreateData, CalendarEventsBulkModifyFormattedCreateResponses, CalendarEventsCreateData, CalendarEventsCreateExceptionCreateData, CalendarEventsCreateExceptionCreateResponses, CalendarEventsCreateExceptionFormattedCreateData, CalendarEventsCreateExceptionFormattedCreateResponses, CalendarEventsCreateResponses, CalendarEventsDestroyData, CalendarEventsDestroyResponses, CalendarEventsFormattedCreateData, CalendarEventsFormattedCreateResponses, CalendarEventsFormattedDestroyData, CalendarEventsFormattedDestroyResponses, CalendarEventsFormattedListData, CalendarEventsFormattedListResponses, CalendarEventsFormattedPartialUpdateData, CalendarEventsFormattedPartialUpdateResponses, CalendarEventsFormattedRetrieveData, CalendarEventsFormattedRetrieveResponses, CalendarEventsFormattedUpdateData, CalendarEventsFormattedUpdateResponses, CalendarEventsListData, CalendarEventsListResponses, CalendarEventsPartialUpdateData, CalendarEventsPartialUpdateResponses, CalendarEventsRetrieveData, CalendarEventsRetrieveResponses, CalendarEventsUpdateData, CalendarEventsUpdateResponses, CalendarFormattedCreateData, CalendarFormattedCreateResponses, CalendarFormattedDestroyData, CalendarFormattedDestroyResponses, CalendarFormattedListData, CalendarFormattedListResponses, CalendarFormattedPartialUpdateData, CalendarFormattedPartialUpdateResponses, CalendarFormattedRetrieveData, CalendarFormattedRetrieveResponses, CalendarFormattedUpdateData, CalendarFormattedUpdateResponses, CalendarGroupsAvailabilityCreateData, CalendarGroupsAvailabilityCreateResponses, CalendarGroupsAvailabilityFormattedCreateData, CalendarGroupsAvailabilityFormattedCreateResponses, CalendarGroupsBookableSlotsFormattedListData, CalendarGroupsBookableSlotsFormattedListResponses, CalendarGroupsBookableSlotsListData, CalendarGroupsBookableSlotsListResponses, CalendarGroupsBookedEventsFormattedListData, CalendarGroupsBookedEventsFormattedListResponses, CalendarGroupsBookedEventsListData, CalendarGroupsBookedEventsListResponses, CalendarGroupsCreateData, CalendarGroupsCreateResponses, CalendarGroupsDestroyData, CalendarGroupsDestroyResponses, CalendarGroupsEventsCreateData, CalendarGroupsEventsCreateResponses, CalendarGroupsEventsFormattedCreateData, CalendarGroupsEventsFormattedCreateResponses, CalendarGroupsFormattedCreateData, CalendarGroupsFormattedCreateResponses, CalendarGroupsFormattedDestroyData, CalendarGroupsFormattedDestroyResponses, CalendarGroupsFormattedListData, CalendarGroupsFormattedListResponses, CalendarGroupsFormattedPartialUpdateData, CalendarGroupsFormattedPartialUpdateResponses, CalendarGroupsFormattedRetrieveData, CalendarGroupsFormattedRetrieveResponses, CalendarGroupsFormattedUpdateData, CalendarGroupsFormattedUpdateResponses, CalendarGroupsListData, CalendarGroupsListResponses, CalendarGroupsPartialUpdateData, CalendarGroupsPartialUpdateResponses, CalendarGroupsRetrieveData, CalendarGroupsRetrieveResponses, CalendarGroupsUpdateData, CalendarGroupsUpdateResponses, CalendarListData, CalendarListResponses, CalendarPartialUpdateData, CalendarPartialUpdateResponses, CalendarRetrieveData, CalendarRetrieveResponses, CalendarUnavailableWindowsFormattedListData, CalendarUnavailableWindowsFormattedListResponses, CalendarUnavailableWindowsListData, CalendarUnavailableWindowsListResponses, CalendarUpdateData, CalendarUpdateResponses, InvitationsAcceptCreateData, InvitationsAcceptCreateResponses, InvitationsCreateData, InvitationsCreateResponses, InvitationsDestroyData, InvitationsDestroyResponses, InvitationsFormattedCreateData, InvitationsFormattedCreateResponses, InvitationsFormattedDestroyData, InvitationsFormattedDestroyResponses, InvitationsFormattedListData, InvitationsFormattedListResponses, InvitationsFormattedRetrieveData, InvitationsFormattedRetrieveResponses, InvitationsListData, InvitationsListResponses, InvitationsRetrieveData, InvitationsRetrieveResponses, OrganizationsCreateData, OrganizationsCreateResponses, OrganizationsCurrentFormattedRetrieveData, OrganizationsCurrentFormattedRetrieveErrors, OrganizationsCurrentFormattedRetrieveResponses, OrganizationsCurrentRetrieveData, OrganizationsCurrentRetrieveErrors, OrganizationsCurrentRetrieveResponses, OrganizationsDestroyData, OrganizationsDestroyResponses, OrganizationsFormattedCreateData, OrganizationsFormattedCreateResponses, OrganizationsFormattedDestroyData, OrganizationsFormattedDestroyResponses, OrganizationsFormattedPartialUpdateData, OrganizationsFormattedPartialUpdateResponses, OrganizationsFormattedRetrieveData, OrganizationsFormattedRetrieveResponses, OrganizationsFormattedUpdateData, OrganizationsFormattedUpdateResponses, OrganizationsPartialUpdateData, OrganizationsPartialUpdateResponses, OrganizationsRetrieveData, OrganizationsRetrieveResponses, OrganizationsUpdateData, OrganizationsUpdateResponses, PaymentsPaymentUpdateCreateData, PaymentsPaymentUpdateCreateResponses, PaymentsPaymentUpdateFormattedCreateData, PaymentsPaymentUpdateFormattedCreateResponses, PaymentsSubscriptionPaymentUpdateCreateData, PaymentsSubscriptionPaymentUpdateCreateResponses, PaymentsSubscriptionPaymentUpdateFormattedCreateData, PaymentsSubscriptionPaymentUpdateFormattedCreateResponses, ProfileFormattedPartialUpdateData, ProfileFormattedPartialUpdateResponses, ProfileFormattedRetrieveData, ProfileFormattedRetrieveResponses, ProfileFormattedUpdateData, ProfileFormattedUpdateResponses, ProfilePartialUpdateData, ProfilePartialUpdateResponses, ProfileRetrieveData, ProfileRetrieveResponses, ProfileUpdateData, ProfileUpdateResponses, PublicOrganizationsEventsCreateData, PublicOrganizationsEventsCreateResponses, PublicOrganizationsEventsDestroyData, PublicOrganizationsEventsDestroyResponses, PublicOrganizationsEventsListData, PublicOrganizationsEventsListResponses, PublicOrganizationsEventsPartialUpdateData, PublicOrganizationsEventsPartialUpdateResponses, PublicOrganizationsEventsRetrieveData, PublicOrganizationsEventsRetrieveResponses, PublicOrganizationsEventsUpdateData, PublicOrganizationsEventsUpdateResponses, WebhookConfigurationsCreateData, WebhookConfigurationsCreateResponses, WebhookConfigurationsDestroyData, WebhookConfigurationsDestroyResponses, WebhookConfigurationsFormattedCreateData, WebhookConfigurationsFormattedCreateResponses, WebhookConfigurationsFormattedDestroyData, WebhookConfigurationsFormattedDestroyResponses, WebhookConfigurationsFormattedListData, WebhookConfigurationsFormattedListResponses, WebhookConfigurationsFormattedPartialUpdateData, WebhookConfigurationsFormattedPartialUpdateResponses, WebhookConfigurationsFormattedRetrieveData, WebhookConfigurationsFormattedRetrieveResponses, WebhookConfigurationsFormattedUpdateData, WebhookConfigurationsFormattedUpdateResponses, WebhookConfigurationsListData, WebhookConfigurationsListResponses, WebhookConfigurationsPartialUpdateData, WebhookConfigurationsPartialUpdateResponses, WebhookConfigurationsRetrieveData, WebhookConfigurationsRetrieveResponses, WebhookConfigurationsUpdateData, WebhookConfigurationsUpdateResponses, WebhookEventsFormattedListData, WebhookEventsFormattedListResponses, WebhookEventsFormattedRetrieveData, WebhookEventsFormattedRetrieveResponses, WebhookEventsListData, WebhookEventsListResponses, WebhookEventsRetrieveData, WebhookEventsRetrieveResponses, WebhookEventsRetryCreateData, WebhookEventsRetryCreateErrors, WebhookEventsRetryCreateResponses, WebhookEventsRetryFormattedCreateData, WebhookEventsRetryFormattedCreateErrors, WebhookEventsRetryFormattedCreateResponses } from './types.gen';
+import type { AvailableTimesBulkCreateCreateData, AvailableTimesBulkCreateCreateResponses, AvailableTimesBulkCreateFormattedCreateData, AvailableTimesBulkCreateFormattedCreateResponses, AvailableTimesBulkModifyCreateData, AvailableTimesBulkModifyCreateResponses, AvailableTimesBulkModifyFormattedCreateData, AvailableTimesBulkModifyFormattedCreateResponses, AvailableTimesCreateData, AvailableTimesCreateExceptionCreateData, AvailableTimesCreateExceptionCreateResponses, AvailableTimesCreateExceptionFormattedCreateData, AvailableTimesCreateExceptionFormattedCreateResponses, AvailableTimesCreateResponses, AvailableTimesDestroyData, AvailableTimesDestroyResponses, AvailableTimesExpandedFormattedListData, AvailableTimesExpandedFormattedListResponses, AvailableTimesExpandedListData, AvailableTimesExpandedListResponses, AvailableTimesFormattedCreateData, AvailableTimesFormattedCreateResponses, AvailableTimesFormattedDestroyData, AvailableTimesFormattedDestroyResponses, AvailableTimesFormattedListData, AvailableTimesFormattedListResponses, AvailableTimesFormattedPartialUpdateData, AvailableTimesFormattedPartialUpdateResponses, AvailableTimesFormattedRetrieveData, AvailableTimesFormattedRetrieveResponses, AvailableTimesFormattedUpdateData, AvailableTimesFormattedUpdateResponses, AvailableTimesListData, AvailableTimesListResponses, AvailableTimesPartialUpdateData, AvailableTimesPartialUpdateResponses, AvailableTimesRetrieveData, AvailableTimesRetrieveResponses, AvailableTimesUpdateData, AvailableTimesUpdateResponses, BillingProfileCreateBillingProfileCreateData, BillingProfileCreateBillingProfileCreateResponses, BillingProfileCreateBillingProfileFormattedCreateData, BillingProfileCreateBillingProfileFormattedCreateResponses, BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateData, BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateResponses, BillingProfilePartialUpdateBillingProfilePartialUpdateData, BillingProfilePartialUpdateBillingProfilePartialUpdateResponses, BillingProfileRetrieveBillingProfileFormattedRetrieveData, BillingProfileRetrieveBillingProfileFormattedRetrieveResponses, BillingProfileRetrieveBillingProfileRetrieveData, BillingProfileRetrieveBillingProfileRetrieveResponses, BillingProfileUpdateBillingProfileFormattedUpdateData, BillingProfileUpdateBillingProfileFormattedUpdateResponses, BillingProfileUpdateBillingProfileUpdateData, BillingProfileUpdateBillingProfileUpdateResponses, BlockedTimesBulkCreateCreateData, BlockedTimesBulkCreateCreateResponses, BlockedTimesBulkCreateFormattedCreateData, BlockedTimesBulkCreateFormattedCreateResponses, BlockedTimesBulkModifyCreateData, BlockedTimesBulkModifyCreateResponses, BlockedTimesBulkModifyFormattedCreateData, BlockedTimesBulkModifyFormattedCreateResponses, BlockedTimesCreateData, BlockedTimesCreateExceptionCreateData, BlockedTimesCreateExceptionCreateResponses, BlockedTimesCreateExceptionFormattedCreateData, BlockedTimesCreateExceptionFormattedCreateResponses, BlockedTimesCreateResponses, BlockedTimesDestroyData, BlockedTimesDestroyResponses, BlockedTimesExpandedFormattedListData, BlockedTimesExpandedFormattedListResponses, BlockedTimesExpandedListData, BlockedTimesExpandedListResponses, BlockedTimesFormattedCreateData, BlockedTimesFormattedCreateResponses, BlockedTimesFormattedDestroyData, BlockedTimesFormattedDestroyResponses, BlockedTimesFormattedListData, BlockedTimesFormattedListResponses, BlockedTimesFormattedPartialUpdateData, BlockedTimesFormattedPartialUpdateResponses, BlockedTimesFormattedRetrieveData, BlockedTimesFormattedRetrieveResponses, BlockedTimesFormattedUpdateData, BlockedTimesFormattedUpdateResponses, BlockedTimesListData, BlockedTimesListResponses, BlockedTimesPartialUpdateData, BlockedTimesPartialUpdateResponses, BlockedTimesRetrieveData, BlockedTimesRetrieveResponses, BlockedTimesUpdateData, BlockedTimesUpdateResponses, CalendarAdminSyncCreateData, CalendarAdminSyncCreateResponses, CalendarAdminSyncFormattedCreateData, CalendarAdminSyncFormattedCreateResponses, CalendarAvailableWindowsFormattedListData, CalendarAvailableWindowsFormattedListResponses, CalendarAvailableWindowsListData, CalendarAvailableWindowsListResponses, CalendarBundleCreateData, CalendarBundleCreateResponses, CalendarBundleFormattedCreateData, CalendarBundleFormattedCreateResponses, CalendarBundleFormattedPartialUpdateData, CalendarBundleFormattedPartialUpdateResponses, CalendarBundlePartialUpdateData, CalendarBundlePartialUpdateResponses, CalendarCreateData, CalendarCreateResponses, CalendarDestroyData, CalendarDestroyResponses, CalendarEventsBulkModifyCreateData, CalendarEventsBulkModifyCreateResponses, CalendarEventsBulkModifyFormattedCreateData, CalendarEventsBulkModifyFormattedCreateResponses, CalendarEventsCreateData, CalendarEventsCreateExceptionCreateData, CalendarEventsCreateExceptionCreateResponses, CalendarEventsCreateExceptionFormattedCreateData, CalendarEventsCreateExceptionFormattedCreateResponses, CalendarEventsCreateResponses, CalendarEventsDestroyData, CalendarEventsDestroyResponses, CalendarEventsExpandedFormattedListData, CalendarEventsExpandedFormattedListResponses, CalendarEventsExpandedListData, CalendarEventsExpandedListResponses, CalendarEventsFormattedCreateData, CalendarEventsFormattedCreateResponses, CalendarEventsFormattedDestroyData, CalendarEventsFormattedDestroyResponses, CalendarEventsFormattedListData, CalendarEventsFormattedListResponses, CalendarEventsFormattedPartialUpdateData, CalendarEventsFormattedPartialUpdateResponses, CalendarEventsFormattedRetrieveData, CalendarEventsFormattedRetrieveResponses, CalendarEventsFormattedUpdateData, CalendarEventsFormattedUpdateResponses, CalendarEventsListData, CalendarEventsListResponses, CalendarEventsPartialUpdateData, CalendarEventsPartialUpdateResponses, CalendarEventsRetrieveData, CalendarEventsRetrieveResponses, CalendarEventsTransferCreateData, CalendarEventsTransferCreateResponses, CalendarEventsTransferFormattedCreateData, CalendarEventsTransferFormattedCreateResponses, CalendarEventsUpdateData, CalendarEventsUpdateResponses, CalendarFormattedCreateData, CalendarFormattedCreateResponses, CalendarFormattedDestroyData, CalendarFormattedDestroyResponses, CalendarFormattedListData, CalendarFormattedListResponses, CalendarFormattedPartialUpdateData, CalendarFormattedPartialUpdateResponses, CalendarFormattedRetrieveData, CalendarFormattedRetrieveResponses, CalendarFormattedUpdateData, CalendarFormattedUpdateResponses, CalendarGroupsAvailabilityCreateData, CalendarGroupsAvailabilityCreateResponses, CalendarGroupsAvailabilityFormattedCreateData, CalendarGroupsAvailabilityFormattedCreateResponses, CalendarGroupsBookableSlotsFormattedListData, CalendarGroupsBookableSlotsFormattedListResponses, CalendarGroupsBookableSlotsListData, CalendarGroupsBookableSlotsListResponses, CalendarGroupsBookedEventsFormattedListData, CalendarGroupsBookedEventsFormattedListResponses, CalendarGroupsBookedEventsListData, CalendarGroupsBookedEventsListResponses, CalendarGroupsCreateData, CalendarGroupsCreateResponses, CalendarGroupsDestroyData, CalendarGroupsDestroyResponses, CalendarGroupsEventsCreateData, CalendarGroupsEventsCreateResponses, CalendarGroupsEventsFormattedCreateData, CalendarGroupsEventsFormattedCreateResponses, CalendarGroupsFormattedCreateData, CalendarGroupsFormattedCreateResponses, CalendarGroupsFormattedDestroyData, CalendarGroupsFormattedDestroyResponses, CalendarGroupsFormattedListData, CalendarGroupsFormattedListResponses, CalendarGroupsFormattedPartialUpdateData, CalendarGroupsFormattedPartialUpdateResponses, CalendarGroupsFormattedRetrieveData, CalendarGroupsFormattedRetrieveResponses, CalendarGroupsFormattedUpdateData, CalendarGroupsFormattedUpdateResponses, CalendarGroupsListData, CalendarGroupsListResponses, CalendarGroupsPartialUpdateData, CalendarGroupsPartialUpdateResponses, CalendarGroupsRetrieveData, CalendarGroupsRetrieveResponses, CalendarGroupsUpdateData, CalendarGroupsUpdateResponses, CalendarListData, CalendarListResponses, CalendarPartialUpdateData, CalendarPartialUpdateResponses, CalendarRequestImportCreateData, CalendarRequestImportCreateResponses, CalendarRequestImportFormattedCreateData, CalendarRequestImportFormattedCreateResponses, CalendarRequestSyncCreateData, CalendarRequestSyncCreateResponses, CalendarRequestSyncFormattedCreateData, CalendarRequestSyncFormattedCreateResponses, CalendarRetrieveData, CalendarRetrieveResponses, CalendarUnavailableWindowsFormattedListData, CalendarUnavailableWindowsFormattedListResponses, CalendarUnavailableWindowsListData, CalendarUnavailableWindowsListResponses, CalendarUpdateData, CalendarUpdateResponses, InvitationsAcceptCreateData, InvitationsAcceptCreateResponses, InvitationsCreateData, InvitationsCreateResponses, InvitationsDestroyData, InvitationsDestroyResponses, InvitationsFormattedCreateData, InvitationsFormattedCreateResponses, InvitationsFormattedDestroyData, InvitationsFormattedDestroyResponses, InvitationsFormattedListData, InvitationsFormattedListResponses, InvitationsFormattedRetrieveData, InvitationsFormattedRetrieveResponses, InvitationsListData, InvitationsListResponses, InvitationsResendCreateData, InvitationsResendCreateErrors, InvitationsResendCreateResponses, InvitationsResendFormattedCreateData, InvitationsResendFormattedCreateErrors, InvitationsResendFormattedCreateResponses, InvitationsRetrieveData, InvitationsRetrieveResponses, OrganizationMembersDeactivateCreateData, OrganizationMembersDeactivateCreateErrors, OrganizationMembersDeactivateCreateResponses, OrganizationMembersDeactivateFormattedCreateData, OrganizationMembersDeactivateFormattedCreateErrors, OrganizationMembersDeactivateFormattedCreateResponses, OrganizationMembersFormattedListData, OrganizationMembersFormattedListResponses, OrganizationMembersFormattedRetrieveData, OrganizationMembersFormattedRetrieveResponses, OrganizationMembersListData, OrganizationMembersListResponses, OrganizationMembersReactivateCreateData, OrganizationMembersReactivateCreateErrors, OrganizationMembersReactivateCreateResponses, OrganizationMembersReactivateFormattedCreateData, OrganizationMembersReactivateFormattedCreateErrors, OrganizationMembersReactivateFormattedCreateResponses, OrganizationMembersRetrieveData, OrganizationMembersRetrieveResponses, OrganizationsCreateData, OrganizationsCreateResponses, OrganizationsCurrentFormattedRetrieveData, OrganizationsCurrentFormattedRetrieveErrors, OrganizationsCurrentFormattedRetrieveResponses, OrganizationsCurrentRetrieveData, OrganizationsCurrentRetrieveErrors, OrganizationsCurrentRetrieveResponses, OrganizationsDestroyData, OrganizationsDestroyResponses, OrganizationsFormattedCreateData, OrganizationsFormattedCreateResponses, OrganizationsFormattedDestroyData, OrganizationsFormattedDestroyResponses, OrganizationsFormattedPartialUpdateData, OrganizationsFormattedPartialUpdateResponses, OrganizationsFormattedRetrieveData, OrganizationsFormattedRetrieveResponses, OrganizationsFormattedUpdateData, OrganizationsFormattedUpdateResponses, OrganizationsPartialUpdateData, OrganizationsPartialUpdateResponses, OrganizationsRetrieveData, OrganizationsRetrieveResponses, OrganizationsSyncRoomsCreateData, OrganizationsSyncRoomsCreateErrors, OrganizationsSyncRoomsCreateResponses, OrganizationsSyncRoomsFormattedCreateData, OrganizationsSyncRoomsFormattedCreateErrors, OrganizationsSyncRoomsFormattedCreateResponses, OrganizationsUpdateData, OrganizationsUpdateResponses, PaymentsPaymentUpdateCreateData, PaymentsPaymentUpdateCreateResponses, PaymentsPaymentUpdateFormattedCreateData, PaymentsPaymentUpdateFormattedCreateResponses, PaymentsSubscriptionPaymentUpdateCreateData, PaymentsSubscriptionPaymentUpdateCreateResponses, PaymentsSubscriptionPaymentUpdateFormattedCreateData, PaymentsSubscriptionPaymentUpdateFormattedCreateResponses, ProfileFormattedPartialUpdateData, ProfileFormattedPartialUpdateResponses, ProfileFormattedRetrieveData, ProfileFormattedRetrieveResponses, ProfileFormattedUpdateData, ProfileFormattedUpdateResponses, ProfilePartialUpdateData, ProfilePartialUpdateResponses, ProfileRetrieveData, ProfileRetrieveResponses, ProfileUpdateData, ProfileUpdateResponses, PublicApiTokensCreateData, PublicApiTokensCreateResponses, PublicApiTokensFormattedCreateData, PublicApiTokensFormattedCreateResponses, PublicApiTokensFormattedListData, PublicApiTokensFormattedListResponses, PublicApiTokensFormattedPartialUpdateData, PublicApiTokensFormattedPartialUpdateResponses, PublicApiTokensFormattedRetrieveData, PublicApiTokensFormattedRetrieveResponses, PublicApiTokensFormattedUpdateData, PublicApiTokensFormattedUpdateResponses, PublicApiTokensListData, PublicApiTokensListResponses, PublicApiTokensPartialUpdateData, PublicApiTokensPartialUpdateResponses, PublicApiTokensRetrieveData, PublicApiTokensRetrieveResponses, PublicApiTokensRevokeCreateData, PublicApiTokensRevokeCreateResponses, PublicApiTokensRevokeFormattedCreateData, PublicApiTokensRevokeFormattedCreateResponses, PublicApiTokensUpdateData, PublicApiTokensUpdateResponses, PublicOrganizationsEventsCreateData, PublicOrganizationsEventsCreateResponses, PublicOrganizationsEventsDestroyData, PublicOrganizationsEventsDestroyResponses, PublicOrganizationsEventsListData, PublicOrganizationsEventsListResponses, PublicOrganizationsEventsPartialUpdateData, PublicOrganizationsEventsPartialUpdateResponses, PublicOrganizationsEventsRetrieveData, PublicOrganizationsEventsRetrieveResponses, PublicOrganizationsEventsUpdateData, PublicOrganizationsEventsUpdateResponses, WebhookConfigurationsCreateData, WebhookConfigurationsCreateResponses, WebhookConfigurationsDestroyData, WebhookConfigurationsDestroyResponses, WebhookConfigurationsFormattedCreateData, WebhookConfigurationsFormattedCreateResponses, WebhookConfigurationsFormattedDestroyData, WebhookConfigurationsFormattedDestroyResponses, WebhookConfigurationsFormattedListData, WebhookConfigurationsFormattedListResponses, WebhookConfigurationsFormattedPartialUpdateData, WebhookConfigurationsFormattedPartialUpdateResponses, WebhookConfigurationsFormattedRetrieveData, WebhookConfigurationsFormattedRetrieveResponses, WebhookConfigurationsFormattedUpdateData, WebhookConfigurationsFormattedUpdateResponses, WebhookConfigurationsListData, WebhookConfigurationsListResponses, WebhookConfigurationsPartialUpdateData, WebhookConfigurationsPartialUpdateResponses, WebhookConfigurationsRetrieveData, WebhookConfigurationsRetrieveResponses, WebhookConfigurationsUpdateData, WebhookConfigurationsUpdateResponses, WebhookEventsFormattedListData, WebhookEventsFormattedListResponses, WebhookEventsFormattedRetrieveData, WebhookEventsFormattedRetrieveResponses, WebhookEventsListData, WebhookEventsListResponses, WebhookEventsRetrieveData, WebhookEventsRetrieveResponses, WebhookEventsRetryCreateData, WebhookEventsRetryCreateErrors, WebhookEventsRetryCreateResponses, WebhookEventsRetryFormattedCreateData, WebhookEventsRetryFormattedCreateErrors, WebhookEventsRetryFormattedCreateResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -1131,6 +1131,74 @@ export const calendarEventsCreateExceptionFormattedCreate = <ThrowOnError extend
 });
 
 /**
+ * Transfer event to another calendar (admin)
+ *
+ * Move an event from its current calendar to a target calendar within the same organization. The service authenticates with the SOURCE calendar owner's credentials to read and delete the event from the provider. Admin only.
+ */
+export const calendarEventsTransferCreate = <ThrowOnError extends boolean = false>(options: Options<CalendarEventsTransferCreateData, ThrowOnError>): RequestResult<CalendarEventsTransferCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<CalendarEventsTransferCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar-events/{id}/transfer/',
+    ...options,
+    headers: {
+        'Content-Type': 'type',
+        ...options.headers
+    }
+});
+
+/**
+ * Transfer event to another calendar (admin)
+ *
+ * Move an event from its current calendar to a target calendar within the same organization. The service authenticates with the SOURCE calendar owner's credentials to read and delete the event from the provider. Admin only.
+ */
+export const calendarEventsTransferFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<CalendarEventsTransferFormattedCreateData, ThrowOnError>): RequestResult<CalendarEventsTransferFormattedCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<CalendarEventsTransferFormattedCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar-events/{id}/transfer{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'type',
+        ...options.headers
+    }
+});
+
+/**
+ * Get expanded calendar events
+ *
+ * Get expanded calendar events including materialized recurring instances.
+ */
+export const calendarEventsExpandedList = <ThrowOnError extends boolean = false>(options: Options<CalendarEventsExpandedListData, ThrowOnError>): RequestResult<CalendarEventsExpandedListResponses, unknown, ThrowOnError> => (options.client ?? client).get<CalendarEventsExpandedListResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar-events/expanded/',
+    ...options
+});
+
+/**
+ * Get expanded calendar events
+ *
+ * Get expanded calendar events including materialized recurring instances.
+ */
+export const calendarEventsExpandedFormattedList = <ThrowOnError extends boolean = false>(options: Options<CalendarEventsExpandedFormattedListData, ThrowOnError>): RequestResult<CalendarEventsExpandedFormattedListResponses, unknown, ThrowOnError> => (options.client ?? client).get<CalendarEventsExpandedFormattedListResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar-events/expanded{format}',
+    ...options
+});
+
+/**
  * ViewSet for CalendarGroup CRUD and grouped event actions.
  */
 export const calendarGroupsList = <ThrowOnError extends boolean = false>(options?: Options<CalendarGroupsListData, ThrowOnError>): RequestResult<CalendarGroupsListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<CalendarGroupsListResponses, unknown, ThrowOnError>({
@@ -1451,7 +1519,16 @@ export const calendarGroupsEventsFormattedCreate = <ThrowOnError extends boolean
 });
 
 /**
- * ViewSet for managing calendars.
+ * Soft-disable a calendar
+ *
+ * Disables a calendar by setting is_active=False instead of deleting the row. The row persists and is hidden from default list/detail queries.
+ *
+ * **Authorization rules (enforced after org-scoping):**
+ * - BUNDLE calendar: caller must be an org admin. Non-admin members receive 403.
+ * - Non-bundle calendar (PERSONAL/RESOURCE/VIRTUAL): caller must own the calendar (CalendarOwnership) or be an org admin. Non-owner non-admins receive 403.
+ *
+ *
+ * **Bundle semantics:** disabling a bundle sets only the bundle calendar inactive. Child calendars, bundle events, and their representation BlockedTimes/events are deliberately left untouched (event cancellation is out of scope; see plan Phase 11).
  */
 export const calendarDestroy = <ThrowOnError extends boolean = false>(options: Options<CalendarDestroyData, ThrowOnError>): RequestResult<CalendarDestroyResponses, unknown, ThrowOnError> => (options.client ?? client).delete<CalendarDestroyResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, {
@@ -1511,7 +1588,16 @@ export const calendarUpdate = <ThrowOnError extends boolean = false>(options: Op
 });
 
 /**
- * ViewSet for managing calendars.
+ * Soft-disable a calendar
+ *
+ * Disables a calendar by setting is_active=False instead of deleting the row. The row persists and is hidden from default list/detail queries.
+ *
+ * **Authorization rules (enforced after org-scoping):**
+ * - BUNDLE calendar: caller must be an org admin. Non-admin members receive 403.
+ * - Non-bundle calendar (PERSONAL/RESOURCE/VIRTUAL): caller must own the calendar (CalendarOwnership) or be an org admin. Non-owner non-admins receive 403.
+ *
+ *
+ * **Bundle semantics:** disabling a bundle sets only the bundle calendar inactive. Child calendars, bundle events, and their representation BlockedTimes/events are deliberately left untouched (event cancellation is out of scope; see plan Phase 11).
  */
 export const calendarFormattedDestroy = <ThrowOnError extends boolean = false>(options: Options<CalendarFormattedDestroyData, ThrowOnError>): RequestResult<CalendarFormattedDestroyResponses, unknown, ThrowOnError> => (options.client ?? client).delete<CalendarFormattedDestroyResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, {
@@ -1571,6 +1657,44 @@ export const calendarFormattedUpdate = <ThrowOnError extends boolean = false>(op
 });
 
 /**
+ * Admin syncs another user's calendar
+ *
+ * Admin syncs any calendar in the organization over a date range.
+ */
+export const calendarAdminSyncCreate = <ThrowOnError extends boolean = false>(options: Options<CalendarAdminSyncCreateData, ThrowOnError>): RequestResult<CalendarAdminSyncCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<CalendarAdminSyncCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar/{id}/admin-sync/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Admin syncs another user's calendar
+ *
+ * Admin syncs any calendar in the organization over a date range.
+ */
+export const calendarAdminSyncFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<CalendarAdminSyncFormattedCreateData, ThrowOnError>): RequestResult<CalendarAdminSyncFormattedCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<CalendarAdminSyncFormattedCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar/{id}/admin-sync{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Get available time windows
  *
  * Get available time windows for a calendar within a specified date range.
@@ -1598,6 +1722,82 @@ export const calendarAvailableWindowsFormattedList = <ThrowOnError extends boole
         }],
     url: '/calendar/{id}/available-windows{format}',
     ...options
+});
+
+/**
+ * Update a bundle calendar's children and primary
+ *
+ * Reconcile the child calendars and primary designation for an existing bundle. Provide the full desired set of bundle_calendars; children not in the list will be removed and new ones will be added. Optionally specify primary_calendar (must be one of bundle_calendars). Admin only. Returns the updated bundle calendar.
+ */
+export const calendarBundlePartialUpdate = <ThrowOnError extends boolean = false>(options: Options<CalendarBundlePartialUpdateData, ThrowOnError>): RequestResult<CalendarBundlePartialUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<CalendarBundlePartialUpdateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar/{id}/bundle/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update a bundle calendar's children and primary
+ *
+ * Reconcile the child calendars and primary designation for an existing bundle. Provide the full desired set of bundle_calendars; children not in the list will be removed and new ones will be added. Optionally specify primary_calendar (must be one of bundle_calendars). Admin only. Returns the updated bundle calendar.
+ */
+export const calendarBundleFormattedPartialUpdate = <ThrowOnError extends boolean = false>(options: Options<CalendarBundleFormattedPartialUpdateData, ThrowOnError>): RequestResult<CalendarBundleFormattedPartialUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<CalendarBundleFormattedPartialUpdateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar/{id}/bundle{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Request calendar sync
+ *
+ * Request synchronization of an owned calendar over a date range.
+ */
+export const calendarRequestSyncCreate = <ThrowOnError extends boolean = false>(options: Options<CalendarRequestSyncCreateData, ThrowOnError>): RequestResult<CalendarRequestSyncCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<CalendarRequestSyncCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar/{id}/request-sync/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Request calendar sync
+ *
+ * Request synchronization of an owned calendar over a date range.
+ */
+export const calendarRequestSyncFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<CalendarRequestSyncFormattedCreateData, ThrowOnError>): RequestResult<CalendarRequestSyncFormattedCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<CalendarRequestSyncFormattedCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar/{id}/request-sync{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -1657,6 +1857,44 @@ export const calendarBundleFormattedCreate = <ThrowOnError extends boolean = fal
             type: 'apiKey'
         }],
     url: '/calendar/bundle{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Request calendar import
+ *
+ * Request import of external calendars for the authenticated user.
+ */
+export const calendarRequestImportCreate = <ThrowOnError extends boolean = false>(options: Options<CalendarRequestImportCreateData, ThrowOnError>): RequestResult<CalendarRequestImportCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<CalendarRequestImportCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar/request-import/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Request calendar import
+ *
+ * Request import of external calendars for the authenticated user.
+ */
+export const calendarRequestImportFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<CalendarRequestImportFormattedCreateData, ThrowOnError>): RequestResult<CalendarRequestImportFormattedCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<CalendarRequestImportFormattedCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/calendar/request-import{format}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -1777,6 +2015,56 @@ export const invitationsFormattedRetrieve = <ThrowOnError extends boolean = fals
 });
 
 /**
+ * Resend a pending organization invitation
+ *
+ * POST /invitations/{id}/resend/ — regenerate token and re-send a pending invitation.
+ *
+ * Guards:
+ * - Invitation must not be accepted (accepted_at is None).
+ * - User must be an active member of the invitation's organization.
+ *
+ * Returns the re-serialized invitation with the new token_hash and extended expires_at.
+ */
+export const invitationsResendCreate = <ThrowOnError extends boolean = false>(options: Options<InvitationsResendCreateData, ThrowOnError>): RequestResult<InvitationsResendCreateResponses, InvitationsResendCreateErrors, ThrowOnError> => (options.client ?? client).post<InvitationsResendCreateResponses, InvitationsResendCreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/invitations/{id}/resend/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Resend a pending organization invitation
+ *
+ * POST /invitations/{id}/resend/ — regenerate token and re-send a pending invitation.
+ *
+ * Guards:
+ * - Invitation must not be accepted (accepted_at is None).
+ * - User must be an active member of the invitation's organization.
+ *
+ * Returns the re-serialized invitation with the new token_hash and extended expires_at.
+ */
+export const invitationsResendFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<InvitationsResendFormattedCreateData, ThrowOnError>): RequestResult<InvitationsResendFormattedCreateResponses, InvitationsResendFormattedCreateErrors, ThrowOnError> => (options.client ?? client).post<InvitationsResendFormattedCreateResponses, InvitationsResendFormattedCreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/invitations/{id}/resend{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Public endpoint for accepting organization invitations.
  */
 export const invitationsAcceptCreate = <ThrowOnError extends boolean = false>(options: Options<InvitationsAcceptCreateData, ThrowOnError>): RequestResult<InvitationsAcceptCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<InvitationsAcceptCreateResponses, unknown, ThrowOnError>({
@@ -1786,6 +2074,186 @@ export const invitationsAcceptCreate = <ThrowOnError extends boolean = false>(op
             type: 'apiKey'
         }],
     url: '/invitations/accept',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * A viewset for listing, retrieving, and managing organization members.
+ *
+ * Admin-only endpoint — lists both active and inactive members of the caller's
+ * organization, suitable for a datatable view. Non-admin members get 403.
+ *
+ * Actions:
+ * - `deactivate`: POST to disable a member (prevent self-deactivation and
+ * protect the last active admin).
+ * - `reactivate`: POST to re-enable a member.
+ */
+export const organizationMembersList = <ThrowOnError extends boolean = false>(options?: Options<OrganizationMembersListData, ThrowOnError>): RequestResult<OrganizationMembersListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<OrganizationMembersListResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organization-members/',
+    ...options
+});
+
+/**
+ * A viewset for listing, retrieving, and managing organization members.
+ *
+ * Admin-only endpoint — lists both active and inactive members of the caller's
+ * organization, suitable for a datatable view. Non-admin members get 403.
+ *
+ * Actions:
+ * - `deactivate`: POST to disable a member (prevent self-deactivation and
+ * protect the last active admin).
+ * - `reactivate`: POST to re-enable a member.
+ */
+export const organizationMembersFormattedList = <ThrowOnError extends boolean = false>(options: Options<OrganizationMembersFormattedListData, ThrowOnError>): RequestResult<OrganizationMembersFormattedListResponses, unknown, ThrowOnError> => (options.client ?? client).get<OrganizationMembersFormattedListResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organization-members{format}',
+    ...options
+});
+
+/**
+ * A viewset for listing, retrieving, and managing organization members.
+ *
+ * Admin-only endpoint — lists both active and inactive members of the caller's
+ * organization, suitable for a datatable view. Non-admin members get 403.
+ *
+ * Actions:
+ * - `deactivate`: POST to disable a member (prevent self-deactivation and
+ * protect the last active admin).
+ * - `reactivate`: POST to re-enable a member.
+ */
+export const organizationMembersRetrieve = <ThrowOnError extends boolean = false>(options: Options<OrganizationMembersRetrieveData, ThrowOnError>): RequestResult<OrganizationMembersRetrieveResponses, unknown, ThrowOnError> => (options.client ?? client).get<OrganizationMembersRetrieveResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organization-members/{id}/',
+    ...options
+});
+
+/**
+ * A viewset for listing, retrieving, and managing organization members.
+ *
+ * Admin-only endpoint — lists both active and inactive members of the caller's
+ * organization, suitable for a datatable view. Non-admin members get 403.
+ *
+ * Actions:
+ * - `deactivate`: POST to disable a member (prevent self-deactivation and
+ * protect the last active admin).
+ * - `reactivate`: POST to re-enable a member.
+ */
+export const organizationMembersFormattedRetrieve = <ThrowOnError extends boolean = false>(options: Options<OrganizationMembersFormattedRetrieveData, ThrowOnError>): RequestResult<OrganizationMembersFormattedRetrieveResponses, unknown, ThrowOnError> => (options.client ?? client).get<OrganizationMembersFormattedRetrieveResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organization-members/{id}{format}',
+    ...options
+});
+
+/**
+ * Deactivate an organization member
+ *
+ * Deactivate a member (set is_active=False).
+ *
+ * Guards:
+ * - Cannot deactivate own membership (self-lockout prevention).
+ * - Cannot deactivate the last active admin (org lockout prevention).
+ *
+ * Idempotency: deactivating an already-inactive member is a no-op success.
+ */
+export const organizationMembersDeactivateCreate = <ThrowOnError extends boolean = false>(options: Options<OrganizationMembersDeactivateCreateData, ThrowOnError>): RequestResult<OrganizationMembersDeactivateCreateResponses, OrganizationMembersDeactivateCreateErrors, ThrowOnError> => (options.client ?? client).post<OrganizationMembersDeactivateCreateResponses, OrganizationMembersDeactivateCreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organization-members/{id}/deactivate/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Deactivate an organization member
+ *
+ * Deactivate a member (set is_active=False).
+ *
+ * Guards:
+ * - Cannot deactivate own membership (self-lockout prevention).
+ * - Cannot deactivate the last active admin (org lockout prevention).
+ *
+ * Idempotency: deactivating an already-inactive member is a no-op success.
+ */
+export const organizationMembersDeactivateFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<OrganizationMembersDeactivateFormattedCreateData, ThrowOnError>): RequestResult<OrganizationMembersDeactivateFormattedCreateResponses, OrganizationMembersDeactivateFormattedCreateErrors, ThrowOnError> => (options.client ?? client).post<OrganizationMembersDeactivateFormattedCreateResponses, OrganizationMembersDeactivateFormattedCreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organization-members/{id}/deactivate{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Reactivate an organization member
+ *
+ * Reactivate a member (set is_active=True).
+ *
+ * No guards — re-enabling is always safe.
+ *
+ * Idempotency: reactivating an already-active member is a no-op success.
+ */
+export const organizationMembersReactivateCreate = <ThrowOnError extends boolean = false>(options: Options<OrganizationMembersReactivateCreateData, ThrowOnError>): RequestResult<OrganizationMembersReactivateCreateResponses, OrganizationMembersReactivateCreateErrors, ThrowOnError> => (options.client ?? client).post<OrganizationMembersReactivateCreateResponses, OrganizationMembersReactivateCreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organization-members/{id}/reactivate/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Reactivate an organization member
+ *
+ * Reactivate a member (set is_active=True).
+ *
+ * No guards — re-enabling is always safe.
+ *
+ * Idempotency: reactivating an already-active member is a no-op success.
+ */
+export const organizationMembersReactivateFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<OrganizationMembersReactivateFormattedCreateData, ThrowOnError>): RequestResult<OrganizationMembersReactivateFormattedCreateResponses, OrganizationMembersReactivateFormattedCreateErrors, ThrowOnError> => (options.client ?? client).post<OrganizationMembersReactivateFormattedCreateResponses, OrganizationMembersReactivateFormattedCreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organization-members/{id}/reactivate{format}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -1882,6 +2350,9 @@ export const organizationsPartialUpdate = <ThrowOnError extends boolean = false>
  *
  * Uses select_for_update to lock the row during snapshot + write, serializing
  * concurrent PATCHes and preventing double-fire of the sync on False→True transition.
+ *
+ * The creds check is performed BEFORE any write so that unrelated field changes (e.g.
+ * renaming the org) are NOT persisted when the 400 is returned.
  */
 export const organizationsUpdate = <ThrowOnError extends boolean = false>(options: Options<OrganizationsUpdateData, ThrowOnError>): RequestResult<OrganizationsUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).put<OrganizationsUpdateResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, {
@@ -1952,6 +2423,9 @@ export const organizationsFormattedPartialUpdate = <ThrowOnError extends boolean
  *
  * Uses select_for_update to lock the row during snapshot + write, serializing
  * concurrent PATCHes and preventing double-fire of the sync on False→True transition.
+ *
+ * The creds check is performed BEFORE any write so that unrelated field changes (e.g.
+ * renaming the org) are NOT persisted when the 400 is returned.
  */
 export const organizationsFormattedUpdate = <ThrowOnError extends boolean = false>(options: Options<OrganizationsFormattedUpdateData, ThrowOnError>): RequestResult<OrganizationsFormattedUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).put<OrganizationsFormattedUpdateResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, {
@@ -1960,6 +2434,58 @@ export const organizationsFormattedUpdate = <ThrowOnError extends boolean = fals
             type: 'apiKey'
         }],
     url: '/organizations/{id}{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Trigger a rooms/resources import for the organization
+ *
+ * POST /organizations/{id}/sync-rooms/ — enqueue a calendar resources import.
+ *
+ * Optional body fields:
+ * - ``start_time``: ISO 8601 datetime for the import window start.
+ * - ``end_time``: ISO 8601 datetime for the import window end.
+ *
+ * Defaults (when omitted): ``start_time=now``, ``end_time=now+365d``.
+ * Returns HTTP 202 on success.
+ */
+export const organizationsSyncRoomsCreate = <ThrowOnError extends boolean = false>(options: Options<OrganizationsSyncRoomsCreateData, ThrowOnError>): RequestResult<OrganizationsSyncRoomsCreateResponses, OrganizationsSyncRoomsCreateErrors, ThrowOnError> => (options.client ?? client).post<OrganizationsSyncRoomsCreateResponses, OrganizationsSyncRoomsCreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organizations/{id}/sync-rooms/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Trigger a rooms/resources import for the organization
+ *
+ * POST /organizations/{id}/sync-rooms/ — enqueue a calendar resources import.
+ *
+ * Optional body fields:
+ * - ``start_time``: ISO 8601 datetime for the import window start.
+ * - ``end_time``: ISO 8601 datetime for the import window end.
+ *
+ * Defaults (when omitted): ``start_time=now``, ``end_time=now+365d``.
+ * Returns HTTP 202 on success.
+ */
+export const organizationsSyncRoomsFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<OrganizationsSyncRoomsFormattedCreateData, ThrowOnError>): RequestResult<OrganizationsSyncRoomsFormattedCreateResponses, OrganizationsSyncRoomsFormattedCreateErrors, ThrowOnError> => (options.client ?? client).post<OrganizationsSyncRoomsFormattedCreateResponses, OrganizationsSyncRoomsFormattedCreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organizations/{id}/sync-rooms{format}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -2138,6 +2664,316 @@ export const profileFormattedUpdate = <ThrowOnError extends boolean = false>(opt
             type: 'apiKey'
         }],
     url: '/profile/{user}{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Admin-only viewset for managing public-API tokens (SystemUser + ResourceAccess rows).
+ *
+ * Phase 12: create only.  Phase 13: list + retrieve.
+ * List / retrieve / revoke / edit-grants are supported phases.
+ *
+ * ``POST /public-api-tokens/`` creates a new ``SystemUser`` for the caller's
+ * organisation, persists the requested ``ResourceAccess`` rows, and returns the
+ * plaintext token **once**.  The token is never recoverable after this response.
+ *
+ * ``GET /public-api-tokens/`` lists the caller's org tokens without secrets.
+ * ``GET /public-api-tokens/{id}/`` retrieves a single token without secrets.
+ */
+export const publicApiTokensList = <ThrowOnError extends boolean = false>(options?: Options<PublicApiTokensListData, ThrowOnError>): RequestResult<PublicApiTokensListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<PublicApiTokensListResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens/',
+    ...options
+});
+
+/**
+ * Create a SystemUser and ResourceAccess rows; return the plaintext token once.
+ *
+ * Returns HTTP 201 on success.  The response body includes ``id``,
+ * ``integration_name``, ``is_active``, ``available_resources``, and a
+ * write-once ``token`` field — never ``long_lived_token_hash``.
+ *
+ * HTTP 400 is returned for:
+ * - Invalid or unknown ``available_resources`` values.
+ * - Empty ``available_resources`` list.
+ * - Duplicate ``integration_name`` (unique constraint).
+ *
+ * HTTP 403 is returned for non-admin callers; HTTP 401 for unauthenticated.
+ */
+export const publicApiTokensCreate = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensCreateData, ThrowOnError>): RequestResult<PublicApiTokensCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<PublicApiTokensCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Admin-only viewset for managing public-API tokens (SystemUser + ResourceAccess rows).
+ *
+ * Phase 12: create only.  Phase 13: list + retrieve.
+ * List / retrieve / revoke / edit-grants are supported phases.
+ *
+ * ``POST /public-api-tokens/`` creates a new ``SystemUser`` for the caller's
+ * organisation, persists the requested ``ResourceAccess`` rows, and returns the
+ * plaintext token **once**.  The token is never recoverable after this response.
+ *
+ * ``GET /public-api-tokens/`` lists the caller's org tokens without secrets.
+ * ``GET /public-api-tokens/{id}/`` retrieves a single token without secrets.
+ */
+export const publicApiTokensFormattedList = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensFormattedListData, ThrowOnError>): RequestResult<PublicApiTokensFormattedListResponses, unknown, ThrowOnError> => (options.client ?? client).get<PublicApiTokensFormattedListResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens{format}',
+    ...options
+});
+
+/**
+ * Create a SystemUser and ResourceAccess rows; return the plaintext token once.
+ *
+ * Returns HTTP 201 on success.  The response body includes ``id``,
+ * ``integration_name``, ``is_active``, ``available_resources``, and a
+ * write-once ``token`` field — never ``long_lived_token_hash``.
+ *
+ * HTTP 400 is returned for:
+ * - Invalid or unknown ``available_resources`` values.
+ * - Empty ``available_resources`` list.
+ * - Duplicate ``integration_name`` (unique constraint).
+ *
+ * HTTP 403 is returned for non-admin callers; HTTP 401 for unauthenticated.
+ */
+export const publicApiTokensFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensFormattedCreateData, ThrowOnError>): RequestResult<PublicApiTokensFormattedCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<PublicApiTokensFormattedCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Admin-only viewset for managing public-API tokens (SystemUser + ResourceAccess rows).
+ *
+ * Phase 12: create only.  Phase 13: list + retrieve.
+ * List / retrieve / revoke / edit-grants are supported phases.
+ *
+ * ``POST /public-api-tokens/`` creates a new ``SystemUser`` for the caller's
+ * organisation, persists the requested ``ResourceAccess`` rows, and returns the
+ * plaintext token **once**.  The token is never recoverable after this response.
+ *
+ * ``GET /public-api-tokens/`` lists the caller's org tokens without secrets.
+ * ``GET /public-api-tokens/{id}/`` retrieves a single token without secrets.
+ */
+export const publicApiTokensRetrieve = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensRetrieveData, ThrowOnError>): RequestResult<PublicApiTokensRetrieveResponses, unknown, ThrowOnError> => (options.client ?? client).get<PublicApiTokensRetrieveResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens/{id}/',
+    ...options
+});
+
+/**
+ * Update a token's resource grants via PATCH (full replacement).
+ *
+ * PATCH and PUT behave identically for this endpoint: both require the full
+ * ``available_resources`` list and replace grants completely.
+ *
+ * Accepts ``available_resources`` (a non-empty list of valid resource values).
+ * Reconciles ResourceAccess rows: adds new, removes dropped, de-duplicates.
+ * ``integration_name`` and ``token`` are never mutated; if sent in the body,
+ * they are silently ignored.
+ *
+ * Returns HTTP 200 with the updated token serialized via SystemUserTokenSerializer.
+ * HTTP 400 is returned for invalid resource values or empty list.
+ * HTTP 403 is returned for non-admin callers; HTTP 404 if the token does not
+ * exist or belongs to another organization; HTTP 401 for unauthenticated.
+ */
+export const publicApiTokensPartialUpdate = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensPartialUpdateData, ThrowOnError>): RequestResult<PublicApiTokensPartialUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<PublicApiTokensPartialUpdateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens/{id}/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update a token's resource grants via PUT (full replacement).
+ *
+ * Accepts ``available_resources`` (a non-empty list of valid resource values).
+ * Reconciles ResourceAccess rows: adds new, removes dropped, de-duplicates.
+ * ``integration_name`` and ``token`` are never mutated; if sent in the body,
+ * they are silently ignored.
+ *
+ * Returns HTTP 200 with the updated token serialized via SystemUserTokenSerializer.
+ * HTTP 400 is returned for invalid resource values or empty list.
+ * HTTP 403 is returned for non-admin callers; HTTP 404 if the token does not
+ * exist or belongs to another organization; HTTP 401 for unauthenticated.
+ */
+export const publicApiTokensUpdate = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensUpdateData, ThrowOnError>): RequestResult<PublicApiTokensUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).put<PublicApiTokensUpdateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens/{id}/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Admin-only viewset for managing public-API tokens (SystemUser + ResourceAccess rows).
+ *
+ * Phase 12: create only.  Phase 13: list + retrieve.
+ * List / retrieve / revoke / edit-grants are supported phases.
+ *
+ * ``POST /public-api-tokens/`` creates a new ``SystemUser`` for the caller's
+ * organisation, persists the requested ``ResourceAccess`` rows, and returns the
+ * plaintext token **once**.  The token is never recoverable after this response.
+ *
+ * ``GET /public-api-tokens/`` lists the caller's org tokens without secrets.
+ * ``GET /public-api-tokens/{id}/`` retrieves a single token without secrets.
+ */
+export const publicApiTokensFormattedRetrieve = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensFormattedRetrieveData, ThrowOnError>): RequestResult<PublicApiTokensFormattedRetrieveResponses, unknown, ThrowOnError> => (options.client ?? client).get<PublicApiTokensFormattedRetrieveResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens/{id}{format}',
+    ...options
+});
+
+/**
+ * Update a token's resource grants via PATCH (full replacement).
+ *
+ * PATCH and PUT behave identically for this endpoint: both require the full
+ * ``available_resources`` list and replace grants completely.
+ *
+ * Accepts ``available_resources`` (a non-empty list of valid resource values).
+ * Reconciles ResourceAccess rows: adds new, removes dropped, de-duplicates.
+ * ``integration_name`` and ``token`` are never mutated; if sent in the body,
+ * they are silently ignored.
+ *
+ * Returns HTTP 200 with the updated token serialized via SystemUserTokenSerializer.
+ * HTTP 400 is returned for invalid resource values or empty list.
+ * HTTP 403 is returned for non-admin callers; HTTP 404 if the token does not
+ * exist or belongs to another organization; HTTP 401 for unauthenticated.
+ */
+export const publicApiTokensFormattedPartialUpdate = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensFormattedPartialUpdateData, ThrowOnError>): RequestResult<PublicApiTokensFormattedPartialUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<PublicApiTokensFormattedPartialUpdateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens/{id}{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update a token's resource grants via PUT (full replacement).
+ *
+ * Accepts ``available_resources`` (a non-empty list of valid resource values).
+ * Reconciles ResourceAccess rows: adds new, removes dropped, de-duplicates.
+ * ``integration_name`` and ``token`` are never mutated; if sent in the body,
+ * they are silently ignored.
+ *
+ * Returns HTTP 200 with the updated token serialized via SystemUserTokenSerializer.
+ * HTTP 400 is returned for invalid resource values or empty list.
+ * HTTP 403 is returned for non-admin callers; HTTP 404 if the token does not
+ * exist or belongs to another organization; HTTP 401 for unauthenticated.
+ */
+export const publicApiTokensFormattedUpdate = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensFormattedUpdateData, ThrowOnError>): RequestResult<PublicApiTokensFormattedUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).put<PublicApiTokensFormattedUpdateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens/{id}{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Revoke a public-API token by setting its SystemUser.is_active to False.
+ *
+ * The token will no longer authenticate requests via check_system_user_token.
+ * This is idempotent: revoking an already-revoked token is a 200 no-op.
+ *
+ * Returns HTTP 200 with the updated token serialized via SystemUserTokenSerializer.
+ * HTTP 403 is returned for non-admin callers; HTTP 404 if the token does not
+ * exist or belongs to another organization; HTTP 401 for unauthenticated.
+ */
+export const publicApiTokensRevokeCreate = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensRevokeCreateData, ThrowOnError>): RequestResult<PublicApiTokensRevokeCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<PublicApiTokensRevokeCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens/{id}/revoke/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Revoke a public-API token by setting its SystemUser.is_active to False.
+ *
+ * The token will no longer authenticate requests via check_system_user_token.
+ * This is idempotent: revoking an already-revoked token is a 200 no-op.
+ *
+ * Returns HTTP 200 with the updated token serialized via SystemUserTokenSerializer.
+ * HTTP 403 is returned for non-admin callers; HTTP 404 if the token does not
+ * exist or belongs to another organization; HTTP 401 for unauthenticated.
+ */
+export const publicApiTokensRevokeFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<PublicApiTokensRevokeFormattedCreateData, ThrowOnError>): RequestResult<PublicApiTokensRevokeFormattedCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<PublicApiTokensRevokeFormattedCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/public-api-tokens/{id}/revoke{format}',
     ...options,
     headers: {
         'Content-Type': 'application/json',

@@ -12,6 +12,27 @@ export type AcceptInvitation = {
 };
 
 /**
+ * * `calendar_event` - Calendar Event
+ * * `calendar` - Calendar
+ * * `recurrence_rule` - Recurrence Rule
+ * * `external_attendee` - External Attendee
+ * * `external_attendance` - External Attendance
+ * * `attendance` - Attendance
+ * * `user` - User
+ * * `resource_allocation` - Resource Allocation
+ * * `event_recurring_exception` - Event Recurring Exception
+ * * `blocked_time` - Blocked Time
+ * * `blocked_time_recurring_exception` - Blocked Time Recurring Exception
+ * * `available_time` - Available Time
+ * * `available_time_recurring_exception` - Available Time Recurring Exception
+ * * `availability_windows` - Availability Windows
+ * * `unavailable_windows` - Unavailable Windows
+ * * `organization` - Organization
+ * * `calendar_group` - Calendar Group
+ */
+export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group';
+
+/**
  * Serializer for AvailableTime model with recurring support.
  */
 export type AvailableTime = {
@@ -228,6 +249,10 @@ export type Calendar = {
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
     manage_available_windows?: boolean;
+    /**
+     * Whether this calendar is active. Inactive calendars are hidden from default list/detail queries. Use DELETE /calendar/{id}/ to soft-disable (sets this to False) instead of deleting the row. Opt-in to see disabled calendars via ?include_inactive=true. Default True keeps every existing read unchanged.
+     */
+    readonly is_active: boolean;
 };
 
 export type CalendarBundleCreate = {
@@ -340,6 +365,29 @@ export type CalendarGroupSlotAvailability = {
     slot_id: number;
     available_calendar_ids: Array<number>;
 };
+
+export type CalendarSync = {
+    readonly id: number;
+    status: CalendarSyncStatusEnum;
+    start_datetime: string;
+    end_datetime: string;
+    should_update_events: boolean;
+    readonly error_message: string;
+};
+
+export type CalendarSyncRequest = {
+    start_datetime: string;
+    end_datetime: string;
+    should_update_events?: boolean;
+};
+
+/**
+ * * `success` - Success
+ * * `failed` - Failed
+ * * `in_progress` - In Progress
+ * * `not_started` - Not Started
+ */
+export type CalendarSyncStatusEnum = 'success' | 'failed' | 'in_progress' | 'not_started';
 
 /**
  * * `personal` - Personal Calendar
@@ -511,6 +559,30 @@ export type OrganizationInvitation = {
     readonly modified: string;
 };
 
+/**
+ * Read-only serializer for listing and retrieving organization members.
+ *
+ * Exposes membership role, active status, and flattened user information
+ * (email, first_name, last_name) for the admin datatable.
+ */
+export type OrganizationMembership = {
+    readonly id: number;
+    /**
+     * Role the user holds in this organization. Admins can manage organization-scoped resources (e.g. CalendarGroups) regardless of direct ownership.
+     *
+     * * `member` - Member
+     * * `admin` - Admin
+     */
+    role: RoleEnum;
+    /**
+     * Whether this membership is active. Inactive memberships are treated as gated: the user still has a row but loses all tenant-scoped access until reactivated. Use this to disable a user without deleting their membership record (which would lose role/history). Default True keeps every existing read unchanged.
+     */
+    readonly is_active: boolean;
+    readonly user_email: string;
+    readonly user_first_name: string;
+    readonly user_last_name: string;
+};
+
 export type PaginatedAvailableTimeList = {
     count: number;
     next?: string | null;
@@ -572,6 +644,20 @@ export type PaginatedOrganizationInvitationList = {
     next?: string | null;
     previous?: string | null;
     results: Array<OrganizationInvitation>;
+};
+
+export type PaginatedOrganizationMembershipList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<OrganizationMembership>;
+};
+
+export type PaginatedSystemUserTokenList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<SystemUserToken>;
 };
 
 export type PaginatedUnavailableTimeWindowList = {
@@ -710,6 +796,18 @@ export type PatchedCalendar = {
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
     manage_available_windows?: boolean;
+    /**
+     * Whether this calendar is active. Inactive calendars are hidden from default list/detail queries. Use DELETE /calendar/{id}/ to soft-disable (sets this to False) instead of deleting the row. Opt-in to see disabled calendars via ?include_inactive=true. Default True keeps every existing read unchanged.
+     */
+    readonly is_active?: boolean;
+};
+
+/**
+ * Serializer for updating a bundle calendar's child calendars and primary calendar.
+ */
+export type PatchedCalendarBundleUpdate = {
+    bundle_calendars?: Array<number>;
+    primary_calendar?: number | null;
 };
 
 export type PatchedCalendarEvent = {
@@ -789,6 +887,18 @@ export type PatchedProfile = {
     first_name?: string;
     last_name?: string;
     profile_picture?: string | null;
+};
+
+/**
+ * Input serializer for updating a public-API token's resource grants (Phase 15).
+ *
+ * Accepts ``available_resources`` (a non-empty list of valid ``PublicAPIResources`` values)
+ * only.  ``integration_name`` and ``token`` are never accepted or changed.
+ * The view reconciles ResourceAccess rows: adds rows for newly-granted resources,
+ * removes rows for dropped resources.
+ */
+export type PatchedSystemUserTokenUpdate = {
+    available_resources?: Array<AvailableResourcesEnum>;
 };
 
 export type PatchedWebhookConfiguration = {
@@ -909,6 +1019,75 @@ export type ResourceAllocation = {
  * * `admin` - Admin
  */
 export type RoleEnum = 'member' | 'admin';
+
+/**
+ * Read-only serializer for listing and retrieving public-API tokens.
+ *
+ * Exposes ``id``, ``integration_name``, ``is_active``, and ``available_resources``
+ * (list of resource_name strings from the related ``ResourceAccess`` rows).
+ * Never exposes ``long_lived_token_hash`` or ``token``.
+ *
+ * Optimized for list queries: uses prefetched ``available_resources`` from
+ * the viewset's ``get_queryset`` to avoid N+1 queries.
+ */
+export type SystemUserToken = {
+    readonly id: number;
+    readonly integration_name: string;
+    /**
+     * Indicates if the user is active.
+     */
+    readonly is_active: boolean;
+    /**
+     * Return a list of resource_name values from the prefetched ResourceAccess rows.
+     */
+    readonly available_resources: Array<string>;
+};
+
+/**
+ * Input serializer for creating a new public-API token (SystemUser + ResourceAccess rows).
+ *
+ * Accepts ``integration_name`` and ``available_resources`` (a non-empty list of valid
+ * ``PublicAPIResources`` values).  On a successful create the view adds a write-once
+ * ``token`` field to the response data; this serializer never stores or exposes
+ * ``long_lived_token_hash``.
+ */
+export type SystemUserTokenCreate = {
+    integration_name: string;
+    available_resources: Array<AvailableResourcesEnum>;
+};
+
+/**
+ * Read serializer for the created SystemUser.
+ *
+ * Includes the write-once ``token`` field (sourced from the view) and
+ * ``available_resources`` (derived from the related ``ResourceAccess`` rows).
+ * Never exposes ``long_lived_token_hash``.
+ */
+export type SystemUserTokenResponse = {
+    readonly id: number;
+    readonly integration_name: string;
+    /**
+     * Indicates if the user is active.
+     */
+    readonly is_active: boolean;
+    /**
+     * Return a list of resource_name values from the related ResourceAccess rows.
+     */
+    readonly available_resources: Array<string>;
+    readonly token: string;
+};
+
+/**
+ * Input serializer for updating a public-API token's resource grants (Phase 15).
+ *
+ * Accepts ``available_resources`` (a non-empty list of valid ``PublicAPIResources`` values)
+ * only.  ``integration_name`` and ``token`` are never accepted or changed.
+ * The view reconciles ResourceAccess rows: adds rows for newly-granted resources,
+ * removes rows for dropped resources.
+ */
+export type SystemUserTokenUpdate = {
+    available_resources: Array<AvailableResourcesEnum>;
+};
 
 export type UnavailableTimeWindow = {
     id: number;
@@ -1167,6 +1346,12 @@ export type CalendarGroupSlotWritable = {
     calendar_ids: Array<number>;
 };
 
+export type CalendarSyncWritable = {
+    start_datetime: string;
+    end_datetime: string;
+    should_update_events: boolean;
+};
+
 export type EventAttendanceWritable = {
     /**
      * ID of the external attendee.
@@ -1279,6 +1464,20 @@ export type PaginatedOrganizationInvitationListWritable = {
     next?: string | null;
     previous?: string | null;
     results: Array<OrganizationInvitationWritable>;
+};
+
+export type PaginatedOrganizationMembershipListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<unknown>;
+};
+
+export type PaginatedSystemUserTokenListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<unknown>;
 };
 
 export type PaginatedUnavailableTimeWindowListWritable = {
@@ -2985,6 +3184,165 @@ export type CalendarEventsCreateExceptionFormattedCreateResponses = {
 
 export type CalendarEventsCreateExceptionFormattedCreateResponse = CalendarEventsCreateExceptionFormattedCreateResponses[keyof CalendarEventsCreateExceptionFormattedCreateResponses];
 
+export type CalendarEventsTransferCreateData = {
+    /**
+     * Unspecified request body
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/calendar-events/{id}/transfer/';
+};
+
+export type CalendarEventsTransferCreateResponses = {
+    200: CalendarEvent;
+};
+
+export type CalendarEventsTransferCreateResponse = CalendarEventsTransferCreateResponses[keyof CalendarEventsTransferCreateResponses];
+
+export type CalendarEventsTransferFormattedCreateData = {
+    /**
+     * Unspecified request body
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/calendar-events/{id}/transfer{format}';
+};
+
+export type CalendarEventsTransferFormattedCreateResponses = {
+    200: CalendarEvent;
+};
+
+export type CalendarEventsTransferFormattedCreateResponse = CalendarEventsTransferFormattedCreateResponses[keyof CalendarEventsTransferFormattedCreateResponses];
+
+export type CalendarEventsExpandedListData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Filter by calendar ID
+         */
+        calendar?: number;
+        /**
+         * Calendar ID to get events for
+         */
+        calendar_id: number;
+        /**
+         * End datetime for the range (ISO format)
+         */
+        end_time: string;
+        /**
+         * End time range
+         */
+        end_time_range_after?: string;
+        /**
+         * End time range
+         */
+        end_time_range_before?: string;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * Start datetime for the range (ISO format)
+         */
+        start_time: string;
+        /**
+         * Start time range
+         */
+        start_time_range_after?: string;
+        /**
+         * Start time range
+         */
+        start_time_range_before?: string;
+        /**
+         * Filter by partial title match
+         */
+        title?: string;
+    };
+    url: '/calendar-events/expanded/';
+};
+
+export type CalendarEventsExpandedListResponses = {
+    200: PaginatedCalendarEventList;
+};
+
+export type CalendarEventsExpandedListResponse = CalendarEventsExpandedListResponses[keyof CalendarEventsExpandedListResponses];
+
+export type CalendarEventsExpandedFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query: {
+        /**
+         * Filter by calendar ID
+         */
+        calendar?: number;
+        /**
+         * Calendar ID to get events for
+         */
+        calendar_id: number;
+        /**
+         * End datetime for the range (ISO format)
+         */
+        end_time: string;
+        /**
+         * End time range
+         */
+        end_time_range_after?: string;
+        /**
+         * End time range
+         */
+        end_time_range_before?: string;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * Start datetime for the range (ISO format)
+         */
+        start_time: string;
+        /**
+         * Start time range
+         */
+        start_time_range_after?: string;
+        /**
+         * Start time range
+         */
+        start_time_range_before?: string;
+        /**
+         * Filter by partial title match
+         */
+        title?: string;
+    };
+    url: '/calendar-events/expanded{format}';
+};
+
+export type CalendarEventsExpandedFormattedListResponses = {
+    200: PaginatedCalendarEventList;
+};
+
+export type CalendarEventsExpandedFormattedListResponse = CalendarEventsExpandedFormattedListResponses[keyof CalendarEventsExpandedFormattedListResponses];
+
 export type CalendarGroupsListData = {
     body?: never;
     path?: never;
@@ -3577,6 +3935,37 @@ export type CalendarFormattedUpdateResponses = {
 
 export type CalendarFormattedUpdateResponse = CalendarFormattedUpdateResponses[keyof CalendarFormattedUpdateResponses];
 
+export type CalendarAdminSyncCreateData = {
+    body: CalendarSyncRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/calendar/{id}/admin-sync/';
+};
+
+export type CalendarAdminSyncCreateResponses = {
+    202: CalendarSync;
+};
+
+export type CalendarAdminSyncCreateResponse = CalendarAdminSyncCreateResponses[keyof CalendarAdminSyncCreateResponses];
+
+export type CalendarAdminSyncFormattedCreateData = {
+    body: CalendarSyncRequest;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/calendar/{id}/admin-sync{format}';
+};
+
+export type CalendarAdminSyncFormattedCreateResponses = {
+    202: CalendarSync;
+};
+
+export type CalendarAdminSyncFormattedCreateResponse = CalendarAdminSyncFormattedCreateResponses[keyof CalendarAdminSyncFormattedCreateResponses];
+
 export type CalendarAvailableWindowsListData = {
     body?: never;
     path: {
@@ -3641,6 +4030,68 @@ export type CalendarAvailableWindowsFormattedListResponses = {
 };
 
 export type CalendarAvailableWindowsFormattedListResponse = CalendarAvailableWindowsFormattedListResponses[keyof CalendarAvailableWindowsFormattedListResponses];
+
+export type CalendarBundlePartialUpdateData = {
+    body?: PatchedCalendarBundleUpdate;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/calendar/{id}/bundle/';
+};
+
+export type CalendarBundlePartialUpdateResponses = {
+    200: Calendar;
+};
+
+export type CalendarBundlePartialUpdateResponse = CalendarBundlePartialUpdateResponses[keyof CalendarBundlePartialUpdateResponses];
+
+export type CalendarBundleFormattedPartialUpdateData = {
+    body?: PatchedCalendarBundleUpdate;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/calendar/{id}/bundle{format}';
+};
+
+export type CalendarBundleFormattedPartialUpdateResponses = {
+    200: Calendar;
+};
+
+export type CalendarBundleFormattedPartialUpdateResponse = CalendarBundleFormattedPartialUpdateResponses[keyof CalendarBundleFormattedPartialUpdateResponses];
+
+export type CalendarRequestSyncCreateData = {
+    body: CalendarSyncRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/calendar/{id}/request-sync/';
+};
+
+export type CalendarRequestSyncCreateResponses = {
+    202: CalendarSync;
+};
+
+export type CalendarRequestSyncCreateResponse = CalendarRequestSyncCreateResponses[keyof CalendarRequestSyncCreateResponses];
+
+export type CalendarRequestSyncFormattedCreateData = {
+    body: CalendarSyncRequest;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/calendar/{id}/request-sync{format}';
+};
+
+export type CalendarRequestSyncFormattedCreateResponses = {
+    202: CalendarSync;
+};
+
+export type CalendarRequestSyncFormattedCreateResponse = CalendarRequestSyncFormattedCreateResponses[keyof CalendarRequestSyncFormattedCreateResponses];
 
 export type CalendarUnavailableWindowsListData = {
     body?: never;
@@ -3734,6 +4185,38 @@ export type CalendarBundleFormattedCreateResponses = {
 };
 
 export type CalendarBundleFormattedCreateResponse = CalendarBundleFormattedCreateResponses[keyof CalendarBundleFormattedCreateResponses];
+
+export type CalendarRequestImportCreateData = {
+    body: CalendarWritable;
+    path?: never;
+    query?: never;
+    url: '/calendar/request-import/';
+};
+
+export type CalendarRequestImportCreateResponses = {
+    202: {
+        detail?: string;
+    };
+};
+
+export type CalendarRequestImportCreateResponse = CalendarRequestImportCreateResponses[keyof CalendarRequestImportCreateResponses];
+
+export type CalendarRequestImportFormattedCreateData = {
+    body: CalendarWritable;
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/calendar/request-import{format}';
+};
+
+export type CalendarRequestImportFormattedCreateResponses = {
+    202: {
+        detail?: string;
+    };
+};
+
+export type CalendarRequestImportFormattedCreateResponse = CalendarRequestImportFormattedCreateResponses[keyof CalendarRequestImportFormattedCreateResponses];
 
 export type InvitationsListData = {
     body?: never;
@@ -3909,6 +4392,67 @@ export type InvitationsFormattedRetrieveResponses = {
 
 export type InvitationsFormattedRetrieveResponse = InvitationsFormattedRetrieveResponses[keyof InvitationsFormattedRetrieveResponses];
 
+export type InvitationsResendCreateData = {
+    body: OrganizationInvitationWritable;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/invitations/{id}/resend/';
+};
+
+export type InvitationsResendCreateErrors = {
+    /**
+     * Invitation already accepted or service error
+     */
+    400: unknown;
+    /**
+     * Not an active member
+     */
+    403: unknown;
+    /**
+     * Invitation not found or cross-org
+     */
+    404: unknown;
+};
+
+export type InvitationsResendCreateResponses = {
+    200: OrganizationInvitation;
+};
+
+export type InvitationsResendCreateResponse = InvitationsResendCreateResponses[keyof InvitationsResendCreateResponses];
+
+export type InvitationsResendFormattedCreateData = {
+    body: OrganizationInvitationWritable;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/invitations/{id}/resend{format}';
+};
+
+export type InvitationsResendFormattedCreateErrors = {
+    /**
+     * Invitation already accepted or service error
+     */
+    400: unknown;
+    /**
+     * Not an active member
+     */
+    403: unknown;
+    /**
+     * Invitation not found or cross-org
+     */
+    404: unknown;
+};
+
+export type InvitationsResendFormattedCreateResponses = {
+    200: OrganizationInvitation;
+};
+
+export type InvitationsResendFormattedCreateResponse = InvitationsResendFormattedCreateResponses[keyof InvitationsResendFormattedCreateResponses];
+
 export type InvitationsAcceptCreateData = {
     body: AcceptInvitation;
     path?: never;
@@ -3921,6 +4465,197 @@ export type InvitationsAcceptCreateResponses = {
 };
 
 export type InvitationsAcceptCreateResponse = InvitationsAcceptCreateResponses[keyof InvitationsAcceptCreateResponses];
+
+export type OrganizationMembersListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/organization-members/';
+};
+
+export type OrganizationMembersListResponses = {
+    200: PaginatedOrganizationMembershipList;
+};
+
+export type OrganizationMembersListResponse = OrganizationMembersListResponses[keyof OrganizationMembersListResponses];
+
+export type OrganizationMembersFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/organization-members{format}';
+};
+
+export type OrganizationMembersFormattedListResponses = {
+    200: PaginatedOrganizationMembershipList;
+};
+
+export type OrganizationMembersFormattedListResponse = OrganizationMembersFormattedListResponses[keyof OrganizationMembersFormattedListResponses];
+
+export type OrganizationMembersRetrieveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/organization-members/{id}/';
+};
+
+export type OrganizationMembersRetrieveResponses = {
+    200: OrganizationMembership;
+};
+
+export type OrganizationMembersRetrieveResponse = OrganizationMembersRetrieveResponses[keyof OrganizationMembersRetrieveResponses];
+
+export type OrganizationMembersFormattedRetrieveData = {
+    body?: never;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/organization-members/{id}{format}';
+};
+
+export type OrganizationMembersFormattedRetrieveResponses = {
+    200: OrganizationMembership;
+};
+
+export type OrganizationMembersFormattedRetrieveResponse = OrganizationMembersFormattedRetrieveResponses[keyof OrganizationMembersFormattedRetrieveResponses];
+
+export type OrganizationMembersDeactivateCreateData = {
+    body?: OrganizationMembership;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/organization-members/{id}/deactivate/';
+};
+
+export type OrganizationMembersDeactivateCreateErrors = {
+    /**
+     * Cannot deactivate self or last active admin
+     */
+    400: unknown;
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Member not found or cross-org
+     */
+    404: unknown;
+};
+
+export type OrganizationMembersDeactivateCreateResponses = {
+    200: OrganizationMembership;
+};
+
+export type OrganizationMembersDeactivateCreateResponse = OrganizationMembersDeactivateCreateResponses[keyof OrganizationMembersDeactivateCreateResponses];
+
+export type OrganizationMembersDeactivateFormattedCreateData = {
+    body?: OrganizationMembership;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/organization-members/{id}/deactivate{format}';
+};
+
+export type OrganizationMembersDeactivateFormattedCreateErrors = {
+    /**
+     * Cannot deactivate self or last active admin
+     */
+    400: unknown;
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Member not found or cross-org
+     */
+    404: unknown;
+};
+
+export type OrganizationMembersDeactivateFormattedCreateResponses = {
+    200: OrganizationMembership;
+};
+
+export type OrganizationMembersDeactivateFormattedCreateResponse = OrganizationMembersDeactivateFormattedCreateResponses[keyof OrganizationMembersDeactivateFormattedCreateResponses];
+
+export type OrganizationMembersReactivateCreateData = {
+    body?: OrganizationMembership;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/organization-members/{id}/reactivate/';
+};
+
+export type OrganizationMembersReactivateCreateErrors = {
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Member not found or cross-org
+     */
+    404: unknown;
+};
+
+export type OrganizationMembersReactivateCreateResponses = {
+    200: OrganizationMembership;
+};
+
+export type OrganizationMembersReactivateCreateResponse = OrganizationMembersReactivateCreateResponses[keyof OrganizationMembersReactivateCreateResponses];
+
+export type OrganizationMembersReactivateFormattedCreateData = {
+    body?: OrganizationMembership;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/organization-members/{id}/reactivate{format}';
+};
+
+export type OrganizationMembersReactivateFormattedCreateErrors = {
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Member not found or cross-org
+     */
+    404: unknown;
+};
+
+export type OrganizationMembersReactivateFormattedCreateResponses = {
+    200: OrganizationMembership;
+};
+
+export type OrganizationMembersReactivateFormattedCreateResponse = OrganizationMembersReactivateFormattedCreateResponses[keyof OrganizationMembersReactivateFormattedCreateResponses];
 
 export type OrganizationsCreateData = {
     body: OrganizationWritable;
@@ -4079,6 +4814,67 @@ export type OrganizationsFormattedUpdateResponses = {
 };
 
 export type OrganizationsFormattedUpdateResponse = OrganizationsFormattedUpdateResponses[keyof OrganizationsFormattedUpdateResponses];
+
+export type OrganizationsSyncRoomsCreateData = {
+    body: OrganizationWritable;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/organizations/{id}/sync-rooms/';
+};
+
+export type OrganizationsSyncRoomsCreateErrors = {
+    /**
+     * Invalid datetime format
+     */
+    400: unknown;
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Organization not found
+     */
+    404: unknown;
+};
+
+export type OrganizationsSyncRoomsCreateResponses = {
+    202: Organization;
+};
+
+export type OrganizationsSyncRoomsCreateResponse = OrganizationsSyncRoomsCreateResponses[keyof OrganizationsSyncRoomsCreateResponses];
+
+export type OrganizationsSyncRoomsFormattedCreateData = {
+    body: OrganizationWritable;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/organizations/{id}/sync-rooms{format}';
+};
+
+export type OrganizationsSyncRoomsFormattedCreateErrors = {
+    /**
+     * Invalid datetime format
+     */
+    400: unknown;
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Organization not found
+     */
+    404: unknown;
+};
+
+export type OrganizationsSyncRoomsFormattedCreateResponses = {
+    202: Organization;
+};
+
+export type OrganizationsSyncRoomsFormattedCreateResponse = OrganizationsSyncRoomsFormattedCreateResponses[keyof OrganizationsSyncRoomsFormattedCreateResponses];
 
 export type OrganizationsCurrentRetrieveData = {
     body?: never;
@@ -4302,6 +5098,204 @@ export type ProfileFormattedUpdateResponses = {
 };
 
 export type ProfileFormattedUpdateResponse = ProfileFormattedUpdateResponses[keyof ProfileFormattedUpdateResponses];
+
+export type PublicApiTokensListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/public-api-tokens/';
+};
+
+export type PublicApiTokensListResponses = {
+    200: PaginatedSystemUserTokenList;
+};
+
+export type PublicApiTokensListResponse = PublicApiTokensListResponses[keyof PublicApiTokensListResponses];
+
+export type PublicApiTokensCreateData = {
+    body: SystemUserTokenCreate;
+    path?: never;
+    query?: never;
+    url: '/public-api-tokens/';
+};
+
+export type PublicApiTokensCreateResponses = {
+    201: SystemUserTokenResponse;
+};
+
+export type PublicApiTokensCreateResponse = PublicApiTokensCreateResponses[keyof PublicApiTokensCreateResponses];
+
+export type PublicApiTokensFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/public-api-tokens{format}';
+};
+
+export type PublicApiTokensFormattedListResponses = {
+    200: PaginatedSystemUserTokenList;
+};
+
+export type PublicApiTokensFormattedListResponse = PublicApiTokensFormattedListResponses[keyof PublicApiTokensFormattedListResponses];
+
+export type PublicApiTokensFormattedCreateData = {
+    body: SystemUserTokenCreate;
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/public-api-tokens{format}';
+};
+
+export type PublicApiTokensFormattedCreateResponses = {
+    201: SystemUserTokenResponse;
+};
+
+export type PublicApiTokensFormattedCreateResponse = PublicApiTokensFormattedCreateResponses[keyof PublicApiTokensFormattedCreateResponses];
+
+export type PublicApiTokensRetrieveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/public-api-tokens/{id}/';
+};
+
+export type PublicApiTokensRetrieveResponses = {
+    200: SystemUserToken;
+};
+
+export type PublicApiTokensRetrieveResponse = PublicApiTokensRetrieveResponses[keyof PublicApiTokensRetrieveResponses];
+
+export type PublicApiTokensPartialUpdateData = {
+    body?: PatchedSystemUserTokenUpdate;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/public-api-tokens/{id}/';
+};
+
+export type PublicApiTokensPartialUpdateResponses = {
+    200: SystemUserToken;
+};
+
+export type PublicApiTokensPartialUpdateResponse = PublicApiTokensPartialUpdateResponses[keyof PublicApiTokensPartialUpdateResponses];
+
+export type PublicApiTokensUpdateData = {
+    body: SystemUserTokenUpdate;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/public-api-tokens/{id}/';
+};
+
+export type PublicApiTokensUpdateResponses = {
+    200: SystemUserToken;
+};
+
+export type PublicApiTokensUpdateResponse = PublicApiTokensUpdateResponses[keyof PublicApiTokensUpdateResponses];
+
+export type PublicApiTokensFormattedRetrieveData = {
+    body?: never;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/public-api-tokens/{id}{format}';
+};
+
+export type PublicApiTokensFormattedRetrieveResponses = {
+    200: SystemUserToken;
+};
+
+export type PublicApiTokensFormattedRetrieveResponse = PublicApiTokensFormattedRetrieveResponses[keyof PublicApiTokensFormattedRetrieveResponses];
+
+export type PublicApiTokensFormattedPartialUpdateData = {
+    body?: PatchedSystemUserTokenUpdate;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/public-api-tokens/{id}{format}';
+};
+
+export type PublicApiTokensFormattedPartialUpdateResponses = {
+    200: SystemUserToken;
+};
+
+export type PublicApiTokensFormattedPartialUpdateResponse = PublicApiTokensFormattedPartialUpdateResponses[keyof PublicApiTokensFormattedPartialUpdateResponses];
+
+export type PublicApiTokensFormattedUpdateData = {
+    body: SystemUserTokenUpdate;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/public-api-tokens/{id}{format}';
+};
+
+export type PublicApiTokensFormattedUpdateResponses = {
+    200: SystemUserToken;
+};
+
+export type PublicApiTokensFormattedUpdateResponse = PublicApiTokensFormattedUpdateResponses[keyof PublicApiTokensFormattedUpdateResponses];
+
+export type PublicApiTokensRevokeCreateData = {
+    body?: SystemUserToken;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/public-api-tokens/{id}/revoke/';
+};
+
+export type PublicApiTokensRevokeCreateResponses = {
+    200: SystemUserToken;
+};
+
+export type PublicApiTokensRevokeCreateResponse = PublicApiTokensRevokeCreateResponses[keyof PublicApiTokensRevokeCreateResponses];
+
+export type PublicApiTokensRevokeFormattedCreateData = {
+    body?: SystemUserToken;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/public-api-tokens/{id}/revoke{format}';
+};
+
+export type PublicApiTokensRevokeFormattedCreateResponses = {
+    200: SystemUserToken;
+};
+
+export type PublicApiTokensRevokeFormattedCreateResponse = PublicApiTokensRevokeFormattedCreateResponses[keyof PublicApiTokensRevokeFormattedCreateResponses];
 
 export type PublicOrganizationsEventsListData = {
     body?: never;

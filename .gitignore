@@ -43,3 +43,7 @@ next-env.d.ts
 .vscode
 # storybook
 storybook-static
+
+# AI workflow PR-context (durable, not committed)
+.vinta-ai-workflows/prs-context/
+pr-screenshots/
