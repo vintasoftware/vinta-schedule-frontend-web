@@ -8,7 +8,7 @@ import { DEFAULT_DATA_TABLE_QUERY } from '@/components/data-table/types';
 import { VStack, Text } from '@/components/layout';
 import type { TeamMember } from '@/hooks/team/use-team-members';
 // Import canonical columns/variants from the component so they can't drift.
-import { COLUMNS } from './team-table';
+import { createColumns } from './team-table';
 
 // ---------------------------------------------------------------------------
 // Fixture data
@@ -80,11 +80,22 @@ function TeamTableStory({
     </VStack>
   );
 
+  // Create columns with no-op action handlers for Storybook.
+  const columns = React.useMemo(
+    () =>
+      createColumns(
+        new Set(),
+        async () => {},
+        async () => {}
+      ),
+    []
+  );
+
   return (
     <div className='p-6'>
       <DataTable<TeamMember>
         data={data}
-        columns={COLUMNS}
+        columns={columns}
         query={query}
         onQueryChange={setQuery}
         totalCount={count}

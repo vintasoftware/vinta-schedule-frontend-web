@@ -26,11 +26,17 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     organizationMembersList: vi.fn(),
+    organizationMembersDeactivateCreate: vi.fn(),
+    organizationMembersReactivateCreate: vi.fn(),
   };
 });
 
 // After mocks are hoisted, import the modules under test.
-import { organizationMembersList } from '@/client/sdk.gen';
+import {
+  organizationMembersList,
+  organizationMembersDeactivateCreate,
+  organizationMembersReactivateCreate,
+} from '@/client/sdk.gen';
 import { TeamTable } from './team-table';
 
 // ---------------------------------------------------------------------------
@@ -385,5 +391,76 @@ describe('TeamPage role gating', () => {
 
     // Should NOT redirect.
     expect(replace).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Disable / Re-enable user functionality
+// ---------------------------------------------------------------------------
+
+describe('TeamTable disable/reactivate actions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows disable button for active members and re-enable button for disabled members', async () => {
+    vi.mocked(organizationMembersList).mockResolvedValue(
+      makePagedResponse(MEMBER_FIXTURE)
+    );
+
+    renderTeamTable();
+
+    // Wait for data to load.
+    await waitFor(() => {
+      expect(screen.getByText('Alice Souza')).toBeInTheDocument();
+    });
+
+    // Alice and Bob are active, should have Disable buttons.
+    const disableButtons = screen.getAllByRole('button', { name: /disable/i });
+    expect(disableButtons.length).toBeGreaterThan(0);
+
+    // Carol is disabled, should have a Re-enable button.
+    const reenableButtons = screen.getAllByRole('button', {
+      name: /re-enable/i,
+    });
+    expect(reenableButtons.length).toBeGreaterThan(0);
+  });
+
+  it('cancels the disable dialog without calling the API', async () => {
+    vi.mocked(organizationMembersList).mockResolvedValue(
+      makePagedResponse(MEMBER_FIXTURE)
+    );
+
+    renderTeamTable();
+
+    // Wait for data to load.
+    await waitFor(() => {
+      expect(screen.getByText('Bob Lima')).toBeInTheDocument();
+    });
+
+    // Find and click a Disable button (active members have Disable, not Re-enable).
+    const disableButtons = screen.getAllByRole('button', { name: /disable/i });
+    const disableButton = disableButtons[0]; // First one is for an active user
+    expect(disableButton).toBeDefined();
+
+    await act(async () => {
+      disableButton.click();
+    });
+
+    // Wait for dialog to appear.
+    await waitFor(() => {
+      expect(screen.getByText(/Disable user/)).toBeInTheDocument();
+    });
+
+    // Click Cancel.
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+    await act(async () => {
+      cancelButton.click();
+    });
+
+    // Verify the operation was not called.
+    expect(
+      vi.mocked(organizationMembersDeactivateCreate).mock.calls
+    ).toHaveLength(0);
   });
 });
