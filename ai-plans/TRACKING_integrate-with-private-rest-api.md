@@ -202,13 +202,22 @@
 - **Summary**: Week option added to the events view toggle (List/Week/Month); `eventRange('week',...)` + `CalendarView` week grid; view parity. Stable on two test runs. Accepted on focused review.
 - **Gate**: typecheck/test(279)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 15 — View events for one specific calendar (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-15` (base `phase-14`).
+- **PR**: (published below). **Commits**: `5b81629`.
+- **Summary**: `CalendarScopePicker` (Phase 0e) data-bound via `useMyCalendars` (Phase 7); selection synced to `?calendar=` URL param → `calendarId` → `useCalendarEvents` `calendar` filter → refilters list/month/week. Events page wrapped in `<Suspense>` for `useSearchParams`. Two green runs. Accepted on focused review.
+- **Gate**: typecheck/test(283)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
+## Events block complete ✅ (phases 12–15)
+
 ## Current Phase
 
-- **Phase 15 — View events for one specific calendar (member)** (Tier 2) — starting (wires the Phase 0e scope picker; completes events block).
+- **Phase 16 — Single booking with co-booked calendars (member)** (Tier 3) — starting (bookings block; establishes the shared conflict-surface component).
 
 ## Remaining Phases
 
-15–38 (use-cases).
+16–38 (use-cases).
 
 ## Deferred / Superseded
 
