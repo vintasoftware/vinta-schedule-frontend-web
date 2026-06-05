@@ -163,18 +163,29 @@
 - **Gate**: typecheck/test(234)/lint(0 err)/format (phase files clean) green; build only pre-existing `/auth/verify-email`.
 
 ### Phase 10 — Request a calendar to sync (member) ✅
+
 - **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-10` (base `phase-9`).
 - **PR**: (published below). **Commits**: `e727b9d`.
 - **Summary**: `useRequestCalendarSync` (`calendarRequestSyncCreate`); Sync row action (non-destructive, fire-and-toast "Sync started", per-row debounce). `CalendarSyncRequest` needs a window → default range now−1mo→+3mo, `should_update_events:true` (no prompt, keeps one-click UX). No invalidation (async sync, no live tracking). Accepted on focused review.
 - **Gate**: typecheck/test(239)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 11 — List all calendars incl. resources & bundles (admin) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-11` (base `phase-10`).
+- **PR**: (published below). **Commits**: `fdee966`.
+- **Summary**: `useAllCalendars` (`calendarList`, `ALL_CALENDARS_QUERY_KEY`), `AllCalendarsTable` (admin-gated `/all-calendars`; type badges for personal/resource/virtual/bundle + provider + status; `showSearch={false}`), nav href wired. Accepted on focused review.
+- **API limits flagged**: no type-filter param (badges only, no inert filter); org-wide scope is backend RBAC (not frontend-verified). Added a member-style Sync action — **Phase 35** replaces with admin-sync (`calendarAdminSyncCreate`).
+- **Gate**: typecheck/test(253)/lint(0 err)/format (code clean) green; build only pre-existing `/auth/verify-email`.
+
+## Calendars block complete ✅ (phases 7–11)
+
 ## Current Phase
 
-- **Phase 11 — List all calendars incl. resources & bundles (admin)** (Tier 2) — starting (completes calendars block).
+- **Phase 12 — View events as a list (member)** (Tier 2) — starting (events block; consumes Phase 0e calendar infra).
 
 ## Remaining Phases
 
-11–38 (use-cases).
+12–38 (use-cases).
 
 ## Deferred / Superseded
 
