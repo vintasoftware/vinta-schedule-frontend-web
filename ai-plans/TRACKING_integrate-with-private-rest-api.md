@@ -119,6 +119,7 @@
 - **Gate**: typecheck/test(201)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
 ### Phase 5 — Revoke an invitation (admin) ✅
+
 - **Status**: done, PR opened.
 - **Model**: `claude-haiku-4-5` (small — mirrors Phase 4 row-action pattern).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-5` (base `phase-4`, stacked).
@@ -127,13 +128,24 @@
 - **Summary**: `useRevokeInvitation` (`invitationsDestroy` + predicate invalidation), Revoke row action with `AlertDialog` confirm beside Resend; per-row in-flight disable; cancel = no-op; success toast. Accepted on focused orchestrator review (low-risk mirror; hook + confirm/cancel tests + gate verified).
 - **Gate**: typecheck/test(206)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 6 — Disable a user (admin) ✅
+- **Status**: done, PR opened.
+- **Model**: `claude-haiku-4-5` (mirror of phase 4/5 row-action).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-6` (base `phase-5`, stacked).
+- **PR**: (published below) — inline comments.
+- **Commits**: `6fae99c` disable-user row action.
+- **Summary**: `useDisableUser` (`organizationMembersDeactivateCreate`) + `useReactivateUser` (`organizationMembersReactivateCreate`), both predicate-invalidating the team query. Status-aware team row action: active → Disable (AlertDialog confirm), disabled → Re-enable. Per-row in-flight disable + toast. Access denial via Phase 0a (not re-implemented). No `as any` (deactivate body optional, none sent). Accepted on focused orchestrator review.
+- **Gate**: typecheck/test(208)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
+## Team & invitations block complete ✅ (phases 1–6)
+
 ## Current Phase
 
-- **Phase 6 — Disable a user (admin)** (Tier 2) — starting (last of the team/invitations block).
+- **Phase 7 — List my calendars (member)** (Tier 2) — starting (calendars block).
 
 ## Remaining Phases
 
-6–38 (use-cases).
+7–38 (use-cases).
 
 ## Deferred / Superseded
 
