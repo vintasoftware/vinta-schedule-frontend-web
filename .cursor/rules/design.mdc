@@ -1,0 +1,35 @@
+---
+description: Vinta Schedule design system, layout primitives, and responsive (container-query) conventions. Apply to all UI work.
+globs:
+  - "src/components/**/*.tsx"
+  - "src/app/**/*.tsx"
+  - ".storybook/**/*"
+alwaysApply: true
+---
+
+# Vinta Schedule — Design Rules
+
+Follow [`DESIGN.md`](../../DESIGN.md) for all UI work. It is the source of truth;
+read it before adding or editing components, pages, or stories. Key rules:
+
+- **Tokens only** — colors/radius/shadow/spacing come from `globals.css` tokens
+  (oklch, `--vinta-*`, semantic shadcn vars). No hard-coded hex/rgb.
+- **Compose with layout primitives** in `src/components/layout/` (`Box`, `Flex`,
+  `HStack`, `VStack`, `Stack`, `Grid`, `Container`, `Text`, `Heading`, …) driven
+  by props on the 4px `Space` scale. Prefer `<VStack gap={4}>` over
+  `<div className="flex flex-col gap-4">`. `className` is an escape hatch only.
+- **Composition bars** (navbar/sidebar/topbar/shell) use class-based spacing
+  (`gap-2.5`, `px-5`), not primitive inline `gap` (Storybook rendering quirk).
+- **Responsive = container queries.** Default to Tailwind `@container/<name>` +
+  `@<size>/<name>:` variants when a component reacts to its own width; use
+  viewport breakpoints (`sm:`/`md:`/`lg:`) only when genuinely viewport-bound.
+  Named containers: `app`, `content`, `topbar`, `nav`, `pageheader`, `authcard`.
+- **Tailwind v4**: only literal class strings emit — never `bg-vinta-${n}`.
+- **Icons** are `lucide-react`; icon-only controls need `aria-label`. `Button`
+  sizes: `xs|sm|default|lg|xl|icon`.
+- **Storybook**: colocated `*.stories.tsx`; `layout: 'fullscreen'` for layouts;
+  viewports configured in `preview.tsx` (`globals.viewport.value` per story).
+- Finish only when `npx tsc --noEmit` and `npx eslint <files>` are clean.
+
+See `DESIGN.md` §5 for the exact responsive contracts of AppShell, AppTopbar,
+Navbar, AppSidebar, PageHeader, and AuthLayout.
