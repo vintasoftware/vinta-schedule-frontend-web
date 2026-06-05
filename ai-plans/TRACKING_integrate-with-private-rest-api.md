@@ -258,13 +258,20 @@
 
 ## Bookings block complete ✅ (phases 16–21)
 
+### Phase 22 — Adjust one instance (member) ✅ [wired all 3 edit scopes]
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6`. **Branch**: `phase-22` (base `phase-21`).
+- **PR**: (published below). **Commits**: `7f9aaa6`.
+- **Summary**: `useEditOccurrence` (this→`createException` modified fields, following→`bulkModify`, all→`partialUpdate`; non-recurring→`partialUpdate` direct), `EditEventDialog` (title/desc/time form; recurring→`ScopePromptDialog`→scoped edit; non-recurring→direct). Edit action on the event sheet. No `as any`. **Phases 23/24 op-level wiring already done here** — they become acceptance/test phases. Accepted on focused review.
+- **Gate**: typecheck/test(425)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 22 — Adjust one instance (member)** (Tier 3) — starting (recurring-scope edits; formalizes the scope-prompt built in Phase 20).
+- **Phase 23 — Adjust this and following (member)** (Tier 3) — starting (the `following`/`bulkModify` path is wired in Phase 22; this phase adds its acceptance test + any UI polish).
 
 ## Remaining Phases
 
-22–38 (use-cases).
+23–38 (use-cases).
 
 ## Deferred / Superseded
 
