@@ -323,13 +323,20 @@
 
 ## Groups block complete ✅ (phases 28–29)
 
+### Phase 30 — Create a bundle (admin) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-30` (base `phase-29`).
+- **PR**: (published below). **Commits**: `1a1b125`.
+- **Summary**: `useCreateBundle` (`calendarBundleCreate` `{name, bundle_calendars, primary_calendar}` + predicate invalidation), `CreateBundleDialog` (children multi-select + primary selector, primary∈children validation), admin-gated `/bundles` route + bundles list (`useAllCalendars` filtered to bundle type), nav href. No `as any`. Accepted on focused review.
+- **Gate**: typecheck/test(506)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 30 — Create a bundle (admin)** (Tier 2) — starting (bundles block).
+- **Phase 31 — Update a bundle (admin)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-30–38 (use-cases).
+31–38 (use-cases).
 
 ## Deferred / Superseded
 
