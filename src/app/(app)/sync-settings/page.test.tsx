@@ -9,9 +9,15 @@ vi.spyOn(roleGateModule, 'useRequireRole').mockImplementation(() => ({
   isAllowed: true,
 }));
 
-// Mock the form component
+// Mock the form and button components
 vi.mock('@/components/sync/rooms-sync-settings-form', () => ({
   RoomsSyncSettingsForm: () => <div data-testid='rooms-sync-form'>Form</div>,
+}));
+
+vi.mock('@/components/sync/trigger-rooms-sync-button', () => ({
+  TriggerRoomsSyncButton: () => (
+    <div data-testid='trigger-rooms-sync-button'>Sync Button</div>
+  ),
 }));
 
 beforeEach(() => {
@@ -36,6 +42,7 @@ describe('SyncSettingsPage', () => {
       screen.getByText('Configure synchronization for your organization.')
     ).toBeInTheDocument();
     expect(screen.getByTestId('rooms-sync-form')).toBeInTheDocument();
+    expect(screen.getByTestId('trigger-rooms-sync-button')).toBeInTheDocument();
   });
 
   it('returns null when user is not admin', () => {
