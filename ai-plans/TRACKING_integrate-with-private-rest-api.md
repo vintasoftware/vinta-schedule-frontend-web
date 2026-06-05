@@ -313,13 +313,23 @@
 - **Summary**: `useCalendarGroups` extended for `DataTableQuery` (Phase 18 usage preserved), `GroupsTable` (name/description/slot-count, `showSearch` on — `name` filter), admin-gated `/groups`, nav href. Accepted on focused review.
 - **Gate**: typecheck/test(486)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 29 — Create a Calendar Group (admin) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6`. **Branch**: `phase-29` (base `phase-28`).
+- **PR**: (published below). **Commits**: `456dce4`.
+- **Summary**: `useCreateCalendarGroup` (`calendarGroupsCreate` + predicate invalidation), `CreateGroupDialog` (nested `useFieldArray` slot builder: name + required_count + `calendar_ids` pool from `useAllCalendars`; 3 cross-field validations: ≥1 slot, ≥1 calendar/slot, required_count ≤ pool). "New group" toolbar action. No `as any`. Accepted on focused review.
+- **Note**: pool fetch `pageSize:200` (orgs >200 calendars need pagination — flagged).
+- **Gate**: typecheck/test(493)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
+## Groups block complete ✅ (phases 28–29)
+
 ## Current Phase
 
-- **Phase 29 — Create a Calendar Group (admin)** (Tier 3) — starting (nested slot/pool/required-count builder).
+- **Phase 30 — Create a bundle (admin)** (Tier 2) — starting (bundles block).
 
 ## Remaining Phases
 
-29–38 (use-cases).
+30–38 (use-cases).
 
 ## Deferred / Superseded
 
