@@ -27,6 +27,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     ...original,
     calendarList: vi.fn(),
     calendarDestroy: vi.fn(),
+    calendarRequestSyncCreate: vi.fn(),
   };
 });
 
@@ -39,7 +40,11 @@ vi.mock('sonner', () => ({
 }));
 
 // After mocks are hoisted, import the modules under test.
-import { calendarList, calendarDestroy } from '@/client/sdk.gen';
+import {
+  calendarList,
+  calendarDestroy,
+  calendarRequestSyncCreate,
+} from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import userEvent from '@testing-library/user-event';
 import { CalendarsTable } from './calendars-table';
@@ -522,6 +527,170 @@ describe('CalendarsTable', () => {
         const deletingButton = screen.getByText('Deleting…');
         expect(deletingButton).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('sync calendar action', () => {
+    it('renders a sync button for each calendar row', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Should have 3 sync buttons (one per calendar).
+      const syncButtons = screen.getAllByText('Sync');
+      expect(syncButtons.length).toBe(3);
+    });
+
+    it('calls calendarRequestSyncCreate when sync button is clicked', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      vi.mocked(calendarRequestSyncCreate).mockResolvedValue({
+        data: { status: 'success' },
+        response: new Response(JSON.stringify({ status: 'success' }), {
+          status: 202,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      } as unknown as Awaited<ReturnType<typeof calendarRequestSyncCreate>>);
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Click the first sync button.
+      const syncButtons = screen.getAllByRole('button', { name: /sync/i });
+      await user.click(syncButtons[0]);
+
+      // calendarRequestSyncCreate should have been called with the calendar id.
+      await waitFor(() => {
+        expect(vi.mocked(calendarRequestSyncCreate)).toHaveBeenCalled();
+      });
+
+      const calls = vi.mocked(calendarRequestSyncCreate).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]?.path?.id).toBe('1');
+      // Body should contain start_datetime, end_datetime, and should_update_events.
+      expect(lastCall[0]?.body).toMatchObject({
+        should_update_events: true,
+      });
+      expect(lastCall[0]?.body?.start_datetime).toBeTruthy();
+      expect(lastCall[0]?.body?.end_datetime).toBeTruthy();
+
+      // Success toast should be shown.
+      expect(vi.mocked(toast.success)).toHaveBeenCalledWith(
+        'Sync started',
+        expect.objectContaining({
+          description: expect.stringContaining('Personal Calendar'),
+        })
+      );
+    });
+
+    it('shows error toast when sync fails', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      vi.mocked(calendarRequestSyncCreate).mockRejectedValue(
+        new Error('Sync failed')
+      );
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Click the first sync button.
+      const syncButtons = screen.getAllByRole('button', { name: /sync/i });
+      await user.click(syncButtons[0]);
+
+      // Error toast should be shown.
+      await waitFor(() => {
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+          'Failed to start sync',
+          expect.objectContaining({
+            description: 'Sync failed',
+          })
+        );
+      });
+    });
+
+    it('disables sync button while mutation is in progress', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      // Simulate a pending mutation.
+      vi.mocked(calendarRequestSyncCreate).mockImplementation(
+        () =>
+          new Promise(() => {
+            /* never resolves */
+          }) as never
+      );
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Click the first sync button.
+      const syncButtons = screen.getAllByRole('button', { name: /sync/i });
+      await user.click(syncButtons[0]);
+
+      // The button should show "Syncing..." (the loading state).
+      await waitFor(() => {
+        const syncingButton = screen.getByText('Syncing…');
+        expect(syncingButton).toBeInTheDocument();
+      });
+    });
+
+    it('debounces double-click (only one request sent)', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      vi.mocked(calendarRequestSyncCreate).mockResolvedValue({
+        data: { status: 'success' },
+        response: new Response(JSON.stringify({ status: 'success' }), {
+          status: 202,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      } as unknown as Awaited<ReturnType<typeof calendarRequestSyncCreate>>);
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Get the sync button and double-click it quickly.
+      const syncButtons = screen.getAllByRole('button', { name: /sync/i });
+      const firstButton = syncButtons[0];
+
+      // First click
+      await user.click(firstButton);
+
+      // Second click (should be debounced/disabled because the first is in flight)
+      await user.click(firstButton);
+
+      // Wait for mutation to complete.
+      await waitFor(() => {
+        expect(vi.mocked(calendarRequestSyncCreate)).toHaveBeenCalled();
+      });
+
+      // Only one request should have been made (not two).
+      const calls = vi.mocked(calendarRequestSyncCreate).mock.calls;
+      expect(calls.length).toBe(1);
     });
   });
 });

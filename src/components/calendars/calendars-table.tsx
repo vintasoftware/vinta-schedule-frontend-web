@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Trash2, RotateCw } from 'lucide-react';
+import { Plus, Trash2, RotateCw, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
@@ -18,10 +18,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { VStack, Text } from '@/components/layout';
+import { VStack, Text, HStack } from '@/components/layout';
 import type { Calendar } from '@/client';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
 import { useDeleteCalendar } from '@/hooks/calendars/use-delete-calendar';
+import { useRequestCalendarSync } from '@/hooks/calendars/use-request-calendar-sync';
 import { CreateCalendarDialog } from './create-calendar-dialog';
 
 // ---------------------------------------------------------------------------
@@ -56,13 +57,15 @@ function getStatusVariant(isActive: boolean): 'success' | 'danger' {
 // ---------------------------------------------------------------------------
 // Column definitions
 // Helper to create columns — accepts pendingRowIds (to disable actions for
-// in-flight rows) and onDelete (row action handler). This allows the table to
-// pass its local pending-row state down into the column cell renderer.
+// in-flight rows), onDelete, and onSync (row action handlers). This allows
+// the table to pass its local pending-row state down into the column cell
+// renderer.
 // ---------------------------------------------------------------------------
 
 export function createColumns(
   pendingRowIds: Set<number>,
-  onDelete: (row: Calendar) => Promise<void>
+  onDelete: (row: Calendar) => Promise<void>,
+  onSync: (row: Calendar) => Promise<void>
 ): DataTableColumn<Calendar>[] {
   return [
     {
@@ -110,18 +113,63 @@ export function createColumns(
       header: 'Actions',
       enableSorting: false,
       cell: ({ row }) => (
-        <DeleteButton
-          calendar={row.original}
-          isLoading={pendingRowIds.has(row.original.id)}
-          onDelete={onDelete}
-        />
+        <HStack gap={2}>
+          <SyncButton
+            calendar={row.original}
+            isLoading={pendingRowIds.has(row.original.id)}
+            onSync={onSync}
+          />
+          <DeleteButton
+            calendar={row.original}
+            isLoading={pendingRowIds.has(row.original.id)}
+            onDelete={onDelete}
+          />
+        </HStack>
       ),
     },
   ];
 }
 
 // Legacy export for backward compatibility (stories/tests that build columns statically).
-export const COLUMNS = createColumns(new Set(), async () => {});
+export const COLUMNS = createColumns(
+  new Set(),
+  async () => {},
+  async () => {}
+);
+
+// ---------------------------------------------------------------------------
+// SyncButton — per-row action to request a calendar sync (fire-and-toast)
+// ---------------------------------------------------------------------------
+
+interface SyncButtonProps {
+  calendar: Calendar;
+  isLoading: boolean;
+  onSync: (calendar: Calendar) => Promise<void>;
+}
+
+function SyncButton({ calendar, isLoading, onSync }: SyncButtonProps) {
+  return (
+    <Button
+      size='sm'
+      variant='outline'
+      onClick={() => onSync(calendar)}
+      disabled={isLoading}
+      aria-label={`Sync calendar ${calendar.name}`}
+    >
+      {isLoading ? (
+        <>
+          <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+          Syncing…
+        </>
+      ) : (
+        <>
+          <Cloud className='mr-1 size-4' aria-hidden />
+          Sync
+        </>
+      )}
+    </Button>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // DeleteButton — per-row action to delete a calendar with confirmation
@@ -225,6 +273,38 @@ function CalendarsTableInner() {
     useMyCalendars(query);
 
   const { deleteCalendar } = useDeleteCalendar();
+  const { requestSync } = useRequestCalendarSync();
+
+  // Handle sync action: track in-flight row, call hook, show toast.
+  // Fire-and-toast with no live tracking — the sync is async on the backend.
+  const handleSync = React.useCallback(
+    async (calendar: Calendar) => {
+      // Mark this row as pending to disable its button.
+      setPendingRowIds((prev) => new Set(prev).add(calendar.id));
+
+      try {
+        await requestSync(calendar.id);
+        toast.success('Sync started', {
+          description: `${calendar.name} sync is in progress.`,
+        });
+      } catch (err) {
+        toast.error('Failed to start sync', {
+          description:
+            err instanceof Error
+              ? err.message
+              : 'An unexpected error occurred.',
+        });
+      } finally {
+        // Always clear the pending state, even on error.
+        setPendingRowIds((prev) => {
+          const next = new Set(prev);
+          next.delete(calendar.id);
+          return next;
+        });
+      }
+    },
+    [requestSync]
+  );
 
   // Handle delete action: track in-flight row, call hook, show toast.
   // The row is removed by invalidation after the mutation succeeds.
@@ -281,7 +361,7 @@ function CalendarsTableInner() {
     </Button>
   );
 
-  const columns = createColumns(pendingRowIds, handleDelete);
+  const columns = createColumns(pendingRowIds, handleDelete, handleSync);
 
   return (
     <>
