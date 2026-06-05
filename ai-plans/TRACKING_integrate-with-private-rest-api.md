@@ -219,13 +219,20 @@
 - **Reused by 17/18/21**: `ConflictSurface` props shape; `use-availability-check`; co-booking orchestration.
 - **Gate**: typecheck/test(318)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 17 — Recurring booking (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6`. **Branch**: `phase-17` (base `phase-16`).
+- **PR**: (published below). **Commits**: `3de53d5`.
+- **Summary**: Repeat toggle + recurrence sub-form (freq/interval/end/byday) on the Phase 16 booking form; builds a Phase 0c `RecurrenceRule` → `serializeRRule` → `rrule_string` on the event; reuses `ConflictSurface`. Repeat-gated (off → no recurrence sent). Accepted on focused review (form is Phase 16-reviewed, serde is Phase 0c-tested).
+- **Gate**: typecheck/test(324)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 17 — Recurring booking (member)** (Tier 3) — starting (extends the booking form with RRULE; reuses conflict-surface).
+- **Phase 18 — Book on a Calendar Group (member)** (Tier 4) — starting (the spike-flagged group-slot/availability-overlay risk).
 
 ## Remaining Phases
 
-17–38 (use-cases).
+18–38 (use-cases).
 
 ## Deferred / Superseded
 
