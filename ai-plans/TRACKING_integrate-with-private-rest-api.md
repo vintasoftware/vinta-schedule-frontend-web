@@ -289,13 +289,20 @@
 - **Known limitation (follow-up)**: form starts EMPTY — doesn't yet de-serialize existing rrule windows back into the grid (would use Phase 0c `parseRRule`). Round-trip + recompute acceptance met; load-existing is a flagged follow-up.
 - **Gate**: typecheck/test(451)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 26 — Create blocked times (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-26` (base `phase-25`).
+- **PR**: (published below). **Commits**: `9bd1da8`.
+- **Summary**: `useBlockedTimes` (`blockedTimesBulkCreateCreate`; one-off no rrule, recurring with `rrule_string`), `BlockedTimeForm` (date/start/end + Repeat sub-form reusing `serializeRRule`) on a "Blocked times" tab of `/availability`. No `as any`. ResizeObserver polyfill added to vitest.setup. Accepted on focused review.
+- **Gate**: typecheck/test(461)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 26 — Create blocked times (member)** (Tier 2) — starting.
+- **Phase 27 — Check another user's availability (member)** (Tier 2) — starting (read-only; completes availability block).
 
 ## Remaining Phases
 
-26–38 (use-cases).
+27–38 (use-cases).
 
 ## Deferred / Superseded
 
