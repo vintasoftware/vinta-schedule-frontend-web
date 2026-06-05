@@ -211,13 +211,21 @@
 
 ## Events block complete ✅ (phases 12–15)
 
+### Phase 16 — Single booking with co-booked calendars (member) ✅ [establishes shared conflict-surface]
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6` (most complex phase). **Branch**: `phase-16` (base `phase-15`).
+- **PR**: (published below). **Commits**: `1924b7e` booking flow, `a7a1745` review fixes.
+- **Summary**: `src/components/bookings/` — `ConflictSurface` (SHARED, `CalendarConflict[]` + onProceed/onAdjust, warn-but-allow-override), `booking-form` (rhf/zod: time/title/attendees/primary+co-booked calendars; conditional render of surface vs form), `new-booking-button`. `src/hooks/bookings/` — `use-availability-check` (un/available windows), `use-create-booking` (primary `calendarEventsCreate` + per-co-booked `blockedTimesCreate`, partial-failure surfacing, required empty arrays). Review (FIX-FIRST) fixed: form-hidden CSS bug, untested create-once + override-rejected (now tested), nearest-free query, data guard, primitives, conflict story.
+- **Reused by 17/18/21**: `ConflictSurface` props shape; `use-availability-check`; co-booking orchestration.
+- **Gate**: typecheck/test(318)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 16 — Single booking with co-booked calendars (member)** (Tier 3) — starting (bookings block; establishes the shared conflict-surface component).
+- **Phase 17 — Recurring booking (member)** (Tier 3) — starting (extends the booking form with RRULE; reuses conflict-surface).
 
 ## Remaining Phases
 
-16–38 (use-cases).
+17–38 (use-cases).
 
 ## Deferred / Superseded
 
