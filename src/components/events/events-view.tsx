@@ -148,10 +148,11 @@ export function EventsView({ calendarId, initialDate }: EventsViewProps) {
   // ------------------------------------------------------------------
   return (
     <Stack gap={4} data-slot='events-view'>
-      {/* View toggle: List / Month (Phase 14 adds Week) */}
+      {/* View toggle: List / Month / Week */}
       <Tabs value={view} onValueChange={(v) => setView(v as CalendarViewMode)}>
         <TabsList>
           <TabsTrigger value='agenda'>List</TabsTrigger>
+          <TabsTrigger value='week'>Week</TabsTrigger>
           <TabsTrigger value='month'>Month</TabsTrigger>
         </TabsList>
       </Tabs>

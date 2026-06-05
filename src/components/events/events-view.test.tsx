@@ -393,5 +393,89 @@ describe('EventsView', () => {
         );
       });
     });
+
+    it('renders the view toggle with List, Week, and Month options', async () => {
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
+      );
+
+      renderEventsView();
+
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      // All three tabs should be present
+      expect(screen.getByRole('tab', { name: 'List' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Week' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Month' })).toBeInTheDocument();
+    });
+
+    it('switches to Week view when Week tab is clicked', async () => {
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
+      );
+
+      renderEventsView();
+
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      const weekTab = screen.getByRole('tab', { name: 'Week' });
+      await userEvent.click(weekTab);
+
+      // After clicking Week, events should still be visible.
+      // react-big-calendar switches to week view which shows events in a grid.
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+        expect(screen.getByText('Sydney Afternoon')).toBeInTheDocument();
+      });
+    });
+
+    it('shows the same events in List, Week, and Month views (view parity)', async () => {
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
+      );
+
+      renderEventsView();
+
+      // Wait for List view to render
+      await waitFor(() => {
+        expect(screen.getByText('Early NY Meeting')).toBeInTheDocument();
+      });
+
+      // Both events visible in List view
+      expect(screen.getAllByText('Early NY Meeting').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Sydney Afternoon').length).toBeGreaterThan(0);
+
+      // Switch to Week view
+      const weekTab = screen.getByRole('tab', { name: 'Week' });
+      await userEvent.click(weekTab);
+
+      // Both events should still be visible in Week view
+      await waitFor(() => {
+        expect(screen.getAllByText('Early NY Meeting').length).toBeGreaterThan(
+          0
+        );
+        expect(screen.getAllByText('Sydney Afternoon').length).toBeGreaterThan(
+          0
+        );
+      });
+
+      // Switch to Month view
+      const monthTab = screen.getByRole('tab', { name: 'Month' });
+      await userEvent.click(monthTab);
+
+      // Both events should still be visible in Month view
+      await waitFor(() => {
+        expect(screen.getAllByText('Early NY Meeting').length).toBeGreaterThan(
+          0
+        );
+        expect(screen.getAllByText('Sydney Afternoon').length).toBeGreaterThan(
+          0
+        );
+      });
+    });
   });
 });
