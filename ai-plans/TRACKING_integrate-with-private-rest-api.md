@@ -60,6 +60,7 @@
 - **Gate**: typecheck/test(147)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
 ### Phase 0f — E2E harness & QA use-cases doc ✅
+
 - **Status**: done, PR opened.
 - **Model**: `claude-sonnet-4-6` (plan suggested Tier 2; tiered up — auth fixture flagged fiddly).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-0f` (base `phase-0e`, stacked).
@@ -72,13 +73,24 @@
 
 ## Foundation complete ✅ (0a, 0c, 0d, 0e, 0f — 0b superseded)
 
+### Phase 1 — List team (admin) ✅ [TEMPLATE for datatable phases]
+- **Status**: done, PR opened.
+- **Model**: `claude-sonnet-4-6` (plan Tier 2; tiered up — pattern-setting for 6 phases).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-1` (base `phase-0f`, stacked).
+- **PR**: (published below) — inline comments.
+- **Commits**: `5f1b3e1` team list, `73b2a9a` review fixes.
+- **Summary**: `src/hooks/team/use-team-members.ts` (`organizationMembersList`, `page`→`offset`/`limit` mapping, `TEAM_MEMBERS_QUERY_KEY` for phases 4/6 invalidation), `src/components/team/team-table.tsx` (`DataTable<TeamMember>`, name/email/role/status badges), admin-gated `/team` route, nav `href` wiring (added to `SidebarNavItem`). Review (FIX-FIRST) fixed 3 blockers: inert search → `showSearch` opt on shared DataTable; un-gated render → `if(!isAllowed) return null`; tautological e2e; + nav startsWith false-positive, invalidation-predicate doc, pagination-offset test, story column dedup.
+- **Contract reality**: `organizationMembersList` is `limit`/`offset` only — NO search/ordering. Team is paginated-only (`showSearch={false}`). The plan's "searchable/sortable" goal can't be met for this endpoint; later phases keep search where their op supports it.
+- **Patterns established (copied by 2,7,11,28,30,37)**: hook→DataTable query mapping, `showSearch` opt, admin-gate early-return, nav-href, predicate invalidation doc, pagination-offset test.
+- **Gate**: typecheck/test(159)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 1 — List team (admin)** (Tier 2) — starting use-case phases.
+- **Phase 2 — List pending invitations (admin)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-1–38 (use-cases).
+2–38 (use-cases).
 
 ## Deferred / Superseded
 
