@@ -6,9 +6,9 @@
  * Owns:
  *  - view mode state (currently fixed to 'agenda'; phases 13/14 add a toggle)
  *  - anchor date state (today by default)
- *  - visible range computation via eventRange (Phase 0c)
+ *  - visible range computation via eventRange
  *  - fetching via useCalendarEvents (bound to the visible range)
- *  - rendering via CalendarView (Phase 0e)
+ *  - rendering via CalendarView
  *
  * State contract for phases 13/14/15:
  *   `view` and `setView` are already threaded through the component so adding
@@ -17,9 +17,15 @@
  *   hook.
  *
  * Timezone: the anchor is always `DateTime.now()` in the system local zone by
- * default. Phase 0c's `eventRange` converts it to the right zone boundaries.
- * For the list/agenda view we use the 'list' mode (7-day window) from
- * eventRange so the initial range is sensible for a chronological list.
+ * default.  When `initialDate` is a Luxon `DateTime`, its zone is preserved so
+ * the fetch window aligns with the zone the caller intended (important for
+ * Phase 15 where the anchor is seeded from a URL param that may carry zone
+ * info).  `eventRange` converts the anchor to the right zone boundaries.
+ *
+ * Agenda window length (7 days) is kept consistent between the fetch
+ * (`eventRange('list', …)` = 7 days) and the RBC agenda renderer
+ * (`agendaLength={7}` on CalendarView) so no "No events in this range." false
+ * positives appear for days 8–30 of the default 30-day RBC window.
  */
 
 import * as React from 'react';
@@ -32,21 +38,33 @@ import { Stack } from '@/components/layout/stack';
 import { Text } from '@/components/layout/text';
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Number of days shown in agenda (list) view.
+ * Must match the window `eventRange('list', …)` produces (7 days) so the
+ * fetch window and the RBC agenda window are always in sync.
+ */
+const AGENDA_WINDOW_DAYS = 7;
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
 export interface EventsViewProps {
   /**
    * Optional calendar id — when supplied, only events for that calendar are
-   * shown. Used by Phase 15 (calendar-scoped event view). When undefined all
-   * events visible to the member are shown.
+   * shown. Forwarded to the data hook; the backend scopes the results.
    */
   calendarId?: number;
   /**
-   * Override the initial anchor date (default: today). Useful for tests and
-   * for phases 13/14 when the URL params seed a specific date.
+   * Override the initial anchor date (default: today).  Accepts either a JS
+   * `Date` or a Luxon `DateTime`.  When a `DateTime` is passed its zone is
+   * preserved so the fetch window aligns with the intended timezone (e.g. when
+   * Phase 15 seeds the anchor from a URL param that carries an IANA zone).
    */
-  initialDate?: Date;
+  initialDate?: Date | DateTime;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,26 +72,34 @@ export interface EventsViewProps {
 // ---------------------------------------------------------------------------
 
 export function EventsView({ calendarId, initialDate }: EventsViewProps) {
-  // view state — defaulting to agenda (list) for Phase 12.
+  // view state — defaulting to agenda (list).
   // Phases 13/14 replace this with a controlled toggle.
   const [view, setView] = React.useState<CalendarViewMode>('agenda');
 
-  // Anchor date as a JS Date (for CalendarView's controlled date prop).
-  // Accepts an optional initialDate for test overrides and future URL-param seeding.
-  const [anchorDate, setAnchorDate] = React.useState<Date>(
-    () => initialDate ?? new Date()
-  );
+  // Anchor as a Luxon DateTime — zone is preserved when initialDate is already
+  // a DateTime; otherwise we use the system local zone.
+  const [anchorDt, setAnchorDt] = React.useState<DateTime>(() => {
+    if (!initialDate) return DateTime.now();
+    if (initialDate instanceof DateTime) return initialDate;
+    return DateTime.fromJSDate(initialDate);
+  });
 
-  // Convert the anchor to a Luxon DateTime so eventRange can compute the
-  // correct zoned window. We use the system local zone — the hook converts
-  // everything to UTC-offset ISO strings for the API.
-  const anchorDt = React.useMemo(
-    () => DateTime.fromJSDate(anchorDate),
-    [anchorDate]
+  // JS Date for CalendarView's controlled `date` prop.
+  const anchorDate = React.useMemo(() => anchorDt.toJSDate(), [anchorDt]);
+
+  // When CalendarView navigates, it hands back a JS Date. Re-wrap in a
+  // DateTime to keep the zone — if the anchor had a specific zone, forward it;
+  // otherwise fall back to the system zone.
+  const handleDateChange = React.useCallback(
+    (next: Date) => {
+      const zone = anchorDt.zoneName ?? 'local';
+      setAnchorDt(DateTime.fromJSDate(next, { zone }));
+    },
+    [anchorDt]
   );
 
   // Compute the visible date range from the anchor + view mode.
-  // 'list' view = 7-day window (Phase 0c eventRange contract).
+  // 'list' → 7-day window (AGENDA_WINDOW_DAYS).
   const range = React.useMemo(
     () =>
       eventRange(
@@ -113,8 +139,9 @@ export function EventsView({ calendarId, initialDate }: EventsViewProps) {
   }
 
   // ------------------------------------------------------------------
-  // Populated / empty — delegate to CalendarView which renders
-  // "No events in this range." for an empty event list in agenda mode.
+  // Populated / empty — delegate to CalendarView.
+  // agendaLength keeps the RBC agenda window (7 days) in sync with the
+  // fetch window so days outside the fetched range don't appear empty.
   // ------------------------------------------------------------------
   return (
     <CalendarView
@@ -122,7 +149,8 @@ export function EventsView({ calendarId, initialDate }: EventsViewProps) {
       view={view}
       onViewChange={setView}
       date={anchorDate}
-      onDateChange={setAnchorDate}
+      onDateChange={handleDateChange}
+      agendaLength={AGENDA_WINDOW_DAYS}
       minHeight={500}
     />
   );

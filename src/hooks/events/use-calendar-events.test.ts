@@ -2,11 +2,13 @@
  * useCalendarEvents tests.
  *
  * Covers:
- * - DateRange is mapped to the correct time-range query args via toApiRange
- *   (start_time_range_after / start_time_range_before)
+ * - DateRange is mapped to overlap query args
+ *   (end_time_range_after / start_time_range_before)
  * - Optional calendarId is forwarded as the `calendar` query param
+ * - A large `limit` is always sent so all events in the window are returned
  * - Returned events are mapped to CalendarEventVM[] via toCalendarEventVMs
  * - isLoading / isError states are propagated correctly
+ * - truncated flag is set when count > results.length
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -133,8 +135,8 @@ describe('useCalendarEvents', () => {
     vi.clearAllMocks();
   });
 
-  describe('query arg mapping', () => {
-    it('maps DateRange to start_time_range_after / start_time_range_before with UTC offset', async () => {
+  describe('query arg mapping — overlap strategy', () => {
+    it('uses start_time_range_before and end_time_range_after (not start_time_range_after)', async () => {
       vi.mocked(calendarEventsList).mockResolvedValue(
         makePagedResponse([FIXTURE_EVENT_NY])
       );
@@ -154,14 +156,39 @@ describe('useCalendarEvents', () => {
         unknown
       >;
 
-      // start_time_range_after should be the range start ISO with EDT offset
-      expect(queryArgs?.start_time_range_after).toBe(
-        '2024-06-15T00:00:00.000-04:00'
-      );
-      // start_time_range_before should be the range end ISO with EDT offset
+      // Overlap query: start_time_range_before = windowEnd
       expect(queryArgs?.start_time_range_before).toBe(
         '2024-06-21T23:59:59.999-04:00'
       );
+      // Overlap query: end_time_range_after = windowStart
+      expect(queryArgs?.end_time_range_after).toBe(
+        '2024-06-15T00:00:00.000-04:00'
+      );
+      // start_time_range_after must NOT be present (pure start-only approach
+      // would miss multi-day events that started before the window)
+      expect(queryArgs?.start_time_range_after).toBeUndefined();
+    });
+
+    it('sends a large limit so all events in the window are returned', async () => {
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EVENT_NY])
+      );
+
+      const wrapper = makeQueryWrapper();
+      const { result } = renderHook(
+        () => useCalendarEvents({ range: FIXED_RANGE }),
+        { wrapper }
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      const calls = vi.mocked(calendarEventsList).mock.calls;
+      const queryArgs = calls[calls.length - 1][0]?.query as Record<
+        string,
+        unknown
+      >;
+      expect(typeof queryArgs?.limit).toBe('number');
+      expect(queryArgs?.limit as number).toBeGreaterThanOrEqual(1000);
     });
 
     it('does NOT include the calendar param when calendarId is undefined', async () => {
@@ -248,6 +275,27 @@ describe('useCalendarEvents', () => {
       expect(sydVm.timezoneLabel).toContain('UTC+10');
     });
 
+    it('preserves order even when the API returns later event first', async () => {
+      // Sydney (later UTC start) returned FIRST by the API — the VM mapping
+      // should preserve the order as-is (backend is authoritative; RBC sorts
+      // for display).  This test proves the mapping does not re-sort.
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EVENT_SYD, FIXTURE_EVENT_NY])
+      );
+
+      const wrapper = makeQueryWrapper();
+      const { result } = renderHook(
+        () => useCalendarEvents({ range: FIXED_RANGE }),
+        { wrapper }
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      // VM order should mirror the API order (Syd first, NY second)
+      expect(result.current.events[0].id).toBe('2'); // Sydney
+      expect(result.current.events[1].id).toBe('1'); // New York
+    });
+
     it('returns an empty array when the API returns no results', async () => {
       vi.mocked(calendarEventsList).mockResolvedValue(makePagedResponse([]));
 
@@ -260,6 +308,39 @@ describe('useCalendarEvents', () => {
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       expect(result.current.events).toHaveLength(0);
+    });
+  });
+
+  describe('pagination truncation guard', () => {
+    it('sets truncated=false when count equals results.length', async () => {
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EVENT_NY], 1)
+      );
+
+      const wrapper = makeQueryWrapper();
+      const { result } = renderHook(
+        () => useCalendarEvents({ range: FIXED_RANGE }),
+        { wrapper }
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.truncated).toBe(false);
+    });
+
+    it('sets truncated=true when count > results.length', async () => {
+      // Simulate server reporting 5 total but only returning 1 result
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_EVENT_NY], 5)
+      );
+
+      const wrapper = makeQueryWrapper();
+      const { result } = renderHook(
+        () => useCalendarEvents({ range: FIXED_RANGE }),
+        { wrapper }
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.truncated).toBe(true);
     });
   });
 

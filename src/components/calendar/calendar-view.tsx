@@ -112,6 +112,15 @@ export interface CalendarViewProps {
    */
   onSelectEvent?: (event: CalendarEventVM) => void;
   /**
+   * Number of days the agenda (list) view should cover.
+   * Must match the window produced by `eventRange` for the 'list' mode so that
+   * RBC does not show "No events in this range." for days outside the fetch
+   * window.  Defaults to 7 (matching `eventRange('list', …)` which returns a
+   * 7-day window).  Phases 13/14 may pass a different value if they change the
+   * list range.
+   */
+  agendaLength?: number;
+  /**
    * Minimum height for the time-grid (week/day) scroll area in px.
    * Defaults to 600px.
    */
@@ -132,6 +141,7 @@ export function CalendarView({
   onDateChange,
   eventRenderer: EventRendererProp,
   onSelectEvent,
+  agendaLength = 7,
   minHeight = 600,
   className,
 }: CalendarViewProps): React.ReactElement {
@@ -192,6 +202,10 @@ export function CalendarView({
         startAccessor='start'
         endAccessor='end'
         titleAccessor='title'
+        // Agenda (list) window length in days — must match the eventRange
+        // window used by the data hook so days outside the fetch window do
+        // not show "No events in this range." in the RBC agenda view.
+        length={agendaLength}
         // Show month, week, agenda only (no day / work_week)
         views={['month', 'week', 'agenda']}
         // Localization strings

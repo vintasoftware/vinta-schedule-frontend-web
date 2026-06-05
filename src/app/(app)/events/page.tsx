@@ -1,5 +1,3 @@
-'use client';
-
 import { Stack } from '@/components/layout/stack';
 import { PageHeader } from '@/components/layout/page-header';
 import { EventsView } from '@/components/events/events-view';

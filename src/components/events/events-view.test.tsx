@@ -3,7 +3,9 @@
  *
  * Covers:
  * - Events render chronologically in agenda view
+ * - Chronological order is a real sort, not passthrough (reverse-input case)
  * - Two events in different timezones each show their own timezone label
+ *   within their own event container (not just anywhere in the DOM)
  * - Empty state renders (CalendarView "No events in this range." message)
  * - Loading state renders the loading indicator
  * - Error state renders the error message
@@ -87,13 +89,11 @@ const FIXTURE_EARLY_NY: CalendarEvent = {
 
 /**
  * Event 2: starts 2024-06-16 at 09:00 in Australia/Sydney (AEST, UTC+10).
- * Later UTC instant = should appear SECOND.
+ * UTC instant = 2024-06-15T23:00Z — later than FIXTURE_EARLY_NY (13:00Z).
  */
 const FIXTURE_LATER_SYD: CalendarEvent = {
   id: 2,
   title: 'Sydney Afternoon',
-  // 2024-06-16T09:00 AEST = 2024-06-15T23:00 UTC — still earlier than the NY
-  // event below but later in absolute time than FIXTURE_EARLY_NY.
   start_time: '2024-06-16T09:00:00+10:00',
   end_time: '2024-06-16T09:30:00+10:00',
   timezone: 'Australia/Sydney',
@@ -128,8 +128,7 @@ function makePagedResponse(
 
 /**
  * Render EventsView with a fixed initialDate anchored to 2024-06-15 so the
- * fixture events (June 15–16, 2024) fall within the 7-day visible window and
- * within RBC's default 30-day agenda range.
+ * fixture events (June 15–16, 2024) fall within the 7-day visible window.
  */
 const FIXTURE_ANCHOR = new Date('2024-06-15T00:00:00Z');
 
@@ -170,8 +169,8 @@ describe('EventsView', () => {
       expect(screen.getAllByText('Sydney Afternoon').length).toBeGreaterThan(0);
     });
 
-    it('renders events chronologically (earlier start appears before later start)', async () => {
-      // Return NY first, Sydney second — both in start-time order.
+    it('renders events chronologically — earlier start appears before later start in document order', async () => {
+      // Return NY first, Sydney second — this is the happy path.
       vi.mocked(calendarEventsList).mockResolvedValue(
         makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
       );
@@ -184,24 +183,38 @@ describe('EventsView', () => {
         );
       });
 
-      // Both events must be visible.
-      const nyEls = screen.getAllByText('Early NY Meeting');
-      const sydEls = screen.getAllByText('Sydney Afternoon');
-      expect(nyEls.length).toBeGreaterThan(0);
-      expect(sydEls.length).toBeGreaterThan(0);
-
-      // Agenda view renders events as table rows; the NY event (earlier UTC
-      // instant) must appear before the Sydney event (later UTC instant) in
-      // document order.
-      const nyEl = nyEls[0];
-      const sydEl = sydEls[0];
-      // compareDocumentPosition FOLLOWING = 4
+      const nyEl = screen.getAllByText('Early NY Meeting')[0];
+      const sydEl = screen.getAllByText('Sydney Afternoon')[0];
+      // compareDocumentPosition FOLLOWING = 4 — NY must come before Syd
       expect(
         nyEl.compareDocumentPosition(sydEl) & Node.DOCUMENT_POSITION_FOLLOWING
       ).toBeTruthy();
     });
 
-    it('renders each event in its own timezone label', async () => {
+    it('renders events chronologically even when API returns later event first', async () => {
+      // Return Sydney (later UTC start) BEFORE New York (earlier UTC start).
+      // RBC's agenda view must still display NY before Syd.
+      vi.mocked(calendarEventsList).mockResolvedValue(
+        makePagedResponse([FIXTURE_LATER_SYD, FIXTURE_EARLY_NY])
+      );
+
+      renderEventsView();
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Early NY Meeting').length).toBeGreaterThan(
+          0
+        );
+      });
+
+      const nyEl = screen.getAllByText('Early NY Meeting')[0];
+      const sydEl = screen.getAllByText('Sydney Afternoon')[0];
+      // NY event (2024-06-15T13:00Z) must appear before Syd (2024-06-15T23:00Z)
+      expect(
+        nyEl.compareDocumentPosition(sydEl) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
+
+    it('renders each event with its own timezone label within its own container', async () => {
       vi.mocked(calendarEventsList).mockResolvedValue(
         makePagedResponse([FIXTURE_EARLY_NY, FIXTURE_LATER_SYD])
       );
@@ -214,15 +227,26 @@ describe('EventsView', () => {
         );
       });
 
-      // NY event in June → EDT (UTC-4)
-      const nyLabels = screen.queryAllByText((text) => text.includes('UTC-4'));
-      expect(nyLabels.length).toBeGreaterThan(0);
+      // The DefaultEventContent renderer outputs:
+      //   <span class="flex min-w-0 flex-col leading-tight">       ← outer (flex container)
+      //     <span class="truncate font-medium">{title}</span>      ← [0] title span
+      //     <span class="... text-xs">{timezoneLabel}</span>       ← [1] label span
+      //   </span>
+      //
+      // We locate the parent flex-container span via the title element, then
+      // read its second child span (the timezone label).  This assertion would
+      // fail if labels were swapped between event containers.
 
-      // Sydney AEST → UTC+10
-      const sydLabels = screen.queryAllByText((text) =>
-        text.includes('UTC+10')
-      );
-      expect(sydLabels.length).toBeGreaterThan(0);
+      const nyTitleEl = screen.getAllByText('Early NY Meeting')[0];
+      // parentElement = the flex-col outer span
+      const nyLabelEl = nyTitleEl.parentElement?.children[1] ?? null;
+      expect(nyLabelEl).not.toBeNull();
+      expect(nyLabelEl?.textContent).toContain('UTC-4');
+
+      const sydTitleEl = screen.getAllByText('Sydney Afternoon')[0];
+      const sydLabelEl = sydTitleEl.parentElement?.children[1] ?? null;
+      expect(sydLabelEl).not.toBeNull();
+      expect(sydLabelEl?.textContent).toContain('UTC+10');
     });
   });
 
