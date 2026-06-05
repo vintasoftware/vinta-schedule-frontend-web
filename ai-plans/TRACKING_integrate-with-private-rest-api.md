@@ -28,6 +28,7 @@
 - **Tooling added this phase**: `.prettierignore` + eslint ignore for generated clients & `storybook-static`; format scripts wired to `.prettierignore`.
 
 ### Phase 0c — Luxon date & timezone utilities ✅
+
 - **Status**: done, PR opened.
 - **Model**: `claude-sonnet-4-6` (plan Tier 3).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-0c` (base `phase-0a`, stacked).
@@ -37,13 +38,22 @@
 - **Gate**: typecheck/test(102)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 - **Note**: `isInDstSpringForwardGap` flags the pre-transition window (Luxon normalizes the gap) — documented + tested.
 
+### Phase 0d — Shared DataTable composition ✅
+- **Status**: done, PR opened.
+- **Model**: `claude-sonnet-4-6` (plan Tier 3).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-0d` (base `phase-0c`, stacked).
+- **PR**: (see below) — inline comments.
+- **Commits**: `0926de8` DataTable composition, `18a9333` review fixes.
+- **Summary**: shadcn `table` atom added; `src/components/data-table/` — generic fully-controlled `DataTable<T>` (TanStack Table v8 in `manualSorting`/`manualPagination`/`manualFiltering`, `enableMultiSort:false`), `data-table-toolbar` (debounced search), `data-table-pagination` (wraps shadcn Pagination), `useDataTableQuery` hook syncing `page`/`page_size`/`ordering`/`search` to URL params + `DataTableQueryBoundary` (Suspense wrapper for Next 16 `useSearchParams`). Skeleton loading + empty-state slot. `DataTableColumn<T>`/`DataTableQuery` types. Consumed by phases 1,2,7,11,28,30,37. Review (FIX-FIRST) fixed: pagination interaction + skeletonRows tests, layout primitives, a11y tabIndex, Suspense hardening.
+- **Gate**: typecheck/test(120)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 0d — Shared DataTable composition** (Tier 3, `claude-sonnet-4-6`) — starting.
+- **Phase 0e — Calendar infrastructure (list / month / week)** (Tier 3, `claude-sonnet-4-6`) — starting.
 
 ## Remaining Phases
 
-0d, 0e, 0f (foundation); 1–38 (use-cases).
+0e, 0f (foundation); 1–38 (use-cases).
 
 ## Deferred / Superseded
 
