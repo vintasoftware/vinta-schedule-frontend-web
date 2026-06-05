@@ -5,6 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RoomsSyncSettingsForm } from './rooms-sync-settings-form';
 import * as useRoomsSyncConfigModule from '@/hooks/sync/use-rooms-sync-config';
 
+// The form only reads `shouldSyncRooms`, `saveRoomsSyncConfig`, `isReady`, and
+// `saveConfigMutation.isPending`, so the mocks below are intentionally partial;
+// cast to the hook's return type to satisfy `tsc` without restating the full
+// TanStack `UseMutationResult` shape.
+type HookMock = ReturnType<typeof useRoomsSyncConfigModule.useRoomsSyncConfig>;
+
 // Mock the hook
 vi.spyOn(useRoomsSyncConfigModule, 'useRoomsSyncConfig').mockReturnValue({
   shouldSyncRooms: true,
@@ -15,7 +21,7 @@ vi.spyOn(useRoomsSyncConfigModule, 'useRoomsSyncConfig').mockReturnValue({
     mutateAsync: vi.fn().mockResolvedValue({}),
   },
   isReady: true,
-});
+} as unknown as HookMock);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -32,7 +38,7 @@ describe('RoomsSyncSettingsForm', () => {
         mutateAsync: vi.fn(),
       },
       isReady: true,
-    });
+    } as unknown as HookMock);
 
     const queryClient = new QueryClient();
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -60,7 +66,7 @@ describe('RoomsSyncSettingsForm', () => {
         mutateAsync: mockSaveRoomsSyncConfig,
       },
       isReady: true,
-    });
+    } as unknown as HookMock);
 
     const queryClient = new QueryClient();
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -98,7 +104,7 @@ describe('RoomsSyncSettingsForm', () => {
         mutateAsync: vi.fn(),
       },
       isReady: true,
-    });
+    } as unknown as HookMock);
 
     const queryClient = new QueryClient();
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -129,7 +135,7 @@ describe('RoomsSyncSettingsForm', () => {
         mutateAsync: mockSaveRoomsSyncConfig,
       },
       isReady: true,
-    });
+    } as unknown as HookMock);
 
     const queryClient = new QueryClient();
     const wrapper = ({ children }: { children: React.ReactNode }) => (

@@ -5,13 +5,20 @@ import { useRoomsSyncConfig } from './use-rooms-sync-config';
 import * as currentOrgModule from '@/hooks/organizations/use-current-organization';
 import * as tanstackModule from '@/client/@tanstack/react-query.gen';
 
+// Partial mocks cast to the real return/param types so `tsc` + eslint are happy
+// without restating the full generated shapes.
+type CurrentOrgReturn = ReturnType<
+  typeof currentOrgModule.useCurrentOrganization
+>;
+type PartialUpdateMutation =
+  typeof tanstackModule.organizationsPartialUpdateMutation;
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe('useRoomsSyncConfig', () => {
   it('reads shouldSyncRooms from the current organization', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn(currentOrgModule, 'useCurrentOrganization').mockReturnValue({
       isOnboarded: true,
       organization: {
@@ -26,16 +33,15 @@ describe('useRoomsSyncConfig', () => {
           should_sync_rooms: true,
         },
       },
-    } as any);
+    } as unknown as CurrentOrgReturn);
 
     const mockMutationFn = vi.fn().mockReturnValue({
       mutateAsync: vi.fn(),
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn(
       tanstackModule,
       'organizationsPartialUpdateMutation'
-    ).mockImplementation(mockMutationFn as any);
+    ).mockImplementation(mockMutationFn as unknown as PartialUpdateMutation);
 
     const queryClient = new QueryClient();
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -50,21 +56,19 @@ describe('useRoomsSyncConfig', () => {
   });
 
   it('throws error when organization is not loaded', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn(currentOrgModule, 'useCurrentOrganization').mockReturnValue({
       isOnboarded: false,
       organization: null,
       membership: null,
-    } as any);
+    } as unknown as CurrentOrgReturn);
 
     const mockMutationFn = vi.fn().mockReturnValue({
       mutateAsync: vi.fn(),
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn(
       tanstackModule,
       'organizationsPartialUpdateMutation'
-    ).mockImplementation(mockMutationFn as any);
+    ).mockImplementation(mockMutationFn as unknown as PartialUpdateMutation);
 
     const queryClient = new QueryClient();
     const wrapper = ({ children }: { children: React.ReactNode }) => (
