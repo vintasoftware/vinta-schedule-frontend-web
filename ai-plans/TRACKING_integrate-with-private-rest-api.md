@@ -195,13 +195,20 @@
 - **Flake note**: one flaky run (2 transient timing failures, green on re-run ×2) — a debounce/async timing test under load, not Phase 13 logic. Watch in the test-hardening pass.
 - **Gate**: typecheck/test(276)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 14 — View events as a week calendar (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-14` (base `phase-13`).
+- **PR**: (published below). **Commits**: `32f2708`.
+- **Summary**: Week option added to the events view toggle (List/Week/Month); `eventRange('week',...)` + `CalendarView` week grid; view parity. Stable on two test runs. Accepted on focused review.
+- **Gate**: typecheck/test(279)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 14 — View events as a week calendar (member)** (Tier 2) — starting (trivial Week toggle add).
+- **Phase 15 — View events for one specific calendar (member)** (Tier 2) — starting (wires the Phase 0e scope picker; completes events block).
 
 ## Remaining Phases
 
-14–38 (use-cases).
+15–38 (use-cases).
 
 ## Deferred / Superseded
 
