@@ -226,13 +226,21 @@
 - **Summary**: Repeat toggle + recurrence sub-form (freq/interval/end/byday) on the Phase 16 booking form; builds a Phase 0c `RecurrenceRule` → `serializeRRule` → `rrule_string` on the event; reuses `ConflictSurface`. Repeat-gated (off → no recurrence sent). Accepted on focused review (form is Phase 16-reviewed, serde is Phase 0c-tested).
 - **Gate**: typecheck/test(324)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 18 — Book on a Calendar Group (member) ✅ [Tier 4 spike — RESOLVED]
+
+- **Status**: done, PR opened. **Model**: `claude-opus-4-8` (Tier 4). **Branch**: `phase-18` (base `phase-17`).
+- **PR**: (published below). **Commits**: `a5cd5db` group flow, `2ca150f` review fixes.
+- **Summary**: `use-calendar-groups` + `use-group-booking` (3 group ops + pure satisfiability helpers `slotRequiredCount`/`isSlotSatisfiable`/`isSelectionComplete`/`buildSlotAvailability`), `group-booking-flow` dialog (per-slot pickers, required-count enforcement, only-free selectable, unsatisfiable hard-block, timezone picker, race Alert on submit-race), `book-group-button`. Sends `slot_selections:[{slot_id,calendar_ids}]`. Review (FIX-FIRST) fixed: ConflictSurface(conflicts=[]) misuse → bespoke race Alert; timezone picker; backend-rejection test; required_count edge tests; Label atom; story.
+- **SPIKE RESOLVED**: group model maps cleanly to the API (no type gaps; satisfiability is pure client-side). **Phase 29 (create group) is safe.** Calendar-grid availability _overlay_ (RBC background bands) is a separate unproven concern, NOT needed for group booking — Phase 0e `eventRenderer` untouched + sufficient.
+- **Gate**: typecheck/test(351)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 18 — Book on a Calendar Group (member)** (Tier 4) — starting (the spike-flagged group-slot/availability-overlay risk).
+- **Phase 19 — Manage attendees on an event (member)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-18–38 (use-cases).
+19–38 (use-cases).
 
 ## Deferred / Superseded
 
