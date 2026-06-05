@@ -296,13 +296,23 @@
 - **Summary**: `useBlockedTimes` (`blockedTimesBulkCreateCreate`; one-off no rrule, recurring with `rrule_string`), `BlockedTimeForm` (date/start/end + Repeat sub-form reusing `serializeRRule`) on a "Blocked times" tab of `/availability`. No `as any`. ResizeObserver polyfill added to vitest.setup. Accepted on focused review.
 - **Gate**: typecheck/test(461)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 27 — Check another user's availability (member) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6`. **Branch**: `phase-27` (base `phase-26`).
+- **PR**: (published below). **Commits**: `e43d5b9`.
+- **Summary**: `useUserAvailability` (available/unavailable windows for a target calendar + range), `UserAvailabilityView` (colleague picker + range + free/busy bands; no titles → privacy per Open Q3), "Colleague availability" tab on `/availability`. No `as any`. Accepted on focused review.
+- **Known limitation (API gap)**: no member→calendar mapping (membership has no calendar id), so the target is identified by calendar id manually until the backend exposes it. Flagged follow-up.
+- **Gate**: typecheck/test(481)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
+## Availability block complete ✅ (phases 25–27)
+
 ## Current Phase
 
-- **Phase 27 — Check another user's availability (member)** (Tier 2) — starting (read-only; completes availability block).
+- **Phase 28 — List Calendar Groups (admin)** (Tier 2) — starting (groups block; reuses `useCalendarGroups` from Phase 18 + the team-table template).
 
 ## Remaining Phases
 
-27–38 (use-cases).
+28–38 (use-cases).
 
 ## Deferred / Superseded
 
