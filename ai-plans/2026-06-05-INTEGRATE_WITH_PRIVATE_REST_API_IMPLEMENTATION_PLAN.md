@@ -323,14 +323,16 @@ Tests: Integration (create → appears in list). E2E `PR008-create-calendar.spec
 **Suggested AI model**: Tier 2.
 Acceptance: a created calendar round-trips and appears in active pickers.
 
-### Phase 9 — Disable a calendar
+### Phase 9 — Delete a calendar (**amended 2026-06-05**)
 
-**Goal**: member disables one of their calendars; it leaves active pickers, stays listed as disabled.
-Changes: `useDisableCalendar` (`calendarPartialUpdate { is_active:false }` — confirm field); confirm dialog; invalidate calendars + picker keys.
-Spec use-case: Use-cases **Disable a calendar (member)**.
-Tests: Integration (disable → not in pickers, listed disabled). E2E `PR009-disable-calendar.spec.ts` (screenshots: confirm, disabled row).
+> **Amended 2026-06-05**: the original "Disable a calendar (keep it listed as disabled)" cannot be built — the API exposes `is_active` as **read-only** (it is not on `CalendarWritable`/`PatchedCalendarWritable`) and there is no calendar disable/deactivate endpoint, only `calendarDestroy` (hard DELETE). Per the user's decision, this phase is re-scoped to **Delete a calendar**: the calendar is removed entirely (not kept as a disabled row). Resolves Open Question #1 "disable-calendar field".
+
+**Goal**: member deletes one of their calendars after confirm; it is removed from the list and from active pickers.
+Changes: `useDeleteCalendar` (`calendarDestroy` — `DELETE /calendar/{id}/`); destructive `AlertDialog` confirm; invalidate `MY_CALENDARS_QUERY_KEY` (predicate form) so the list + pickers refetch. A **Delete** row action on the calendars table.
+Spec use-case: Use-cases **Disable a calendar (member)** — re-scoped to delete.
+Tests: Integration (confirm → `calendarDestroy` called once + row removed after invalidation; cancel → no call).
 **Suggested AI model**: Tier 2.
-Acceptance: a disabled calendar stops appearing in active pickers.
+Acceptance: a deleted calendar is removed from the list and stops appearing in active pickers.
 
 ### Phase 10 — Request a calendar to sync
 
@@ -664,3 +666,4 @@ Grouped by phase. `@path` = new file; `[name](path)` = edited.
 ## 9. Amendments
 
 - **2026-06-05** — Backend shipped every endpoint in **API Design**; [schema.yml](schema.yml) updated and `src/client/` regenerated (`npm run openapi-ts`). Dropped the MSW mock layer entirely: **Phase 0b** (mock layer) and **Phase 39** (mock→live swap) superseded; the **Guiding Decisions** "Unfinished endpoints" row became **Live endpoints**; **Data Model Changes** mock-contracts subsection removed; **API Design** retitled to map each formerly-mocked path to its real generated op; every use-case phase (1, 4, 5, 6, 10, 31, 32, 33, 34, 35, 36, 37, 38) repointed from a `**mocked**` path to its live op; **Phase 0f** e2e harness repointed from `NEXT_PUBLIC_API_MOCKING` to the live API via `NEXT_PUBLIC_API_BASE_URL`; **Open Questions #1** marked resolved; resend-invite uses the live `invitationsResendCreate` op (added after the first amendment pass), leaving one residual semantic confirmation (rooms-sync config via `organizationsPartialUpdate`). No phase branches existed yet, so no force-push was needed. Affected phases: 0b, 0f, 1, 4, 5, 6, 10, 31, 32, 33, 34, 35, 36, 37, 38, 39. Branches force-pushed: none (plan not yet started).
+- **2026-06-05 (during Phase 9)** — **Phase 9 re-scoped from "Disable a calendar" to "Delete a calendar"** (user decision). The live API exposes `Calendar.is_active` as read-only (absent from `CalendarWritable`/`PatchedCalendarWritable`) and has no calendar disable/deactivate endpoint — only `calendarDestroy` (hard DELETE). Phase 9 now deletes the calendar via `calendarDestroy`; the "stays listed as disabled" acceptance is replaced by "removed from list + pickers". This is forward-only (Phase 9 not yet implemented at amendment time) — no branch rewrite.
