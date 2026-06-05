@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * BookingForm — rhf + zod form for creating a single booking.
+ * BookingForm — rhf + zod form for creating a single or recurring booking.
  *
  * Fields:
  *  - title (required)
@@ -12,20 +12,34 @@
  *  - primaryCalendarId (required) — select from the member's calendars
  *  - coBookedCalendarIds — multi-select (checkboxes) from remaining calendars
  *  - internalAttendeeUserId (optional) — a single internal attendee user id
+ *  - repeat (bool) — enables the recurrence sub-form
+ *  - recurrence sub-form: freq, interval, endType (never/on-date/after-n), until, count, byday
  *
  * Flow:
- *  1. On submit: run availability check for primary + co-booked calendars.
+ *  1. On submit: run availability check for the first occurrence (start/end of
+ *     the first event). Recurring bookings check the same first occurrence only
+ *     (documented below).
  *  2. If any conflict: render ConflictSurface (warn-but-allow-override).
  *  3. User clicks "Book anyway" → proceed with booking.
  *  4. On success: toast + close dialog.
  *  5. On backend rejection of override: surface error, no event created.
+ *
+ * Recurrence strategy:
+ *  - We send `rrule_string` (via serializeRRule from Phase 0c) to
+ *    CalendarEventWritable. The backend accepts this as an RFC-5545 string and
+ *    maps it into its RecurrenceRule model. We do NOT send `recurrence_rule`
+ *    (the structured object) alongside to avoid duplication.
+ *  - Conflict check covers only the first occurrence (same startDatetime /
+ *    endDatetime as non-recurring). This is intentional: checking all
+ *    occurrences of an unbounded series is impractical. The backend handles
+ *    per-occurrence conflict enforcement. This is documented in ConflictSurface.
  *
  * The submit button is disabled (isPending) while any async operation is in
  * flight, preventing double-submit.
  */
 
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -40,6 +54,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -64,6 +79,17 @@ import {
   type CalendarConflict,
 } from '@/components/bookings/conflict-surface';
 import type { AvailabilityResult } from '@/hooks/bookings/use-availability-check';
+import {
+  serializeRRule,
+  weekdayMatrix,
+  type RecurrenceRule,
+} from '@/lib/datetime/index';
+
+// ---------------------------------------------------------------------------
+// Recurrence end-type discriminant
+// ---------------------------------------------------------------------------
+
+type RecurrenceEndType = 'never' | 'on-date' | 'after-n';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -81,6 +107,22 @@ const bookingFormSchema = z
       .min(1, { message: 'Primary calendar is required' }),
     coBookedCalendarIds: z.array(z.number()),
     internalAttendeeUserId: z.string().optional(),
+    // Recurrence fields
+    repeat: z.boolean(),
+    recurrenceFreq: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']),
+    recurrenceInterval: z
+      .number()
+      .int()
+      .min(1, { message: 'Interval must be at least 1' }),
+    recurrenceEndType: z.enum(['never', 'on-date', 'after-n']),
+    recurrenceUntil: z.string().optional(),
+    recurrenceCount: z
+      .number()
+      .int()
+      .min(1, { message: 'Must be at least 1' })
+      .optional(),
+    // byday: comma-separated booleans stored as array of day codes
+    recurrenceByday: z.array(z.string()),
   })
   .refine(
     (data) => {
@@ -93,9 +135,266 @@ const bookingFormSchema = z
       message: 'End time must be after start time',
       path: ['endTime'],
     }
+  )
+  .refine(
+    (data) => {
+      if (!data.repeat) return true;
+      if (data.recurrenceEndType === 'on-date') {
+        return (
+          typeof data.recurrenceUntil === 'string' &&
+          data.recurrenceUntil.trim().length > 0
+        );
+      }
+      return true;
+    },
+    {
+      message: 'End date is required when "On date" is selected',
+      path: ['recurrenceUntil'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.repeat) return true;
+      if (data.recurrenceEndType === 'after-n') {
+        return data.recurrenceCount !== undefined && data.recurrenceCount >= 1;
+      }
+      return true;
+    },
+    {
+      message: 'Number of occurrences is required',
+      path: ['recurrenceCount'],
+    }
   );
 
 type BookingFormSchema = z.infer<typeof bookingFormSchema>;
+
+// ---------------------------------------------------------------------------
+// Default form values
+// ---------------------------------------------------------------------------
+
+function getDefaultValues(localZone: string): BookingFormSchema {
+  return {
+    title: '',
+    date: DateTime.local().toISODate() ?? '',
+    startTime: '09:00',
+    endTime: '10:00',
+    timezone: localZone,
+    primaryCalendarId: '',
+    coBookedCalendarIds: [],
+    internalAttendeeUserId: '',
+    repeat: false,
+    recurrenceFreq: 'WEEKLY',
+    recurrenceInterval: 1,
+    recurrenceEndType: 'never',
+    recurrenceUntil: '',
+    recurrenceCount: 10,
+    recurrenceByday: [],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// buildRRule — constructs a RecurrenceRule from form values
+// ---------------------------------------------------------------------------
+
+function buildRRule(values: BookingFormSchema): RecurrenceRule | null {
+  if (!values.repeat) return null;
+
+  const rule: RecurrenceRule = {
+    freq: values.recurrenceFreq,
+    interval:
+      values.recurrenceInterval > 1 ? values.recurrenceInterval : undefined,
+  };
+
+  if (values.recurrenceEndType === 'on-date' && values.recurrenceUntil) {
+    rule.until = values.recurrenceUntil;
+  } else if (
+    values.recurrenceEndType === 'after-n' &&
+    values.recurrenceCount !== undefined
+  ) {
+    rule.count = values.recurrenceCount;
+  }
+
+  if (values.recurrenceFreq === 'WEEKLY' && values.recurrenceByday.length > 0) {
+    rule.byday = values.recurrenceByday;
+  }
+
+  return rule;
+}
+
+// ---------------------------------------------------------------------------
+// RecurrenceFields sub-component — gated behind the Repeat switch
+// ---------------------------------------------------------------------------
+
+interface RecurrenceFieldsProps {
+  form: UseFormReturn<BookingFormSchema>;
+}
+
+function RecurrenceFields({ form }: RecurrenceFieldsProps) {
+  const freq = form.watch('recurrenceFreq');
+  const endType = form.watch('recurrenceEndType') as RecurrenceEndType;
+  const byday = form.watch('recurrenceByday');
+  const WEEKDAYS = weekdayMatrix();
+
+  const handleBydayToggle = (code: string, checked: boolean) => {
+    const current = form.getValues('recurrenceByday');
+    if (checked) {
+      form.setValue('recurrenceByday', [...current, code]);
+    } else {
+      form.setValue(
+        'recurrenceByday',
+        current.filter((c) => c !== code)
+      );
+    }
+  };
+
+  return (
+    <VStack gap={3} className='border-border rounded-md border p-3'>
+      {/* Frequency */}
+      <FormField
+        control={form.control}
+        name='recurrenceFreq'
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Repeat</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder='Frequency' />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value='DAILY'>Daily</SelectItem>
+                <SelectItem value='WEEKLY'>Weekly</SelectItem>
+                <SelectItem value='MONTHLY'>Monthly</SelectItem>
+                <SelectItem value='YEARLY'>Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Interval */}
+      <FormField
+        control={form.control}
+        name='recurrenceInterval'
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Every</FormLabel>
+            <FormControl>
+              <Input
+                type='number'
+                min={1}
+                {...field}
+                onChange={(e) => field.onChange(e.target.valueAsNumber)}
+              />
+            </FormControl>
+            <Text size='xs' color='muted-foreground'>
+              {freq === 'DAILY'
+                ? 'day(s)'
+                : freq === 'WEEKLY'
+                  ? 'week(s)'
+                  : freq === 'MONTHLY'
+                    ? 'month(s)'
+                    : 'year(s)'}
+            </Text>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* BYDAY — only for weekly */}
+      {freq === 'WEEKLY' && (
+        <VStack gap={2}>
+          <label className='text-sm leading-none font-medium'>On days</label>
+          <HStack gap={2} className='flex-wrap'>
+            {WEEKDAYS.map((day) => (
+              <HStack key={day.byday} gap={1} align='center'>
+                <Checkbox
+                  id={`byday-${day.byday}`}
+                  checked={byday.includes(day.byday)}
+                  onCheckedChange={(checked) =>
+                    handleBydayToggle(day.byday, Boolean(checked))
+                  }
+                />
+                <label
+                  htmlFor={`byday-${day.byday}`}
+                  className='cursor-pointer text-sm select-none'
+                >
+                  {day.short}
+                </label>
+              </HStack>
+            ))}
+          </HStack>
+        </VStack>
+      )}
+
+      {/* End type */}
+      <FormField
+        control={form.control}
+        name='recurrenceEndType'
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Ends</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder='End type' />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value='never'>Never</SelectItem>
+                <SelectItem value='on-date'>On date</SelectItem>
+                <SelectItem value='after-n'>After N occurrences</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Until date — only when endType = on-date */}
+      {endType === 'on-date' && (
+        <FormField
+          control={form.control}
+          name='recurrenceUntil'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>End date</FormLabel>
+              <FormControl>
+                <Input type='date' {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      {/* Count — only when endType = after-n */}
+      {endType === 'after-n' && (
+        <FormField
+          control={form.control}
+          name='recurrenceCount'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Number of occurrences</FormLabel>
+              <FormControl>
+                <Input
+                  type='number'
+                  min={1}
+                  {...field}
+                  value={field.value ?? ''}
+                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+    </VStack>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // BookingFormDialog
@@ -133,31 +432,13 @@ export function BookingFormDialog({
 
   const form = useForm<BookingFormSchema>({
     resolver: zodResolver(bookingFormSchema),
-    defaultValues: {
-      title: '',
-      date: DateTime.local().toISODate() ?? '',
-      startTime: '09:00',
-      endTime: '10:00',
-      timezone: localZone,
-      primaryCalendarId: '',
-      coBookedCalendarIds: [],
-      internalAttendeeUserId: '',
-    },
+    defaultValues: getDefaultValues(localZone),
   });
 
   // Reset form + conflicts when the dialog opens/closes.
   React.useEffect(() => {
     if (!open) {
-      form.reset({
-        title: '',
-        date: DateTime.local().toISODate() ?? '',
-        startTime: '09:00',
-        endTime: '10:00',
-        timezone: localZone,
-        primaryCalendarId: '',
-        coBookedCalendarIds: [],
-        internalAttendeeUserId: '',
-      });
+      form.reset(getDefaultValues(localZone));
       setConflicts(null);
       setIsPending(false);
     }
@@ -210,6 +491,9 @@ export function BookingFormDialog({
     const { startDatetime, endDatetime } = buildDatetimes(values);
 
     // Run availability checks for all calendars.
+    // For recurring events, we check only the first occurrence (same
+    // startDatetime/endDatetime). Checking all occurrences of an unbounded
+    // series is impractical; per-occurrence enforcement is the backend's job.
     const results = await checkCalendars(
       allCalendarIds,
       startDatetime,
@@ -244,6 +528,12 @@ export function BookingFormDialog({
         ? [{ user_id: parseInt(values.internalAttendeeUserId, 10) }]
         : [];
 
+      // Build recurrence: send rrule_string if the repeat toggle is on.
+      // We prefer rrule_string over the structured recurrence_rule to avoid
+      // duplication — the backend maps both to the same RecurrenceRule model.
+      const rrule = buildRRule(values);
+      const rrule_string = rrule ? serializeRRule(rrule) : undefined;
+
       const result = await createBooking({
         event: {
           title: values.title,
@@ -254,6 +544,7 @@ export function BookingFormDialog({
           external_attendances: [],
           attendances,
           resource_allocations: [],
+          ...(rrule_string !== undefined ? { rrule_string } : {}),
         },
         coBookedCalendarIds: values.coBookedCalendarIds,
       });
@@ -311,6 +602,7 @@ export function BookingFormDialog({
 
   const primaryCalendarId = form.watch('primaryCalendarId');
   const coBookedCalendarIds = form.watch('coBookedCalendarIds');
+  const repeat = form.watch('repeat');
 
   // Calendars available for co-booking = all calendars except the primary one.
   const coBookableCalendars = React.useMemo(
@@ -525,6 +817,27 @@ export function BookingFormDialog({
                   </FormItem>
                 )}
               />
+
+              {/* Repeat toggle */}
+              <HStack gap={3} align='center'>
+                <Switch
+                  id='repeat-toggle'
+                  checked={repeat}
+                  onCheckedChange={(checked) =>
+                    form.setValue('repeat', checked)
+                  }
+                  aria-label='Enable recurring booking'
+                />
+                <label
+                  htmlFor='repeat-toggle'
+                  className='cursor-pointer text-sm font-medium select-none'
+                >
+                  Repeat
+                </label>
+              </HStack>
+
+              {/* Recurrence sub-form — gated behind the Repeat switch */}
+              {repeat && <RecurrenceFields form={form} />}
 
               <DialogFooter>
                 <Button

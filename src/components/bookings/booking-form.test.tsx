@@ -8,6 +8,10 @@
  * - Submit button is disabled while pending
  * - Primary calendar must be selected (validation)
  * - Submit calls availability check before creating
+ * - Recurring booking: enabling Repeat → recurrence sub-form shown
+ * - Recurring booking: submit sends rrule_string to calendarEventsCreate
+ * - Non-recurring booking: submit sends NO recurrence fields
+ * - Recurring booking: conflict surface still shown (first occurrence check)
  */
 
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
@@ -760,6 +764,346 @@ describe('BookingFormDialog', () => {
 
       const pendingBtn = screen.getByRole('button', { name: /checking…/i });
       expect(pendingBtn).toBeDisabled();
+    });
+  });
+
+  describe('recurring booking', () => {
+    it('shows the recurrence sub-form when the Repeat switch is toggled on', async () => {
+      renderForm();
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: /create booking/i })
+        ).toBeInTheDocument()
+      );
+
+      // Repeat switch should be present but recurrence combobox hidden initially
+      const repeatSwitch = screen.getByRole('switch', {
+        name: /enable recurring booking/i,
+      });
+      expect(repeatSwitch).toBeInTheDocument();
+      // The frequency combobox (inside the sub-form) must NOT be present before toggle
+      expect(screen.queryByRole('combobox', { name: /repeat/i })).toBeNull();
+
+      // Toggle the switch on
+      await userEvent.click(repeatSwitch);
+
+      // Recurrence sub-form fields should appear (frequency select)
+      await waitFor(() =>
+        expect(
+          screen.getByRole('combobox', { name: /repeat/i })
+        ).toBeInTheDocument()
+      );
+    });
+
+    it('non-recurring submit sends NO rrule_string or recurrence_rule', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarListResponse([FIXTURE_CALENDAR_1])
+      );
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableWindowsResponse(false)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableWindowsResponse()
+      );
+      vi.mocked(calendarEventsCreate).mockResolvedValue(
+        makeCreateEventResponse(FIXTURE_CREATED_EVENT)
+      );
+
+      renderForm();
+
+      await waitFor(() =>
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox', { name: /title/i }),
+        'Simple Meeting'
+      );
+
+      await userEvent.click(screen.getByRole('combobox'));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('option', { name: 'Personal' })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Personal' }));
+
+      // Do NOT toggle the Repeat switch
+      await userEvent.click(
+        screen.getByRole('button', { name: /create booking/i })
+      );
+
+      await waitFor(() => expect(calendarEventsCreate).toHaveBeenCalledOnce());
+
+      const callArg = vi.mocked(calendarEventsCreate).mock.calls[0][0];
+      expect(callArg.body).not.toHaveProperty('rrule_string');
+      expect(callArg.body).not.toHaveProperty('recurrence_rule');
+    });
+
+    it('recurring weekly submit sends rrule_string with FREQ=WEEKLY', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarListResponse([FIXTURE_CALENDAR_1])
+      );
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableWindowsResponse(false)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableWindowsResponse()
+      );
+      vi.mocked(calendarEventsCreate).mockResolvedValue(
+        makeCreateEventResponse(FIXTURE_CREATED_EVENT)
+      );
+
+      renderForm();
+
+      await waitFor(() =>
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox', { name: /title/i }),
+        'Weekly Standup'
+      );
+
+      // Select primary calendar
+      await userEvent.click(screen.getByRole('combobox'));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('option', { name: 'Personal' })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Personal' }));
+
+      // Enable Repeat
+      const repeatSwitch = screen.getByRole('switch', {
+        name: /enable recurring booking/i,
+      });
+      await userEvent.click(repeatSwitch);
+
+      // Wait for recurrence sub-form to appear (WEEKLY is the default)
+      await waitFor(() =>
+        expect(
+          screen.getByRole('combobox', { name: /repeat/i })
+        ).toBeInTheDocument()
+      );
+
+      // Submit
+      await userEvent.click(
+        screen.getByRole('button', { name: /create booking/i })
+      );
+
+      await waitFor(() => expect(calendarEventsCreate).toHaveBeenCalledOnce());
+
+      const callArg = vi.mocked(calendarEventsCreate).mock.calls[0][0];
+      expect(callArg.body).toHaveProperty('rrule_string');
+      expect(callArg.body.rrule_string).toMatch(/^FREQ=WEEKLY/);
+    });
+
+    it('recurring daily with interval=2 sends FREQ=DAILY;INTERVAL=2', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarListResponse([FIXTURE_CALENDAR_1])
+      );
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableWindowsResponse(false)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableWindowsResponse()
+      );
+      vi.mocked(calendarEventsCreate).mockResolvedValue(
+        makeCreateEventResponse(FIXTURE_CREATED_EVENT)
+      );
+
+      renderForm();
+
+      await waitFor(() =>
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox', { name: /title/i }),
+        'Every 2 Days'
+      );
+
+      await userEvent.click(screen.getByRole('combobox'));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('option', { name: 'Personal' })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Personal' }));
+
+      // Enable Repeat
+      await userEvent.click(
+        screen.getByRole('switch', { name: /enable recurring booking/i })
+      );
+
+      // Wait for recurrence fields
+      await waitFor(() =>
+        expect(
+          screen.getByRole('combobox', { name: /repeat/i })
+        ).toBeInTheDocument()
+      );
+
+      // Change frequency to DAILY
+      await userEvent.click(screen.getByRole('combobox', { name: /repeat/i }));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('option', { name: /daily/i })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByRole('option', { name: /daily/i }));
+
+      // Set interval to 2
+      const intervalInput = screen.getByRole('spinbutton', { name: /every/i });
+      await userEvent.clear(intervalInput);
+      await userEvent.type(intervalInput, '2');
+
+      // Submit
+      await userEvent.click(
+        screen.getByRole('button', { name: /create booking/i })
+      );
+
+      await waitFor(() => expect(calendarEventsCreate).toHaveBeenCalledOnce());
+
+      const callArg = vi.mocked(calendarEventsCreate).mock.calls[0][0];
+      expect(callArg.body.rrule_string).toBe('FREQ=DAILY;INTERVAL=2');
+    });
+
+    it('recurring with count end sends COUNT= in rrule_string', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarListResponse([FIXTURE_CALENDAR_1])
+      );
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableWindowsResponse(false)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableWindowsResponse()
+      );
+      vi.mocked(calendarEventsCreate).mockResolvedValue(
+        makeCreateEventResponse(FIXTURE_CREATED_EVENT)
+      );
+
+      renderForm();
+
+      await waitFor(() =>
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox', { name: /title/i }),
+        'N-Count Meeting'
+      );
+
+      await userEvent.click(screen.getByRole('combobox'));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('option', { name: 'Personal' })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Personal' }));
+
+      // Enable Repeat
+      await userEvent.click(
+        screen.getByRole('switch', { name: /enable recurring booking/i })
+      );
+
+      // Wait for recurrence fields
+      await waitFor(() =>
+        expect(
+          screen.getByRole('combobox', { name: /ends/i })
+        ).toBeInTheDocument()
+      );
+
+      // Change end type to "After N occurrences"
+      await userEvent.click(screen.getByRole('combobox', { name: /ends/i }));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('option', { name: /after n occurrences/i })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(
+        screen.getByRole('option', { name: /after n occurrences/i })
+      );
+
+      // Set count to 5
+      await waitFor(() =>
+        expect(
+          screen.getByRole('spinbutton', { name: /number of occurrences/i })
+        ).toBeInTheDocument()
+      );
+      const countInput = screen.getByRole('spinbutton', {
+        name: /number of occurrences/i,
+      });
+      await userEvent.clear(countInput);
+      await userEvent.type(countInput, '5');
+
+      // Submit
+      await userEvent.click(
+        screen.getByRole('button', { name: /create booking/i })
+      );
+
+      await waitFor(() => expect(calendarEventsCreate).toHaveBeenCalledOnce());
+
+      const callArg = vi.mocked(calendarEventsCreate).mock.calls[0][0];
+      expect(callArg.body.rrule_string).toMatch(/COUNT=5/);
+    });
+
+    it('recurring booking with conflict shows ConflictSurface (first occurrence check)', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarListResponse([FIXTURE_CALENDAR_1])
+      );
+      // First occurrence has a conflict
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableWindowsResponse(true)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableWindowsResponse()
+      );
+
+      renderForm();
+
+      await waitFor(() =>
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox', { name: /title/i }),
+        'Recurring Meeting'
+      );
+
+      await userEvent.click(screen.getByRole('combobox'));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('option', { name: 'Personal' })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Personal' }));
+
+      // Enable Repeat
+      await userEvent.click(
+        screen.getByRole('switch', { name: /enable recurring booking/i })
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole('combobox', { name: /repeat/i })
+        ).toBeInTheDocument()
+      );
+
+      // Submit
+      await userEvent.click(
+        screen.getByRole('button', { name: /create booking/i })
+      );
+
+      // ConflictSurface should appear (same as non-recurring)
+      await waitFor(() =>
+        expect(screen.getByTestId('conflict-surface')).toBeInTheDocument()
+      );
+
+      expect(
+        screen.getByRole('button', { name: /book anyway/i })
+      ).toBeInTheDocument();
     });
   });
 });

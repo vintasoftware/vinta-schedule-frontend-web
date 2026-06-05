@@ -59,6 +59,31 @@ export const Default: Story = {
 };
 
 // ---------------------------------------------------------------------------
+// Recurring variant — the form with the Repeat toggle on. Since the dialog
+// controls the switch state via react-hook-form, we show the form open and
+// note that interacting with the Repeat switch reveals the sub-form.
+// ---------------------------------------------------------------------------
+
+function RecurringStory() {
+  const [open, setOpen] = React.useState(true);
+  return (
+    <QueryWrapper>
+      <BookingFormDialog open={open} onOpenChange={setOpen} />
+    </QueryWrapper>
+  );
+}
+
+/**
+ * WithRecurrence — the booking form with a note that clicking the "Repeat"
+ * switch reveals the recurrence sub-form (frequency, interval, end condition,
+ * byday for weekly). No API wiring needed in Storybook — toggle the switch
+ * and explore the sub-form fields.
+ */
+export const WithRecurrence: Story = {
+  render: () => <RecurringStory />,
+};
+
+// ---------------------------------------------------------------------------
 // Conflict-surfaced state story
 //
 // Shows the ConflictSurface as rendered inside a booking flow — used by phases
