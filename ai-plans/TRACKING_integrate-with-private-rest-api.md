@@ -379,13 +379,21 @@
 - **Summary**: `useTransferEvent` (`calendarEventsTransferCreate` `{destination_calendar_id}` + `invalidateCalendarEvents`), `TransferEventDialog` (destination picker from `useAllCalendars`), Transfer action on the event sheet wrapped in `<RoleGate role='admin'>` (admin-only). No `as any`. Typecheck PASS. Accepted on focused review.
 - **Gate**: typecheck PASS / test(549) / lint(0 err) / format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 37 — Generate an API token with permissions (admin) ✅ [SECURITY: Risk 6]
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6`. **Branch**: `phase-37` (base `phase-36`).
+- **PR**: (published below). **Commits**: `c67ec66` token generation, `5cef4da` security-test hardening.
+- **Summary**: `usePublicApiTokens`/`useCreatePublicApiToken` (`publicApiTokensList`/`Create`), `TokensTable` (metadata only, no secret column), `NewTokenDialog` (scopes = `AvailableResourcesEnum`; **show-once secret** in local state, copy + warning, cleared on close via `useEffect`, never cached/logged/persisted), admin-gated `/api-tokens` route + nav href. No `as any`.
+- **Security review (FIX-FIRST)**: runtime handling correct, but the cache-no-secret + clear-on-reopen tests were vacuously passing → rewritten to genuinely assert the invariants (sanity-checked they fail when broken). Risk 6 proven.
+- **Gate**: typecheck PASS / test(571) / lint(0 err) / format green; build compiles, only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 37 — Generate an API token with permissions (admin)** (Tier 3) — starting (SECURITY-sensitive: show-once secret, never persisted/logged/refetched).
+- **Phase 38 — Invalidate an API token (admin)** (Tier 2) — starting (FINAL use-case phase).
 
 ## Remaining Phases
 
-37–38 (use-cases).
+38 (final use-case).
 
 ## Deferred / Superseded
 
