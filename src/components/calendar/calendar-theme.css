@@ -1,0 +1,318 @@
+/**
+ * react-big-calendar — design-token theme override.
+ *
+ * We import the RBC base CSS first, then override every hard-coded color/radius
+ * value with our design tokens (CSS variables from globals.css). This ensures
+ * light/dark works via the `.dark` class without any extra logic here.
+ *
+ * NO raw hex/rgb values are introduced here — all overrides use var(--token).
+ */
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
+
+/* ============================================================================
+   Toolbar — the navigation bar above the calendar grid
+   ============================================================================ */
+
+.rbc-toolbar {
+  font-size: 0.9375rem; /* 15px — slightly smaller than RBC's 16px default */
+  gap: 0.5rem;
+}
+
+.rbc-toolbar button {
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  padding: 0.3125rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.rbc-toolbar button:hover {
+  color: var(--foreground);
+  background-color: var(--muted);
+  border-color: var(--border);
+}
+
+.rbc-toolbar button:focus {
+  color: var(--foreground);
+  background-color: var(--muted);
+  border-color: var(--ring);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.rbc-toolbar button:active,
+.rbc-toolbar button.rbc-active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: none;
+}
+
+.rbc-toolbar button:active:hover,
+.rbc-toolbar button:active:focus,
+.rbc-toolbar button.rbc-active:hover,
+.rbc-toolbar button.rbc-active:focus {
+  color: var(--primary-foreground);
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ============================================================================
+   Month grid
+   ============================================================================ */
+
+.rbc-month-view {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.rbc-month-row {
+  border-top: 1px solid var(--border);
+}
+
+.rbc-day-bg {
+  background: var(--card);
+}
+
+.rbc-day-bg.rbc-off-range-bg {
+  background: var(--muted);
+}
+
+.rbc-day-bg.rbc-today {
+  background: var(--accent);
+}
+
+.rbc-header {
+  color: var(--muted-foreground);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  padding: 0.375rem 0.25rem;
+}
+
+.rbc-header + .rbc-header {
+  border-left: 1px solid var(--border);
+}
+
+.rbc-date-cell {
+  color: var(--foreground);
+  font-size: 0.875rem;
+  padding: 0.25rem 0.375rem;
+}
+
+.rbc-date-cell.rbc-off-range {
+  color: var(--muted-foreground);
+}
+
+.rbc-date-cell.rbc-now {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.rbc-date-cell > a {
+  color: inherit;
+}
+
+/* ============================================================================
+   Events
+   ============================================================================ */
+
+.rbc-event {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.125rem 0.375rem;
+  border: none;
+}
+
+.rbc-event:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.rbc-event.rbc-selected {
+  background-color: var(--accent-foreground);
+}
+
+.rbc-event-overlaps {
+  box-shadow: -1px 1px 5px 0 var(--shadow-sm);
+}
+
+/* ============================================================================
+   Time-grid (week / day views)
+   ============================================================================ */
+
+.rbc-time-view {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.rbc-time-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.rbc-time-header-content {
+  border-left: 1px solid var(--border);
+}
+
+.rbc-time-header-gutter {
+  background: var(--card);
+}
+
+.rbc-time-content {
+  border-top: 1px solid var(--border);
+}
+
+.rbc-time-content > * + * > * {
+  border-left: 1px solid var(--border);
+}
+
+.rbc-timeslot-group {
+  border-bottom: 1px solid var(--border);
+  min-height: 40px;
+}
+
+.rbc-time-slot {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.rbc-time-gutter .rbc-time-slot {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  padding-right: 0.5rem;
+}
+
+.rbc-current-time-indicator {
+  background-color: var(--primary);
+}
+
+.rbc-today {
+  background-color: var(--accent);
+}
+
+/* ============================================================================
+   Agenda view (list)
+   ============================================================================ */
+
+.rbc-agenda-view {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.rbc-agenda-view table.rbc-agenda-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  color: var(--muted-foreground);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  vertical-align: top;
+}
+
+.rbc-agenda-view table.rbc-agenda-table tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+.rbc-agenda-date-cell {
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--foreground);
+}
+
+.rbc-agenda-time-cell {
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.rbc-agenda-event-cell {
+  width: 100%;
+}
+
+.rbc-agenda-empty {
+  text-align: center;
+  color: var(--muted-foreground);
+  padding: 2rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* ============================================================================
+   Misc / overlays
+   ============================================================================ */
+
+.rbc-overlay {
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 0.5rem;
+}
+
+.rbc-overlay-header {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.25rem;
+}
+
+.rbc-show-more {
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.125rem 0;
+}
+
+.rbc-show-more:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   Selection highlight (slot selection drag)
+   ============================================================================ */
+
+.rbc-slot-selection {
+  background-color: color-mix(in oklch, var(--primary) 20%, transparent);
+  border: 1px solid var(--primary);
+  font-size: 0.75rem;
+  color: var(--foreground);
+}
+
+/* ============================================================================
+   Row background cells (off-range, today)
+   ============================================================================ */
+
+.rbc-row-bg .rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid var(--border);
+}
