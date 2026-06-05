@@ -53,7 +53,12 @@ const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
     icon: CalendarSync,
     href: '/all-calendars',
   },
-  { id: 'groups', label: 'Calendar groups', icon: UsersRound },
+  {
+    id: 'groups',
+    label: 'Calendar groups',
+    icon: UsersRound,
+    href: '/groups',
+  },
   { id: 'bundles', label: 'Bundles', icon: Calendar },
   { id: 'sync-settings', label: 'Sync settings', icon: CalendarSync },
   { id: 'api-tokens', label: 'API tokens', icon: Settings },
