@@ -1,13 +1,16 @@
 'use client';
 
 import * as React from 'react';
+import { Plus } from 'lucide-react';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { VStack, Text } from '@/components/layout';
 import type { Calendar } from '@/client';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
+import { CreateCalendarDialog } from './create-calendar-dialog';
 
 // ---------------------------------------------------------------------------
 // Badge variant maps for calendar properties
@@ -105,6 +108,7 @@ function CalendarsTableEmpty() {
 // ---------------------------------------------------------------------------
 
 function CalendarsTableInner() {
+  const [createOpen, setCreateOpen] = React.useState(false);
   const { query, setPage } = useDataTableQuery();
 
   const handleQueryChange = React.useCallback(
@@ -132,17 +136,28 @@ function CalendarsTableInner() {
     );
   }
 
+  const toolbarActions = (
+    <Button size='sm' onClick={() => setCreateOpen(true)}>
+      <Plus className='size-4' aria-hidden />
+      New calendar
+    </Button>
+  );
+
   return (
-    <DataTable<Calendar>
-      data={calendars}
-      columns={COLUMNS}
-      query={query}
-      onQueryChange={handleQueryChange}
-      totalCount={totalCount}
-      isLoading={isLoading}
-      emptyState={<CalendarsTableEmpty />}
-      showSearch={false}
-    />
+    <>
+      <DataTable<Calendar>
+        data={calendars}
+        columns={COLUMNS}
+        query={query}
+        onQueryChange={handleQueryChange}
+        totalCount={totalCount}
+        isLoading={isLoading}
+        emptyState={<CalendarsTableEmpty />}
+        showSearch={false}
+        toolbarActions={toolbarActions}
+      />
+      <CreateCalendarDialog open={createOpen} onOpenChange={setCreateOpen} />
+    </>
   );
 }
 
