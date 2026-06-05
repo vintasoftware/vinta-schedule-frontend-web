@@ -338,13 +338,23 @@
 - **API limits**: patch body has no `name` (rename unsupported) and no pre-population source (Calendar type doesn't expose bundle children/primary) — both documented follow-ups.
 - **Gate**: typecheck/test(515)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 32 — Delete a bundle (admin) ✅ [re-scoped from Disable]
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-32` (base `phase-31`).
+- **PR**: (published below). **Commits**: `d4da292` plan re-scope, `415f3fb` delete row action.
+- **Re-scope**: `is_active` read-only (same gap as Phase 9), no disable endpoint → hard DELETE via `calendarDestroy` (bundle is a calendar), applying the user's Phase-9 decision for consistency. Plan Phase 32 amended.
+- **Summary**: `useDeleteBundle` (`calendarDestroy` + predicate invalidation), Delete row action (destructive confirm, per-row in-flight disable) beside Edit. Mirrors Phase 9. Accepted on focused review.
+- **Gate**: typecheck/test(519)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
+## Bundles block complete ✅ (phases 30–32; 31 update / 32 delete — name & is_active not writable per API)
+
 ## Current Phase
 
-- **Phase 32 — Disable a bundle (admin)** (Tier 2) — starting. NOTE: `is_active` is read-only (not on the bundle/calendar writable) — likely re-scope to hard DELETE per the Phase 9 precedent (user chose delete for the same `is_active` gap).
+- **Phase 33 — Configure rooms sync (admin)** (Tier 2) — starting (sync block).
 
 ## Remaining Phases
 
-32–38 (use-cases).
+33–38 (use-cases).
 
 ## Deferred / Superseded
 
