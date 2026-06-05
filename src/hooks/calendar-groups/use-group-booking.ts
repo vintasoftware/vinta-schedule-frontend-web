@@ -224,7 +224,9 @@ export function useGroupBooking() {
     });
     const results = result.data?.results ?? [];
     // The availability action echoes the queried ranges; match on the range we
-    // asked for (single-range query → take the first result).
+    // asked for. Single-range query → the first result is always our range;
+    // the fallback guards against normalised-echo mismatches (e.g. trailing Z
+    // vs offset-based timestamps) that would cause find() to miss.
     return (
       results.find(
         (r) => r.start_time === startTime && r.end_time === endTime

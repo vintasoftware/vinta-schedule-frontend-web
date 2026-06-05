@@ -166,6 +166,33 @@ function viewModels(overlay: Record<number, number[] | null>): SlotViewModel[] {
 }
 
 // ---------------------------------------------------------------------------
+// slotRequiredCount — edge cases
+// ---------------------------------------------------------------------------
+
+describe('slotRequiredCount', () => {
+  it('returns 1 when required_count is undefined (API default)', () => {
+    const slot: CalendarGroupSlot = {
+      ...SLOT_NURSES,
+      required_count: undefined,
+    };
+    expect(slotRequiredCount(slot)).toBe(1);
+  });
+
+  it('returns 1 when required_count is 0 (clamped to minimum of 1)', () => {
+    const slot: CalendarGroupSlot = {
+      ...SLOT_NURSES,
+      required_count: 0,
+    };
+    expect(slotRequiredCount(slot)).toBe(1);
+  });
+
+  it('returns the actual required_count when positive', () => {
+    expect(slotRequiredCount(SLOT_NURSES)).toBe(2);
+    expect(slotRequiredCount(SLOT_ROOM)).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // buildSlotAvailability
 // ---------------------------------------------------------------------------
 

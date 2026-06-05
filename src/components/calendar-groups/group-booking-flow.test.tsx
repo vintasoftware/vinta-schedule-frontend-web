@@ -68,6 +68,7 @@ import {
   calendarGroupsAvailabilityCreate,
   calendarGroupsEventsCreate,
 } from '@/client/sdk.gen';
+import { toast } from 'sonner';
 import { GroupBookingFlow } from './group-booking-flow';
 import type {
   Calendar,
@@ -343,6 +344,91 @@ describe('GroupBookingFlow', () => {
     );
 
     expect(submitBtn()).toBeDisabled();
+  });
+
+  it('backend-rejection race: shows race alert, re-checks availability, no dialog close', async () => {
+    const user = userEvent.setup();
+    // First availability check: all free.
+    mockAvailability([
+      { slot_id: 1, available_calendar_ids: [10, 11, 12] },
+      { slot_id: 2, available_calendar_ids: [20, 21] },
+    ]);
+    // Create call rejects (slot became busy).
+    vi.mocked(calendarGroupsEventsCreate).mockRejectedValue(
+      new Error('Slot 1 became busy')
+    );
+    // Second availability check (triggered by the race refresh inside catch):
+    // Nurse C (12) is now busy.
+    vi.mocked(calendarGroupsAvailabilityCreate).mockResolvedValueOnce({
+      data: {
+        count: 1,
+        results: [
+          {
+            start_time: 's',
+            end_time: 'e',
+            slots: [
+              { slot_id: 1, available_calendar_ids: [10, 11] },
+              { slot_id: 2, available_calendar_ids: [20] },
+            ],
+          },
+        ],
+      },
+      response: new Response('{}', { status: 200 }),
+    } as unknown as Awaited<
+      ReturnType<typeof calendarGroupsAvailabilityCreate>
+    >);
+
+    const onOpenChange = vi.fn();
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    function RaceWrapper({ children }: { children: ReactNode }) {
+      return (
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      );
+    }
+    render(<GroupBookingFlow open onOpenChange={onOpenChange} />, {
+      wrapper: RaceWrapper,
+    });
+
+    await selectGroup(user);
+    await fillTitle(user);
+
+    // First availability check with all-free response.
+    await checkAvailability(user);
+    const nurseSlot = await screen.findByTestId('slot-picker-1');
+    const roomSlot = screen.getByTestId('slot-picker-2');
+    await user.click(
+      within(nurseSlot).getByRole('checkbox', { name: /nurse a/i })
+    );
+    await user.click(
+      within(nurseSlot).getByRole('checkbox', { name: /nurse b/i })
+    );
+    await user.click(
+      within(roomSlot).getByRole('checkbox', { name: /room 1/i })
+    );
+
+    await waitFor(() => expect(submitBtn()).toBeEnabled());
+    await user.click(submitBtn());
+
+    // Race alert should appear.
+    await waitFor(() =>
+      expect(screen.getByTestId('race-alert')).toBeInTheDocument()
+    );
+
+    // calendarGroupsAvailabilityCreate called a second time for the refresh.
+    expect(calendarGroupsAvailabilityCreate).toHaveBeenCalledTimes(2);
+
+    // Dialog was NOT closed (no success).
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+
+    // No success toast.
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
   });
 
   it('success path: complete satisfiable selection books with correct slot assignments', async () => {

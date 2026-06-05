@@ -13,19 +13,18 @@
  *     disabled). The member must pick exactly `required_count` per slot.
  *  5. Submit is BLOCKED until every slot is satisfied AND its selection is the
  *     exact required count. An unsatisfiable slot hard-blocks submit (you can't
- *     book an impossible group slot). Conflicts surface via ConflictSurface.
+ *     book an impossible group slot).
  *  6. On submit → calendarGroupsEventsCreate with slot_selections (which
  *     calendars satisfy which slot). Submit disables while pending.
- *
- * The whole-group bookable-slot suggestions (calendarGroupsBookableSlotsList)
- * are offered as quick-fill chips for the time fields so the member can start
- * from a known-good range rather than guessing.
+ *  7. If the backend rejects (race condition: a slot became busy between the
+ *     availability check and the submit), a race alert is shown and availability
+ *     is refreshed automatically so the member can re-review and re-submit.
  */
 
 import * as React from 'react';
 import { toast } from 'sonner';
 import { DateTime } from 'luxon';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert, RefreshCw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
@@ -54,9 +54,58 @@ import {
   slotRequiredCount,
   type SlotViewModel,
 } from '@/hooks/calendar-groups/use-group-booking';
-import { ConflictSurface } from '@/components/bookings/conflict-surface';
+import { cn } from '@/lib/utils/index';
 import type { CalendarGroup, BookableSlotProposal } from '@/client';
 import { zonedFormat } from '@/lib/datetime/index';
+
+// ---------------------------------------------------------------------------
+// Common IANA timezone options for the timezone picker.
+// ---------------------------------------------------------------------------
+
+const COMMON_TIMEZONES = [
+  'UTC',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Anchorage',
+  'America/Honolulu',
+  'America/Sao_Paulo',
+  'America/Argentina/Buenos_Aires',
+  'America/Bogota',
+  'America/Lima',
+  'America/Mexico_City',
+  'America/Toronto',
+  'America/Vancouver',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Madrid',
+  'Europe/Rome',
+  'Europe/Amsterdam',
+  'Europe/Stockholm',
+  'Europe/Warsaw',
+  'Europe/Istanbul',
+  'Europe/Moscow',
+  'Africa/Cairo',
+  'Africa/Johannesburg',
+  'Africa/Lagos',
+  'Africa/Nairobi',
+  'Asia/Dubai',
+  'Asia/Kolkata',
+  'Asia/Dhaka',
+  'Asia/Bangkok',
+  'Asia/Singapore',
+  'Asia/Hong_Kong',
+  'Asia/Shanghai',
+  'Asia/Tokyo',
+  'Asia/Seoul',
+  'Australia/Sydney',
+  'Australia/Melbourne',
+  'Australia/Perth',
+  'Pacific/Auckland',
+  'Pacific/Honolulu',
+];
 
 // ---------------------------------------------------------------------------
 // Props
@@ -93,9 +142,18 @@ export function GroupBookingFlow({
     []
   );
 
-  // Per-slot free-candidate overlay from the availability check, keyed by slot
-  // id. `null` = availability not yet checked for the current range. Slot view
-  // models are derived during render from the group + this overlay.
+  /**
+   * Per-slot free-candidate overlay from the availability check, keyed by slot
+   * id.
+   *
+   * Two distinct states:
+   *  - `null`  → availability not yet checked for the current range (pre-check).
+   *              The slot pickers are hidden; submit is blocked.
+   *  - `Record<number, number[]>` → checked. Each slot id maps to its free
+   *    calendar ids. An entry of `[]` means checked but zero free (unsatisfiable).
+   *    A slot absent from the API response is normalised to `[]` by
+   *    buildSlotAvailability, so it is never conflated with the unchecked state.
+   */
   const [availabilityBySlot, setAvailabilityBySlot] = React.useState<Record<
     number,
     number[]
@@ -104,7 +162,10 @@ export function GroupBookingFlow({
     {}
   );
 
-  const [conflictsShown, setConflictsShown] = React.useState(false);
+  // When true, a race condition was detected: the backend rejected the booking
+  // because a slot became busy after the availability check. A bespoke alert is
+  // shown and availability is refreshed so the member can re-review and retry.
+  const [raceDetected, setRaceDetected] = React.useState(false);
   const [isPending, setIsPending] = React.useState(false);
 
   const selectedGroup: CalendarGroup | undefined = React.useMemo(
@@ -124,16 +185,17 @@ export function GroupBookingFlow({
       setSuggestions([]);
       setAvailabilityBySlot(null);
       setSelection({});
-      setConflictsShown(false);
+      setRaceDetected(false);
       setIsPending(false);
     }
   }, [open, localZone]);
 
-  // Clear the availability overlay + selection whenever the chosen group or
-  // time range changes — they no longer describe the current request.
+  // Clear the availability overlay + selection whenever the chosen group,
+  // time range, or timezone changes — they no longer describe the current request.
   const invalidateAvailability = React.useCallback(() => {
     setAvailabilityBySlot(null);
     setSelection({});
+    setRaceDetected(false);
   }, []);
 
   // -------------------------------------------------------------------------
@@ -217,7 +279,7 @@ export function GroupBookingFlow({
   const handleCheckAvailability = async () => {
     if (!selectedGroup) return;
     setIsPending(true);
-    setConflictsShown(false);
+    setRaceDetected(false);
     try {
       const { startISO, endISO } = buildRange();
       const rangeAvailability = await fetchSlotAvailability(
@@ -319,12 +381,47 @@ export function GroupBookingFlow({
       });
       onOpenChange(false);
     } catch (err) {
-      // Backend may reject (e.g. a race made a slot busy). Surface conflicts.
-      setConflictsShown(true);
+      // Backend rejected (e.g. a race made a slot busy between the availability
+      // check and the create call). Refresh availability BEFORE showing the
+      // alert so the member sees the updated slot pickers immediately and can
+      // re-submit without an extra "Check availability" click.
       toast.error('Failed to book group event', {
         description:
           err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
+      // Re-check availability with isPending still true to avoid flash of the
+      // old state. setRaceDetected fires after the refresh completes.
+      try {
+        if (selectedGroup) {
+          const { startISO, endISO } = buildRange();
+          const rangeAvailability = await fetchSlotAvailability(
+            selectedGroup.id,
+            startISO,
+            endISO
+          );
+          const slotAvail = buildSlotAvailability(
+            selectedGroup.slots,
+            rangeAvailability
+          );
+          const availById: Record<number, number[]> = {};
+          for (const s of slotAvail) {
+            availById[s.slotId] = s.availableCalendarIds;
+          }
+          setAvailabilityBySlot(availById);
+          // Prune selection to only still-free calendars.
+          setSelection((prev) => {
+            const next: Record<number, number[]> = {};
+            for (const [slotIdStr, ids] of Object.entries(prev)) {
+              const free = availById[Number(slotIdStr)] ?? [];
+              next[Number(slotIdStr)] = ids.filter((id) => free.includes(id));
+            }
+            return next;
+          });
+        }
+      } catch {
+        // Refresh failed; the member can still click "Check availability" manually.
+      }
+      setRaceDetected(true);
     } finally {
       setIsPending(false);
     }
@@ -341,214 +438,216 @@ export function GroupBookingFlow({
           <DialogTitle>Book a group</DialogTitle>
         </DialogHeader>
 
-        {conflictsShown ? (
-          <ConflictSurface
-            conflicts={[]}
-            onProceed={() => {
-              setConflictsShown(false);
-              void handleCheckAvailability();
-            }}
-            onAdjust={() => setConflictsShown(false)}
-            isPending={isPending}
-          />
-        ) : (
-          <VStack gap={4}>
-            {/* Group picker */}
-            <VStack gap={2}>
-              <label
-                htmlFor='group-select'
-                className='text-sm leading-none font-medium'
-              >
-                Calendar group
-              </label>
-              <Select
-                value={groupId}
-                onValueChange={(v) => {
-                  setGroupId(v);
-                  invalidateAvailability();
-                }}
-                disabled={groupsLoading}
-              >
-                <SelectTrigger id='group-select' aria-label='Calendar group'>
-                  <SelectValue placeholder='Select a group' />
-                </SelectTrigger>
-                <SelectContent>
-                  {groups.map((group) => (
-                    <SelectItem key={group.id} value={String(group.id)}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </VStack>
+        <VStack gap={4}>
+          {/* Race-condition alert — shown inline above the slot pickers so the
+              member can see the refreshed availability immediately below it. */}
+          {raceDetected && (
+            <Alert
+              className='border-warning bg-background'
+              data-testid='race-alert'
+            >
+              <RefreshCw className='text-warning h-4 w-4' />
+              <AlertTitle>A slot became busy while booking</AlertTitle>
+              <AlertDescription>
+                Availability was refreshed below — review the updated slot
+                pickers and re-submit when ready.
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {/* Title */}
-            <VStack gap={2}>
-              <label
-                htmlFor='group-title'
-                className='text-sm leading-none font-medium'
-              >
-                Title
-              </label>
-              <Input
-                id='group-title'
-                type='text'
-                placeholder='Meeting title'
-                autoComplete='off'
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </VStack>
-
-            {/* Date + time */}
-            <VStack gap={2}>
-              <label
-                htmlFor='group-date'
-                className='text-sm leading-none font-medium'
-              >
-                Date
-              </label>
-              <Input
-                id='group-date'
-                type='date'
-                value={date}
-                onChange={(e) => {
-                  setDate(e.target.value);
-                  invalidateAvailability();
-                }}
-              />
-            </VStack>
-            <HStack gap={3}>
-              <VStack gap={2} className='flex-1'>
-                <label
-                  htmlFor='group-start'
-                  className='text-sm leading-none font-medium'
-                >
-                  Start time
-                </label>
-                <Input
-                  id='group-start'
-                  type='time'
-                  value={startTime}
-                  onChange={(e) => {
-                    setStartTime(e.target.value);
-                    invalidateAvailability();
-                  }}
-                />
-              </VStack>
-              <VStack gap={2} className='flex-1'>
-                <label
-                  htmlFor='group-end'
-                  className='text-sm leading-none font-medium'
-                >
-                  End time
-                </label>
-                <Input
-                  id='group-end'
-                  type='time'
-                  value={endTime}
-                  onChange={(e) => {
-                    setEndTime(e.target.value);
-                    invalidateAvailability();
-                  }}
-                />
-              </VStack>
-            </HStack>
-
-            {/* Suggestions */}
-            {selectedGroup && (
-              <VStack gap={2}>
-                <HStack gap={2} align='center' justify='between'>
-                  <Text size='sm' className='font-medium'>
-                    Suggested times
-                  </Text>
-                  <Button
-                    type='button'
-                    size='sm'
-                    variant='outline'
-                    onClick={handleLoadSuggestions}
-                    disabled={isPending}
-                  >
-                    Find times
-                  </Button>
-                </HStack>
-                {suggestions.length > 0 && (
-                  <HStack gap={2} className='flex-wrap'>
-                    {suggestions.slice(0, 8).map((p) => (
-                      <Button
-                        key={`${p.start_time}-${p.end_time}`}
-                        type='button'
-                        size='xs'
-                        variant='outline'
-                        onClick={() => applySuggestion(p)}
-                      >
-                        {zonedFormat(p.start_time, timezone, 'MMM d, h:mm a')}
-                      </Button>
-                    ))}
-                  </HStack>
-                )}
-              </VStack>
-            )}
-
-            {/* Check availability */}
-            {selectedGroup && (
-              <Button
-                type='button'
-                variant='secondary'
-                onClick={handleCheckAvailability}
-                disabled={isPending}
-              >
-                {isPending ? 'Checking…' : 'Check availability'}
-              </Button>
-            )}
-
-            {/* Unsatisfiable warning */}
-            {unsatisfiable && (
-              <Alert
-                className='border-warning bg-background'
-                data-testid='unsatisfiable-alert'
-              >
-                <TriangleAlert className='text-warning h-4 w-4' />
-                <AlertTitle>One or more slots can&apos;t be filled</AlertTitle>
-                <AlertDescription>
-                  At this time, some slots don&apos;t have enough free calendars
-                  to meet their required count. Pick another time or load a
-                  suggested one.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Per-slot pickers */}
-            {availabilityChecked &&
-              slotViews.map((view) => (
-                <SlotPicker
-                  key={view.slotId}
-                  view={view}
-                  selected={selection[view.slotId] ?? []}
-                  onToggle={(calId) => toggleCalendar(view, calId)}
-                />
-              ))}
-
-            <DialogFooter>
-              <Button
-                type='button'
-                variant='outline'
-                onClick={() => onOpenChange(false)}
-                disabled={isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type='button'
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-                data-testid='group-book-submit'
-              >
-                {isPending ? 'Booking…' : 'Book group'}
-              </Button>
-            </DialogFooter>
+          {/* Group picker */}
+          <VStack gap={2}>
+            <Label htmlFor='group-select'>Calendar group</Label>
+            <Select
+              value={groupId}
+              onValueChange={(v) => {
+                setGroupId(v);
+                invalidateAvailability();
+              }}
+              disabled={groupsLoading}
+            >
+              <SelectTrigger id='group-select' aria-label='Calendar group'>
+                <SelectValue placeholder='Select a group' />
+              </SelectTrigger>
+              <SelectContent>
+                {groups.map((group) => (
+                  <SelectItem key={group.id} value={String(group.id)}>
+                    {group.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </VStack>
-        )}
+
+          {/* Title */}
+          <VStack gap={2}>
+            <Label htmlFor='group-title'>Title</Label>
+            <Input
+              id='group-title'
+              type='text'
+              placeholder='Meeting title'
+              autoComplete='off'
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </VStack>
+
+          {/* Date + time */}
+          <VStack gap={2}>
+            <Label htmlFor='group-date'>Date</Label>
+            <Input
+              id='group-date'
+              type='date'
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value);
+                invalidateAvailability();
+              }}
+            />
+          </VStack>
+          <HStack gap={3}>
+            <VStack gap={2} className='flex-1'>
+              <Label htmlFor='group-start'>Start time</Label>
+              <Input
+                id='group-start'
+                type='time'
+                value={startTime}
+                onChange={(e) => {
+                  setStartTime(e.target.value);
+                  invalidateAvailability();
+                }}
+              />
+            </VStack>
+            <VStack gap={2} className='flex-1'>
+              <Label htmlFor='group-end'>End time</Label>
+              <Input
+                id='group-end'
+                type='time'
+                value={endTime}
+                onChange={(e) => {
+                  setEndTime(e.target.value);
+                  invalidateAvailability();
+                }}
+              />
+            </VStack>
+          </HStack>
+
+          {/* Timezone picker */}
+          <VStack gap={2}>
+            <Label htmlFor='group-timezone'>Timezone</Label>
+            <Select
+              value={timezone}
+              onValueChange={(v) => {
+                setTimezone(v);
+                invalidateAvailability();
+              }}
+            >
+              <SelectTrigger id='group-timezone' aria-label='Timezone'>
+                <SelectValue placeholder='Select timezone' />
+              </SelectTrigger>
+              <SelectContent>
+                {COMMON_TIMEZONES.map((tz) => (
+                  <SelectItem key={tz} value={tz}>
+                    {tz}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </VStack>
+
+          {/* Suggestions */}
+          {selectedGroup && (
+            <VStack gap={2}>
+              <HStack gap={2} align='center' justify='between'>
+                <Text size='sm' className='font-medium'>
+                  Suggested times
+                </Text>
+                <Button
+                  type='button'
+                  size='sm'
+                  variant='outline'
+                  onClick={() => void handleLoadSuggestions()}
+                  disabled={isPending}
+                >
+                  Find times
+                </Button>
+              </HStack>
+              {suggestions.length > 0 && (
+                <HStack gap={2} className='flex-wrap'>
+                  {suggestions.slice(0, 8).map((p) => (
+                    <Button
+                      key={`${p.start_time}-${p.end_time}`}
+                      type='button'
+                      size='xs'
+                      variant='outline'
+                      onClick={() => applySuggestion(p)}
+                    >
+                      {zonedFormat(p.start_time, timezone, 'MMM d, h:mm a')}
+                    </Button>
+                  ))}
+                </HStack>
+              )}
+            </VStack>
+          )}
+
+          {/* Check availability */}
+          {selectedGroup && (
+            <Button
+              type='button'
+              variant='secondary'
+              onClick={() => void handleCheckAvailability()}
+              disabled={isPending}
+            >
+              {isPending ? 'Checking…' : 'Check availability'}
+            </Button>
+          )}
+
+          {/* Unsatisfiable warning */}
+          {unsatisfiable && (
+            <Alert
+              className='border-warning bg-background'
+              data-testid='unsatisfiable-alert'
+            >
+              <TriangleAlert className='text-warning h-4 w-4' />
+              <AlertTitle>One or more slots can&apos;t be filled</AlertTitle>
+              <AlertDescription>
+                At this time, some slots don&apos;t have enough free calendars
+                to meet their required count. Pick another time or load a
+                suggested one.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Per-slot pickers */}
+          {availabilityChecked &&
+            slotViews.map((view) => (
+              <SlotPicker
+                key={view.slotId}
+                view={view}
+                selected={selection[view.slotId] ?? []}
+                onToggle={(calId) => toggleCalendar(view, calId)}
+              />
+            ))}
+
+          <DialogFooter>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type='button'
+              onClick={() => void handleSubmit()}
+              disabled={!canSubmit}
+              data-testid='group-book-submit'
+            >
+              {isPending ? 'Booking…' : 'Book group'}
+            </Button>
+          </DialogFooter>
+        </VStack>
       </DialogContent>
     </Dialog>
   );
@@ -609,17 +708,16 @@ function SlotPicker({ view, selected, onToggle }: SlotPickerProps) {
                 onCheckedChange={() => onToggle(cal.id)}
                 aria-label={`${cal.name}${isFree ? '' : ' (busy)'}`}
               />
-              <label
+              <Label
                 htmlFor={`slot-${view.slotId}-cal-${cal.id}`}
-                className={
-                  isFree
-                    ? 'cursor-pointer text-sm select-none'
-                    : 'text-muted-foreground text-sm select-none'
-                }
+                className={cn(
+                  'select-none',
+                  isFree ? 'cursor-pointer' : 'text-muted-foreground'
+                )}
               >
                 {cal.name}
                 {!isFree ? ' · busy' : ''}
-              </label>
+              </Label>
             </HStack>
           );
         })}
