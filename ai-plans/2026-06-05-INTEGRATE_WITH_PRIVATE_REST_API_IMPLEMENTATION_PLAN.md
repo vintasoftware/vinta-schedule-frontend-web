@@ -544,14 +544,16 @@ Tests: Integration (update round-trips). E2E `PA031-update-bundle.spec.ts` (scre
 **Suggested AI model**: Tier 2.
 Acceptance: bundle update round-trips.
 
-### Phase 32 — Disable a bundle
+### Phase 32 — Delete a bundle (**amended 2026-06-05**)
 
-**Goal**: admin disables a bundle; it leaves active pickers.
-Changes: `useDisableBundle` (`calendarBundlePartialUpdate` with `is_active:false`); confirm dialog.
-Spec use-case: Use-cases **Disable a bundle (admin)**.
-Tests: Integration (disable → not in active pickers). E2E `PA032-disable-bundle.spec.ts` (screenshots: confirm, disabled).
+> **Amended 2026-06-05**: like Phase 9 (calendar disable), `is_active` is **read-only** — it is not on `CalendarBundleCreate`/`PatchedCalendarBundleUpdate`/`PatchedCalendarWritable`, and there is no bundle disable endpoint. Per the user's Phase-9 decision (hard DELETE for the same `is_active` gap), this phase is re-scoped to **Delete a bundle**: a bundle IS a calendar (`calendar_type: 'bundle'`), so it is removed via `calendarDestroy`.
+
+**Goal**: admin deletes a bundle after confirm; it is removed from the list and from active pickers.
+Changes: `useDeleteBundle` (`calendarDestroy` — `DELETE /calendar/{id}/`); destructive `AlertDialog` confirm; invalidate the calendars/bundle list (predicate). A **Delete** row action on the bundles table (beside Edit).
+Spec use-case: Use-cases **Disable a bundle (admin)** — re-scoped to delete.
+Tests: Integration (confirm → `calendarDestroy` called once + row removed; cancel → no-op).
 **Suggested AI model**: Tier 2.
-Acceptance: a disabled bundle stops appearing in active pickers.
+Acceptance: a deleted bundle is removed from the list and stops appearing in active pickers.
 
 #### Sync & rooms (admin)
 
@@ -667,3 +669,5 @@ Grouped by phase. `@path` = new file; `[name](path)` = edited.
 
 - **2026-06-05** — Backend shipped every endpoint in **API Design**; [schema.yml](schema.yml) updated and `src/client/` regenerated (`npm run openapi-ts`). Dropped the MSW mock layer entirely: **Phase 0b** (mock layer) and **Phase 39** (mock→live swap) superseded; the **Guiding Decisions** "Unfinished endpoints" row became **Live endpoints**; **Data Model Changes** mock-contracts subsection removed; **API Design** retitled to map each formerly-mocked path to its real generated op; every use-case phase (1, 4, 5, 6, 10, 31, 32, 33, 34, 35, 36, 37, 38) repointed from a `**mocked**` path to its live op; **Phase 0f** e2e harness repointed from `NEXT_PUBLIC_API_MOCKING` to the live API via `NEXT_PUBLIC_API_BASE_URL`; **Open Questions #1** marked resolved; resend-invite uses the live `invitationsResendCreate` op (added after the first amendment pass), leaving one residual semantic confirmation (rooms-sync config via `organizationsPartialUpdate`). No phase branches existed yet, so no force-push was needed. Affected phases: 0b, 0f, 1, 4, 5, 6, 10, 31, 32, 33, 34, 35, 36, 37, 38, 39. Branches force-pushed: none (plan not yet started).
 - **2026-06-05 (during Phase 9)** — **Phase 9 re-scoped from "Disable a calendar" to "Delete a calendar"** (user decision). The live API exposes `Calendar.is_active` as read-only (absent from `CalendarWritable`/`PatchedCalendarWritable`) and has no calendar disable/deactivate endpoint — only `calendarDestroy` (hard DELETE). Phase 9 now deletes the calendar via `calendarDestroy`; the "stays listed as disabled" acceptance is replaced by "removed from list + pickers". This is forward-only (Phase 9 not yet implemented at amendment time) — no branch rewrite.
+
+- **2026-06-05 (during Phase 32)** — **Phase 32 re-scoped from "Disable a bundle" to "Delete a bundle"**, applying the same Phase-9 decision: `is_active` is read-only (absent from all bundle/calendar writables) and there's no disable endpoint, so a bundle (a `calendar_type:'bundle'` calendar) is removed via `calendarDestroy`. Forward-only (Phase 32 not yet implemented).
