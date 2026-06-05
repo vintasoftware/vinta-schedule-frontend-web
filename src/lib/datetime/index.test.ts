@@ -18,6 +18,7 @@ import {
   parseRRule,
   dstStatus,
   isInDstFallBack,
+  isInDstSpringForwardGap,
   type RecurrenceRule,
 } from './index';
 
@@ -167,10 +168,11 @@ describe('zonedFormat — two events in different zones, displayed unambiguously
 describe('eventRange', () => {
   const anchor = DateTime.fromISO('2024-06-15', { zone: 'America/New_York' });
 
-  it('list — returns a 7-day window starting from the anchor day', () => {
+  it('list — returns a 7-day window starting from the anchor day (anchor through anchor+6)', () => {
     const { start, end } = eventRange('list', anchor, 'America/New_York');
     expect(start.toISODate()).toBe('2024-06-15');
-    expect(end.toISODate()).toBe('2024-06-22');
+    // anchor + 6 days = 2024-06-21 (7 days inclusive: Jun 15–21)
+    expect(end.toISODate()).toBe('2024-06-21');
   });
 
   it('week — returns Monday–Sunday of the anchor week (ISO)', () => {
@@ -193,7 +195,9 @@ describe('eventRange', () => {
   });
 
   it('week — range across a DST spring-forward boundary has correct dates', () => {
-    // Week containing the 2024-03-10 spring-forward: Mon 2024-03-04
+    // 2024-03-10 (Sunday) is the spring-forward day; it is the LAST day of the
+    // ISO week that starts Mon 2024-03-04.  The range should cover Mon–Sun even
+    // though the week is only 167 h long due to the missing spring-forward hour.
     const dstAnchor = DateTime.fromISO('2024-03-10', {
       zone: 'America/New_York',
     });
@@ -361,5 +365,74 @@ describe('serializeRRule + parseRRule', () => {
   it('round-trips a yearly rule with no optional fields', () => {
     const rule: RecurrenceRule = { freq: 'YEARLY' };
     expect(parseRRule(serializeRRule(rule))).toEqual(rule);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dstStatus — fixed-offset zones (Finding 1)
+// ---------------------------------------------------------------------------
+
+describe('dstStatus — fixed-offset zones never observe DST', () => {
+  it('returns Standard for UTC (offset is always 0)', () => {
+    const dt = DateTime.fromISO('2024-07-15T12:00:00Z', { zone: 'UTC' });
+    expect(dstStatus(dt)).toBe('Standard');
+  });
+
+  it('returns Standard for Asia/Kolkata (UTC+5:30, no DST)', () => {
+    // Asia/Kolkata is a fixed +330 min offset year-round
+    const dt = DateTime.fromISO('2024-07-15T12:00:00+05:30', {
+      zone: 'Asia/Kolkata',
+    });
+    expect(dstStatus(dt)).toBe('Standard');
+  });
+
+  it('returns Standard for Asia/Kolkata in January too', () => {
+    const dt = DateTime.fromISO('2024-01-15T12:00:00+05:30', {
+      zone: 'Asia/Kolkata',
+    });
+    expect(dstStatus(dt)).toBe('Standard');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isInDstSpringForwardGap — direct tests (Finding 5)
+// ---------------------------------------------------------------------------
+
+describe('isInDstSpringForwardGap', () => {
+  // America/New_York spring-forward: 2024-03-10 at 02:00 EST → 03:00 EDT.
+  // The hour 02:00–02:59 is skipped — it does not exist as a wall-clock time.
+  //
+  // Luxon normalises any in-gap instant to the post-transition value (e.g.
+  // fromObject({hour:2,minute:30}) → 03:30 EDT).  The implementation detects
+  // the gap by checking whether adding 1 hour crosses a spring-forward: if
+  // `oneHourLater.offset > dt.offset` the current instant is in the 60-minute
+  // window immediately BEFORE the skipped hour (01:00–01:59 EST) — that window
+  // is the practical signal that a spring-forward gap is imminent.
+
+  it('returns true for 01:30 EST — the last hour before the spring-forward gap', () => {
+    // 01:30 EST is the last representable window before 02:00 is skipped.
+    // Adding 1 hour crosses the transition (01:30 + 1h = 03:30 EDT, offset -240
+    // > -300), so isInDstSpringForwardGap returns true.
+    const beforeGap = DateTime.fromISO('2024-03-10T01:30:00-05:00', {
+      zone: 'America/New_York',
+    });
+    expect(isInDstSpringForwardGap(beforeGap)).toBe(true);
+  });
+
+  it('returns false for 03:30 EDT — a normal time after the spring-forward', () => {
+    // After the transition, both this instant and one-hour-later are in EDT
+    // (offset -240), so no offset increase is detected.
+    const normal = DateTime.fromISO('2024-03-10T03:30:00-04:00', {
+      zone: 'America/New_York',
+    });
+    expect(isInDstSpringForwardGap(normal)).toBe(false);
+  });
+
+  it('returns false for midnight EST — well before the spring-forward window', () => {
+    // 00:00 EST is two hours before the gap; adding 1 hour stays in EST.
+    const midnight = DateTime.fromISO('2024-03-10T00:00:00-05:00', {
+      zone: 'America/New_York',
+    });
+    expect(isInDstSpringForwardGap(midnight)).toBe(false);
   });
 });

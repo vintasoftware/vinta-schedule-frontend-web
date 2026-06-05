@@ -42,7 +42,6 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tanstack/react-query": "^5.101.0",
-    "@types/luxon": "^3.7.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "embla-carousel-react": "^8.6.0",
@@ -61,6 +60,7 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.98.1",
+    "@types/luxon": "^3.7.1",
     "@storybook/addon-a11y": "^10.4.2",
     "@storybook/addon-docs": "^10.4.2",
     "@storybook/addon-themes": "^10.4.2",

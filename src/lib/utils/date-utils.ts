@@ -21,8 +21,16 @@ export function formatDateTime(dateTime: string | null): string | null {
   const dt = DateTime.fromISO(dateTime);
   if (!dt.isValid) return null;
 
-  // Match the original: "June 5, 2026 at 02:30 PM"
-  return dt.toLocaleString(DateTime.DATETIME_FULL);
+  // Reproduce the exact original Intl options from toLocaleDateString('en-US', …).
+  // Produces: "June 5, 2026 at 02:30 PM" — month long, day/year numeric,
+  // 2-digit hour/minute, no timeZoneName.
+  return dt.toLocaleString({
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 /**

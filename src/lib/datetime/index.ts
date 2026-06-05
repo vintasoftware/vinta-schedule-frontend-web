@@ -106,7 +106,7 @@ export function zonedFormat(
 /**
  * Compute the visible date range for a given view mode around an anchor date.
  *
- * - list  → the 7-day window starting from the anchor day (inclusive)
+ * - list  → the 7-day window from anchor day through anchor+6 days (inclusive)
  * - week  → the Monday–Sunday (ISO) week that contains the anchor
  * - month → the full calendar month that contains the anchor, padded to
  *            complete ISO weeks (so the grid has no partial first/last row)
@@ -131,7 +131,7 @@ export function eventRange(
     case 'list': {
       return {
         start: local,
-        end: local.plus({ days: 7 }).endOf('day'),
+        end: local.plus({ days: 6 }).endOf('day'),
       };
     }
     case 'week': {
@@ -204,11 +204,12 @@ export function weekdayMatrix(): WeekdayEntry[] {
  * This is useful for surfacing a disambiguation UI: e.g., "Did you mean
  * 1:30 AM EDT or 1:30 AM EST?"
  *
- * Detection: after a fall-back, the UTC offset is more negative (smaller)
- * than it was one hour earlier. E.g. EDT = -240min, EST = -300min; one hour
- * before 01:30 EST was 00:30 EST = -300min, so the offset is unchanged, but
- * the hour just before the transition (01:30 EDT = -240min) drops to -300min
- * after, making `dt.offset < earlier.offset`.
+ * Detection: a fall-back makes the UTC offset more negative (smaller). For
+ * America/New_York: EDT = -240 min, EST = -300 min. For 01:30 EST (the second
+ * occurrence, offset -300), `earlier` resolves to 00:30 EDT (-240 min) because
+ * the 00:30 hour did not repeat — so `dt.offset (-300) < earlier.offset (-240)`
+ * is `true`. For 01:30 EDT (the first occurrence, offset -240), `earlier` is
+ * 00:30 EDT (-240 min), offsets are equal, → `false`.
  */
 export function isInDstFallBack(dt: DateTime): boolean {
   // If the current offset is smaller than the offset one hour ago, we have
@@ -248,6 +249,10 @@ export function dstStatus(dt: DateTime): 'DST' | 'Standard' {
   // hemisphere because we compare relative to self-year).
   const jan = dt.set({ month: 1, day: 15 });
   const jul = dt.set({ month: 7, day: 15 });
+  // Fixed-offset zones (UTC, Asia/Kolkata, Pacific/Honolulu, etc.) never
+  // observe DST: January and July share the same offset, so the zone is
+  // always on standard time.
+  if (jan.offset === jul.offset) return 'Standard';
   const maxOffset = Math.max(jan.offset, jul.offset);
   return dt.offset === maxOffset ? 'DST' : 'Standard';
 }
