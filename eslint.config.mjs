@@ -7,8 +7,8 @@ const eslintConfig = [
   ...nextTypescript,
   prettier,
   {
-    // Generated API clients — not linted.
-    ignores: ['src/client', 'src/auth-client'],
+    // Generated API clients + built Storybook output — not linted.
+    ignores: ['src/client', 'src/auth-client', 'storybook-static'],
   },
   {
     // The React Compiler lint rules (react-hooks v6) shipped with
