@@ -66,7 +66,12 @@ const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
     icon: CalendarSync,
     href: '/sync-settings',
   },
-  { id: 'api-tokens', label: 'API tokens', icon: Settings },
+  {
+    id: 'api-tokens',
+    label: 'API tokens',
+    icon: Settings,
+    href: '/api-tokens',
+  },
 ];
 
 function buildNavGroups(role: RoleEnum | null): SidebarNavGroup[] {
