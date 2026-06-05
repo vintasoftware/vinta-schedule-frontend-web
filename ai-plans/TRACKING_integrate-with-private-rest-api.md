@@ -49,6 +49,7 @@
 - **Gate**: typecheck/test(120)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
 ### Phase 0e — Calendar infrastructure (list / month / week) ✅
+
 - **Status**: done, PR opened.
 - **Model**: `claude-sonnet-4-6` (plan Tier 3).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-0e` (base `phase-0d`, stacked).
@@ -58,13 +59,26 @@
 - **Spike**: RBC integrates cleanly via `components.event`; Phase 18 may need `eventWrapper` for pixel-positioned availability overlays — flagged forward.
 - **Gate**: typecheck/test(147)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 0f — E2E harness & QA use-cases doc ✅
+- **Status**: done, PR opened.
+- **Model**: `claude-sonnet-4-6` (plan suggested Tier 2; tiered up — auth fixture flagged fiddly).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-0f` (base `phase-0e`, stacked).
+- **PR**: (published below) — inline comments.
+- **Commits**: `7782f3e` e2e harness + QA doc + smoke.
+- **Summary**: `@playwright/test`, `playwright.config.ts` (webServer → `npm run dev` w/ `NEXT_PUBLIC_API_BASE_URL`, live API), `e2e/` (page-object base, member+admin auth-bypass fixture seeding `localStorage.accessToken` to match Phase 0a's gate, `PR000-smoke` spec, `collect-screenshots.mjs`, `e2e/README.md`, separate tsconfig). `QA_USE_CASES.md` — 38 use-cases (24 PR + 14 PA) + PR000. `e2e/**` eslint-ignored; gitignore += test-results/playwright-report/.playwright.
+- **Honest run status**: harness correct-by-construction but NOT run-green in sandbox — needs live API URL + real `E2E_*_ACCESS_TOKEN` JWTs. Documented in `e2e/README.md`.
+- **Review**: focused orchestrator deep-read of the auth fixture against the actual Phase 0a gate (config/doc/test-harness phase, no production code) — fixture seeds the correct key; accepted.
+- **Gate**: typecheck/Vitest(147, e2e excluded via `src/**` include)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
+## Foundation complete ✅ (0a, 0c, 0d, 0e, 0f — 0b superseded)
+
 ## Current Phase
 
-- **Phase 0f — E2E harness & QA use-cases doc** (Tier 2, `claude-haiku-4-5`) — starting (last foundation phase).
+- **Phase 1 — List team (admin)** (Tier 2) — starting use-case phases.
 
 ## Remaining Phases
 
-0f (foundation); 1–38 (use-cases).
+1–38 (use-cases).
 
 ## Deferred / Superseded
 
