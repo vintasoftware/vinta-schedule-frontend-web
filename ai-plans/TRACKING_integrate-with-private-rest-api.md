@@ -6,6 +6,7 @@
 - **Feature flag**: none (additive surface)
 - **Branch pattern**: `plan/integrate-with-private-rest-api/phase-{id}`, stacked
 - **run_options**: `pause_between_phases: false` (auto-flow), `generate_inline_comments: true`, `scope: all 44 executable phases`
+- **E2E policy (changed 2026-06-05 after Phase 2)**: per-phase Playwright specs are **deferred** — the user will build the full e2e suite in an optimized way after implementation. The 0f harness + QA_USE_CASES.md stay; phases 3+ do NOT write `PA###`/`PR###` specs. Already-written `PA001`/`PA002` remain (harmless, superseded later).
 
 ## Baseline
 
@@ -74,6 +75,7 @@
 ## Foundation complete ✅ (0a, 0c, 0d, 0e, 0f — 0b superseded)
 
 ### Phase 1 — List team (admin) ✅ [TEMPLATE for datatable phases]
+
 - **Status**: done, PR opened.
 - **Model**: `claude-sonnet-4-6` (plan Tier 2; tiered up — pattern-setting for 6 phases).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-1` (base `phase-0f`, stacked).
@@ -84,13 +86,23 @@
 - **Patterns established (copied by 2,7,11,28,30,37)**: hook→DataTable query mapping, `showSearch` opt, admin-gate early-return, nav-href, predicate invalidation doc, pagination-offset test.
 - **Gate**: typecheck/test(159)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
+### Phase 2 — List pending invitations (admin) ✅
+- **Status**: done, PR opened.
+- **Model**: `claude-haiku-4-5` (plan Tier 2; template held with cheaper model + review).
+- **Branch**: `plan/integrate-with-private-rest-api/phase-2` (base `phase-1`, stacked).
+- **PR**: (published below) — inline comments.
+- **Commits**: `7b7fbb5` invitations tab, `b204166` review fixes.
+- **Summary**: `useInvitations` (`invitationsList`, always `is_accepted:false`, search→`email`, offset pagination, `INVITATIONS_QUERY_KEY` for phases 3/4/5). `InvitationsTable` (email/expiry/pending badge). `/team` refactored to Team + Invitations **tabs**. Added a `prefix` option to the shared `useDataTableQuery` so the two tabs namespace their URL state (`inv_*`) — Phase 1 unaffected. Review (FIX-FIRST, haiku output) fixed: stories importing vitest (Storybook-broken), cross-tab URL contamination, UTC→local expiry zone, dead status branch, component-level tests.
+- **Shared-infra change**: `useDataTableQuery({ prefix })` — reusable wherever two tables share a page.
+- **Gate**: typecheck/test(185)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 2 — List pending invitations (admin)** (Tier 2) — starting.
+- **Phase 3 — Invite a member (admin)** (Tier 2) — starting. (e2e specs now deferred per policy above.)
 
 ## Remaining Phases
 
-2–38 (use-cases).
+3–38 (use-cases).
 
 ## Deferred / Superseded
 
