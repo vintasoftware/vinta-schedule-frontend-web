@@ -348,13 +348,21 @@
 
 ## Bundles block complete ✅ (phases 30–32; 31 update / 32 delete — name & is_active not writable per API)
 
+### Phase 33 — Configure rooms sync (admin) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-33` (base `phase-32`).
+- **PR**: (published below). **Commits**: `3c8b3de` settings form, `959452e` orchestrator typecheck/lint fix.
+- **Summary**: `useRoomsSyncConfig` (read `should_sync_rooms` from current org; save via `organizationsPartialUpdate`), `RoomsSyncSettingsForm` (toggle), admin-gated `/sync-settings` route + nav href. Resolves the plan's residual Open Question (rooms-sync config = org field, no separate endpoint).
+- **Orchestrator fix**: implementer's test mocks used `as any` + misplaced eslint-disables → typecheck + lint FAILED (my masked `typecheck|tail-1` initially hid it). Fixed with typed `as unknown as <Type>` casts; now verified PASS. (Going forward: proper `typecheck && echo PASS || FAIL` exit checks.)
+- **Gate**: typecheck PASS / test(527) / lint(0 err) / format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 33 — Configure rooms sync (admin)** (Tier 2) — starting (sync block).
+- **Phase 34 — Trigger a rooms sync (admin)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-33–38 (use-cases).
+34–38 (use-cases).
 
 ## Deferred / Superseded
 
