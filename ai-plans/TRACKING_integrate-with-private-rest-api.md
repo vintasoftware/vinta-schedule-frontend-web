@@ -306,13 +306,20 @@
 
 ## Availability block complete ✅ (phases 25–27)
 
+### Phase 28 — List Calendar Groups (admin) ✅
+
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-28` (base `phase-27`).
+- **PR**: (published below). **Commits**: `b57c456`.
+- **Summary**: `useCalendarGroups` extended for `DataTableQuery` (Phase 18 usage preserved), `GroupsTable` (name/description/slot-count, `showSearch` on — `name` filter), admin-gated `/groups`, nav href. Accepted on focused review.
+- **Gate**: typecheck/test(486)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 28 — List Calendar Groups (admin)** (Tier 2) — starting (groups block; reuses `useCalendarGroups` from Phase 18 + the team-table template).
+- **Phase 29 — Create a Calendar Group (admin)** (Tier 3) — starting (nested slot/pool/required-count builder).
 
 ## Remaining Phases
 
-28–38 (use-cases).
+29–38 (use-cases).
 
 ## Deferred / Superseded
 
