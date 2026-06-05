@@ -179,13 +179,21 @@
 
 ## Calendars block complete ✅ (phases 7–11)
 
+### Phase 12 — View events as a list (member) ✅ [TEMPLATE for events views 13–15]
+
+- **Status**: done, PR opened. **Model**: `claude-sonnet-4-6` (pattern-setting + real logic). **Branch**: `phase-12` (base `phase-11`).
+- **PR**: (published below). **Commits**: `b91ecac` events list, `dbb8f17` review fixes.
+- **Summary**: `useCalendarEvents({range, calendarId?})` (`calendarEventsList`, **overlap** time-range via `toApiRange`, `limit:1000` + `truncated` flag, `invalidateCalendarEvents` predicate helper for phases 16/20/21/22–24), `EventsView` (owns view+anchor(zoned)+calendarId state, renders Phase 0e `CalendarView` agenda mode), member route `/events`, nav href. Review (FIX-FIRST) fixed 2 blockers (invalidation no-op, spurious `'use client'`) + overlap-range, pagination truncation, agenda-window contract, zoned `initialDate`, strengthened tests, stubbed stories.
+- **Patterns for 13–15**: view/anchor/calendarId state on `EventsView`; `agendaLength` prop on `CalendarView`; overlap range; `invalidateCalendarEvents`.
+- **Gate**: typecheck/test(272)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 12 — View events as a list (member)** (Tier 2) — starting (events block; consumes Phase 0e calendar infra).
+- **Phase 13 — View events as a month calendar (member)** (Tier 2) — starting (extends EventsView).
 
 ## Remaining Phases
 
-12–38 (use-cases).
+13–38 (use-cases).
 
 ## Deferred / Superseded
 
