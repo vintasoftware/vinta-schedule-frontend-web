@@ -129,6 +129,7 @@
 - **Gate**: typecheck/test(206)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
 
 ### Phase 6 — Disable a user (admin) ✅
+
 - **Status**: done, PR opened.
 - **Model**: `claude-haiku-4-5` (mirror of phase 4/5 row-action).
 - **Branch**: `plan/integrate-with-private-rest-api/phase-6` (base `phase-5`, stacked).
@@ -139,13 +140,19 @@
 
 ## Team & invitations block complete ✅ (phases 1–6)
 
+### Phase 7 — List my calendars (member) ✅
+- **Status**: done, PR opened. **Model**: `claude-haiku-4-5`. **Branch**: `phase-7` (base `phase-6`).
+- **PR**: (published below). **Commits**: `f9c4f58`.
+- **Summary**: `useMyCalendars` (`calendarList`, limit/offset, `MY_CALENDARS_QUERY_KEY`), `CalendarsTable` (`showSearch={false}`; name/type/provider/status badges), member route `/calendars` (no admin gate), nav href wired. Sync-state column dropped (not on the `Calendar` type). Accepted on focused review (team-template mirror).
+- **Gate**: typecheck/test(217)/lint(0 err)/format green; build only pre-existing `/auth/verify-email`.
+
 ## Current Phase
 
-- **Phase 7 — List my calendars (member)** (Tier 2) — starting (calendars block).
+- **Phase 8 — Create a calendar (member)** (Tier 2) — starting.
 
 ## Remaining Phases
 
-7–38 (use-cases).
+8–38 (use-cases).
 
 ## Deferred / Superseded
 
