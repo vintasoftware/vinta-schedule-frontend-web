@@ -5,11 +5,14 @@ import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { VStack, Text } from '@/components/layout';
 import {
   useCalendarGroups,
   type CalendarGroup,
 } from '@/hooks/calendar-groups/use-calendar-groups';
+import { CreateGroupDialog } from './create-group-dialog';
 
 // ---------------------------------------------------------------------------
 // Column definitions
@@ -65,6 +68,7 @@ function GroupsTableEmpty() {
 // ---------------------------------------------------------------------------
 
 function GroupsTableInner() {
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
   const { query, setPage, setSearch, setOrdering } = useDataTableQuery();
 
   const handleQueryChange = React.useCallback(
@@ -95,17 +99,35 @@ function GroupsTableInner() {
     );
   }
 
+  const toolbarActions = (
+    <Button
+      size='sm'
+      onClick={() => setCreateDialogOpen(true)}
+      data-testid='new-group-button'
+    >
+      <Plus className='mr-1 h-4 w-4' />
+      New group
+    </Button>
+  );
+
   return (
-    <DataTable<CalendarGroup>
-      data={groups}
-      columns={COLUMNS}
-      query={query}
-      onQueryChange={handleQueryChange}
-      totalCount={totalCount}
-      isLoading={isLoading}
-      emptyState={<GroupsTableEmpty />}
-      showSearch={true}
-    />
+    <>
+      <DataTable<CalendarGroup>
+        data={groups}
+        columns={COLUMNS}
+        query={query}
+        onQueryChange={handleQueryChange}
+        totalCount={totalCount}
+        isLoading={isLoading}
+        emptyState={<GroupsTableEmpty />}
+        showSearch={true}
+        toolbarActions={toolbarActions}
+      />
+      <CreateGroupDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
+    </>
   );
 }
 
