@@ -26,11 +26,22 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     calendarList: vi.fn(),
+    calendarDestroy: vi.fn(),
   };
 });
 
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 // After mocks are hoisted, import the modules under test.
-import { calendarList } from '@/client/sdk.gen';
+import { calendarList, calendarDestroy } from '@/client/sdk.gen';
+import { toast } from 'sonner';
+import userEvent from '@testing-library/user-event';
 import { CalendarsTable } from './calendars-table';
 
 // ---------------------------------------------------------------------------
@@ -293,6 +304,224 @@ describe('CalendarsTable', () => {
       };
       expect(queryArgs?.limit).toBe(PAGE_SIZE);
       expect(queryArgs?.offset).toBe(PAGE_SIZE); // page 2: offset = (2-1) * pageSize = 20
+    });
+  });
+
+  describe('delete calendar action', () => {
+    it('renders a delete button for each calendar row', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Should have 3 delete buttons (one per calendar).
+      const deleteButtons = screen.getAllByText('Delete');
+      expect(deleteButtons.length).toBe(3);
+    });
+
+    it('opens a confirm dialog when delete button is clicked', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Click the first delete button.
+      const deleteButtons = screen.getAllByText('Delete');
+      await user.click(deleteButtons[0]);
+
+      // The confirm dialog should open.
+      await waitFor(() => {
+        expect(screen.getByText('Delete calendar')).toBeInTheDocument();
+        expect(
+          screen.getByText(/Are you sure you want to delete/i)
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('calls calendarDestroy when confirm is clicked', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      vi.mocked(calendarDestroy).mockResolvedValue({
+        data: undefined,
+        response: new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      } as unknown as Awaited<ReturnType<typeof calendarDestroy>>);
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Click the first delete button (table row).
+      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+      await user.click(deleteButtons[0]);
+
+      // Wait for the alert dialog to appear.
+      await waitFor(() => {
+        expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      });
+
+      // Find and click the delete confirm button (inside the dialog).
+      const confirmButton = screen
+        .getAllByRole('button', { name: /delete/i })
+        .find(
+          (btn) =>
+            btn.closest('[role="alertdialog"]') !== null &&
+            btn.getAttribute('aria-label') === null
+        );
+      expect(confirmButton).toBeDefined();
+      await user.click(confirmButton!);
+
+      // calendarDestroy should have been called with the calendar id.
+      await waitFor(() => {
+        expect(vi.mocked(calendarDestroy)).toHaveBeenCalled();
+      });
+
+      const calls = vi.mocked(calendarDestroy).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]?.path?.id).toBe('1');
+
+      // Success toast should be shown.
+      expect(vi.mocked(toast.success)).toHaveBeenCalledWith(
+        'Calendar deleted',
+        expect.objectContaining({
+          description: expect.stringContaining('Personal Calendar'),
+        })
+      );
+    });
+
+    it('does not call calendarDestroy when cancel is clicked', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Click the first delete button.
+      const deleteButtons = screen.getAllByText('Delete');
+      await user.click(deleteButtons[0]);
+
+      // Click cancel.
+      await waitFor(() => {
+        expect(screen.getByText('Delete calendar')).toBeInTheDocument();
+      });
+
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+
+      // calendarDestroy should NOT have been called.
+      expect(vi.mocked(calendarDestroy)).not.toHaveBeenCalled();
+    });
+
+    it('shows error toast when delete fails', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      vi.mocked(calendarDestroy).mockRejectedValue(new Error('Delete failed'));
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Click the first delete button.
+      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+      await user.click(deleteButtons[0]);
+
+      // Wait for the alert dialog to appear.
+      await waitFor(() => {
+        expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      });
+
+      // Find and click the delete confirm button (inside the dialog).
+      const confirmButton = screen
+        .getAllByRole('button', { name: /delete/i })
+        .find(
+          (btn) =>
+            btn.closest('[role="alertdialog"]') !== null &&
+            btn.getAttribute('aria-label') === null
+        );
+      expect(confirmButton).toBeDefined();
+      await user.click(confirmButton!);
+
+      // Error toast should be shown.
+      await waitFor(() => {
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+          'Failed to delete calendar',
+          expect.objectContaining({
+            description: 'Delete failed',
+          })
+        );
+      });
+    });
+
+    it('disables delete button while mutation is in progress', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      // Simulate a pending mutation.
+      vi.mocked(calendarDestroy).mockImplementation(
+        () =>
+          new Promise(() => {
+            /* never resolves */
+          }) as never
+      );
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // Click the first delete button.
+      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+      await user.click(deleteButtons[0]);
+
+      // Wait for the alert dialog to appear.
+      await waitFor(() => {
+        expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      });
+
+      // Find and click the delete confirm button (inside the dialog).
+      const confirmButton = screen
+        .getAllByRole('button', { name: /delete/i })
+        .find(
+          (btn) =>
+            btn.closest('[role="alertdialog"]') !== null &&
+            btn.getAttribute('aria-label') === null
+        );
+      expect(confirmButton).toBeDefined();
+      await user.click(confirmButton!);
+
+      // The button should show "Deleting..." (the loading state).
+      await waitFor(() => {
+        const deletingButton = screen.getByText('Deleting…');
+        expect(deletingButton).toBeInTheDocument();
+      });
     });
   });
 });
