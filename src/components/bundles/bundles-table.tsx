@@ -5,9 +5,7 @@
  *
  * Fetches bundles (calendars with calendar_type === 'bundle') via useAllCalendars,
  * filters client-side to show only bundle type, and displays them in a DataTable
- * with columns: Name.
- *
- * No mutations in this phase — Phase 31+ handle edit/disable.
+ * with columns: Name, Actions (Edit).
  */
 
 import * as React from 'react';
@@ -16,24 +14,47 @@ import { DataTable } from '@/components/data-table/data-table';
 import type { DataTableColumn } from '@/components/data-table/types';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
-import { VStack, Text } from '@/components/layout';
+import { VStack, Text, HStack } from '@/components/layout';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil } from 'lucide-react';
 import { CreateBundleDialog } from './create-bundle-dialog';
+import { EditBundleDialog } from './edit-bundle-dialog';
 
 // ---------------------------------------------------------------------------
 // Column definitions
 // ---------------------------------------------------------------------------
 
-const COLUMNS: DataTableColumn<Calendar>[] = [
-  {
-    accessorKey: 'name',
-    id: 'name',
-    header: 'Name',
-    enableSorting: false,
-    cell: ({ row }) => <Text weight='medium'>{row.original.name}</Text>,
-  },
-];
+function makeColumns(
+  onEditClick: (bundle: Calendar) => void
+): DataTableColumn<Calendar>[] {
+  return [
+    {
+      accessorKey: 'name',
+      id: 'name',
+      header: 'Name',
+      enableSorting: false,
+      cell: ({ row }) => <Text weight='medium'>{row.original.name}</Text>,
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <HStack gap={2}>
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => onEditClick(row.original)}
+            aria-label={`Edit ${row.original.name}`}
+            data-testid={`edit-bundle-${row.original.id}`}
+          >
+            <Pencil className='h-4 w-4' />
+          </Button>
+        </HStack>
+      ),
+    },
+  ];
+}
 
 // ---------------------------------------------------------------------------
 // BundlesTableEmpty — custom empty state
@@ -55,6 +76,10 @@ function BundlesTableEmpty() {
 
 function BundlesTableInner() {
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false);
+  const [selectedBundle, setSelectedBundle] = React.useState<Calendar | null>(
+    null
+  );
   const { query, setPage, setSearch, setOrdering } = useDataTableQuery();
 
   const handleQueryChange = React.useCallback(
@@ -65,6 +90,11 @@ function BundlesTableInner() {
     },
     [query, setPage, setSearch, setOrdering]
   );
+
+  const handleEditClick = React.useCallback((bundle: Calendar) => {
+    setSelectedBundle(bundle);
+    setEditDialogOpen(true);
+  }, []);
 
   const { calendars, isLoading, isError, error } = useAllCalendars(query);
 
@@ -100,11 +130,13 @@ function BundlesTableInner() {
     </Button>
   );
 
+  const columns = makeColumns(handleEditClick);
+
   return (
     <>
       <DataTable<Calendar>
         data={bundles}
-        columns={COLUMNS}
+        columns={columns}
         query={query}
         onQueryChange={handleQueryChange}
         totalCount={bundles.length}
@@ -117,6 +149,15 @@ function BundlesTableInner() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
+      {selectedBundle && (
+        <EditBundleDialog
+          bundle={selectedBundle}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          currentChildren={[]}
+          currentPrimary={null}
+        />
+      )}
     </>
   );
 }
