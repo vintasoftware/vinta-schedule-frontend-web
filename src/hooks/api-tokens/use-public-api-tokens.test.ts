@@ -34,6 +34,7 @@ import type {
 import {
   usePublicApiTokens,
   useCreatePublicApiToken,
+  PUBLIC_API_TOKENS_QUERY_KEY,
 } from './use-public-api-tokens';
 
 // ---------------------------------------------------------------------------
@@ -229,16 +230,31 @@ describe('useCreatePublicApiToken', () => {
       expect(publicApiTokensList).toHaveBeenCalledTimes(2);
     });
 
-    // List query cache must not contain any secret
-    const cached = queryClient.getQueryData<PaginatedSystemUserTokenList>([
-      { _id: 'publicApiTokensList' },
-    ]);
-    // Verify list results don't have 'token' field
-    if (cached?.results) {
-      cached.results.forEach((item) => {
-        expect('token' in item).toBe(false);
-      });
-    }
+    // List query cache must not contain any secret.
+    // Use prefix match via PUBLIC_API_TOKENS_QUERY_KEY (covers all paginated
+    // variants — different limit/offset combos share the same _id prefix).
+    const allEntries = queryClient.getQueriesData<PaginatedSystemUserTokenList>(
+      { queryKey: PUBLIC_API_TOKENS_QUERY_KEY }
+    );
+
+    // Sanity-guard: at least one cache entry must exist so the per-item
+    // assertions below are not vacuously skipped.
+    expect(allEntries.length).toBeGreaterThan(0);
+
+    // None of the cached list items should contain the secret field.
+    const secretInCache = allEntries.some(([, data]) =>
+      data?.results?.some((item) => 'token' in item)
+    );
+    expect(secretInCache).toBe(false);
+
+    // Also verify the create response's secret is NOT present in any cached
+    // entry (the list serializer never includes the plaintext secret).
+    const secretValueInCache = allEntries.some(([, data]) =>
+      data?.results?.some(
+        (item) => (item as Record<string, unknown>).token === 'once-secret'
+      )
+    );
+    expect(secretValueInCache).toBe(false);
   });
 
   it('throws when the create endpoint fails', async () => {

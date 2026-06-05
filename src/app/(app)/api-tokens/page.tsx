@@ -1,8 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Stack } from '@/components/layout/stack';
-import { PageHeader } from '@/components/layout/page-header';
+import { Stack, PageHeader } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';

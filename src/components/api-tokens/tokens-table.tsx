@@ -5,7 +5,7 @@ import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from '@/components/ui/badge';
-import { VStack, Text } from '@/components/layout';
+import { Flex, VStack, Text } from '@/components/layout';
 import { usePublicApiTokens } from '@/hooks/api-tokens/use-public-api-tokens';
 import type { SystemUserToken } from '@/hooks/api-tokens/use-public-api-tokens';
 
@@ -31,7 +31,7 @@ export const COLUMNS: DataTableColumn<SystemUserToken>[] = [
     header: 'Scopes',
     enableSorting: false,
     cell: ({ row }) => (
-      <div className='flex flex-wrap gap-1'>
+      <Flex wrap gap={1}>
         {row.original.available_resources.length === 0 ? (
           <Text color='muted-foreground' size='sm'>
             —
@@ -43,7 +43,7 @@ export const COLUMNS: DataTableColumn<SystemUserToken>[] = [
             </Badge>
           ))
         )}
-      </div>
+      </Flex>
     ),
   },
   {

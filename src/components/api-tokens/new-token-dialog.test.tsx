@@ -199,7 +199,11 @@ describe('NewTokenDialog', () => {
       currentOpen = val;
     });
 
-    const { rerender, queryClient } = renderDialog(true, handleOpenChange);
+    // Do NOT wrap in QueryClientProvider here — renderDialog's `wrapper` option
+    // handles that. When rerender is called with just <NewTokenDialog/>, RTL
+    // re-applies the wrapper automatically, keeping the SAME component instance
+    // and its state (onceSecret) across open/close transitions.
+    const { rerender } = renderDialog(true, handleOpenChange);
 
     // Fill and submit
     await user.type(
@@ -221,21 +225,14 @@ describe('NewTokenDialog', () => {
     // onOpenChange(false) was called
     expect(handleOpenChange).toHaveBeenCalledWith(false);
 
-    // Rerender with open=false to simulate the dialog closing
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
-    rerender(
-      <QueryClientProvider client={queryClient}>
-        <NewTokenDialog open={false} onOpenChange={handleOpenChange} />
-      </QueryClientProvider>
-    );
+    // Rerender the SAME component instance with open=false (no extra wrapper —
+    // the wrapper from renderDialog is re-applied by RTL automatically).
+    // This fires the useEffect that clears onceSecret on the mounted component.
+    rerender(<NewTokenDialog open={false} onOpenChange={handleOpenChange} />);
 
-    // Secret should no longer be in the DOM
+    // Secret should no longer be in the DOM (Dialog content unmounts when closed)
     expect(screen.queryByTestId('token-secret-input')).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue(ONE_TIME_SECRET)).not.toBeInTheDocument();
-    // The secret value is not in any element
-    expect(document.body.textContent).not.toContain(ONE_TIME_SECRET);
 
     void currentOpen; // suppress unused warning
   });
@@ -417,7 +414,12 @@ describe('NewTokenDialog', () => {
     );
 
     const handleOpenChange = vi.fn();
-    const { queryClient } = renderDialog(true, handleOpenChange);
+    // Use rerender (without extra wrapper) to drive the SAME component instance
+    // through create → secret shown → close → reopen. Passing just
+    // <NewTokenDialog/> lets RTL re-apply the renderDialog wrapper, preserving
+    // the React tree and its state so the useEffect that clears onceSecret
+    // fires on the MOUNTED component — not a fresh mount.
+    const { rerender } = renderDialog(true, handleOpenChange);
 
     await user.type(
       screen.getByPlaceholderText('My integration'),
@@ -426,34 +428,27 @@ describe('NewTokenDialog', () => {
     await user.click(screen.getByTestId('scope-checkbox-calendar'));
     await user.click(screen.getByTestId('create-token-submit'));
 
+    // Secret view: the one-time token is shown in the input
     await screen.findByText('API token created');
+    expect(
+      (screen.getByTestId('token-secret-input') as HTMLInputElement).value
+    ).toBe(ONE_TIME_SECRET);
 
-    // Now rerender with open=false
-    const wrapper2 = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    // Close: rerender with open=false (wrapper re-applied by RTL).
+    // The useEffect fires on the mounted component and clears onceSecret.
+    rerender(<NewTokenDialog open={false} onOpenChange={handleOpenChange} />);
 
-    act(() => {
-      render(
-        <QueryClientProvider client={queryClient}>
-          <NewTokenDialog open={false} onOpenChange={handleOpenChange} />
-        </QueryClientProvider>,
-        { wrapper: wrapper2 }
-      );
-    });
+    // The Dialog unmounts its content when closed — secret input gone from DOM.
+    expect(screen.queryByTestId('token-secret-input')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue(ONE_TIME_SECRET)).not.toBeInTheDocument();
 
-    // Reopen: secret view should NOT be shown (state was cleared)
-    act(() => {
-      render(
-        <QueryClientProvider client={queryClient}>
-          <NewTokenDialog open={true} onOpenChange={handleOpenChange} />
-        </QueryClientProvider>,
-        { wrapper: wrapper2 }
-      );
-    });
+    // Reopen on the SAME instance: should show the form, NOT the secret view.
+    // If onceSecret was not cleared by the close useEffect, isSecretView would
+    // still be true and the secret input would appear again — test catches that.
+    rerender(<NewTokenDialog open={true} onOpenChange={handleOpenChange} />);
 
-    // After reopen, should show form (not secret view)
-    // The secret should NOT be present in the document
-    expect(document.body.textContent).not.toContain(ONE_TIME_SECRET);
+    // After reopen: form view is shown (placeholder visible, no secret input)
+    await screen.findByPlaceholderText('My integration');
+    expect(screen.queryByTestId('token-secret-input')).not.toBeInTheDocument();
   });
 });

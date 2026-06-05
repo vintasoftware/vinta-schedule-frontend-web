@@ -88,10 +88,10 @@ export function useCreatePublicApiToken() {
       // Invalidate the list so metadata (name, scopes, active status) refreshes.
       // We do NOT cache or forward the secret here — it is only in the return
       // value of mutateAsync, which the dialog captures into local state.
+      // Use the exported key for a prefix match so all paginated variants
+      // (different limit/offset combos) are invalidated together.
       queryClient.invalidateQueries({
-        predicate: (q) =>
-          Array.isArray(q.queryKey) &&
-          (q.queryKey[0] as { _id?: string })?._id === 'publicApiTokensList',
+        queryKey: PUBLIC_API_TOKENS_QUERY_KEY,
       });
     },
   });
