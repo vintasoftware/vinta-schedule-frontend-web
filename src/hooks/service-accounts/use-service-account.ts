@@ -5,6 +5,7 @@ import type {
 } from '@/client';
 import {
   serviceAccountsListOptions,
+  serviceAccountsListQueryKey,
   serviceAccountsCreateMutation,
   serviceAccountsPartialUpdateMutation,
   serviceAccountsDestroyMutation,
@@ -14,10 +15,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 // ---------------------------------------------------------------------------
 // SERVICE_ACCOUNT_QUERY_KEY
 //
-// Used by all mutations to invalidate the list after create/patch/delete.
+// Derived from the generated query-key factory (no args) so that
+// invalidateQueries prefix-matches all parameterised variants of the list
+// (e.g. { query: { limit: 1 } }). A hand-rolled ['serviceAccountsList']
+// string key would NOT match the object-shaped keys the generated client uses.
 // ---------------------------------------------------------------------------
 
-export const SERVICE_ACCOUNT_QUERY_KEY = ['serviceAccountsList'] as const;
+export const SERVICE_ACCOUNT_QUERY_KEY = serviceAccountsListQueryKey();
 
 // ---------------------------------------------------------------------------
 // useServiceAccount

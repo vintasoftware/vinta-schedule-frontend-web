@@ -54,6 +54,7 @@ import {
   FormItem,
   FormLabel,
   FormControl,
+  FormDescription,
   FormMessage,
 } from '@/components/ui/form';
 import { Badge } from '@/components/ui/badge';
@@ -212,6 +213,7 @@ function ServiceAccountFormDialog({
                 onChange={(e) => handlePasteJson(e.target.value)}
                 rows={3}
                 className='font-mono text-xs'
+                autoComplete='off'
                 data-testid='paste-json-textarea'
               />
             </VStack>
@@ -308,10 +310,16 @@ function ServiceAccountFormDialog({
                       autoComplete='off'
                       rows={4}
                       className='font-mono text-xs'
+                      style={
+                        { WebkitTextSecurity: 'disc' } as React.CSSProperties
+                      }
                       {...field}
                       data-testid='service-account-private-key'
                     />
                   </FormControl>
+                  <FormDescription>
+                    Cleared when you close this dialog.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -372,7 +380,7 @@ export function ServiceAccountCard() {
 
   if (isLoading) {
     return (
-      <Box className='border-border rounded-lg border p-6'>
+      <Box p={6} radius='lg' border borderColor='border'>
         <Text color='muted-foreground' size='sm'>
           Loading service account…
         </Text>
@@ -382,7 +390,7 @@ export function ServiceAccountCard() {
 
   return (
     <>
-      <Box className='border-border rounded-lg border p-6'>
+      <Box p={6} radius='lg' border borderColor='border'>
         <VStack gap={4}>
           <HStack gap={2} align='center'>
             <Settings
