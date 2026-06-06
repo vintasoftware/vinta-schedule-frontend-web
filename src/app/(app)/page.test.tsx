@@ -36,8 +36,8 @@ vi.mock('@/hooks/calendars/use-my-calendars', () => ({
   useMyCalendars: vi.fn(),
 }));
 
-vi.mock('@/hooks/availability/use-blocked-times', () => ({
-  useBlockedTimes: vi.fn(),
+vi.mock('@/hooks/availability/use-my-availability', () => ({
+  useMyAvailability: vi.fn(),
 }));
 
 vi.mock('@/hooks/calendars/use-request-calendar-sync', () => ({
@@ -51,7 +51,7 @@ vi.mock('@/hooks/calendars/use-request-calendar-sync', () => ({
 import { useProfile } from '@/hooks/users/use-profile';
 import { useCalendarEvents } from '@/hooks/events/use-calendar-events';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
-import { useBlockedTimes } from '@/hooks/availability/use-blocked-times';
+import { useMyAvailability } from '@/hooks/availability/use-my-availability';
 import { useRequestCalendarSync } from '@/hooks/calendars/use-request-calendar-sync';
 import { toast } from 'sonner';
 
@@ -108,6 +108,32 @@ function buildCalendar(overrides: {
   };
 }
 
+type UseMyAvailabilityReturn = ReturnType<typeof useMyAvailability>;
+
+function makeAvailabilityResult(
+  overrides: Partial<UseMyAvailabilityReturn> = {}
+): UseMyAvailabilityReturn {
+  return {
+    defaultCalendar: {
+      id: 1,
+      name: 'Work Calendar',
+      email: 'u@example.com',
+      external_id: 'ext-1',
+      provider: 'google',
+      calendar_type: 'personal',
+      capacity: null,
+      manage_available_windows: false,
+      is_active: true,
+    },
+    hasDefault: true,
+    freeWindows: [],
+    busyWindows: [],
+    isLoading: false,
+    isError: false,
+    ...overrides,
+  };
+}
+
 /** Set up all hook mocks with sensible defaults. */
 function setupMocks({
   profile = { first_name: 'Alice', last_name: 'Smith' },
@@ -119,8 +145,7 @@ function setupMocks({
   calendarTotal = 0,
   calendarsLoading = false,
   calendarsError = false,
-  blockedTimes = [] as unknown[],
-  blockedLoading = false,
+  availabilityResult = makeAvailabilityResult(),
   requestSync = vi.fn().mockResolvedValue(undefined),
   isPending = false,
 } = {}) {
@@ -157,23 +182,7 @@ function setupMocks({
     >['calendarsQuery'],
   });
 
-  vi.mocked(useBlockedTimes).mockReturnValue({
-    blockedTimes: blockedTimes as unknown as ReturnType<
-      typeof useBlockedTimes
-    >['blockedTimes'],
-    isLoading: blockedLoading,
-    isError: false,
-    error: null,
-    blockedTimesQuery: {} as unknown as ReturnType<
-      typeof useBlockedTimes
-    >['blockedTimesQuery'],
-    createBlockedTime: vi.fn(),
-    createRecurringBlockedTime: vi.fn(),
-    bulkCreateMutation: {} as unknown as ReturnType<
-      typeof useBlockedTimes
-    >['bulkCreateMutation'],
-    isPending: false,
-  });
+  vi.mocked(useMyAvailability).mockReturnValue(availabilityResult);
 
   const requestSyncMutation = {
     isPending,
@@ -335,29 +344,80 @@ describe('DashboardPage', () => {
 
   // ---- Availability tile ---------------------------------------------------
 
-  it('shows the blocked windows count', () => {
-    setupMocks({ blockedTimes: [{ id: 1 }, { id: 2 }] });
+  it('shows busy and free count summary for next 7 days', () => {
+    setupMocks({
+      availabilityResult: makeAvailabilityResult({
+        busyWindows: [
+          {
+            id: 1,
+            start_time: '2025-06-01T09:00:00',
+            end_time: '2025-06-01T10:00:00',
+            reason_description: 'Meeting',
+            source: 'event',
+          },
+          {
+            id: 2,
+            start_time: '2025-06-02T09:00:00',
+            end_time: '2025-06-02T10:00:00',
+            reason_description: 'Blocked',
+            source: 'block',
+          },
+        ],
+        freeWindows: [
+          {
+            id: 3,
+            start_time: '2025-06-01T14:00:00',
+            end_time: '2025-06-01T15:00:00',
+            can_book_partially: true,
+          },
+          {
+            id: 4,
+            start_time: '2025-06-03T14:00:00',
+            end_time: '2025-06-03T15:00:00',
+            can_book_partially: true,
+          },
+          {
+            id: 5,
+            start_time: '2025-06-05T14:00:00',
+            end_time: '2025-06-05T15:00:00',
+            can_book_partially: true,
+          },
+        ],
+      }),
+    });
     render(<DashboardPage />);
-    expect(screen.getByText('2 blocked windows')).toBeInTheDocument();
+    expect(
+      screen.getByText('Next 7 days · 2 busy · 3 free')
+    ).toBeInTheDocument();
   });
 
-  it('shows "No blocked windows" when none exist', () => {
-    setupMocks({ blockedTimes: [] });
+  it('shows "No default calendar" empty state when hasDefault is false', () => {
+    setupMocks({
+      availabilityResult: makeAvailabilityResult({
+        defaultCalendar: null,
+        hasDefault: false,
+      }),
+    });
     render(<DashboardPage />);
-    expect(screen.getByText('No blocked windows')).toBeInTheDocument();
+    expect(screen.getByText('No default calendar')).toBeInTheDocument();
+    const link = screen.getAllByRole('link', { name: 'Connect a calendar' });
+    expect(link.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders availability skeleton while loading', () => {
-    setupMocks({ blockedLoading: true });
+    setupMocks({
+      availabilityResult: makeAvailabilityResult({ isLoading: true }),
+    });
     render(<DashboardPage />);
-    // Availability tile does not show count while loading
-    expect(screen.queryByText('No blocked windows')).not.toBeInTheDocument();
+    // Availability tile does not show summary while loading
+    expect(screen.queryByText(/Next 7 days/)).not.toBeInTheDocument();
   });
 
-  it('shows singular "window" for a count of 1', () => {
-    setupMocks({ blockedTimes: [{ id: 1 }] });
+  it('shows "Manage availability" footer link', () => {
     render(<DashboardPage />);
-    expect(screen.getByText('1 blocked window')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /manage availability/i })
+    ).toBeInTheDocument();
   });
 
   // ---- Quick actions tile --------------------------------------------------
@@ -382,11 +442,10 @@ describe('DashboardPage', () => {
       profileLoading: true,
       eventsLoading: true,
       calendarsLoading: true,
-      blockedLoading: true,
+      availabilityResult: makeAvailabilityResult({ isLoading: true }),
       profile: null as unknown as { first_name: string; last_name: string },
       events: [],
       calendars: [],
-      blockedTimes: [],
     });
     expect(() => render(<DashboardPage />)).not.toThrow();
   });

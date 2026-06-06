@@ -1065,7 +1065,7 @@ export type ServiceAccountRead = {
  */
 export type ServiceAccountWrite = {
     email: string;
-    audience: string;
+    audience?: string;
     public_key: string;
 };
 
@@ -1790,7 +1790,7 @@ export type ResourceAllocationWritable = {
  */
 export type ServiceAccountWriteWritable = {
     email: string;
-    audience: string;
+    audience?: string;
     public_key: string;
     private_key_id: string;
     private_key: string;
@@ -4269,6 +4269,48 @@ export type CalendarBundleFormattedCreateResponses = {
 };
 
 export type CalendarBundleFormattedCreateResponse = CalendarBundleFormattedCreateResponses[keyof CalendarBundleFormattedCreateResponses];
+
+export type CalendarDefaultRetrieveData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/calendar/default/';
+};
+
+export type CalendarDefaultRetrieveErrors = {
+    /**
+     * No default calendar for this user
+     */
+    404: unknown;
+};
+
+export type CalendarDefaultRetrieveResponses = {
+    200: Calendar;
+};
+
+export type CalendarDefaultRetrieveResponse = CalendarDefaultRetrieveResponses[keyof CalendarDefaultRetrieveResponses];
+
+export type CalendarDefaultFormattedRetrieveData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/calendar/default{format}';
+};
+
+export type CalendarDefaultFormattedRetrieveErrors = {
+    /**
+     * No default calendar for this user
+     */
+    404: unknown;
+};
+
+export type CalendarDefaultFormattedRetrieveResponses = {
+    200: Calendar;
+};
+
+export type CalendarDefaultFormattedRetrieveResponse = CalendarDefaultFormattedRetrieveResponses[keyof CalendarDefaultFormattedRetrieveResponses];
 
 export type CalendarRequestImportCreateData = {
     body: CalendarWritable;

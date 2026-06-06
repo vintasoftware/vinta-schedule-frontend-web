@@ -17,6 +17,9 @@
  * manually (a numeric id visible in admin or shared by the colleague). When
  * the backend exposes a member → calendar mapping, this input can be replaced
  * by an auto-resolved colleague picker without changing the hook interface.
+ *
+ * Note: Colleague free/busy reflects calendar events only; blocked times
+ * aren't exposed for other users.
  * -----------------------------------------------------------------------
  *
  * UI:
@@ -28,18 +31,17 @@
  */
 
 import * as React from 'react';
-import { Calendar, Clock, AlertCircle, Info } from 'lucide-react';
+import { Calendar, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { HStack, VStack, Stack, Text, Heading } from '@/components/layout';
+import { HStack, VStack, Stack } from '@/components/layout';
 import {
   useUserAvailability,
   type DateRange,
 } from '@/hooks/availability/use-user-availability';
+import { FreeBusyList } from './free-busy-list';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -51,42 +53,6 @@ function toStartDatetime(dateStr: string): string {
 
 function toEndDatetime(dateStr: string): string {
   return `${dateStr}T23:59:59`;
-}
-
-function formatTime(isoDatetime: string): string {
-  try {
-    const d = new Date(isoDatetime);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return isoDatetime;
-  }
-}
-
-function formatDate(isoDatetime: string): string {
-  try {
-    const d = new Date(isoDatetime);
-    return d.toLocaleDateString([], {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return isoDatetime.slice(0, 10);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function LoadingSkeleton() {
-  return (
-    <VStack gap={2}>
-      {[1, 2, 3].map((n) => (
-        <Skeleton key={n} className='h-12 w-full rounded-md' />
-      ))}
-    </VStack>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -105,8 +71,10 @@ export function UserAvailabilityView() {
   const range = submittedParams?.range ?? null;
   const activeCalendarId = submittedParams?.calendarId ?? '';
 
-  const { freeWindows, busyWindows, isLoading, isError, error } =
-    useUserAvailability(activeCalendarId, range);
+  const { freeWindows, busyWindows, isLoading, isError } = useUserAvailability(
+    activeCalendarId,
+    range
+  );
 
   function handleCheck() {
     if (!calendarId.trim() || !startDate || !endDate) return;
@@ -118,33 +86,6 @@ export function UserAvailabilityView() {
       },
     });
   }
-
-  const hasResults = !isLoading && !isError && submittedParams !== null;
-  const totalWindows = freeWindows.length + busyWindows.length;
-
-  // Merge and sort windows chronologically for display
-  type WindowEntry =
-    | { kind: 'free'; start_time: string; end_time: string }
-    | {
-        kind: 'busy';
-        start_time: string;
-        end_time: string;
-        reason_description: string;
-      };
-
-  const mergedWindows: WindowEntry[] = [
-    ...freeWindows.map((w) => ({
-      kind: 'free' as const,
-      start_time: w.start_time,
-      end_time: w.end_time,
-    })),
-    ...busyWindows.map((w) => ({
-      kind: 'busy' as const,
-      start_time: w.start_time,
-      end_time: w.end_time,
-      reason_description: w.reason_description,
-    })),
-  ].sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   return (
     <Stack gap={6}>
@@ -208,80 +149,17 @@ export function UserAvailabilityView() {
         </Button>
       </Stack>
 
-      {/* Results */}
-      {isLoading && <LoadingSkeleton />}
-
-      {isError && (
-        <Alert variant='destructive'>
-          <AlertCircle className='h-4 w-4' />
-          <AlertDescription>
-            {error?.message ??
-              'Failed to load availability. Check the calendar ID and try again.'}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {hasResults && totalWindows === 0 && (
-        <Text color='muted-foreground' className='py-4 text-center'>
-          No availability windows found for this range.
-        </Text>
-      )}
-
-      {hasResults && totalWindows > 0 && (
-        <Stack gap={3}>
-          <Heading size='sm'>
-            Free/busy for calendar {submittedParams!.calendarId}
-          </Heading>
-          <HStack gap={4} className='text-sm'>
-            <HStack gap={1}>
-              <span className='inline-block h-3 w-3 rounded-sm bg-green-500' />
-              <Text>Free ({freeWindows.length})</Text>
-            </HStack>
-            <HStack gap={1}>
-              <span className='inline-block h-3 w-3 rounded-sm bg-red-500' />
-              <Text>Busy ({busyWindows.length})</Text>
-            </HStack>
-          </HStack>
-
-          <VStack gap={2}>
-            {mergedWindows.map((w, idx) => (
-              <HStack
-                key={idx}
-                gap={3}
-                className={[
-                  'rounded-md border px-4 py-3',
-                  w.kind === 'free'
-                    ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'
-                    : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950',
-                ].join(' ')}
-              >
-                <Badge
-                  variant={w.kind === 'free' ? 'success' : 'danger'}
-                  className='shrink-0'
-                >
-                  {w.kind === 'free' ? 'Free' : 'Busy'}
-                </Badge>
-                <Stack gap={0}>
-                  <Text className='text-sm font-medium'>
-                    {formatDate(w.start_time)}
-                  </Text>
-                  <HStack gap={1} className='text-muted-foreground text-xs'>
-                    <Clock className='h-3 w-3' />
-                    <span>
-                      {formatTime(w.start_time)} – {formatTime(w.end_time)}
-                    </span>
-                  </HStack>
-                </Stack>
-                {/* Busy windows show reason_description (a system label), never private event titles */}
-                {w.kind === 'busy' && w.reason_description && (
-                  <Text color='muted-foreground' className='ml-auto text-xs'>
-                    {w.reason_description}
-                  </Text>
-                )}
-              </HStack>
-            ))}
-          </VStack>
-        </Stack>
+      {/* Results — only shown after submitting */}
+      {submittedParams !== null && (
+        <VStack gap={4}>
+          <FreeBusyList
+            freeWindows={freeWindows}
+            busyWindows={busyWindows}
+            isLoading={isLoading}
+            isError={isError}
+            calendarLabel={submittedParams.calendarId}
+          />
+        </VStack>
       )}
     </Stack>
   );

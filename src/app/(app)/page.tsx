@@ -31,7 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useProfile } from '@/hooks/users/use-profile';
 import { useCalendarEvents } from '@/hooks/events/use-calendar-events';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
-import { useBlockedTimes } from '@/hooks/availability/use-blocked-times';
+import { useMyAvailability } from '@/hooks/availability/use-my-availability';
 import { useRequestCalendarSync } from '@/hooks/calendars/use-request-calendar-sync';
 
 import { DateTime, eventRange, zonedFormat } from '@/lib/datetime/index';
@@ -72,7 +72,21 @@ export default function DashboardPage() {
     isError: calendarsError,
   } = useMyCalendars({ ...DEFAULT_DATA_TABLE_QUERY, pageSize: 100 });
 
-  const { blockedTimes, isLoading: blockedLoading } = useBlockedTimes();
+  // Availability tile: self free/busy over next 7 days (events + blocks).
+  const next7dRange = React.useMemo(
+    () => ({
+      startDatetime: range.start.toISO() ?? '',
+      endDatetime: range.end.toISO() ?? '',
+    }),
+    [range]
+  );
+
+  const {
+    hasDefault: availHasDefault,
+    freeWindows,
+    busyWindows,
+    isLoading: availLoading,
+  } = useMyAvailability(next7dRange);
 
   const { requestSync, requestSyncMutation } = useRequestCalendarSync();
 
@@ -148,8 +162,10 @@ export default function DashboardPage() {
 
         {/* ---- Availability ---- */}
         <AvailabilityTile
-          blockedCount={blockedTimes.length}
-          isLoading={blockedLoading}
+          hasDefault={availHasDefault}
+          busyCount={busyWindows.length}
+          freeCount={freeWindows.length}
+          isLoading={availLoading}
         />
 
         {/* ---- Quick actions ---- */}
@@ -361,11 +377,18 @@ function MyCalendarsTile({
 // ---------------------------------------------------------------------------
 
 interface AvailabilityTileProps {
-  blockedCount: number;
+  hasDefault: boolean;
+  busyCount: number;
+  freeCount: number;
   isLoading: boolean;
 }
 
-function AvailabilityTile({ blockedCount, isLoading }: AvailabilityTileProps) {
+function AvailabilityTile({
+  hasDefault,
+  busyCount,
+  freeCount,
+  isLoading,
+}: AvailabilityTileProps) {
   return (
     <Card className='h-full'>
       <CardHeader>
@@ -378,11 +401,18 @@ function AvailabilityTile({ blockedCount, isLoading }: AvailabilityTileProps) {
       <CardContent>
         {isLoading ? (
           <Skeleton className='h-8 w-3/4' />
+        ) : !hasDefault ? (
+          <VStack gap={2}>
+            <Text size='sm' color='muted-foreground'>
+              No default calendar
+            </Text>
+            <Button variant='link' size='sm' className='p-0' asChild>
+              <Link href='/calendars'>Connect a calendar</Link>
+            </Button>
+          </VStack>
         ) : (
           <Text size='sm' color='muted-foreground'>
-            {blockedCount === 0
-              ? 'No blocked windows'
-              : `${blockedCount} blocked ${blockedCount === 1 ? 'window' : 'windows'}`}
+            Next 7 days · {busyCount} busy · {freeCount} free
           </Text>
         )}
       </CardContent>

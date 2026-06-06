@@ -255,7 +255,9 @@ describe('UserAvailabilityView', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/network error/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/failed to load availability/i)
+      ).toBeInTheDocument();
     });
   });
 

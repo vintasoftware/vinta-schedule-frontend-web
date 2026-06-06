@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { AvailabilityEditor } from '@/components/availability/availability-editor';
 import { BlockedTimeForm } from '@/components/availability/blocked-time-form';
 import { UserAvailabilityView } from '@/components/availability/user-availability-view';
+import { MyAvailabilityView } from '@/components/availability/my-availability-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /**
@@ -17,9 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
  * Renders:
  *  - PageHeader "Availability"
  *  - Tabs:
+ *    - "My availability" tab (default): MyAvailabilityView (self free/busy, events + blocks)
  *    - "Available times" tab: AvailabilityEditor (weekly patterns + ad-hoc dates)
  *    - "Blocked times" tab: BlockedTimeForm (one-off + recurring blocks)
- *    - "Colleague availability" tab: UserAvailabilityView (free/busy for a colleague)
+ *    - "Colleague availability" tab: UserAvailabilityView (free/busy for a colleague,
+ *       events-only — blocked times aren't exposed for other users)
  */
 export default function AvailabilityPage() {
   return (
@@ -28,12 +31,16 @@ export default function AvailabilityPage() {
         title='Availability'
         description='Set your weekly available hours, one-off windows, and blocked times.'
       />
-      <Tabs defaultValue='available' className='w-full'>
+      <Tabs defaultValue='mine' className='w-full'>
         <TabsList>
+          <TabsTrigger value='mine'>My availability</TabsTrigger>
           <TabsTrigger value='available'>Available times</TabsTrigger>
           <TabsTrigger value='blocked'>Blocked times</TabsTrigger>
           <TabsTrigger value='colleague'>Colleague availability</TabsTrigger>
         </TabsList>
+        <TabsContent value='mine'>
+          <MyAvailabilityView />
+        </TabsContent>
         <TabsContent value='available'>
           <AvailabilityEditor />
         </TabsContent>
@@ -41,7 +48,9 @@ export default function AvailabilityPage() {
           <BlockedTimeForm />
         </TabsContent>
         <TabsContent value='colleague'>
-          <UserAvailabilityView />
+          <Stack gap={3}>
+            <UserAvailabilityView />
+          </Stack>
         </TabsContent>
       </Tabs>
     </Stack>
