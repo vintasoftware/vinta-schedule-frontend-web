@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AvailableTimesBulkCreateCreateData, AvailableTimesBulkCreateCreateResponses, AvailableTimesBulkCreateFormattedCreateData, AvailableTimesBulkCreateFormattedCreateResponses, AvailableTimesBulkModifyCreateData, AvailableTimesBulkModifyCreateResponses, AvailableTimesBulkModifyFormattedCreateData, AvailableTimesBulkModifyFormattedCreateResponses, AvailableTimesCreateData, AvailableTimesCreateExceptionCreateData, AvailableTimesCreateExceptionCreateResponses, AvailableTimesCreateExceptionFormattedCreateData, AvailableTimesCreateExceptionFormattedCreateResponses, AvailableTimesCreateResponses, AvailableTimesDestroyData, AvailableTimesDestroyResponses, AvailableTimesExpandedFormattedListData, AvailableTimesExpandedFormattedListResponses, AvailableTimesExpandedListData, AvailableTimesExpandedListResponses, AvailableTimesFormattedCreateData, AvailableTimesFormattedCreateResponses, AvailableTimesFormattedDestroyData, AvailableTimesFormattedDestroyResponses, AvailableTimesFormattedListData, AvailableTimesFormattedListResponses, AvailableTimesFormattedPartialUpdateData, AvailableTimesFormattedPartialUpdateResponses, AvailableTimesFormattedRetrieveData, AvailableTimesFormattedRetrieveResponses, AvailableTimesFormattedUpdateData, AvailableTimesFormattedUpdateResponses, AvailableTimesListData, AvailableTimesListResponses, AvailableTimesPartialUpdateData, AvailableTimesPartialUpdateResponses, AvailableTimesRetrieveData, AvailableTimesRetrieveResponses, AvailableTimesUpdateData, AvailableTimesUpdateResponses, BillingProfileCreateBillingProfileCreateData, BillingProfileCreateBillingProfileCreateResponses, BillingProfileCreateBillingProfileFormattedCreateData, BillingProfileCreateBillingProfileFormattedCreateResponses, BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateData, BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateResponses, BillingProfilePartialUpdateBillingProfilePartialUpdateData, BillingProfilePartialUpdateBillingProfilePartialUpdateResponses, BillingProfileRetrieveBillingProfileFormattedRetrieveData, BillingProfileRetrieveBillingProfileFormattedRetrieveResponses, BillingProfileRetrieveBillingProfileRetrieveData, BillingProfileRetrieveBillingProfileRetrieveResponses, BillingProfileUpdateBillingProfileFormattedUpdateData, BillingProfileUpdateBillingProfileFormattedUpdateResponses, BillingProfileUpdateBillingProfileUpdateData, BillingProfileUpdateBillingProfileUpdateResponses, BlockedTimesBulkCreateCreateData, BlockedTimesBulkCreateCreateResponses, BlockedTimesBulkCreateFormattedCreateData, BlockedTimesBulkCreateFormattedCreateResponses, BlockedTimesBulkModifyCreateData, BlockedTimesBulkModifyCreateResponses, BlockedTimesBulkModifyFormattedCreateData, BlockedTimesBulkModifyFormattedCreateResponses, BlockedTimesCreateData, BlockedTimesCreateExceptionCreateData, BlockedTimesCreateExceptionCreateResponses, BlockedTimesCreateExceptionFormattedCreateData, BlockedTimesCreateExceptionFormattedCreateResponses, BlockedTimesCreateResponses, BlockedTimesDestroyData, BlockedTimesDestroyResponses, BlockedTimesExpandedFormattedListData, BlockedTimesExpandedFormattedListResponses, BlockedTimesExpandedListData, BlockedTimesExpandedListResponses, BlockedTimesFormattedCreateData, BlockedTimesFormattedCreateResponses, BlockedTimesFormattedDestroyData, BlockedTimesFormattedDestroyResponses, BlockedTimesFormattedListData, BlockedTimesFormattedListResponses, BlockedTimesFormattedPartialUpdateData, BlockedTimesFormattedPartialUpdateResponses, BlockedTimesFormattedRetrieveData, BlockedTimesFormattedRetrieveResponses, BlockedTimesFormattedUpdateData, BlockedTimesFormattedUpdateResponses, BlockedTimesListData, BlockedTimesListResponses, BlockedTimesPartialUpdateData, BlockedTimesPartialUpdateResponses, BlockedTimesRetrieveData, BlockedTimesRetrieveResponses, BlockedTimesUpdateData, BlockedTimesUpdateResponses, CalendarAdminSyncCreateData, CalendarAdminSyncCreateResponses, CalendarAdminSyncFormattedCreateData, CalendarAdminSyncFormattedCreateResponses, CalendarAvailableWindowsFormattedListData, CalendarAvailableWindowsFormattedListResponses, CalendarAvailableWindowsListData, CalendarAvailableWindowsListResponses, CalendarBundleCreateData, CalendarBundleCreateResponses, CalendarBundleFormattedCreateData, CalendarBundleFormattedCreateResponses, CalendarBundleFormattedPartialUpdateData, CalendarBundleFormattedPartialUpdateResponses, CalendarBundlePartialUpdateData, CalendarBundlePartialUpdateResponses, CalendarCreateData, CalendarCreateResponses, CalendarDestroyData, CalendarDestroyResponses, CalendarEventsBulkModifyCreateData, CalendarEventsBulkModifyCreateResponses, CalendarEventsBulkModifyFormattedCreateData, CalendarEventsBulkModifyFormattedCreateResponses, CalendarEventsCreateData, CalendarEventsCreateExceptionCreateData, CalendarEventsCreateExceptionCreateResponses, CalendarEventsCreateExceptionFormattedCreateData, CalendarEventsCreateExceptionFormattedCreateResponses, CalendarEventsCreateResponses, CalendarEventsDestroyData, CalendarEventsDestroyResponses, CalendarEventsExpandedFormattedListData, CalendarEventsExpandedFormattedListResponses, CalendarEventsExpandedListData, CalendarEventsExpandedListResponses, CalendarEventsFormattedCreateData, CalendarEventsFormattedCreateResponses, CalendarEventsFormattedDestroyData, CalendarEventsFormattedDestroyResponses, CalendarEventsFormattedListData, CalendarEventsFormattedListResponses, CalendarEventsFormattedPartialUpdateData, CalendarEventsFormattedPartialUpdateResponses, CalendarEventsFormattedRetrieveData, CalendarEventsFormattedRetrieveResponses, CalendarEventsFormattedUpdateData, CalendarEventsFormattedUpdateResponses, CalendarEventsListData, CalendarEventsListResponses, CalendarEventsPartialUpdateData, CalendarEventsPartialUpdateResponses, CalendarEventsRetrieveData, CalendarEventsRetrieveResponses, CalendarEventsTransferCreateData, CalendarEventsTransferCreateResponses, CalendarEventsTransferFormattedCreateData, CalendarEventsTransferFormattedCreateResponses, CalendarEventsUpdateData, CalendarEventsUpdateResponses, CalendarFormattedCreateData, CalendarFormattedCreateResponses, CalendarFormattedDestroyData, CalendarFormattedDestroyResponses, CalendarFormattedListData, CalendarFormattedListResponses, CalendarFormattedPartialUpdateData, CalendarFormattedPartialUpdateResponses, CalendarFormattedRetrieveData, CalendarFormattedRetrieveResponses, CalendarFormattedUpdateData, CalendarFormattedUpdateResponses, CalendarGroupsAvailabilityCreateData, CalendarGroupsAvailabilityCreateResponses, CalendarGroupsAvailabilityFormattedCreateData, CalendarGroupsAvailabilityFormattedCreateResponses, CalendarGroupsBookableSlotsFormattedListData, CalendarGroupsBookableSlotsFormattedListResponses, CalendarGroupsBookableSlotsListData, CalendarGroupsBookableSlotsListResponses, CalendarGroupsBookedEventsFormattedListData, CalendarGroupsBookedEventsFormattedListResponses, CalendarGroupsBookedEventsListData, CalendarGroupsBookedEventsListResponses, CalendarGroupsCreateData, CalendarGroupsCreateResponses, CalendarGroupsDestroyData, CalendarGroupsDestroyResponses, CalendarGroupsEventsCreateData, CalendarGroupsEventsCreateResponses, CalendarGroupsEventsFormattedCreateData, CalendarGroupsEventsFormattedCreateResponses, CalendarGroupsFormattedCreateData, CalendarGroupsFormattedCreateResponses, CalendarGroupsFormattedDestroyData, CalendarGroupsFormattedDestroyResponses, CalendarGroupsFormattedListData, CalendarGroupsFormattedListResponses, CalendarGroupsFormattedPartialUpdateData, CalendarGroupsFormattedPartialUpdateResponses, CalendarGroupsFormattedRetrieveData, CalendarGroupsFormattedRetrieveResponses, CalendarGroupsFormattedUpdateData, CalendarGroupsFormattedUpdateResponses, CalendarGroupsListData, CalendarGroupsListResponses, CalendarGroupsPartialUpdateData, CalendarGroupsPartialUpdateResponses, CalendarGroupsRetrieveData, CalendarGroupsRetrieveResponses, CalendarGroupsUpdateData, CalendarGroupsUpdateResponses, CalendarListData, CalendarListResponses, CalendarPartialUpdateData, CalendarPartialUpdateResponses, CalendarRequestImportCreateData, CalendarRequestImportCreateResponses, CalendarRequestImportFormattedCreateData, CalendarRequestImportFormattedCreateResponses, CalendarRequestSyncCreateData, CalendarRequestSyncCreateResponses, CalendarRequestSyncFormattedCreateData, CalendarRequestSyncFormattedCreateResponses, CalendarRetrieveData, CalendarRetrieveResponses, CalendarUnavailableWindowsFormattedListData, CalendarUnavailableWindowsFormattedListResponses, CalendarUnavailableWindowsListData, CalendarUnavailableWindowsListResponses, CalendarUpdateData, CalendarUpdateResponses, InvitationsAcceptCreateData, InvitationsAcceptCreateResponses, InvitationsCreateData, InvitationsCreateResponses, InvitationsDestroyData, InvitationsDestroyResponses, InvitationsFormattedCreateData, InvitationsFormattedCreateResponses, InvitationsFormattedDestroyData, InvitationsFormattedDestroyResponses, InvitationsFormattedListData, InvitationsFormattedListResponses, InvitationsFormattedRetrieveData, InvitationsFormattedRetrieveResponses, InvitationsListData, InvitationsListResponses, InvitationsResendCreateData, InvitationsResendCreateErrors, InvitationsResendCreateResponses, InvitationsResendFormattedCreateData, InvitationsResendFormattedCreateErrors, InvitationsResendFormattedCreateResponses, InvitationsRetrieveData, InvitationsRetrieveResponses, OrganizationMembersDeactivateCreateData, OrganizationMembersDeactivateCreateErrors, OrganizationMembersDeactivateCreateResponses, OrganizationMembersDeactivateFormattedCreateData, OrganizationMembersDeactivateFormattedCreateErrors, OrganizationMembersDeactivateFormattedCreateResponses, OrganizationMembersFormattedListData, OrganizationMembersFormattedListResponses, OrganizationMembersFormattedRetrieveData, OrganizationMembersFormattedRetrieveResponses, OrganizationMembersListData, OrganizationMembersListResponses, OrganizationMembersReactivateCreateData, OrganizationMembersReactivateCreateErrors, OrganizationMembersReactivateCreateResponses, OrganizationMembersReactivateFormattedCreateData, OrganizationMembersReactivateFormattedCreateErrors, OrganizationMembersReactivateFormattedCreateResponses, OrganizationMembersRetrieveData, OrganizationMembersRetrieveResponses, OrganizationsCreateData, OrganizationsCreateResponses, OrganizationsCurrentFormattedRetrieveData, OrganizationsCurrentFormattedRetrieveErrors, OrganizationsCurrentFormattedRetrieveResponses, OrganizationsCurrentRetrieveData, OrganizationsCurrentRetrieveErrors, OrganizationsCurrentRetrieveResponses, OrganizationsDestroyData, OrganizationsDestroyResponses, OrganizationsFormattedCreateData, OrganizationsFormattedCreateResponses, OrganizationsFormattedDestroyData, OrganizationsFormattedDestroyResponses, OrganizationsFormattedPartialUpdateData, OrganizationsFormattedPartialUpdateResponses, OrganizationsFormattedRetrieveData, OrganizationsFormattedRetrieveResponses, OrganizationsFormattedUpdateData, OrganizationsFormattedUpdateResponses, OrganizationsPartialUpdateData, OrganizationsPartialUpdateResponses, OrganizationsRetrieveData, OrganizationsRetrieveResponses, OrganizationsSyncRoomsCreateData, OrganizationsSyncRoomsCreateErrors, OrganizationsSyncRoomsCreateResponses, OrganizationsSyncRoomsFormattedCreateData, OrganizationsSyncRoomsFormattedCreateErrors, OrganizationsSyncRoomsFormattedCreateResponses, OrganizationsUpdateData, OrganizationsUpdateResponses, PaymentsPaymentUpdateCreateData, PaymentsPaymentUpdateCreateResponses, PaymentsPaymentUpdateFormattedCreateData, PaymentsPaymentUpdateFormattedCreateResponses, PaymentsSubscriptionPaymentUpdateCreateData, PaymentsSubscriptionPaymentUpdateCreateResponses, PaymentsSubscriptionPaymentUpdateFormattedCreateData, PaymentsSubscriptionPaymentUpdateFormattedCreateResponses, ProfileFormattedPartialUpdateData, ProfileFormattedPartialUpdateResponses, ProfileFormattedRetrieveData, ProfileFormattedRetrieveResponses, ProfileFormattedUpdateData, ProfileFormattedUpdateResponses, ProfilePartialUpdateData, ProfilePartialUpdateResponses, ProfileRetrieveData, ProfileRetrieveResponses, ProfileUpdateData, ProfileUpdateResponses, PublicApiTokensCreateData, PublicApiTokensCreateResponses, PublicApiTokensFormattedCreateData, PublicApiTokensFormattedCreateResponses, PublicApiTokensFormattedListData, PublicApiTokensFormattedListResponses, PublicApiTokensFormattedPartialUpdateData, PublicApiTokensFormattedPartialUpdateResponses, PublicApiTokensFormattedRetrieveData, PublicApiTokensFormattedRetrieveResponses, PublicApiTokensFormattedUpdateData, PublicApiTokensFormattedUpdateResponses, PublicApiTokensListData, PublicApiTokensListResponses, PublicApiTokensPartialUpdateData, PublicApiTokensPartialUpdateResponses, PublicApiTokensRetrieveData, PublicApiTokensRetrieveResponses, PublicApiTokensRevokeCreateData, PublicApiTokensRevokeCreateResponses, PublicApiTokensRevokeFormattedCreateData, PublicApiTokensRevokeFormattedCreateResponses, PublicApiTokensUpdateData, PublicApiTokensUpdateResponses, PublicOrganizationsEventsCreateData, PublicOrganizationsEventsCreateResponses, PublicOrganizationsEventsDestroyData, PublicOrganizationsEventsDestroyResponses, PublicOrganizationsEventsListData, PublicOrganizationsEventsListResponses, PublicOrganizationsEventsPartialUpdateData, PublicOrganizationsEventsPartialUpdateResponses, PublicOrganizationsEventsRetrieveData, PublicOrganizationsEventsRetrieveResponses, PublicOrganizationsEventsUpdateData, PublicOrganizationsEventsUpdateResponses, WebhookConfigurationsCreateData, WebhookConfigurationsCreateResponses, WebhookConfigurationsDestroyData, WebhookConfigurationsDestroyResponses, WebhookConfigurationsFormattedCreateData, WebhookConfigurationsFormattedCreateResponses, WebhookConfigurationsFormattedDestroyData, WebhookConfigurationsFormattedDestroyResponses, WebhookConfigurationsFormattedListData, WebhookConfigurationsFormattedListResponses, WebhookConfigurationsFormattedPartialUpdateData, WebhookConfigurationsFormattedPartialUpdateResponses, WebhookConfigurationsFormattedRetrieveData, WebhookConfigurationsFormattedRetrieveResponses, WebhookConfigurationsFormattedUpdateData, WebhookConfigurationsFormattedUpdateResponses, WebhookConfigurationsListData, WebhookConfigurationsListResponses, WebhookConfigurationsPartialUpdateData, WebhookConfigurationsPartialUpdateResponses, WebhookConfigurationsRetrieveData, WebhookConfigurationsRetrieveResponses, WebhookConfigurationsUpdateData, WebhookConfigurationsUpdateResponses, WebhookEventsFormattedListData, WebhookEventsFormattedListResponses, WebhookEventsFormattedRetrieveData, WebhookEventsFormattedRetrieveResponses, WebhookEventsListData, WebhookEventsListResponses, WebhookEventsRetrieveData, WebhookEventsRetrieveResponses, WebhookEventsRetryCreateData, WebhookEventsRetryCreateErrors, WebhookEventsRetryCreateResponses, WebhookEventsRetryFormattedCreateData, WebhookEventsRetryFormattedCreateErrors, WebhookEventsRetryFormattedCreateResponses } from './types.gen';
+import type { AvailableTimesBulkCreateCreateData, AvailableTimesBulkCreateCreateResponses, AvailableTimesBulkCreateFormattedCreateData, AvailableTimesBulkCreateFormattedCreateResponses, AvailableTimesBulkModifyCreateData, AvailableTimesBulkModifyCreateResponses, AvailableTimesBulkModifyFormattedCreateData, AvailableTimesBulkModifyFormattedCreateResponses, AvailableTimesCreateData, AvailableTimesCreateExceptionCreateData, AvailableTimesCreateExceptionCreateResponses, AvailableTimesCreateExceptionFormattedCreateData, AvailableTimesCreateExceptionFormattedCreateResponses, AvailableTimesCreateResponses, AvailableTimesDestroyData, AvailableTimesDestroyResponses, AvailableTimesExpandedFormattedListData, AvailableTimesExpandedFormattedListResponses, AvailableTimesExpandedListData, AvailableTimesExpandedListResponses, AvailableTimesFormattedCreateData, AvailableTimesFormattedCreateResponses, AvailableTimesFormattedDestroyData, AvailableTimesFormattedDestroyResponses, AvailableTimesFormattedListData, AvailableTimesFormattedListResponses, AvailableTimesFormattedPartialUpdateData, AvailableTimesFormattedPartialUpdateResponses, AvailableTimesFormattedRetrieveData, AvailableTimesFormattedRetrieveResponses, AvailableTimesFormattedUpdateData, AvailableTimesFormattedUpdateResponses, AvailableTimesListData, AvailableTimesListResponses, AvailableTimesPartialUpdateData, AvailableTimesPartialUpdateResponses, AvailableTimesRetrieveData, AvailableTimesRetrieveResponses, AvailableTimesUpdateData, AvailableTimesUpdateResponses, BillingProfileCreateBillingProfileCreateData, BillingProfileCreateBillingProfileCreateResponses, BillingProfileCreateBillingProfileFormattedCreateData, BillingProfileCreateBillingProfileFormattedCreateResponses, BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateData, BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateResponses, BillingProfilePartialUpdateBillingProfilePartialUpdateData, BillingProfilePartialUpdateBillingProfilePartialUpdateResponses, BillingProfileRetrieveBillingProfileFormattedRetrieveData, BillingProfileRetrieveBillingProfileFormattedRetrieveResponses, BillingProfileRetrieveBillingProfileRetrieveData, BillingProfileRetrieveBillingProfileRetrieveResponses, BillingProfileUpdateBillingProfileFormattedUpdateData, BillingProfileUpdateBillingProfileFormattedUpdateResponses, BillingProfileUpdateBillingProfileUpdateData, BillingProfileUpdateBillingProfileUpdateResponses, BlockedTimesBulkCreateCreateData, BlockedTimesBulkCreateCreateResponses, BlockedTimesBulkCreateFormattedCreateData, BlockedTimesBulkCreateFormattedCreateResponses, BlockedTimesBulkModifyCreateData, BlockedTimesBulkModifyCreateResponses, BlockedTimesBulkModifyFormattedCreateData, BlockedTimesBulkModifyFormattedCreateResponses, BlockedTimesCreateData, BlockedTimesCreateExceptionCreateData, BlockedTimesCreateExceptionCreateResponses, BlockedTimesCreateExceptionFormattedCreateData, BlockedTimesCreateExceptionFormattedCreateResponses, BlockedTimesCreateResponses, BlockedTimesDestroyData, BlockedTimesDestroyResponses, BlockedTimesExpandedFormattedListData, BlockedTimesExpandedFormattedListResponses, BlockedTimesExpandedListData, BlockedTimesExpandedListResponses, BlockedTimesFormattedCreateData, BlockedTimesFormattedCreateResponses, BlockedTimesFormattedDestroyData, BlockedTimesFormattedDestroyResponses, BlockedTimesFormattedListData, BlockedTimesFormattedListResponses, BlockedTimesFormattedPartialUpdateData, BlockedTimesFormattedPartialUpdateResponses, BlockedTimesFormattedRetrieveData, BlockedTimesFormattedRetrieveResponses, BlockedTimesFormattedUpdateData, BlockedTimesFormattedUpdateResponses, BlockedTimesListData, BlockedTimesListResponses, BlockedTimesPartialUpdateData, BlockedTimesPartialUpdateResponses, BlockedTimesRetrieveData, BlockedTimesRetrieveResponses, BlockedTimesUpdateData, BlockedTimesUpdateResponses, CalendarAdminSyncCreateData, CalendarAdminSyncCreateResponses, CalendarAdminSyncFormattedCreateData, CalendarAdminSyncFormattedCreateResponses, CalendarAvailableWindowsFormattedListData, CalendarAvailableWindowsFormattedListResponses, CalendarAvailableWindowsListData, CalendarAvailableWindowsListResponses, CalendarBundleCreateData, CalendarBundleCreateResponses, CalendarBundleFormattedCreateData, CalendarBundleFormattedCreateResponses, CalendarBundleFormattedPartialUpdateData, CalendarBundleFormattedPartialUpdateResponses, CalendarBundlePartialUpdateData, CalendarBundlePartialUpdateResponses, CalendarCreateData, CalendarCreateResponses, CalendarDestroyData, CalendarDestroyResponses, CalendarEventsBulkModifyCreateData, CalendarEventsBulkModifyCreateResponses, CalendarEventsBulkModifyFormattedCreateData, CalendarEventsBulkModifyFormattedCreateResponses, CalendarEventsCreateData, CalendarEventsCreateExceptionCreateData, CalendarEventsCreateExceptionCreateResponses, CalendarEventsCreateExceptionFormattedCreateData, CalendarEventsCreateExceptionFormattedCreateResponses, CalendarEventsCreateResponses, CalendarEventsDestroyData, CalendarEventsDestroyResponses, CalendarEventsExpandedFormattedListData, CalendarEventsExpandedFormattedListResponses, CalendarEventsExpandedListData, CalendarEventsExpandedListResponses, CalendarEventsFormattedCreateData, CalendarEventsFormattedCreateResponses, CalendarEventsFormattedDestroyData, CalendarEventsFormattedDestroyResponses, CalendarEventsFormattedListData, CalendarEventsFormattedListResponses, CalendarEventsFormattedPartialUpdateData, CalendarEventsFormattedPartialUpdateResponses, CalendarEventsFormattedRetrieveData, CalendarEventsFormattedRetrieveResponses, CalendarEventsFormattedUpdateData, CalendarEventsFormattedUpdateResponses, CalendarEventsListData, CalendarEventsListResponses, CalendarEventsPartialUpdateData, CalendarEventsPartialUpdateResponses, CalendarEventsRetrieveData, CalendarEventsRetrieveResponses, CalendarEventsTransferCreateData, CalendarEventsTransferCreateResponses, CalendarEventsTransferFormattedCreateData, CalendarEventsTransferFormattedCreateResponses, CalendarEventsUpdateData, CalendarEventsUpdateResponses, CalendarFormattedCreateData, CalendarFormattedCreateResponses, CalendarFormattedDestroyData, CalendarFormattedDestroyResponses, CalendarFormattedListData, CalendarFormattedListResponses, CalendarFormattedPartialUpdateData, CalendarFormattedPartialUpdateResponses, CalendarFormattedRetrieveData, CalendarFormattedRetrieveResponses, CalendarFormattedUpdateData, CalendarFormattedUpdateResponses, CalendarGroupsAvailabilityCreateData, CalendarGroupsAvailabilityCreateResponses, CalendarGroupsAvailabilityFormattedCreateData, CalendarGroupsAvailabilityFormattedCreateResponses, CalendarGroupsBookableSlotsFormattedListData, CalendarGroupsBookableSlotsFormattedListResponses, CalendarGroupsBookableSlotsListData, CalendarGroupsBookableSlotsListResponses, CalendarGroupsBookedEventsFormattedListData, CalendarGroupsBookedEventsFormattedListResponses, CalendarGroupsBookedEventsListData, CalendarGroupsBookedEventsListResponses, CalendarGroupsCreateData, CalendarGroupsCreateResponses, CalendarGroupsDestroyData, CalendarGroupsDestroyResponses, CalendarGroupsEventsCreateData, CalendarGroupsEventsCreateResponses, CalendarGroupsEventsFormattedCreateData, CalendarGroupsEventsFormattedCreateResponses, CalendarGroupsFormattedCreateData, CalendarGroupsFormattedCreateResponses, CalendarGroupsFormattedDestroyData, CalendarGroupsFormattedDestroyResponses, CalendarGroupsFormattedListData, CalendarGroupsFormattedListResponses, CalendarGroupsFormattedPartialUpdateData, CalendarGroupsFormattedPartialUpdateResponses, CalendarGroupsFormattedRetrieveData, CalendarGroupsFormattedRetrieveResponses, CalendarGroupsFormattedUpdateData, CalendarGroupsFormattedUpdateResponses, CalendarGroupsListData, CalendarGroupsListResponses, CalendarGroupsPartialUpdateData, CalendarGroupsPartialUpdateResponses, CalendarGroupsRetrieveData, CalendarGroupsRetrieveResponses, CalendarGroupsUpdateData, CalendarGroupsUpdateResponses, CalendarListData, CalendarListResponses, CalendarPartialUpdateData, CalendarPartialUpdateResponses, CalendarRequestImportCreateData, CalendarRequestImportCreateResponses, CalendarRequestImportFormattedCreateData, CalendarRequestImportFormattedCreateResponses, CalendarRequestSyncCreateData, CalendarRequestSyncCreateResponses, CalendarRequestSyncFormattedCreateData, CalendarRequestSyncFormattedCreateResponses, CalendarRetrieveData, CalendarRetrieveResponses, CalendarUnavailableWindowsFormattedListData, CalendarUnavailableWindowsFormattedListResponses, CalendarUnavailableWindowsListData, CalendarUnavailableWindowsListResponses, CalendarUpdateData, CalendarUpdateResponses, InvitationsAcceptCreateData, InvitationsAcceptCreateResponses, InvitationsCreateData, InvitationsCreateResponses, InvitationsDestroyData, InvitationsDestroyResponses, InvitationsFormattedCreateData, InvitationsFormattedCreateResponses, InvitationsFormattedDestroyData, InvitationsFormattedDestroyResponses, InvitationsFormattedListData, InvitationsFormattedListResponses, InvitationsFormattedRetrieveData, InvitationsFormattedRetrieveResponses, InvitationsListData, InvitationsListResponses, InvitationsResendCreateData, InvitationsResendCreateErrors, InvitationsResendCreateResponses, InvitationsResendFormattedCreateData, InvitationsResendFormattedCreateErrors, InvitationsResendFormattedCreateResponses, InvitationsRetrieveData, InvitationsRetrieveResponses, OrganizationMembersDeactivateCreateData, OrganizationMembersDeactivateCreateErrors, OrganizationMembersDeactivateCreateResponses, OrganizationMembersDeactivateFormattedCreateData, OrganizationMembersDeactivateFormattedCreateErrors, OrganizationMembersDeactivateFormattedCreateResponses, OrganizationMembersFormattedListData, OrganizationMembersFormattedListResponses, OrganizationMembersFormattedRetrieveData, OrganizationMembersFormattedRetrieveResponses, OrganizationMembersListData, OrganizationMembersListResponses, OrganizationMembersReactivateCreateData, OrganizationMembersReactivateCreateErrors, OrganizationMembersReactivateCreateResponses, OrganizationMembersReactivateFormattedCreateData, OrganizationMembersReactivateFormattedCreateErrors, OrganizationMembersReactivateFormattedCreateResponses, OrganizationMembersRetrieveData, OrganizationMembersRetrieveResponses, OrganizationsCreateData, OrganizationsCreateResponses, OrganizationsCurrentFormattedRetrieveData, OrganizationsCurrentFormattedRetrieveErrors, OrganizationsCurrentFormattedRetrieveResponses, OrganizationsCurrentRetrieveData, OrganizationsCurrentRetrieveErrors, OrganizationsCurrentRetrieveResponses, OrganizationsDestroyData, OrganizationsDestroyResponses, OrganizationsFormattedCreateData, OrganizationsFormattedCreateResponses, OrganizationsFormattedDestroyData, OrganizationsFormattedDestroyResponses, OrganizationsFormattedPartialUpdateData, OrganizationsFormattedPartialUpdateResponses, OrganizationsFormattedRetrieveData, OrganizationsFormattedRetrieveResponses, OrganizationsFormattedUpdateData, OrganizationsFormattedUpdateResponses, OrganizationsPartialUpdateData, OrganizationsPartialUpdateResponses, OrganizationsRetrieveData, OrganizationsRetrieveResponses, OrganizationsSyncCalendarsCreateData, OrganizationsSyncCalendarsCreateErrors, OrganizationsSyncCalendarsCreateResponses, OrganizationsSyncCalendarsFormattedCreateData, OrganizationsSyncCalendarsFormattedCreateErrors, OrganizationsSyncCalendarsFormattedCreateResponses, OrganizationsSyncRoomsCreateData, OrganizationsSyncRoomsCreateErrors, OrganizationsSyncRoomsCreateResponses, OrganizationsSyncRoomsFormattedCreateData, OrganizationsSyncRoomsFormattedCreateErrors, OrganizationsSyncRoomsFormattedCreateResponses, OrganizationsUpdateData, OrganizationsUpdateResponses, PaymentsPaymentUpdateCreateData, PaymentsPaymentUpdateCreateResponses, PaymentsPaymentUpdateFormattedCreateData, PaymentsPaymentUpdateFormattedCreateResponses, PaymentsSubscriptionPaymentUpdateCreateData, PaymentsSubscriptionPaymentUpdateCreateResponses, PaymentsSubscriptionPaymentUpdateFormattedCreateData, PaymentsSubscriptionPaymentUpdateFormattedCreateResponses, ProfileFormattedPartialUpdateData, ProfileFormattedPartialUpdateResponses, ProfileFormattedRetrieveData, ProfileFormattedRetrieveResponses, ProfileFormattedUpdateData, ProfileFormattedUpdateResponses, ProfilePartialUpdateData, ProfilePartialUpdateResponses, ProfileRetrieveData, ProfileRetrieveResponses, ProfileUpdateData, ProfileUpdateResponses, PublicApiTokensCreateData, PublicApiTokensCreateResponses, PublicApiTokensFormattedCreateData, PublicApiTokensFormattedCreateResponses, PublicApiTokensFormattedListData, PublicApiTokensFormattedListResponses, PublicApiTokensFormattedPartialUpdateData, PublicApiTokensFormattedPartialUpdateResponses, PublicApiTokensFormattedRetrieveData, PublicApiTokensFormattedRetrieveResponses, PublicApiTokensFormattedUpdateData, PublicApiTokensFormattedUpdateResponses, PublicApiTokensListData, PublicApiTokensListResponses, PublicApiTokensPartialUpdateData, PublicApiTokensPartialUpdateResponses, PublicApiTokensRetrieveData, PublicApiTokensRetrieveResponses, PublicApiTokensRevokeCreateData, PublicApiTokensRevokeCreateResponses, PublicApiTokensRevokeFormattedCreateData, PublicApiTokensRevokeFormattedCreateResponses, PublicApiTokensUpdateData, PublicApiTokensUpdateResponses, PublicOrganizationsEventsCreateData, PublicOrganizationsEventsCreateResponses, PublicOrganizationsEventsDestroyData, PublicOrganizationsEventsDestroyResponses, PublicOrganizationsEventsListData, PublicOrganizationsEventsListResponses, PublicOrganizationsEventsPartialUpdateData, PublicOrganizationsEventsPartialUpdateResponses, PublicOrganizationsEventsRetrieveData, PublicOrganizationsEventsRetrieveResponses, PublicOrganizationsEventsUpdateData, PublicOrganizationsEventsUpdateResponses, ServiceAccountsCreateData, ServiceAccountsCreateResponses, ServiceAccountsDestroyData, ServiceAccountsDestroyResponses, ServiceAccountsFormattedCreateData, ServiceAccountsFormattedCreateResponses, ServiceAccountsFormattedDestroyData, ServiceAccountsFormattedDestroyResponses, ServiceAccountsFormattedListData, ServiceAccountsFormattedListResponses, ServiceAccountsFormattedPartialUpdateData, ServiceAccountsFormattedPartialUpdateResponses, ServiceAccountsFormattedRetrieveData, ServiceAccountsFormattedRetrieveResponses, ServiceAccountsFormattedUpdateData, ServiceAccountsFormattedUpdateResponses, ServiceAccountsListData, ServiceAccountsListResponses, ServiceAccountsPartialUpdateData, ServiceAccountsPartialUpdateResponses, ServiceAccountsRetrieveData, ServiceAccountsRetrieveResponses, ServiceAccountsUpdateData, ServiceAccountsUpdateResponses, WebhookConfigurationsCreateData, WebhookConfigurationsCreateResponses, WebhookConfigurationsDestroyData, WebhookConfigurationsDestroyResponses, WebhookConfigurationsFormattedCreateData, WebhookConfigurationsFormattedCreateResponses, WebhookConfigurationsFormattedDestroyData, WebhookConfigurationsFormattedDestroyResponses, WebhookConfigurationsFormattedListData, WebhookConfigurationsFormattedListResponses, WebhookConfigurationsFormattedPartialUpdateData, WebhookConfigurationsFormattedPartialUpdateResponses, WebhookConfigurationsFormattedRetrieveData, WebhookConfigurationsFormattedRetrieveResponses, WebhookConfigurationsFormattedUpdateData, WebhookConfigurationsFormattedUpdateResponses, WebhookConfigurationsListData, WebhookConfigurationsListResponses, WebhookConfigurationsPartialUpdateData, WebhookConfigurationsPartialUpdateResponses, WebhookConfigurationsRetrieveData, WebhookConfigurationsRetrieveResponses, WebhookConfigurationsUpdateData, WebhookConfigurationsUpdateResponses, WebhookEventsFormattedListData, WebhookEventsFormattedListResponses, WebhookEventsFormattedRetrieveData, WebhookEventsFormattedRetrieveResponses, WebhookEventsListData, WebhookEventsListResponses, WebhookEventsRetrieveData, WebhookEventsRetrieveResponses, WebhookEventsRetryCreateData, WebhookEventsRetryCreateErrors, WebhookEventsRetryCreateResponses, WebhookEventsRetryFormattedCreateData, WebhookEventsRetryFormattedCreateErrors, WebhookEventsRetryFormattedCreateResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -2442,6 +2442,60 @@ export const organizationsFormattedUpdate = <ThrowOnError extends boolean = fals
 });
 
 /**
+ * Trigger a sync of every calendar in the organization
+ *
+ * POST /organizations/{id}/sync-calendars/ — enqueue a sync of all calendars.
+ *
+ * Each active calendar in the organization is synced using its owner's
+ * linked account. Calendars without an owner or a linked provider account
+ * are reported under ``skipped`` rather than failing the whole request.
+ *
+ * Body (``CalendarSyncRequestSerializer``): ``start_datetime``,
+ * ``end_datetime`` (required ISO 8601) and ``should_update_events``.
+ * Returns HTTP 202 with ``{"synced": [...], "skipped": [...]}``.
+ */
+export const organizationsSyncCalendarsCreate = <ThrowOnError extends boolean = false>(options: Options<OrganizationsSyncCalendarsCreateData, ThrowOnError>): RequestResult<OrganizationsSyncCalendarsCreateResponses, OrganizationsSyncCalendarsCreateErrors, ThrowOnError> => (options.client ?? client).post<OrganizationsSyncCalendarsCreateResponses, OrganizationsSyncCalendarsCreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organizations/{id}/sync-calendars/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Trigger a sync of every calendar in the organization
+ *
+ * POST /organizations/{id}/sync-calendars/ — enqueue a sync of all calendars.
+ *
+ * Each active calendar in the organization is synced using its owner's
+ * linked account. Calendars without an owner or a linked provider account
+ * are reported under ``skipped`` rather than failing the whole request.
+ *
+ * Body (``CalendarSyncRequestSerializer``): ``start_datetime``,
+ * ``end_datetime`` (required ISO 8601) and ``should_update_events``.
+ * Returns HTTP 202 with ``{"synced": [...], "skipped": [...]}``.
+ */
+export const organizationsSyncCalendarsFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<OrganizationsSyncCalendarsFormattedCreateData, ThrowOnError>): RequestResult<OrganizationsSyncCalendarsFormattedCreateResponses, OrganizationsSyncCalendarsFormattedCreateErrors, ThrowOnError> => (options.client ?? client).post<OrganizationsSyncCalendarsFormattedCreateResponses, OrganizationsSyncCalendarsFormattedCreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/organizations/{id}/sync-calendars{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Trigger a rooms/resources import for the organization
  *
  * POST /organizations/{id}/sync-rooms/ — enqueue a calendar resources import.
@@ -3025,6 +3079,262 @@ export const publicOrganizationsEventsPartialUpdate = <ThrowOnError extends bool
  */
 export const publicOrganizationsEventsUpdate = <ThrowOnError extends boolean = false>(options: Options<PublicOrganizationsEventsUpdateData, ThrowOnError>): RequestResult<PublicOrganizationsEventsUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).put<PublicOrganizationsEventsUpdateResponses, unknown, ThrowOnError>({
     url: '/public/organizations/{organization_id}/events/{id}/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Admin-only CRUD for the organization's Google Calendar service account.
+ *
+ * Manages **only** the org-level service account (``calendar_fk IS NULL``) — the
+ * one used for rooms sync. Per-calendar service accounts are auto-assigned by the
+ * calendar auth flow and are intentionally not exposed here.
+ *
+ * Secrets (``private_key``, ``private_key_id``) are write-only and never echoed;
+ * all responses use ``ServiceAccountReadSerializer``. There is at most one
+ * org-level account per organization: ``create`` refuses a duplicate (rotate via
+ * PUT/PATCH or DELETE first). Cross-org ids resolve to 404 via the org-scoped
+ * queryset; non-admins get 403; anonymous requests 401.
+ */
+export const serviceAccountsList = <ThrowOnError extends boolean = false>(options?: Options<ServiceAccountsListData, ThrowOnError>): RequestResult<ServiceAccountsListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ServiceAccountsListResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts/',
+    ...options
+});
+
+/**
+ * Create the org-level service account (one per organization).
+ *
+ * HTTP 201 with the secret-free representation. HTTP 400 if an org-level
+ * account already exists (rotate via PUT/PATCH or DELETE first) or the
+ * payload is invalid.
+ */
+export const serviceAccountsCreate = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsCreateData, ThrowOnError>): RequestResult<ServiceAccountsCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<ServiceAccountsCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Admin-only CRUD for the organization's Google Calendar service account.
+ *
+ * Manages **only** the org-level service account (``calendar_fk IS NULL``) — the
+ * one used for rooms sync. Per-calendar service accounts are auto-assigned by the
+ * calendar auth flow and are intentionally not exposed here.
+ *
+ * Secrets (``private_key``, ``private_key_id``) are write-only and never echoed;
+ * all responses use ``ServiceAccountReadSerializer``. There is at most one
+ * org-level account per organization: ``create`` refuses a duplicate (rotate via
+ * PUT/PATCH or DELETE first). Cross-org ids resolve to 404 via the org-scoped
+ * queryset; non-admins get 403; anonymous requests 401.
+ */
+export const serviceAccountsFormattedList = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsFormattedListData, ThrowOnError>): RequestResult<ServiceAccountsFormattedListResponses, unknown, ThrowOnError> => (options.client ?? client).get<ServiceAccountsFormattedListResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts{format}',
+    ...options
+});
+
+/**
+ * Create the org-level service account (one per organization).
+ *
+ * HTTP 201 with the secret-free representation. HTTP 400 if an org-level
+ * account already exists (rotate via PUT/PATCH or DELETE first) or the
+ * payload is invalid.
+ */
+export const serviceAccountsFormattedCreate = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsFormattedCreateData, ThrowOnError>): RequestResult<ServiceAccountsFormattedCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<ServiceAccountsFormattedCreateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete the org-level service account. HTTP 204.
+ */
+export const serviceAccountsDestroy = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsDestroyData, ThrowOnError>): RequestResult<ServiceAccountsDestroyResponses, unknown, ThrowOnError> => (options.client ?? client).delete<ServiceAccountsDestroyResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts/{id}/',
+    ...options
+});
+
+/**
+ * Admin-only CRUD for the organization's Google Calendar service account.
+ *
+ * Manages **only** the org-level service account (``calendar_fk IS NULL``) — the
+ * one used for rooms sync. Per-calendar service accounts are auto-assigned by the
+ * calendar auth flow and are intentionally not exposed here.
+ *
+ * Secrets (``private_key``, ``private_key_id``) are write-only and never echoed;
+ * all responses use ``ServiceAccountReadSerializer``. There is at most one
+ * org-level account per organization: ``create`` refuses a duplicate (rotate via
+ * PUT/PATCH or DELETE first). Cross-org ids resolve to 404 via the org-scoped
+ * queryset; non-admins get 403; anonymous requests 401.
+ */
+export const serviceAccountsRetrieve = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsRetrieveData, ThrowOnError>): RequestResult<ServiceAccountsRetrieveResponses, unknown, ThrowOnError> => (options.client ?? client).get<ServiceAccountsRetrieveResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts/{id}/',
+    ...options
+});
+
+/**
+ * Admin-only CRUD for the organization's Google Calendar service account.
+ *
+ * Manages **only** the org-level service account (``calendar_fk IS NULL``) — the
+ * one used for rooms sync. Per-calendar service accounts are auto-assigned by the
+ * calendar auth flow and are intentionally not exposed here.
+ *
+ * Secrets (``private_key``, ``private_key_id``) are write-only and never echoed;
+ * all responses use ``ServiceAccountReadSerializer``. There is at most one
+ * org-level account per organization: ``create`` refuses a duplicate (rotate via
+ * PUT/PATCH or DELETE first). Cross-org ids resolve to 404 via the org-scoped
+ * queryset; non-admins get 403; anonymous requests 401.
+ */
+export const serviceAccountsPartialUpdate = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsPartialUpdateData, ThrowOnError>): RequestResult<ServiceAccountsPartialUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ServiceAccountsPartialUpdateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts/{id}/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Rotate/update the org-level service account.
+ *
+ * PUT requires all writable fields; PATCH updates the provided subset
+ * (secrets are retained when omitted). Returns HTTP 200 with the
+ * secret-free representation.
+ */
+export const serviceAccountsUpdate = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsUpdateData, ThrowOnError>): RequestResult<ServiceAccountsUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).put<ServiceAccountsUpdateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts/{id}/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete the org-level service account. HTTP 204.
+ */
+export const serviceAccountsFormattedDestroy = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsFormattedDestroyData, ThrowOnError>): RequestResult<ServiceAccountsFormattedDestroyResponses, unknown, ThrowOnError> => (options.client ?? client).delete<ServiceAccountsFormattedDestroyResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts/{id}{format}',
+    ...options
+});
+
+/**
+ * Admin-only CRUD for the organization's Google Calendar service account.
+ *
+ * Manages **only** the org-level service account (``calendar_fk IS NULL``) — the
+ * one used for rooms sync. Per-calendar service accounts are auto-assigned by the
+ * calendar auth flow and are intentionally not exposed here.
+ *
+ * Secrets (``private_key``, ``private_key_id``) are write-only and never echoed;
+ * all responses use ``ServiceAccountReadSerializer``. There is at most one
+ * org-level account per organization: ``create`` refuses a duplicate (rotate via
+ * PUT/PATCH or DELETE first). Cross-org ids resolve to 404 via the org-scoped
+ * queryset; non-admins get 403; anonymous requests 401.
+ */
+export const serviceAccountsFormattedRetrieve = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsFormattedRetrieveData, ThrowOnError>): RequestResult<ServiceAccountsFormattedRetrieveResponses, unknown, ThrowOnError> => (options.client ?? client).get<ServiceAccountsFormattedRetrieveResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts/{id}{format}',
+    ...options
+});
+
+/**
+ * Admin-only CRUD for the organization's Google Calendar service account.
+ *
+ * Manages **only** the org-level service account (``calendar_fk IS NULL``) — the
+ * one used for rooms sync. Per-calendar service accounts are auto-assigned by the
+ * calendar auth flow and are intentionally not exposed here.
+ *
+ * Secrets (``private_key``, ``private_key_id``) are write-only and never echoed;
+ * all responses use ``ServiceAccountReadSerializer``. There is at most one
+ * org-level account per organization: ``create`` refuses a duplicate (rotate via
+ * PUT/PATCH or DELETE first). Cross-org ids resolve to 404 via the org-scoped
+ * queryset; non-admins get 403; anonymous requests 401.
+ */
+export const serviceAccountsFormattedPartialUpdate = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsFormattedPartialUpdateData, ThrowOnError>): RequestResult<ServiceAccountsFormattedPartialUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ServiceAccountsFormattedPartialUpdateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts/{id}{format}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Rotate/update the org-level service account.
+ *
+ * PUT requires all writable fields; PATCH updates the provided subset
+ * (secrets are retained when omitted). Returns HTTP 200 with the
+ * secret-free representation.
+ */
+export const serviceAccountsFormattedUpdate = <ThrowOnError extends boolean = false>(options: Options<ServiceAccountsFormattedUpdateData, ThrowOnError>): RequestResult<ServiceAccountsFormattedUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).put<ServiceAccountsFormattedUpdateResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: 'sessionid',
+            type: 'apiKey'
+        }],
+    url: '/service-accounts/{id}{format}',
     ...options,
     headers: {
         'Content-Type': 'application/json',

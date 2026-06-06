@@ -653,6 +653,13 @@ export type PaginatedOrganizationMembershipList = {
     results: Array<OrganizationMembership>;
 };
 
+export type PaginatedServiceAccountReadList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<ServiceAccountRead>;
+};
+
 export type PaginatedSystemUserTokenList = {
     count: number;
     next?: string | null;
@@ -890,6 +897,18 @@ export type PatchedProfile = {
 };
 
 /**
+ * Write serializer for creating/rotating the org-level service account.
+ *
+ * ``private_key`` and ``private_key_id`` are write-only and are never echoed
+ * back in any response (reads go through ``ServiceAccountReadSerializer``).
+ */
+export type PatchedServiceAccountWrite = {
+    email?: string;
+    audience?: string;
+    public_key?: string;
+};
+
+/**
  * Input serializer for updating a public-API token's resource grants (Phase 15).
  *
  * Accepts ``available_resources`` (a non-empty list of valid ``PublicAPIResources`` values)
@@ -1019,6 +1038,36 @@ export type ResourceAllocation = {
  * * `admin` - Admin
  */
 export type RoleEnum = 'member' | 'admin';
+
+/**
+ * Read serializer for the org-level Google Calendar service account (CRUD surface).
+ *
+ * Exposes only non-secret fields plus a ``configured`` flag. ``public_key``,
+ * ``private_key`` and ``private_key_id`` are never returned.
+ */
+export type ServiceAccountRead = {
+    readonly id: number;
+    readonly email: string;
+    readonly audience: string;
+    /**
+     * A persisted row is, by definition, configured.
+     */
+    readonly configured: boolean;
+    readonly created: string;
+    readonly modified: string;
+};
+
+/**
+ * Write serializer for creating/rotating the org-level service account.
+ *
+ * ``private_key`` and ``private_key_id`` are write-only and are never echoed
+ * back in any response (reads go through ``ServiceAccountReadSerializer``).
+ */
+export type ServiceAccountWrite = {
+    email: string;
+    audience: string;
+    public_key: string;
+};
 
 /**
  * Read-only serializer for listing and retrieving public-API tokens.
@@ -1473,6 +1522,13 @@ export type PaginatedOrganizationMembershipListWritable = {
     results: Array<unknown>;
 };
 
+export type PaginatedServiceAccountReadListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<unknown>;
+};
+
 export type PaginatedSystemUserTokenListWritable = {
     count: number;
     next?: string | null;
@@ -1624,6 +1680,20 @@ export type PatchedProfileWritable = {
     profile_picture?: string | null;
 };
 
+/**
+ * Write serializer for creating/rotating the org-level service account.
+ *
+ * ``private_key`` and ``private_key_id`` are write-only and are never echoed
+ * back in any response (reads go through ``ServiceAccountReadSerializer``).
+ */
+export type PatchedServiceAccountWriteWritable = {
+    email?: string;
+    audience?: string;
+    public_key?: string;
+    private_key_id?: string;
+    private_key?: string;
+};
+
 export type PatchedWebhookConfigurationWritable = {
     event_type?: EventTypeEnum;
     url?: string;
@@ -1710,6 +1780,20 @@ export type ResourceAllocationWritable = {
      */
     id?: number | null;
     calendar: number;
+};
+
+/**
+ * Write serializer for creating/rotating the org-level service account.
+ *
+ * ``private_key`` and ``private_key_id`` are write-only and are never echoed
+ * back in any response (reads go through ``ServiceAccountReadSerializer``).
+ */
+export type ServiceAccountWriteWritable = {
+    email: string;
+    audience: string;
+    public_key: string;
+    private_key_id: string;
+    private_key: string;
 };
 
 export type UnavailableTimeWindowWritable = {
@@ -4815,6 +4899,69 @@ export type OrganizationsFormattedUpdateResponses = {
 
 export type OrganizationsFormattedUpdateResponse = OrganizationsFormattedUpdateResponses[keyof OrganizationsFormattedUpdateResponses];
 
+export type OrganizationsSyncCalendarsCreateData = {
+    body: CalendarSyncRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/organizations/{id}/sync-calendars/';
+};
+
+export type OrganizationsSyncCalendarsCreateErrors = {
+    /**
+     * Invalid sync window
+     */
+    400: unknown;
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Organization not found
+     */
+    404: unknown;
+};
+
+export type OrganizationsSyncCalendarsCreateResponses = {
+    /**
+     * Sync enqueued. Body: {synced: [calendar_id, ...], skipped: [{calendar_id, reason}, ...]}.
+     */
+    202: unknown;
+};
+
+export type OrganizationsSyncCalendarsFormattedCreateData = {
+    body: CalendarSyncRequest;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/organizations/{id}/sync-calendars{format}';
+};
+
+export type OrganizationsSyncCalendarsFormattedCreateErrors = {
+    /**
+     * Invalid sync window
+     */
+    400: unknown;
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Organization not found
+     */
+    404: unknown;
+};
+
+export type OrganizationsSyncCalendarsFormattedCreateResponses = {
+    /**
+     * Sync enqueued. Body: {synced: [calendar_id, ...], skipped: [{calendar_id, reason}, ...]}.
+     */
+    202: unknown;
+};
+
 export type OrganizationsSyncRoomsCreateData = {
     body: OrganizationWritable;
     path: {
@@ -5414,6 +5561,210 @@ export type PublicOrganizationsEventsUpdateResponses = {
 };
 
 export type PublicOrganizationsEventsUpdateResponse = PublicOrganizationsEventsUpdateResponses[keyof PublicOrganizationsEventsUpdateResponses];
+
+export type ServiceAccountsListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/service-accounts/';
+};
+
+export type ServiceAccountsListResponses = {
+    200: PaginatedServiceAccountReadList;
+};
+
+export type ServiceAccountsListResponse = ServiceAccountsListResponses[keyof ServiceAccountsListResponses];
+
+export type ServiceAccountsCreateData = {
+    body: ServiceAccountWriteWritable;
+    path?: never;
+    query?: never;
+    url: '/service-accounts/';
+};
+
+export type ServiceAccountsCreateResponses = {
+    201: ServiceAccountRead;
+};
+
+export type ServiceAccountsCreateResponse = ServiceAccountsCreateResponses[keyof ServiceAccountsCreateResponses];
+
+export type ServiceAccountsFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/service-accounts{format}';
+};
+
+export type ServiceAccountsFormattedListResponses = {
+    200: PaginatedServiceAccountReadList;
+};
+
+export type ServiceAccountsFormattedListResponse = ServiceAccountsFormattedListResponses[keyof ServiceAccountsFormattedListResponses];
+
+export type ServiceAccountsFormattedCreateData = {
+    body: ServiceAccountWriteWritable;
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/service-accounts{format}';
+};
+
+export type ServiceAccountsFormattedCreateResponses = {
+    201: ServiceAccountRead;
+};
+
+export type ServiceAccountsFormattedCreateResponse = ServiceAccountsFormattedCreateResponses[keyof ServiceAccountsFormattedCreateResponses];
+
+export type ServiceAccountsDestroyData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/service-accounts/{id}/';
+};
+
+export type ServiceAccountsDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type ServiceAccountsDestroyResponse = ServiceAccountsDestroyResponses[keyof ServiceAccountsDestroyResponses];
+
+export type ServiceAccountsRetrieveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/service-accounts/{id}/';
+};
+
+export type ServiceAccountsRetrieveResponses = {
+    200: ServiceAccountRead;
+};
+
+export type ServiceAccountsRetrieveResponse = ServiceAccountsRetrieveResponses[keyof ServiceAccountsRetrieveResponses];
+
+export type ServiceAccountsPartialUpdateData = {
+    body?: PatchedServiceAccountWriteWritable;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/service-accounts/{id}/';
+};
+
+export type ServiceAccountsPartialUpdateResponses = {
+    200: ServiceAccountWrite;
+};
+
+export type ServiceAccountsPartialUpdateResponse = ServiceAccountsPartialUpdateResponses[keyof ServiceAccountsPartialUpdateResponses];
+
+export type ServiceAccountsUpdateData = {
+    body: ServiceAccountWriteWritable;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/service-accounts/{id}/';
+};
+
+export type ServiceAccountsUpdateResponses = {
+    200: ServiceAccountRead;
+};
+
+export type ServiceAccountsUpdateResponse = ServiceAccountsUpdateResponses[keyof ServiceAccountsUpdateResponses];
+
+export type ServiceAccountsFormattedDestroyData = {
+    body?: never;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/service-accounts/{id}{format}';
+};
+
+export type ServiceAccountsFormattedDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type ServiceAccountsFormattedDestroyResponse = ServiceAccountsFormattedDestroyResponses[keyof ServiceAccountsFormattedDestroyResponses];
+
+export type ServiceAccountsFormattedRetrieveData = {
+    body?: never;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/service-accounts/{id}{format}';
+};
+
+export type ServiceAccountsFormattedRetrieveResponses = {
+    200: ServiceAccountRead;
+};
+
+export type ServiceAccountsFormattedRetrieveResponse = ServiceAccountsFormattedRetrieveResponses[keyof ServiceAccountsFormattedRetrieveResponses];
+
+export type ServiceAccountsFormattedPartialUpdateData = {
+    body?: PatchedServiceAccountWriteWritable;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/service-accounts/{id}{format}';
+};
+
+export type ServiceAccountsFormattedPartialUpdateResponses = {
+    200: ServiceAccountWrite;
+};
+
+export type ServiceAccountsFormattedPartialUpdateResponse = ServiceAccountsFormattedPartialUpdateResponses[keyof ServiceAccountsFormattedPartialUpdateResponses];
+
+export type ServiceAccountsFormattedUpdateData = {
+    body: ServiceAccountWriteWritable;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/service-accounts/{id}{format}';
+};
+
+export type ServiceAccountsFormattedUpdateResponses = {
+    200: ServiceAccountRead;
+};
+
+export type ServiceAccountsFormattedUpdateResponse = ServiceAccountsFormattedUpdateResponses[keyof ServiceAccountsFormattedUpdateResponses];
 
 export type WebhookConfigurationsListData = {
     body?: never;
