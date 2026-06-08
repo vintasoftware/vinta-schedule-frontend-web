@@ -30,10 +30,13 @@ import {
   availableTimesListOptions,
   availableTimesListQueryKey,
   availableTimesBulkCreateCreateMutation,
+  availableTimesBatchCreateMutation,
 } from '@/client/@tanstack/react-query.gen';
 import type {
+  AvailableTime,
   AvailableTimeWritable,
   BulkAvailableTimeWritable,
+  AvailableTimeOperation,
 } from '@/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -87,6 +90,40 @@ export function useAvailableTimes() {
     await bulkCreateMutation.mutateAsync({ body });
   };
 
+  // ---- Batch mutation (atomic create/update/delete) ------------------------
+  // POST /available-times/batch/ applies a list of create/update/delete
+  // operations to a single calendar atomically — the only way to replace an
+  // existing weekly schedule (bulk-create alone can't remove old rows).
+  const batchMutation = useMutation({
+    ...availableTimesBatchCreateMutation(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        predicate: (q) =>
+          Array.isArray(q.queryKey) &&
+          (q.queryKey[0] as { _id?: string })?._id === 'availableTimesList',
+      });
+    },
+  });
+
+  /**
+   * Apply an atomic batch of create/update/delete operations.
+   *
+   * @param operations - create (no id), update (id + changed fields), delete (id).
+   * @param calendar - target calendar; omit/null → the user's default calendar.
+   * Throws on API error so callers can catch and toast.
+   */
+  const batchUpdate = async (
+    operations: AvailableTimeOperation[],
+    calendar?: number | null
+  ): Promise<AvailableTime[]> => {
+    const res = await batchMutation.mutateAsync({
+      body: { operations, calendar: calendar ?? null },
+    });
+    // The batch returns the resulting full list — callers use it as the new
+    // delete-baseline so a subsequent save doesn't re-create the same rows.
+    return res?.results ?? [];
+  };
+
   return {
     // Query state
     availableTimes,
@@ -95,9 +132,11 @@ export function useAvailableTimes() {
     error: availableTimesQuery.error,
     availableTimesQuery,
 
-    // Mutation
+    // Mutations
     bulkCreate,
     bulkCreateMutation,
-    isPending: bulkCreateMutation.isPending,
+    batchUpdate,
+    batchMutation,
+    isPending: bulkCreateMutation.isPending || batchMutation.isPending,
   };
 }

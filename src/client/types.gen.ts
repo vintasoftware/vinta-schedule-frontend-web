@@ -12,6 +12,13 @@ export type AcceptInvitation = {
 };
 
 /**
+ * * `create` - create
+ * * `update` - update
+ * * `delete` - delete
+ */
+export type ActionEnum = 'create' | 'update' | 'delete';
+
+/**
  * * `calendar_event` - Calendar Event
  * * `calendar` - Calendar
  * * `recurrence_rule` - Recurrence Rule
@@ -67,6 +74,20 @@ export type AvailableTime = {
     calendar?: number | null;
 };
 
+/**
+ * Transactional batch of create/update/delete operations on a calendar's available times.
+ *
+ * All operations target a single calendar (resolved from ``calendar`` or the user's
+ * default) and run in one transaction — any failure rolls the whole batch back.
+ */
+export type AvailableTimeBatch = {
+    operations: Array<AvailableTimeOperation>;
+    /**
+     * Calendar to apply the batch to. Defaults to the user's default calendar.
+     */
+    calendar?: number | null;
+};
+
 export type AvailableTimeBulkModification = {
     modification_start_date: string;
     /**
@@ -76,6 +97,24 @@ export type AvailableTimeBulkModification = {
     modified_start_time_offset?: string | null;
     modified_end_time_offset?: string | null;
     is_cancelled?: boolean;
+};
+
+/**
+ * A single create/update/delete operation in an available-times batch.
+ */
+export type AvailableTimeOperation = {
+    action: ActionEnum;
+    /**
+     * Target AvailableTime id (required for update/delete).
+     */
+    id?: number;
+    start_time?: string;
+    end_time?: string;
+    timezone?: string;
+    /**
+     * RRULE string; null clears recurrence. Omit to leave unchanged on update.
+     */
+    rrule_string?: string | null;
 };
 
 /**
@@ -2096,6 +2135,68 @@ export type AvailableTimesCreateExceptionFormattedCreateResponses = {
 };
 
 export type AvailableTimesCreateExceptionFormattedCreateResponse = AvailableTimesCreateExceptionFormattedCreateResponses[keyof AvailableTimesCreateExceptionFormattedCreateResponses];
+
+export type AvailableTimesBatchCreateData = {
+    body: AvailableTimeBatch;
+    path?: never;
+    query?: {
+        /**
+         * End time (less than or equal to)
+         */
+        end_time?: string;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * Start time (greater than or equal to)
+         */
+        start_time?: string;
+    };
+    url: '/available-times/batch/';
+};
+
+export type AvailableTimesBatchCreateResponses = {
+    200: PaginatedAvailableTimeList;
+};
+
+export type AvailableTimesBatchCreateResponse = AvailableTimesBatchCreateResponses[keyof AvailableTimesBatchCreateResponses];
+
+export type AvailableTimesBatchFormattedCreateData = {
+    body: AvailableTimeBatch;
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * End time (less than or equal to)
+         */
+        end_time?: string;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * Start time (greater than or equal to)
+         */
+        start_time?: string;
+    };
+    url: '/available-times/batch{format}';
+};
+
+export type AvailableTimesBatchFormattedCreateResponses = {
+    200: PaginatedAvailableTimeList;
+};
+
+export type AvailableTimesBatchFormattedCreateResponse = AvailableTimesBatchFormattedCreateResponses[keyof AvailableTimesBatchFormattedCreateResponses];
 
 export type AvailableTimesBulkCreateCreateData = {
     body: BulkAvailableTimeWritable;
