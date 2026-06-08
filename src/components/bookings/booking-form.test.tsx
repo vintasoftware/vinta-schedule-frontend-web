@@ -628,6 +628,62 @@ describe('BookingFormDialog', () => {
       expect(calendarEventsCreate).toHaveBeenCalledTimes(1);
     });
 
+    it('create payload start_time/end_time are naive local (no offset, no Z)', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarListResponse([FIXTURE_CALENDAR_1])
+      );
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableWindowsResponse(false)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableWindowsResponse()
+      );
+      vi.mocked(calendarEventsCreate).mockResolvedValue(
+        makeCreateEventResponse(FIXTURE_CREATED_EVENT)
+      );
+
+      renderForm();
+
+      await waitFor(() =>
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox', { name: /title/i }),
+        'Naive Time Meeting'
+      );
+
+      await userEvent.click(screen.getByRole('combobox'));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('option', { name: 'Personal' })
+        ).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Personal' }));
+
+      await userEvent.click(
+        screen.getByRole('button', { name: /create booking/i })
+      );
+
+      await waitFor(() => expect(calendarEventsCreate).toHaveBeenCalledOnce());
+
+      const callArg = vi.mocked(calendarEventsCreate).mock.calls[0][0];
+      const startTime = callArg.body.start_time as string;
+      const endTime = callArg.body.end_time as string;
+
+      // Must be naive local: no UTC offset and no trailing Z
+      expect(startTime).toMatch(/T\d{2}:\d{2}:\d{2}$/);
+      expect(endTime).toMatch(/T\d{2}:\d{2}:\d{2}$/);
+      expect(startTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+      expect(endTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+
+      // Availability check must have used the OFFSET form (with timezone info).
+      const checkCall = vi.mocked(calendarUnavailableWindowsList).mock
+        .calls[0][0];
+      const checkStart = checkCall.query?.start_datetime as string;
+      expect(checkStart).toMatch(/[+-]\d{2}:\d{2}$/);
+    });
+
     it('override rejected: error toast shown and no close when calendarEventsCreate rejects', async () => {
       const { toast } = await import('sonner');
 

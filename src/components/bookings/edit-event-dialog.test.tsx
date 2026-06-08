@@ -564,6 +564,38 @@ describe('EditEventDialog', () => {
       expect(call.body?.title).toBe('Team Meeting');
     });
 
+    it('non-recurring edit: write payload start_time/end_time are naive local (no offset, no Z)', async () => {
+      vi.mocked(calendarEventsPartialUpdate).mockResolvedValue(
+        makeOkResponse()
+      );
+
+      const wrapper = makeQueryWrapper();
+      render(
+        <EditEventDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          event={makeEventVM()}
+        />,
+        { wrapper }
+      );
+
+      await userEvent.click(screen.getByTestId('edit-event-submit'));
+
+      await waitFor(() => {
+        expect(calendarEventsPartialUpdate).toHaveBeenCalledOnce();
+      });
+
+      const callArg = vi.mocked(calendarEventsPartialUpdate).mock.calls[0][0];
+      const startTime = callArg.body?.start_time as string;
+      const endTime = callArg.body?.end_time as string;
+
+      // Write payload must be naive local: no UTC offset and no trailing Z
+      expect(startTime).toMatch(/T\d{2}:\d{2}:\d{2}$/);
+      expect(endTime).toMatch(/T\d{2}:\d{2}:\d{2}$/);
+      expect(startTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+      expect(endTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+    });
+
     it('"All events" scope → does NOT call createException or bulkModify (Phase 24)', async () => {
       vi.mocked(calendarEventsPartialUpdate).mockResolvedValue(
         makeOkResponse()

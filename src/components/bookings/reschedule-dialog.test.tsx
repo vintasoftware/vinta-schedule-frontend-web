@@ -464,4 +464,50 @@ describe('RescheduleDialog', () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  describe('naive-local write payload / offset check params', () => {
+    it('write payload start_time/end_time are naive local (no offset, no Z)', async () => {
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableResponse(false)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableResponse()
+      );
+      vi.mocked(calendarEventsPartialUpdate).mockResolvedValue(
+        makeOkResponse()
+      );
+
+      const wrapper = makeQueryWrapper();
+      render(
+        <RescheduleDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          event={makeEventVM()}
+        />,
+        { wrapper }
+      );
+
+      await userEvent.click(screen.getByTestId('reschedule-submit'));
+
+      await waitFor(() => {
+        expect(calendarEventsPartialUpdate).toHaveBeenCalledOnce();
+      });
+
+      const callArg = vi.mocked(calendarEventsPartialUpdate).mock.calls[0][0];
+      const startTime = callArg.body?.start_time as string;
+      const endTime = callArg.body?.end_time as string;
+
+      // Write payload must be naive local: no UTC offset and no trailing Z
+      expect(startTime).toMatch(/T\d{2}:\d{2}:\d{2}$/);
+      expect(endTime).toMatch(/T\d{2}:\d{2}:\d{2}$/);
+      expect(startTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+      expect(endTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+
+      // Availability check must still receive the OFFSET form.
+      const checkCall = vi.mocked(calendarUnavailableWindowsList).mock
+        .calls[0][0];
+      const checkStart = checkCall.query?.start_datetime as string;
+      expect(checkStart).toMatch(/[+-]\d{2}:\d{2}$/);
+    });
+  });
 });

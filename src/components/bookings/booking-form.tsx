@@ -81,6 +81,7 @@ import {
 import type { AvailabilityResult } from '@/hooks/bookings/use-availability-check';
 import {
   serializeRRule,
+  toNaiveLocal,
   weekdayMatrix,
   type RecurrenceRule,
 } from '@/lib/datetime/index';
@@ -448,7 +449,16 @@ export function BookingFormDialog({
   // Helpers
   // -------------------------------------------------------------------------
 
-  /** Build ISO datetime strings for the API from form values. */
+  /**
+   * Build datetime strings for the API from form values.
+   *
+   * Returns two pairs:
+   *  - `startDatetime`/`endDatetime`: full ISO with UTC offset, used for the
+   *    availability-check query params (the backend needs unambiguous instants).
+   *  - `startTimeLocal`/`endTimeLocal`: naive wall-clock "YYYY-MM-DDTHH:mm:ss"
+   *    (no offset, no Z), used in the CREATE payload's start_time/end_time.
+   *    The timezone is sent separately as the `timezone` field.
+   */
   function buildDatetimes(values: BookingFormSchema) {
     const startISO = `${values.date}T${values.startTime}:00`;
     const endISO = `${values.date}T${values.endTime}:00`;
@@ -457,6 +467,8 @@ export function BookingFormDialog({
     return {
       startDatetime: startDt.toISO()!,
       endDatetime: endDt.toISO()!,
+      startTimeLocal: toNaiveLocal(startDt),
+      endTimeLocal: toNaiveLocal(endDt),
     };
   }
 
@@ -488,9 +500,11 @@ export function BookingFormDialog({
     const primaryId = parseInt(values.primaryCalendarId, 10);
     const allCalendarIds = [primaryId, ...values.coBookedCalendarIds];
 
-    const { startDatetime, endDatetime } = buildDatetimes(values);
+    const { startDatetime, endDatetime, startTimeLocal, endTimeLocal } =
+      buildDatetimes(values);
 
-    // Run availability checks for all calendars.
+    // Run availability checks for all calendars using the OFFSET form so the
+    // backend can resolve exact instants for filtering.
     // For recurring events, we check only the first occurrence (same
     // startDatetime/endDatetime). Checking all occurrences of an unbounded
     // series is impractical; per-occurrence enforcement is the backend's job.
@@ -508,8 +522,9 @@ export function BookingFormDialog({
       return;
     }
 
-    // No conflicts — proceed with booking immediately.
-    await proceedWithBooking(values, primaryId, startDatetime, endDatetime);
+    // No conflicts — proceed with booking using NAIVE local times for the write
+    // payload (the timezone is sent separately in the `timezone` field).
+    await proceedWithBooking(values, primaryId, startTimeLocal, endTimeLocal);
   };
 
   // -------------------------------------------------------------------------
@@ -583,9 +598,10 @@ export function BookingFormDialog({
   const onProceed = async () => {
     const values = form.getValues();
     const primaryId = parseInt(values.primaryCalendarId, 10);
-    const { startDatetime, endDatetime } = buildDatetimes(values);
+    // Use naive local times for the write payload (offset form used for check above).
+    const { startTimeLocal, endTimeLocal } = buildDatetimes(values);
     setConflicts(null);
-    await proceedWithBooking(values, primaryId, startDatetime, endDatetime);
+    await proceedWithBooking(values, primaryId, startTimeLocal, endTimeLocal);
   };
 
   // -------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import {
   zonedFormat,
   eventRange,
   toApiRange,
+  toNaiveLocal,
   weekdayMatrix,
   serializeRRule,
   parseRRule,
@@ -365,6 +366,37 @@ describe('serializeRRule + parseRRule', () => {
   it('round-trips a yearly rule with no optional fields', () => {
     const rule: RecurrenceRule = { freq: 'YEARLY' };
     expect(parseRRule(serializeRRule(rule))).toEqual(rule);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toNaiveLocal — strips offset, emits wall-clock string
+// ---------------------------------------------------------------------------
+
+describe('toNaiveLocal', () => {
+  it('returns wall-clock string with no offset for America/New_York summer', () => {
+    // 2024-06-15T09:00 in New York (EDT, UTC-4) — toISO() would give "-04:00"
+    const dt = DateTime.fromISO('2024-06-15T09:00:00', {
+      zone: 'America/New_York',
+    });
+    const result = toNaiveLocal(dt);
+    expect(result).toBe('2024-06-15T09:00:00');
+    // Must not contain any offset or Z
+    expect(result).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+  });
+
+  it('returns the local wall-clock regardless of DST offset', () => {
+    // 2024-01-15T14:30 in New York (EST, UTC-5) — offset would differ but
+    // naive output should still be the wall-clock time
+    const dt = DateTime.fromISO('2024-01-15T14:30:00', {
+      zone: 'America/New_York',
+    });
+    expect(toNaiveLocal(dt)).toBe('2024-01-15T14:30:00');
+  });
+
+  it('works for UTC zone', () => {
+    const dt = DateTime.fromISO('2024-06-15T13:00:00Z', { zone: 'UTC' });
+    expect(toNaiveLocal(dt)).toBe('2024-06-15T13:00:00');
   });
 });
 

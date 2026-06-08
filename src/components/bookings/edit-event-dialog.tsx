@@ -32,6 +32,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { DateTime } from 'luxon';
+import { toNaiveLocal } from '@/lib/datetime/index';
 import {
   Dialog,
   DialogContent,
@@ -187,11 +188,15 @@ export function EditEventDialog({
     const startDt = DateTime.fromISO(startISO, { zone: values.timezone });
     const endDt = DateTime.fromISO(endISO, { zone: values.timezone });
 
+    // Emit naive local wall-clock strings (no offset, no Z) for the write
+    // payload. The timezone is passed separately so the backend resolves the
+    // correct UTC moment. There is no availability check in edit-event-dialog,
+    // so all datetimes here are write-only.
     return {
       title: values.title,
       description: values.description,
-      startTime: startDt.toISO()!,
-      endTime: endDt.toISO()!,
+      startTime: toNaiveLocal(startDt),
+      endTime: toNaiveLocal(endDt),
       timezone: values.timezone,
     };
   }
