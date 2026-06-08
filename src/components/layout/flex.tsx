@@ -74,10 +74,14 @@ const Flex = React.forwardRef<HTMLElement, FlexProps>(function Flex(
     justifyContent: justify ? JUSTIFY[justify] : undefined,
     flexWrap:
       wrap === true ? 'wrap' : wrap === 'reverse' ? 'wrap-reverse' : undefined,
-    gap: gap != null ? resolveSpace(gap) : undefined,
-    rowGap: rowGap != null ? resolveSpace(rowGap) : undefined,
-    columnGap: columnGap != null ? resolveSpace(columnGap) : undefined,
   };
+  // Only assign the gap keys that are actually set. Emitting the `gap`
+  // shorthand alongside `undefined` `rowGap`/`columnGap` longhands makes React
+  // warn about mixing shorthand + longhand and DROP the shorthand on rerender —
+  // which silently zeroed the gap (glued labels next to switches/checkboxes).
+  if (gap != null) flexStyle.gap = resolveSpace(gap);
+  if (rowGap != null) flexStyle.rowGap = resolveSpace(rowGap);
+  if (columnGap != null) flexStyle.columnGap = resolveSpace(columnGap);
   return (
     <Comp
       ref={ref}

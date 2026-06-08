@@ -17,6 +17,12 @@ import {
 
 import { cn } from '@/lib/utils/index';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Box } from './box';
 import { VStack } from './flex';
 import { Text } from './text';
@@ -62,6 +68,8 @@ export interface AppSidebarProps extends React.HTMLAttributes<HTMLElement> {
   userName?: string;
   userEmail?: string;
   userInitials?: string;
+  /** Called when the user selects "Log out" from the account menu. */
+  onLogout?: () => void;
 }
 
 // AppSidebarInner is a named component so hooks are valid without any
@@ -77,6 +85,7 @@ function AppSidebarInner(
     userName = 'Renata Pires',
     userEmail = 'renata@quilted.health',
     userInitials = 'RP',
+    onLogout,
     ...props
   }: AppSidebarProps,
   ref: React.Ref<HTMLElement>
@@ -225,39 +234,49 @@ function AppSidebarInner(
               {orgMeta}
             </Text>
           </Box>
-          <ChevronsUpDown className='text-muted-foreground size-[15px]' />
         </button>
-        <button
-          type='button'
-          className='hover:bg-sidebar-accent flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
-        >
-          <Avatar className='size-7'>
-            <AvatarFallback className='bg-teal-100 text-[11px] text-teal-700'>
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
-          <Box minWidth={0} grow={1}>
-            <Text
-              as='div'
-              weight='medium'
-              leading='tight'
-              truncate
-              className='text-[13px]'
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type='button'
+              aria-label='Account menu'
+              className='hover:bg-sidebar-accent flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
             >
-              {userName}
-            </Text>
-            <Text
-              as='div'
-              color='muted-foreground'
-              leading='tight'
-              truncate
-              className='text-[11px]'
-            >
-              {userEmail}
-            </Text>
-          </Box>
-          <LogOut className='text-muted-foreground size-[15px]' />
-        </button>
+              <Avatar className='size-7'>
+                <AvatarFallback className='bg-teal-100 text-[11px] text-teal-700'>
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
+              <Box minWidth={0} grow={1}>
+                <Text
+                  as='div'
+                  weight='medium'
+                  leading='tight'
+                  truncate
+                  className='text-[13px]'
+                >
+                  {userName}
+                </Text>
+                <Text
+                  as='div'
+                  color='muted-foreground'
+                  leading='tight'
+                  truncate
+                  className='text-[11px]'
+                >
+                  {userEmail}
+                </Text>
+              </Box>
+              <ChevronsUpDown className='text-muted-foreground size-[15px]' />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='start' side='top' className='w-56'>
+            <DropdownMenuItem onSelect={() => onLogout?.()}>
+              <LogOut />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </VStack>
     </VStack>
   );

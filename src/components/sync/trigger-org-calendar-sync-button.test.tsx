@@ -30,9 +30,7 @@ describe('TriggerOrgCalendarSyncButton', () => {
   it('should render the button', () => {
     vi.mocked(useTriggerOrgCalendarSync).mockReturnValue({
       triggerOrgCalendarSync: vi.fn().mockResolvedValue({}),
-      triggerOrgCalendarSyncMutation: {
-        isPending: false,
-      },
+      isPending: false,
     } as unknown as ReturnType<typeof useTriggerOrgCalendarSync>);
 
     render(<TriggerOrgCalendarSyncButton />);
@@ -46,9 +44,7 @@ describe('TriggerOrgCalendarSyncButton', () => {
 
     vi.mocked(useTriggerOrgCalendarSync).mockReturnValue({
       triggerOrgCalendarSync: mockTrigger,
-      triggerOrgCalendarSyncMutation: {
-        isPending: false,
-      },
+      isPending: false,
     } as unknown as ReturnType<typeof useTriggerOrgCalendarSync>);
 
     render(<TriggerOrgCalendarSyncButton />);
@@ -70,9 +66,7 @@ describe('TriggerOrgCalendarSyncButton', () => {
 
     vi.mocked(useTriggerOrgCalendarSync).mockReturnValue({
       triggerOrgCalendarSync: mockTrigger,
-      triggerOrgCalendarSyncMutation: {
-        isPending: false,
-      },
+      isPending: false,
     } as unknown as ReturnType<typeof useTriggerOrgCalendarSync>);
 
     render(<TriggerOrgCalendarSyncButton />);
@@ -94,9 +88,7 @@ describe('TriggerOrgCalendarSyncButton', () => {
 
     vi.mocked(useTriggerOrgCalendarSync).mockReturnValue({
       triggerOrgCalendarSync: mockTrigger,
-      triggerOrgCalendarSyncMutation: {
-        isPending: false,
-      },
+      isPending: false,
     } as unknown as ReturnType<typeof useTriggerOrgCalendarSync>);
 
     render(<TriggerOrgCalendarSyncButton />);
@@ -135,9 +127,7 @@ describe('TriggerOrgCalendarSyncButton', () => {
   it('should disable button while pending', () => {
     vi.mocked(useTriggerOrgCalendarSync).mockReturnValue({
       triggerOrgCalendarSync: vi.fn(),
-      triggerOrgCalendarSyncMutation: {
-        isPending: true,
-      },
+      isPending: true,
     } as unknown as ReturnType<typeof useTriggerOrgCalendarSync>);
 
     render(<TriggerOrgCalendarSyncButton />);

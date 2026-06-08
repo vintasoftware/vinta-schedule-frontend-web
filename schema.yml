@@ -4025,18 +4025,6 @@ paths:
           schema:
             type: string
           required: true
-        - name: limit
-          required: false
-          in: query
-          description: Number of results to return per page.
-          schema:
-            type: integer
-        - name: offset
-          required: false
-          in: query
-          description: The initial index from which to return the results.
-          schema:
-            type: integer
         - in: query
           name: start_datetime
           schema:
@@ -4053,7 +4041,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedAvailableTimeWindowList'
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvailableTimeWindow'
           description: ''
   /calendar/{id}/available-windows{format}:
     get:
@@ -4081,18 +4071,6 @@ paths:
           schema:
             type: string
           required: true
-        - name: limit
-          required: false
-          in: query
-          description: Number of results to return per page.
-          schema:
-            type: integer
-        - name: offset
-          required: false
-          in: query
-          description: The initial index from which to return the results.
-          schema:
-            type: integer
         - in: query
           name: start_datetime
           schema:
@@ -4109,7 +4087,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedAvailableTimeWindowList'
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvailableTimeWindow'
           description: ''
   /calendar/{id}/bundle/:
     patch:
@@ -4292,18 +4272,6 @@ paths:
           schema:
             type: string
           required: true
-        - name: limit
-          required: false
-          in: query
-          description: Number of results to return per page.
-          schema:
-            type: integer
-        - name: offset
-          required: false
-          in: query
-          description: The initial index from which to return the results.
-          schema:
-            type: integer
         - in: query
           name: start_datetime
           schema:
@@ -4320,7 +4288,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedUnavailableTimeWindowList'
+                type: array
+                items:
+                  $ref: '#/components/schemas/UnavailableTimeWindow'
           description: ''
   /calendar/{id}/unavailable-windows{format}:
     get:
@@ -4348,18 +4318,6 @@ paths:
           schema:
             type: string
           required: true
-        - name: limit
-          required: false
-          in: query
-          description: Number of results to return per page.
-          schema:
-            type: integer
-        - name: offset
-          required: false
-          in: query
-          description: The initial index from which to return the results.
-          schema:
-            type: integer
         - in: query
           name: start_datetime
           schema:
@@ -4376,7 +4334,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedUnavailableTimeWindowList'
+                type: array
+                items:
+                  $ref: '#/components/schemas/UnavailableTimeWindow'
           description: ''
   /calendar/bundle/:
     post:
@@ -8092,7 +8052,6 @@ components:
           type: integer
           nullable: true
       required:
-        - calendar
         - created
         - end_time
         - id
@@ -8300,7 +8259,6 @@ components:
           type: integer
           nullable: true
       required:
-        - calendar
         - created
         - end_time
         - external_id
@@ -9173,29 +9131,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AvailableTime'
-    PaginatedAvailableTimeWindowList:
-      type: object
-      required:
-        - count
-        - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?offset=400&limit=100
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?offset=200&limit=100
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/AvailableTimeWindow'
     PaginatedBlockedTimeList:
       type: object
       required:
@@ -9426,29 +9361,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SystemUserToken'
-    PaginatedUnavailableTimeWindowList:
-      type: object
-      required:
-        - count
-        - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?offset=400&limit=100
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?offset=200&limit=100
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/UnavailableTimeWindow'
     PaginatedWebhookConfigurationList:
       type: object
       required:

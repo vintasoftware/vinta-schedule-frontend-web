@@ -25,10 +25,14 @@ import {
   type View,
   type Components,
   type EventProps,
+  type ToolbarProps,
 } from 'react-big-calendar';
 import { DateTime } from 'luxon';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import './calendar-theme.css';
-import { Flex } from '@/components/layout';
+import { Flex, HStack } from '@/components/layout';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { CalendarEventVM } from './event-vm';
 
 // ---------------------------------------------------------------------------
@@ -56,6 +60,89 @@ function DefaultEventContent({
         {event.timezoneLabel}
       </span>
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Custom toolbar
+//
+// Replaces RBC's built-in toolbar so the view switcher uses our shadcn `Tabs`
+// component (Radix under the hood) instead of RBC's own button group. The
+// nav controls (Today / Back / Next) use our `Button`. RBC still drives the
+// state: the Tabs value is the controlled `view`, and `onValueChange` calls
+// RBC's `onView`; the nav buttons call `onNavigate`.
+// ---------------------------------------------------------------------------
+
+/** The view names this wrapper renders, in display order. */
+const TOOLBAR_VIEWS: View[] = ['month', 'week', 'agenda'];
+
+function CalendarToolbar({
+  label,
+  view,
+  views,
+  onView,
+  onNavigate,
+  localizer,
+}: ToolbarProps<CalendarEventVM>): React.ReactElement {
+  const { messages } = localizer;
+
+  // RBC passes `views` as an array or an object map; narrow to the enabled
+  // subset while preserving our display order.
+  const enabled = Array.isArray(views)
+    ? views
+    : TOOLBAR_VIEWS.filter((v) => (views as Record<string, boolean>)[v]);
+  const viewList = TOOLBAR_VIEWS.filter((v) => enabled.includes(v));
+
+  return (
+    <Flex
+      data-slot='calendar-toolbar'
+      align='center'
+      justify='between'
+      gap={2}
+      wrap
+      className='mb-3'
+    >
+      <HStack gap={1}>
+        <Button
+          type='button'
+          variant='outline'
+          size='sm'
+          onClick={() => onNavigate('TODAY')}
+        >
+          {messages.today}
+        </Button>
+        <Button
+          type='button'
+          variant='ghost'
+          size='icon'
+          aria-label={String(messages.previous ?? 'Back')}
+          onClick={() => onNavigate('PREV')}
+        >
+          <ChevronLeft />
+        </Button>
+        <Button
+          type='button'
+          variant='ghost'
+          size='icon'
+          aria-label={String(messages.next ?? 'Next')}
+          onClick={() => onNavigate('NEXT')}
+        >
+          <ChevronRight />
+        </Button>
+      </HStack>
+
+      <span className='text-foreground text-base font-medium'>{label}</span>
+
+      <Tabs value={view} onValueChange={(next) => onView(next as View)}>
+        <TabsList>
+          {viewList.map((name) => (
+            <TabsTrigger key={name} value={name}>
+              {String(messages[name as keyof typeof messages] ?? name)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+    </Flex>
   );
 }
 
@@ -166,7 +253,7 @@ export function CalendarView({
   );
 
   const components = React.useMemo<Components<CalendarEventVM>>(
-    () => ({ event: EventComponent }),
+    () => ({ event: EventComponent, toolbar: CalendarToolbar }),
     [EventComponent]
   );
 

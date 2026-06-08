@@ -68,12 +68,12 @@ export async function checkAvailabilityForCalendar(
     query: {
       start_datetime: startDatetime,
       end_datetime: endDatetime,
-      limit: 50,
     },
   });
 
+  // The endpoint returns a bare array (200: Array<…>).
   const conflictingWindows: UnavailableTimeWindow[] =
-    unavailableResult.data?.results ?? [];
+    unavailableResult.data ?? [];
   const isFree = conflictingWindows.length === 0;
 
   // Fetch the nearest available window AFTER the requested range.
@@ -88,10 +88,9 @@ export async function checkAvailabilityForCalendar(
       query: {
         start_datetime: searchStart,
         end_datetime: searchEnd,
-        limit: 5,
       },
     });
-    const windows = availableResult.data?.results ?? [];
+    const windows = availableResult.data ?? [];
     nearestFreeWindow = windows[0] ?? null;
   } catch {
     // If the available-windows call fails, we still have conflict info —

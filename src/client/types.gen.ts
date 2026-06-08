@@ -64,7 +64,7 @@ export type AvailableTime = {
     readonly recurrence_id: string | null;
     readonly created: string;
     readonly modified: string;
-    calendar: number | null;
+    calendar?: number | null;
 };
 
 export type AvailableTimeBulkModification = {
@@ -165,7 +165,7 @@ export type BlockedTime = {
     } | null;
     readonly created: string;
     readonly modified: string;
-    calendar: number | null;
+    calendar?: number | null;
 };
 
 export type BlockedTimeBulkModification = {
@@ -590,13 +590,6 @@ export type PaginatedAvailableTimeList = {
     results: Array<AvailableTime>;
 };
 
-export type PaginatedAvailableTimeWindowList = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<AvailableTimeWindow>;
-};
-
 export type PaginatedBlockedTimeList = {
     count: number;
     next?: string | null;
@@ -665,13 +658,6 @@ export type PaginatedSystemUserTokenList = {
     next?: string | null;
     previous?: string | null;
     results: Array<SystemUserToken>;
-};
-
-export type PaginatedUnavailableTimeWindowList = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<UnavailableTimeWindow>;
 };
 
 export type PaginatedWebhookConfigurationList = {
@@ -1237,7 +1223,7 @@ export type AvailableTimeWritable = {
      * RRULE string for creating recurring available times
      */
     rrule_string?: string;
-    calendar: number | null;
+    calendar?: number | null;
 };
 
 export type AvailableTimeBulkModificationWritable = {
@@ -1294,7 +1280,7 @@ export type BlockedTimeWritable = {
      * RRULE string for creating recurring blocked times
      */
     rrule_string?: string;
-    calendar: number | null;
+    calendar?: number | null;
 };
 
 export type BlockedTimeBulkModificationWritable = {
@@ -1534,13 +1520,6 @@ export type PaginatedSystemUserTokenListWritable = {
     next?: string | null;
     previous?: string | null;
     results: Array<unknown>;
-};
-
-export type PaginatedUnavailableTimeWindowListWritable = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<UnavailableTimeWindowWritable>;
 };
 
 export type PaginatedWebhookConfigurationListWritable = {
@@ -4061,14 +4040,6 @@ export type CalendarAvailableWindowsListData = {
          */
         end_datetime: string;
         /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
@@ -4077,7 +4048,7 @@ export type CalendarAvailableWindowsListData = {
 };
 
 export type CalendarAvailableWindowsListResponses = {
-    200: PaginatedAvailableTimeWindowList;
+    200: Array<AvailableTimeWindow>;
 };
 
 export type CalendarAvailableWindowsListResponse = CalendarAvailableWindowsListResponses[keyof CalendarAvailableWindowsListResponses];
@@ -4094,14 +4065,6 @@ export type CalendarAvailableWindowsFormattedListData = {
          */
         end_datetime: string;
         /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
@@ -4110,7 +4073,7 @@ export type CalendarAvailableWindowsFormattedListData = {
 };
 
 export type CalendarAvailableWindowsFormattedListResponses = {
-    200: PaginatedAvailableTimeWindowList;
+    200: Array<AvailableTimeWindow>;
 };
 
 export type CalendarAvailableWindowsFormattedListResponse = CalendarAvailableWindowsFormattedListResponses[keyof CalendarAvailableWindowsFormattedListResponses];
@@ -4188,14 +4151,6 @@ export type CalendarUnavailableWindowsListData = {
          */
         end_datetime: string;
         /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
@@ -4204,7 +4159,7 @@ export type CalendarUnavailableWindowsListData = {
 };
 
 export type CalendarUnavailableWindowsListResponses = {
-    200: PaginatedUnavailableTimeWindowList;
+    200: Array<UnavailableTimeWindow>;
 };
 
 export type CalendarUnavailableWindowsListResponse = CalendarUnavailableWindowsListResponses[keyof CalendarUnavailableWindowsListResponses];
@@ -4221,14 +4176,6 @@ export type CalendarUnavailableWindowsFormattedListData = {
          */
         end_datetime: string;
         /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
@@ -4237,7 +4184,7 @@ export type CalendarUnavailableWindowsFormattedListData = {
 };
 
 export type CalendarUnavailableWindowsFormattedListResponses = {
-    200: PaginatedUnavailableTimeWindowList;
+    200: Array<UnavailableTimeWindow>;
 };
 
 export type CalendarUnavailableWindowsFormattedListResponse = CalendarUnavailableWindowsFormattedListResponses[keyof CalendarUnavailableWindowsFormattedListResponses];

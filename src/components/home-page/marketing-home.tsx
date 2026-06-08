@@ -38,6 +38,15 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 /* ---------------------------------------------------------------- Nav */
 function MarketingNav() {
   const links = ['Product', 'Calendar Groups', 'Developers', 'Pricing'];
+
+  // Authenticated visitors see a "Dashboard" link instead of sign-in/up.
+  // Resolved after mount to avoid an SSR/client hydration mismatch (localStorage
+  // is client-only); defaults to the signed-out actions until then.
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  React.useEffect(() => {
+    setIsAuthenticated(Boolean(localStorage.getItem('accessToken')));
+  }, []);
+
   return (
     <Navbar
       brand={
@@ -57,17 +66,25 @@ function MarketingNav() {
       actions={
         <>
           <ThemeToggle />
-          <Button
-            asChild
-            variant='ghost'
-            size='sm'
-            className='hidden sm:inline-flex'
-          >
-            <Link href='/auth/login'>Sign in</Link>
-          </Button>
-          <Button asChild size='sm'>
-            <Link href='/auth/signup'>Sign up</Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button asChild size='sm'>
+              <Link href='/dashboard'>Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button
+                asChild
+                variant='ghost'
+                size='sm'
+                className='hidden sm:inline-flex'
+              >
+                <Link href='/auth/login'>Sign in</Link>
+              </Button>
+              <Button asChild size='sm'>
+                <Link href='/auth/signup'>Sign up</Link>
+              </Button>
+            </>
+          )}
         </>
       }
     />

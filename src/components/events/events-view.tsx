@@ -230,18 +230,6 @@ export function EventsView({
               disabled={calendarsLoading}
             />
           </div>
-
-          {/* View toggle: List / Month / Week */}
-          <Tabs
-            value={view}
-            onValueChange={(v) => setView(v as CalendarViewMode)}
-          >
-            <TabsList>
-              <TabsTrigger value='agenda'>List</TabsTrigger>
-              <TabsTrigger value='week'>Week</TabsTrigger>
-              <TabsTrigger value='month'>Month</TabsTrigger>
-            </TabsList>
-          </Tabs>
         </HStack>
 
         {/* Calendar view — the range updates when view changes */}

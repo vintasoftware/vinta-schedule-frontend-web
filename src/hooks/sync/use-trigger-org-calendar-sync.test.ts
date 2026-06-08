@@ -29,21 +29,28 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+const mockOrg = (organization: unknown) =>
+  vi.mocked(orgHook.useCurrentOrganization).mockReturnValue({
+    organization,
+    isOnboarded: organization != null,
+    isGated: false,
+    isDisabled: false,
+    membership: null,
+    role: null,
+    query: { data: undefined },
+  } as unknown as ReturnType<typeof orgHook.useCurrentOrganization>);
+
 describe('useTriggerOrgCalendarSync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock DateTime.now() to return a fixed date for testing
+    // Fixed default window for the sync-calendars step.
     const mockNow = {
       minus: () => ({
-        startOf: () => ({
-          toISO: () => '2024-05-05T00:00:00+00:00',
-        }),
+        startOf: () => ({ toISO: () => '2024-05-05T00:00:00+00:00' }),
       }),
       plus: () => ({
-        endOf: () => ({
-          toISO: () => '2024-09-05T23:59:59+00:00',
-        }),
+        endOf: () => ({ toISO: () => '2024-09-05T23:59:59+00:00' }),
       }),
     };
     vi.mocked(DateTime.now).mockReturnValue(
@@ -51,25 +58,23 @@ describe('useTriggerOrgCalendarSync', () => {
     );
   });
 
-  it('should call organizationsSyncCalendarsCreate with org id and default window body', async () => {
-    const mockOrganization = {
-      id: 42,
-      name: 'Test Org',
-    };
+  it('runs request-import first, then sync-calendars (in order)', async () => {
+    mockOrg({ id: 42, name: 'Test Org' });
 
-    vi.mocked(orgHook.useCurrentOrganization).mockReturnValue({
-      organization: mockOrganization,
-      isOnboarded: true,
-      isGated: false,
-      isDisabled: false,
-      membership: null,
-      role: null,
-      query: { data: undefined },
-    } as unknown as ReturnType<typeof orgHook.useCurrentOrganization>);
-
-    const mockSyncCreate = vi.fn().mockResolvedValue({ id: 1 });
+    const calls: string[] = [];
+    const mockImport = vi.fn().mockImplementation(async () => {
+      calls.push('import');
+      return { detail: 'ok' };
+    });
+    const mockSync = vi.fn().mockImplementation(async () => {
+      calls.push('sync');
+      return { id: 1 };
+    });
+    vi.mocked(sdk.calendarRequestImportCreate).mockImplementation(
+      mockImport as unknown as typeof sdk.calendarRequestImportCreate
+    );
     vi.mocked(sdk.organizationsSyncCalendarsCreate).mockImplementation(
-      mockSyncCreate as unknown as typeof sdk.organizationsSyncCalendarsCreate
+      mockSync as unknown as typeof sdk.organizationsSyncCalendarsCreate
     );
 
     const { result } = renderHook(() => useTriggerOrgCalendarSync(), {
@@ -82,8 +87,19 @@ describe('useTriggerOrgCalendarSync', () => {
 
     await result.current.triggerOrgCalendarSync();
 
-    expect(mockSyncCreate).toHaveBeenCalledTimes(1);
-    expect(mockSyncCreate).toHaveBeenCalledWith(
+    // Order: import resolves before sync fires.
+    expect(calls).toEqual(['import', 'sync']);
+
+    // Step 1: request-import with the org name as the body, no path.
+    expect(mockImport).toHaveBeenCalledTimes(1);
+    expect(mockImport).toHaveBeenCalledWith(
+      expect.objectContaining({ body: { name: 'Test Org' } })
+    );
+    expect(mockImport.mock.calls[0][0]).not.toHaveProperty('path');
+
+    // Step 2: sync-calendars with the org id path + default window body.
+    expect(mockSync).toHaveBeenCalledTimes(1);
+    expect(mockSync).toHaveBeenCalledWith(
       expect.objectContaining({
         path: { id: '42' },
         body: {
@@ -95,16 +111,39 @@ describe('useTriggerOrgCalendarSync', () => {
     );
   });
 
-  it('should throw if organization is not loaded', async () => {
-    vi.mocked(orgHook.useCurrentOrganization).mockReturnValue({
-      organization: null,
-      isOnboarded: false,
-      isGated: false,
-      isDisabled: false,
-      membership: null,
-      role: null,
-      query: { data: undefined },
-    } as unknown as ReturnType<typeof orgHook.useCurrentOrganization>);
+  it('does NOT run sync-calendars if request-import fails', async () => {
+    mockOrg({ id: 42, name: 'Test Org' });
+
+    const mockImport = vi.fn().mockRejectedValue(new Error('import failed'));
+    const mockSync = vi.fn().mockResolvedValue({ id: 1 });
+    vi.mocked(sdk.calendarRequestImportCreate).mockImplementation(
+      mockImport as unknown as typeof sdk.calendarRequestImportCreate
+    );
+    vi.mocked(sdk.organizationsSyncCalendarsCreate).mockImplementation(
+      mockSync as unknown as typeof sdk.organizationsSyncCalendarsCreate
+    );
+
+    const { result } = renderHook(() => useTriggerOrgCalendarSync(), {
+      wrapper,
+    });
+
+    await expect(result.current.triggerOrgCalendarSync()).rejects.toThrow(
+      'import failed'
+    );
+    expect(mockSync).not.toHaveBeenCalled();
+  });
+
+  it('throws if organization is not loaded (neither op runs)', async () => {
+    mockOrg(null);
+
+    const mockImport = vi.fn().mockResolvedValue({ detail: 'ok' });
+    const mockSync = vi.fn().mockResolvedValue({ id: 1 });
+    vi.mocked(sdk.calendarRequestImportCreate).mockImplementation(
+      mockImport as unknown as typeof sdk.calendarRequestImportCreate
+    );
+    vi.mocked(sdk.organizationsSyncCalendarsCreate).mockImplementation(
+      mockSync as unknown as typeof sdk.organizationsSyncCalendarsCreate
+    );
 
     const { result } = renderHook(() => useTriggerOrgCalendarSync(), {
       wrapper,
@@ -113,35 +152,7 @@ describe('useTriggerOrgCalendarSync', () => {
     await expect(result.current.triggerOrgCalendarSync()).rejects.toThrow(
       'Organization not loaded'
     );
-  });
-
-  it('should only call the mutation once (no cache invalidation)', async () => {
-    const mockOrganization = {
-      id: 42,
-      name: 'Test Org',
-    };
-
-    vi.mocked(orgHook.useCurrentOrganization).mockReturnValue({
-      organization: mockOrganization,
-      isOnboarded: true,
-      isGated: false,
-      isDisabled: false,
-      membership: null,
-      role: null,
-      query: { data: undefined },
-    } as unknown as ReturnType<typeof orgHook.useCurrentOrganization>);
-
-    const mockSyncCreate = vi.fn().mockResolvedValue({ id: 1 });
-    vi.mocked(sdk.organizationsSyncCalendarsCreate).mockImplementation(
-      mockSyncCreate as unknown as typeof sdk.organizationsSyncCalendarsCreate
-    );
-
-    const { result } = renderHook(() => useTriggerOrgCalendarSync(), {
-      wrapper,
-    });
-
-    await result.current.triggerOrgCalendarSync();
-
-    expect(mockSyncCreate).toHaveBeenCalledTimes(1);
+    expect(mockImport).not.toHaveBeenCalled();
+    expect(mockSync).not.toHaveBeenCalled();
   });
 });

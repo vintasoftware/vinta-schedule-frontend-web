@@ -88,8 +88,8 @@ import type {
   PaginatedCalendarList,
   CalendarEvent,
   BlockedTime,
-  PaginatedUnavailableTimeWindowList,
-  PaginatedAvailableTimeWindowList,
+  UnavailableTimeWindow,
+  AvailableTimeWindow,
 } from '@/client';
 
 // ---------------------------------------------------------------------------
@@ -197,7 +197,8 @@ function makeCreateBlockedTimeResponse(
 function makeUnavailableWindowsResponse(
   hasConflict: boolean
 ): Awaited<ReturnType<typeof calendarUnavailableWindowsList>> {
-  const results = hasConflict
+  // The endpoint returns a bare array (200: Array<…>).
+  const body: UnavailableTimeWindow[] = hasConflict
     ? [
         {
           id: 1,
@@ -208,10 +209,6 @@ function makeUnavailableWindowsResponse(
         },
       ]
     : [];
-  const body: PaginatedUnavailableTimeWindowList = {
-    count: results.length,
-    results,
-  };
   return {
     data: body,
     response: new Response(JSON.stringify(body), { status: 200 }),
@@ -221,17 +218,15 @@ function makeUnavailableWindowsResponse(
 function makeAvailableWindowsResponse(): Awaited<
   ReturnType<typeof calendarAvailableWindowsList>
 > {
-  const body: PaginatedAvailableTimeWindowList = {
-    count: 1,
-    results: [
-      {
-        id: 99,
-        start_time: '2024-06-15T11:00:00Z',
-        end_time: '2024-06-15T12:00:00Z',
-        can_book_partially: false,
-      },
-    ],
-  };
+  // The endpoint returns a bare array (200: Array<…>).
+  const body: AvailableTimeWindow[] = [
+    {
+      id: 99,
+      start_time: '2024-06-15T11:00:00Z',
+      end_time: '2024-06-15T12:00:00Z',
+      can_book_partially: false,
+    },
+  ];
   return {
     data: body,
     response: new Response(JSON.stringify(body), { status: 200 }),

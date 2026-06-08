@@ -116,7 +116,7 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
         document.cookie = `accessToken=${accessToken}; ${cookieOptions}`;
       if (refreshToken)
         document.cookie = `refreshToken=${refreshToken}; ${cookieOptions}`;
-      router.push('/');
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }

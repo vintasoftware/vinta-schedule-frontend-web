@@ -1,4 +1,7 @@
-import { organizationsSyncCalendarsCreateMutation } from '@/client/@tanstack/react-query.gen';
+import {
+  calendarRequestImportCreateMutation,
+  organizationsSyncCalendarsCreateMutation,
+} from '@/client/@tanstack/react-query.gen';
 import { useMutation } from '@tanstack/react-query';
 import { DateTime } from '@/lib/datetime';
 import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
@@ -6,18 +9,18 @@ import { useCurrentOrganization } from '@/hooks/organizations/use-current-organi
 // ---------------------------------------------------------------------------
 // useTriggerOrgCalendarSync
 //
-// Wraps `organizationsSyncCalendarsCreate`
-// (POST /organizations/{id}/sync-calendars/) which triggers an asynchronous
-// sync of ALL active calendars in the organization.
+// Two-step org calendar sync, run sequentially:
+//  1. `calendarRequestImportCreate` (POST /calendar/request-import/) — enqueue
+//     an import of the authenticated user's external calendars. Body
+//     (CalendarWritable) requires `name`, so we echo the current org name to
+//     satisfy the contract (the import does not create a calendar with it).
+//  2. `organizationsSyncCalendarsCreate` (POST /organizations/{id}/sync-calendars/)
+//     — enqueue a sync of all org calendars over a default window
+//     (now−1mo → +3mo, should_update_events:true), matching the horizon used in
+//     use-trigger-user-calendar-sync.ts.
 //
-// Default window: now minus 1 month → now plus 3 months. This matches the
-// window used in useTriggerUserCalendarSync (use-trigger-user-calendar-sync.ts)
-// so all admin sync actions share the same temporal horizon.
-//
-// Org id is sourced from useCurrentOrganization. The mutation is fire-and-toast:
-// no cache invalidation because the sync is asynchronous on the backend.
-//
-// Admin-only: the API returns 403 for non-admins.
+// Step 2 only runs after step 1 resolves. Fire-and-toast: no cache
+// invalidation; both jobs are asynchronous on the backend.
 // ---------------------------------------------------------------------------
 
 const DEFAULT_WINDOW_MONTHS_PAST = 1;
@@ -25,9 +28,7 @@ const DEFAULT_WINDOW_MONTHS_FUTURE = 3;
 
 /**
  * Build a default sync window: now minus 1 month → now plus 3 months.
- *
- * Returns an object with ISO datetime strings (including UTC offset) ready
- * to pass to the API. Mirrors the helper in use-trigger-user-calendar-sync.ts.
+ * Mirrors the helper in use-trigger-user-calendar-sync.ts.
  */
 function buildDefaultSyncWindow(): {
   start_datetime: string;
@@ -48,21 +49,29 @@ function buildDefaultSyncWindow(): {
 export function useTriggerOrgCalendarSync() {
   const { organization } = useCurrentOrganization();
 
-  const triggerOrgCalendarSyncMutation = useMutation({
+  const requestImportMutation = useMutation({
+    ...calendarRequestImportCreateMutation(),
+  });
+  const syncCalendarsMutation = useMutation({
     ...organizationsSyncCalendarsCreateMutation(),
-    onSuccess: () => {
-      // Fire-and-toast: no cache invalidation. The sync is async on the backend.
-    },
   });
 
   const triggerOrgCalendarSync = async () => {
-    if (!organization?.id || organization.id === null) {
+    const orgId = organization?.id;
+    const orgName = organization?.name;
+    if (orgId == null || typeof orgName !== 'string' || orgName.trim() === '') {
       throw new Error('Organization not loaded');
     }
 
+    // Step 1: request import of the user's external calendars.
+    await requestImportMutation.mutateAsync({
+      body: { name: orgName },
+    });
+
+    // Step 2: only after the import request succeeds, enqueue the org-wide sync.
     const window = buildDefaultSyncWindow();
-    return triggerOrgCalendarSyncMutation.mutateAsync({
-      path: { id: String(organization.id) },
+    return syncCalendarsMutation.mutateAsync({
+      path: { id: String(orgId) },
       body: {
         start_datetime: window.start_datetime,
         end_datetime: window.end_datetime,
@@ -71,5 +80,13 @@ export function useTriggerOrgCalendarSync() {
     });
   };
 
-  return { triggerOrgCalendarSync, triggerOrgCalendarSyncMutation };
+  const isPending =
+    requestImportMutation.isPending || syncCalendarsMutation.isPending;
+
+  return {
+    triggerOrgCalendarSync,
+    requestImportMutation,
+    syncCalendarsMutation,
+    isPending,
+  };
 }

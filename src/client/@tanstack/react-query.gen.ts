@@ -2524,35 +2524,6 @@ export const calendarAvailableWindowsListOptions = (options: Options<CalendarAva
     queryKey: calendarAvailableWindowsListQueryKey(options)
 });
 
-export const calendarAvailableWindowsListInfiniteQueryKey = (options: Options<CalendarAvailableWindowsListData>): QueryKey<Options<CalendarAvailableWindowsListData>> => createQueryKey('calendarAvailableWindowsList', options, true);
-
-/**
- * Get available time windows
- *
- * Get available time windows for a calendar within a specified date range.
- */
-export const calendarAvailableWindowsListInfiniteOptions = (options: Options<CalendarAvailableWindowsListData>) => infiniteQueryOptions<CalendarAvailableWindowsListResponse, DefaultError, InfiniteData<CalendarAvailableWindowsListResponse>, QueryKey<Options<CalendarAvailableWindowsListData>>, number | Pick<QueryKey<Options<CalendarAvailableWindowsListData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
-// @ts-ignore
-{
-    queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<QueryKey<Options<CalendarAvailableWindowsListData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
-            query: {
-                offset: pageParam
-            }
-        };
-        const params = createInfiniteParams(queryKey, page);
-        const { data } = await calendarAvailableWindowsList({
-            ...options,
-            ...params,
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: calendarAvailableWindowsListInfiniteQueryKey(options)
-});
-
 export const calendarAvailableWindowsFormattedListQueryKey = (options: Options<CalendarAvailableWindowsFormattedListData>) => createQueryKey('calendarAvailableWindowsFormattedList', options);
 
 /**
@@ -2571,35 +2542,6 @@ export const calendarAvailableWindowsFormattedListOptions = (options: Options<Ca
         return data;
     },
     queryKey: calendarAvailableWindowsFormattedListQueryKey(options)
-});
-
-export const calendarAvailableWindowsFormattedListInfiniteQueryKey = (options: Options<CalendarAvailableWindowsFormattedListData>): QueryKey<Options<CalendarAvailableWindowsFormattedListData>> => createQueryKey('calendarAvailableWindowsFormattedList', options, true);
-
-/**
- * Get available time windows
- *
- * Get available time windows for a calendar within a specified date range.
- */
-export const calendarAvailableWindowsFormattedListInfiniteOptions = (options: Options<CalendarAvailableWindowsFormattedListData>) => infiniteQueryOptions<CalendarAvailableWindowsFormattedListResponse, DefaultError, InfiniteData<CalendarAvailableWindowsFormattedListResponse>, QueryKey<Options<CalendarAvailableWindowsFormattedListData>>, number | Pick<QueryKey<Options<CalendarAvailableWindowsFormattedListData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
-// @ts-ignore
-{
-    queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<QueryKey<Options<CalendarAvailableWindowsFormattedListData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
-            query: {
-                offset: pageParam
-            }
-        };
-        const params = createInfiniteParams(queryKey, page);
-        const { data } = await calendarAvailableWindowsFormattedList({
-            ...options,
-            ...params,
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: calendarAvailableWindowsFormattedListInfiniteQueryKey(options)
 });
 
 /**
@@ -2698,35 +2640,6 @@ export const calendarUnavailableWindowsListOptions = (options: Options<CalendarU
     queryKey: calendarUnavailableWindowsListQueryKey(options)
 });
 
-export const calendarUnavailableWindowsListInfiniteQueryKey = (options: Options<CalendarUnavailableWindowsListData>): QueryKey<Options<CalendarUnavailableWindowsListData>> => createQueryKey('calendarUnavailableWindowsList', options, true);
-
-/**
- * Get unavailable time windows
- *
- * Get unavailable time windows for a calendar within a specified date range.
- */
-export const calendarUnavailableWindowsListInfiniteOptions = (options: Options<CalendarUnavailableWindowsListData>) => infiniteQueryOptions<CalendarUnavailableWindowsListResponse, DefaultError, InfiniteData<CalendarUnavailableWindowsListResponse>, QueryKey<Options<CalendarUnavailableWindowsListData>>, number | Pick<QueryKey<Options<CalendarUnavailableWindowsListData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
-// @ts-ignore
-{
-    queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<QueryKey<Options<CalendarUnavailableWindowsListData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
-            query: {
-                offset: pageParam
-            }
-        };
-        const params = createInfiniteParams(queryKey, page);
-        const { data } = await calendarUnavailableWindowsList({
-            ...options,
-            ...params,
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: calendarUnavailableWindowsListInfiniteQueryKey(options)
-});
-
 export const calendarUnavailableWindowsFormattedListQueryKey = (options: Options<CalendarUnavailableWindowsFormattedListData>) => createQueryKey('calendarUnavailableWindowsFormattedList', options);
 
 /**
@@ -2745,35 +2658,6 @@ export const calendarUnavailableWindowsFormattedListOptions = (options: Options<
         return data;
     },
     queryKey: calendarUnavailableWindowsFormattedListQueryKey(options)
-});
-
-export const calendarUnavailableWindowsFormattedListInfiniteQueryKey = (options: Options<CalendarUnavailableWindowsFormattedListData>): QueryKey<Options<CalendarUnavailableWindowsFormattedListData>> => createQueryKey('calendarUnavailableWindowsFormattedList', options, true);
-
-/**
- * Get unavailable time windows
- *
- * Get unavailable time windows for a calendar within a specified date range.
- */
-export const calendarUnavailableWindowsFormattedListInfiniteOptions = (options: Options<CalendarUnavailableWindowsFormattedListData>) => infiniteQueryOptions<CalendarUnavailableWindowsFormattedListResponse, DefaultError, InfiniteData<CalendarUnavailableWindowsFormattedListResponse>, QueryKey<Options<CalendarUnavailableWindowsFormattedListData>>, number | Pick<QueryKey<Options<CalendarUnavailableWindowsFormattedListData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
-// @ts-ignore
-{
-    queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<QueryKey<Options<CalendarUnavailableWindowsFormattedListData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
-            query: {
-                offset: pageParam
-            }
-        };
-        const params = createInfiniteParams(queryKey, page);
-        const { data } = await calendarUnavailableWindowsFormattedList({
-            ...options,
-            ...params,
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: calendarUnavailableWindowsFormattedListInfiniteQueryKey(options)
 });
 
 /**

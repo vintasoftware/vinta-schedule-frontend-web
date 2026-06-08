@@ -11,7 +11,8 @@
  */
 
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { CalendarView } from './calendar-view';
 import type { CalendarEventVM } from './event-vm';
@@ -282,35 +283,44 @@ describe('CalendarView', () => {
   });
 
   describe('view switch', () => {
-    it('calls onViewChange when the user clicks the Week toolbar button', () => {
+    it('calls onViewChange when the user clicks the Week view tab', async () => {
+      const user = userEvent.setup();
       const onViewChange = vi.fn();
       renderCalendar({ view: 'month', onViewChange });
 
-      const weekBtn = screen.getByRole('button', { name: /week/i });
-      fireEvent.click(weekBtn);
+      // The view switcher is our shadcn Tabs — triggers are role="tab".
+      await user.click(screen.getByRole('tab', { name: /week/i }));
 
       expect(onViewChange).toHaveBeenCalledWith('week');
     });
 
-    it('calls onViewChange when the user clicks the List/Agenda toolbar button', () => {
+    it('calls onViewChange when the user clicks the List/Agenda view tab', async () => {
+      const user = userEvent.setup();
       const onViewChange = vi.fn();
       renderCalendar({ view: 'month', onViewChange });
 
       // We set `messages.agenda = 'List'` in CalendarView
-      const listBtn = screen.getByRole('button', { name: /list/i });
-      fireEvent.click(listBtn);
+      await user.click(screen.getByRole('tab', { name: /list/i }));
 
       expect(onViewChange).toHaveBeenCalledWith('agenda');
     });
 
-    it('calls onViewChange when switching from week to month', () => {
+    it('calls onViewChange when switching from week to month', async () => {
+      const user = userEvent.setup();
       const onViewChange = vi.fn();
       renderCalendar({ view: 'week', onViewChange });
 
-      const monthBtn = screen.getByRole('button', { name: /month/i });
-      fireEvent.click(monthBtn);
+      await user.click(screen.getByRole('tab', { name: /month/i }));
 
       expect(onViewChange).toHaveBeenCalledWith('month');
+    });
+
+    it('renders the view switcher as a tablist with the active view selected', () => {
+      renderCalendar({ view: 'week' });
+
+      expect(screen.getByRole('tablist')).toBeTruthy();
+      const weekTab = screen.getByRole('tab', { name: /week/i });
+      expect(weekTab.getAttribute('aria-selected')).toBe('true');
     });
 
     it('does not call onDateChange when an external view switch re-renders with the same date prop', () => {

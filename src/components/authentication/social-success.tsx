@@ -34,7 +34,7 @@ export function SocialSuccess({
       localStorage.setItem('refreshToken', refreshToken || '');
       localStorage.removeItem('sessionToken');
 
-      router.push('/');
+      router.push('/dashboard');
     }
     if (session && !isAuthenticated) {
       authenticationFlowControl(session);

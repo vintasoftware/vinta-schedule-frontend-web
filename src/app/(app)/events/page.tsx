@@ -26,7 +26,7 @@ import { HStack } from '@/components/layout';
  */
 export default function EventsPage() {
   return (
-    <Stack gap={6}>
+    <Stack gap={0}>
       <PageHeader
         title='Events'
         description='View your upcoming events.'

@@ -161,21 +161,19 @@ function makeRecurringEventVM(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeUnavailableResponse(hasConflict: boolean): any {
+  // The endpoint returns a bare array (200: Array<…>).
   return {
-    data: {
-      count: hasConflict ? 1 : 0,
-      results: hasConflict
-        ? [
-            {
-              id: 99,
-              reason: 'blocked_time',
-              reason_description: 'Blocked',
-              start_time: '2024-06-15T09:00:00-04:00',
-              end_time: '2024-06-15T10:00:00-04:00',
-            },
-          ]
-        : [],
-    },
+    data: hasConflict
+      ? [
+          {
+            id: 99,
+            reason: 'blocked_time',
+            reason_description: 'Blocked',
+            start_time: '2024-06-15T09:00:00-04:00',
+            end_time: '2024-06-15T10:00:00-04:00',
+          },
+        ]
+      : [],
     response: new Response(null, { status: 200 }),
     request: new Request('https://example.com'),
   };
@@ -183,8 +181,9 @@ function makeUnavailableResponse(hasConflict: boolean): any {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeAvailableResponse(): any {
+  // The endpoint returns a bare array (200: Array<…>).
   return {
-    data: { count: 0, results: [] },
+    data: [],
     response: new Response(null, { status: 200 }),
     request: new Request('https://example.com'),
   };
