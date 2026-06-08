@@ -42,6 +42,25 @@ import type { AvailableTimeWindow, UnavailableTimeWindow } from '@/client';
 import { useQuery } from '@tanstack/react-query';
 
 // ---------------------------------------------------------------------------
+// Shape-tolerance helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Extracts a typed list from either a bare array response or a paginated
+ * `{ results }` shape.
+ *
+ * The generated types model the endpoint as paginated, but the live API
+ * currently returns a bare JSON array for the available/unavailable-windows
+ * endpoints. This helper tolerates both so callers are decoupled from the
+ * server's shape.
+ */
+function toList<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  const results = (data as { results?: T[] } | undefined)?.results;
+  return Array.isArray(results) ? results : [];
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -108,8 +127,12 @@ export function useUserAvailability(
     enabled,
   });
 
-  const freeWindows: AvailableTimeWindow[] = freeQuery.data?.results ?? [];
-  const busyWindows: UnavailableTimeWindow[] = busyQuery.data?.results ?? [];
+  const freeWindows: AvailableTimeWindow[] = toList<AvailableTimeWindow>(
+    freeQuery.data as unknown
+  );
+  const busyWindows: UnavailableTimeWindow[] = toList<UnavailableTimeWindow>(
+    busyQuery.data as unknown
+  );
 
   const isLoading = freeQuery.isLoading || busyQuery.isLoading;
   const isError = freeQuery.isError || busyQuery.isError;

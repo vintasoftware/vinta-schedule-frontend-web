@@ -41,6 +41,34 @@ import type {
 } from '@/client';
 
 // ---------------------------------------------------------------------------
+// Helpers for bare-array (non-paginated) server responses
+// ---------------------------------------------------------------------------
+
+function makeBareArrayFreeResponse(
+  items: AvailableTimeWindow[]
+): Awaited<ReturnType<typeof calendarAvailableWindowsList>> {
+  return {
+    data: items,
+    response: new Response(JSON.stringify(items), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  } as unknown as Awaited<ReturnType<typeof calendarAvailableWindowsList>>;
+}
+
+function makeBareArrayBusyResponse(
+  items: UnavailableTimeWindow[]
+): Awaited<ReturnType<typeof calendarUnavailableWindowsList>> {
+  return {
+    data: items,
+    response: new Response(JSON.stringify(items), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  } as unknown as Awaited<ReturnType<typeof calendarUnavailableWindowsList>>;
+}
+
+// ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
@@ -238,6 +266,50 @@ describe('useUserAvailability', () => {
       expect(call.path.id).toBe('99');
       expect(call.query.start_datetime).toBe(VALID_RANGE.startDatetime);
       expect(call.query.end_datetime).toBe(VALID_RANGE.endDatetime);
+    });
+
+    // -----------------------------------------------------------------------
+    // Bare-array regression — the live API returns [] not { count, results }
+    // -----------------------------------------------------------------------
+
+    it('populates freeWindows when server returns a bare array (regression)', async () => {
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeBareArrayFreeResponse([FIXTURE_FREE_WINDOW])
+      );
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeBareArrayBusyResponse([])
+      );
+
+      const { Wrapper } = makeQueryWrapper();
+      const { result } = renderHook(
+        () => useUserAvailability('42', VALID_RANGE),
+        { wrapper: Wrapper }
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      expect(result.current.freeWindows).toHaveLength(1);
+      expect(result.current.freeWindows[0].id).toBe(1);
+    });
+
+    it('populates busyWindows when server returns a bare array (regression)', async () => {
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeBareArrayFreeResponse([])
+      );
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeBareArrayBusyResponse([FIXTURE_BUSY_WINDOW])
+      );
+
+      const { Wrapper } = makeQueryWrapper();
+      const { result } = renderHook(
+        () => useUserAvailability('42', VALID_RANGE),
+        { wrapper: Wrapper }
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      expect(result.current.busyWindows).toHaveLength(1);
+      expect(result.current.busyWindows[0].id).toBe(2);
     });
 
     it('free windows do not contain any title field (privacy)', async () => {

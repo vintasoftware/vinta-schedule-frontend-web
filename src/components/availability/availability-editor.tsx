@@ -39,6 +39,7 @@ import { Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Form,
   FormField,
@@ -50,7 +51,7 @@ import {
 import { HStack, Stack, Text } from '@/components/layout';
 import { weekdayMatrix, type WeekdayEntry } from '@/lib/datetime/index';
 import { useAvailableTimes } from '@/hooks/availability/use-available-times';
-import type { AvailableTimeWritable } from '@/client';
+import type { AvailableTime, AvailableTimeWritable } from '@/client';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -105,6 +106,65 @@ function makeDefaultValues(): AvailabilityFormSchema {
     weekdays: weekdayMatrix().map(() => ({ ranges: [] })),
     adHoc: [],
   };
+}
+
+// ---------------------------------------------------------------------------
+// De-serialisation: server → form values
+// ---------------------------------------------------------------------------
+
+/**
+ * Byday code → weekday matrix index mapping.
+ * Matches weekdayMatrix() order: 0=MO, 1=TU, …, 6=SU.
+ */
+const BYDAY_TO_INDEX: Record<string, number> = {
+  MO: 0,
+  TU: 1,
+  WE: 2,
+  TH: 3,
+  FR: 4,
+  SA: 5,
+  SU: 6,
+};
+
+/**
+ * Build form default values from a list of saved AvailableTime entries.
+ *
+ * - Weekly recurring entries (is_recurring=true, recurrence_rule.by_weekday set):
+ *   extract HH:mm from start_time/end_time via literal substring (no tz-convert)
+ *   and push a range into each matching weekday row.
+ * - Ad-hoc entries (not recurring, or no by_weekday): extract date + HH:mm and
+ *   add to adHoc list.
+ */
+function buildDefaultsFromAvailableTimes(
+  availableTimes: AvailableTime[]
+): AvailabilityFormSchema {
+  const defaults = makeDefaultValues();
+
+  for (const entry of availableTimes) {
+    // Literal wall-clock extraction — do NOT timezone-convert; the stored value
+    // already matches what weeklyEntryToWritable wrote (naive local datetime).
+    const startTime = entry.start_time.slice(11, 16); // "HH:mm"
+    const endTime = entry.end_time.slice(11, 16); // "HH:mm"
+
+    const byWeekday = entry.recurrence_rule?.by_weekday;
+
+    if (entry.is_recurring && byWeekday) {
+      // Weekly pattern — by_weekday may be a comma list like "MO,WE"
+      const codes = byWeekday.split(',').map((c) => c.trim().toUpperCase());
+      for (const code of codes) {
+        const idx = BYDAY_TO_INDEX[code];
+        if (idx !== undefined) {
+          defaults.weekdays[idx].ranges.push({ startTime, endTime });
+        }
+      }
+    } else {
+      // Ad-hoc (non-recurring or no weekday recurrence)
+      const date = entry.start_time.slice(0, 10); // "YYYY-MM-DD"
+      defaults.adHoc.push({ date, startTime, endTime });
+    }
+  }
+
+  return defaults;
 }
 
 // ---------------------------------------------------------------------------
@@ -449,7 +509,8 @@ export function AvailabilityEditor({
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : 'UTC';
 
-  const { bulkCreate, isPending } = useAvailableTimes();
+  const { bulkCreate, isPending, availableTimes, isLoading } =
+    useAvailableTimes();
 
   const weekdays = weekdayMatrix();
 
@@ -457,6 +518,16 @@ export function AvailabilityEditor({
     resolver: zodResolver(availabilityFormSchema),
     defaultValues: makeDefaultValues(),
   });
+
+  // Hydrate form once from server data on first successful load.
+  // hasHydratedRef guards against resetting over subsequent user edits.
+  const hasHydratedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (hasHydratedRef.current) return;
+    if (isLoading) return;
+    hasHydratedRef.current = true;
+    form.reset(buildDefaultsFromAvailableTimes(availableTimes));
+  }, [isLoading, availableTimes, form]);
 
   async function onSubmit(values: AvailabilityFormSchema) {
     const payload = buildPayload(values, timezone, calendarId);
@@ -478,6 +549,16 @@ export function AvailabilityEditor({
         description: err instanceof Error ? err.message : 'Unknown error',
       });
     }
+  }
+
+  if (isLoading) {
+    return (
+      <Stack gap={3} aria-label='Loading availability'>
+        {[1, 2, 3, 4].map((n) => (
+          <Skeleton key={n} className='h-10 w-full rounded-md' />
+        ))}
+      </Stack>
+    );
   }
 
   return (
@@ -519,7 +600,9 @@ export function AvailabilityEditor({
             <Button
               type='button'
               variant='outline'
-              onClick={() => form.reset(makeDefaultValues())}
+              onClick={() =>
+                form.reset(buildDefaultsFromAvailableTimes(availableTimes))
+              }
               disabled={isPending}
             >
               Reset
