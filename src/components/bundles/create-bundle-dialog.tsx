@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Combobox } from '@/components/ui/combobox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Form,
@@ -183,86 +183,42 @@ export function CreateBundleDialog({
               )}
             />
 
-            {/* Child calendars (multi-select checkboxes) */}
-            <VStack gap={3}>
-              <label className='text-sm leading-none font-medium'>
-                Child calendars
-              </label>
-
-              {calendarsLoading && (
-                <Text size='xs' color='muted-foreground'>
-                  Loading calendars…
-                </Text>
+            {/* Child calendars (combobox multi-select) */}
+            <FormField
+              control={form.control}
+              name='bundle_calendars'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Child calendars</FormLabel>
+                  <FormControl>
+                    <Combobox
+                      multiple
+                      options={calendars.map((cal) => ({
+                        value: cal.id.toString(),
+                        label: cal.name,
+                      }))}
+                      value={field.value.map(String)}
+                      onValueChange={(vals) => {
+                        const newIds = vals.map(Number);
+                        field.onChange(newIds);
+                        const primary = form.getValues('primary_calendar');
+                        if (primary !== null && !newIds.includes(primary)) {
+                          form.setValue('primary_calendar', null, {
+                            shouldValidate: true,
+                          });
+                        }
+                      }}
+                      placeholder='Select calendars…'
+                      searchPlaceholder='Search calendars…'
+                      emptyText='No calendars available.'
+                      isLoading={calendarsLoading}
+                      disabled={calendarsLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-
-              {!calendarsLoading && calendars.length === 0 && (
-                <Text size='xs' color='muted-foreground'>
-                  No calendars available.
-                </Text>
-              )}
-
-              {!calendarsLoading && calendars.length > 0 && (
-                <VStack gap={2}>
-                  {calendars.map((cal) => {
-                    const isChecked = selectedCalendars.includes(cal.id);
-                    return (
-                      <HStack key={cal.id} gap={2} align='center'>
-                        <Controller
-                          control={form.control}
-                          name='bundle_calendars'
-                          render={() => (
-                            <Checkbox
-                              id={`bundle-cal-${cal.id}`}
-                              checked={isChecked}
-                              onCheckedChange={(checked) => {
-                                const current =
-                                  form.getValues('bundle_calendars');
-                                if (checked) {
-                                  form.setValue(
-                                    'bundle_calendars',
-                                    [...current, cal.id],
-                                    { shouldValidate: true }
-                                  );
-                                } else {
-                                  form.setValue(
-                                    'bundle_calendars',
-                                    current.filter((id) => id !== cal.id),
-                                    { shouldValidate: true }
-                                  );
-                                  // If the primary was this calendar, clear it.
-                                  if (
-                                    form.getValues('primary_calendar') ===
-                                    cal.id
-                                  ) {
-                                    form.setValue('primary_calendar', null, {
-                                      shouldValidate: true,
-                                    });
-                                  }
-                                }
-                              }}
-                              aria-label={cal.name}
-                            />
-                          )}
-                        />
-                        <label
-                          htmlFor={`bundle-cal-${cal.id}`}
-                          className='cursor-pointer text-sm select-none'
-                        >
-                          {cal.name}
-                        </label>
-                      </HStack>
-                    );
-                  })}
-                </VStack>
-              )}
-
-              {/* Calendars error */}
-              {form.formState.errors.bundle_calendars && (
-                <Text size='xs' color='destructive'>
-                  {form.formState.errors.bundle_calendars.message}
-                </Text>
-              )}
-            </VStack>
+            />
 
             {/* Primary calendar (radio select among chosen calendars) */}
             {selectedCalendars.length > 0 && (
