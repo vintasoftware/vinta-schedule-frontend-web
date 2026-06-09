@@ -37,13 +37,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { VStack, HStack, Text } from '@/components/layout';
 import { useCalendarGroups } from '@/hooks/calendar-groups/use-calendar-groups';
 import {
@@ -457,26 +451,18 @@ export function GroupBookingFlow({
 
           {/* Group picker */}
           <VStack gap={2}>
-            <Label htmlFor='group-select'>Calendar group</Label>
-            <Select
+            <Label>Calendar group</Label>
+            <Combobox
+              options={groups.map((g) => ({ value: String(g.id), label: g.name }))}
               value={groupId}
               onValueChange={(v) => {
                 setGroupId(v);
                 invalidateAvailability();
               }}
               disabled={groupsLoading}
-            >
-              <SelectTrigger id='group-select' aria-label='Calendar group'>
-                <SelectValue placeholder='Select a group' />
-              </SelectTrigger>
-              <SelectContent>
-                {groups.map((group) => (
-                  <SelectItem key={group.id} value={String(group.id)}>
-                    {group.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder='Select a group'
+              searchPlaceholder='Search groups…'
+            />
           </VStack>
 
           {/* Title */}
@@ -534,25 +520,17 @@ export function GroupBookingFlow({
 
           {/* Timezone picker */}
           <VStack gap={2}>
-            <Label htmlFor='group-timezone'>Timezone</Label>
-            <Select
+            <Label>Timezone</Label>
+            <Combobox
+              options={COMMON_TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
               value={timezone}
               onValueChange={(v) => {
                 setTimezone(v);
                 invalidateAvailability();
               }}
-            >
-              <SelectTrigger id='group-timezone' aria-label='Timezone'>
-                <SelectValue placeholder='Select timezone' />
-              </SelectTrigger>
-              <SelectContent>
-                {COMMON_TIMEZONES.map((tz) => (
-                  <SelectItem key={tz} value={tz}>
-                    {tz}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder='Select timezone'
+              searchPlaceholder='Search timezones…'
+            />
           </VStack>
 
           {/* Suggestions */}

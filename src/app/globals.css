@@ -125,8 +125,7 @@
   --font-sans:
     var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     sans-serif;
-  --font-mono:
-    var(--font-geist-mono), ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace, ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
   --font-display: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -237,8 +236,8 @@
   --color-amber-100: var(--amber-100);
   --color-red-100: var(--red-100);
 
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
   --font-display: var(--font-display);
 
   --radius-sm: var(--radius-sm);

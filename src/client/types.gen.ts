@@ -408,6 +408,15 @@ export type CalendarSync = {
     start_datetime: string;
     end_datetime: string;
     should_update_events: boolean;
+    /**
+     * What kicked off this sync: import, manual, webhook, or admin.
+     *
+     * * `import` - Import
+     * * `manual` - Manual
+     * * `webhook` - Webhook
+     * * `admin` - Admin
+     */
+    trigger_source: TriggerSourceEnum;
     readonly error_message: string;
 };
 
@@ -1163,6 +1172,14 @@ export type SystemUserTokenResponse = {
 export type SystemUserTokenUpdate = {
     available_resources: Array<AvailableResourcesEnum>;
 };
+
+/**
+ * * `import` - Import
+ * * `manual` - Manual
+ * * `webhook` - Webhook
+ * * `admin` - Admin
+ */
+export type TriggerSourceEnum = 'import' | 'manual' | 'webhook' | 'admin';
 
 export type UnavailableTimeWindow = {
     id: number;
@@ -4613,6 +4630,18 @@ export type OrganizationMembersListData = {
     path?: never;
     query?: {
         /**
+         * Filter by partial email match
+         */
+        email?: string;
+        /**
+         * Filter by partial first name match
+         */
+        first_name?: string;
+        /**
+         * Filter by partial last name match
+         */
+        last_name?: string;
+        /**
          * Number of results to return per page.
          */
         limit?: number;
@@ -4620,6 +4649,10 @@ export type OrganizationMembersListData = {
          * The initial index from which to return the results.
          */
         offset?: number;
+        /**
+         * Search by first name, last name, or email (OR)
+         */
+        search?: string;
     };
     url: '/organization-members/';
 };
@@ -4637,6 +4670,18 @@ export type OrganizationMembersFormattedListData = {
     };
     query?: {
         /**
+         * Filter by partial email match
+         */
+        email?: string;
+        /**
+         * Filter by partial first name match
+         */
+        first_name?: string;
+        /**
+         * Filter by partial last name match
+         */
+        last_name?: string;
+        /**
          * Number of results to return per page.
          */
         limit?: number;
@@ -4644,6 +4689,10 @@ export type OrganizationMembersFormattedListData = {
          * The initial index from which to return the results.
          */
         offset?: number;
+        /**
+         * Search by first name, last name, or email (OR)
+         */
+        search?: string;
     };
     url: '/organization-members{format}';
 };

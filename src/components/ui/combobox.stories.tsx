@@ -1,0 +1,100 @@
+import type { Meta } from '@storybook/nextjs-vite';
+import * as React from 'react';
+import { Combobox } from './combobox';
+
+const FRAMEWORKS: Array<{ value: string; label: string; description?: string }> = [
+  { value: 'next', label: 'Next.js', description: 'React framework' },
+  { value: 'sveltekit', label: 'SvelteKit', description: 'Svelte framework' },
+  { value: 'nuxt', label: 'Nuxt.js', description: 'Vue framework' },
+  { value: 'remix', label: 'Remix', description: 'React framework' },
+  { value: 'astro', label: 'Astro', description: 'Static site builder' },
+];
+
+const meta: Meta = {
+  title: 'Components/Combobox',
+  tags: ['autodocs'],
+  parameters: { layout: 'centered' },
+};
+
+export default meta;
+
+export const SingleSelect = {
+  render: () => {
+    const [value, setValue] = React.useState('');
+    return (
+      <div className='w-64'>
+        <Combobox
+          options={FRAMEWORKS}
+          value={value}
+          onValueChange={setValue}
+          placeholder='Select a framework…'
+          searchPlaceholder='Search frameworks…'
+        />
+      </div>
+    );
+  },
+};
+
+export const MultiSelect = {
+  render: () => {
+    const [values, setValues] = React.useState<string[]>([]);
+    return (
+      <div className='w-64'>
+        <Combobox
+          multiple
+          options={FRAMEWORKS}
+          value={values}
+          onValueChange={setValues}
+          placeholder='Select frameworks…'
+          searchPlaceholder='Search frameworks…'
+        />
+      </div>
+    );
+  },
+};
+
+export const WithDescriptions = {
+  render: () => {
+    const [value, setValue] = React.useState('');
+    return (
+      <div className='w-64'>
+        <Combobox
+          options={FRAMEWORKS}
+          value={value}
+          onValueChange={setValue}
+          placeholder='Select a framework…'
+        />
+      </div>
+    );
+  },
+};
+
+export const Loading = {
+  render: () => (
+    <div className='w-64'>
+      <Combobox
+        options={[]}
+        value={[]}
+        onValueChange={() => {}}
+        multiple
+        isLoading
+        placeholder='Select members…'
+        searchPlaceholder='Search members…'
+      />
+    </div>
+  ),
+};
+
+export const Disabled = {
+  render: () => (
+    <div className='w-64'>
+      <Combobox
+        options={FRAMEWORKS}
+        value='next'
+        onValueChange={() => {}}
+        disabled
+        placeholder='Select a framework…'
+      />
+    </div>
+  ),
+};

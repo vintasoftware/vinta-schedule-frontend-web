@@ -27,13 +27,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { VStack, Text } from '@/components/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useTransferEvent } from '@/hooks/events/use-transfer-event';
@@ -113,22 +107,17 @@ export function TransferEventDialog({
             <Text size='sm' className='font-semibold'>
               Destination calendar
             </Text>
-            <Select
+            <Combobox
+              options={calendars.map((cal) => ({
+                value: String(cal.id),
+                label: cal.name,
+              }))}
               value={selectedCalendarId}
               onValueChange={setSelectedCalendarId}
               disabled={calendarsLoading || isPending}
-            >
-              <SelectTrigger aria-label='Select destination calendar'>
-                <SelectValue placeholder='Choose a calendar' />
-              </SelectTrigger>
-              <SelectContent>
-                {calendars.map((cal) => (
-                  <SelectItem key={cal.id} value={String(cal.id)}>
-                    {cal.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder='Choose a calendar'
+              searchPlaceholder='Search calendars…'
+            />
           </VStack>
         </VStack>
 

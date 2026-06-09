@@ -11,7 +11,8 @@
  *  - timezone — IANA timezone, defaulting to the member's local zone
  *  - primaryCalendarId (required) — select from the member's calendars
  *  - coBookedCalendarIds — multi-select (checkboxes) from remaining calendars
- *  - internalAttendeeUserId (optional) — a single internal attendee user id
+ *  - attendances — list of internal attendee user IDs
+ *  - externalAttendances — list of external attendees (email required, name optional)
  *  - repeat (bool) — enables the recurrence sub-form
  *  - recurrence sub-form: freq, interval, endType (never/on-date/after-n), until, count, byday
  *
@@ -39,7 +40,7 @@
  */
 
 import * as React from 'react';
-import { useForm, type UseFormReturn } from 'react-hook-form';
+import { useForm, useFieldArray, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -85,6 +86,8 @@ import {
   weekdayMatrix,
   type RecurrenceRule,
 } from '@/lib/datetime/index';
+import { Combobox } from '@/components/ui/combobox';
+import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
 
 // ---------------------------------------------------------------------------
 // Recurrence end-type discriminant
@@ -107,7 +110,19 @@ const bookingFormSchema = z
       .string()
       .min(1, { message: 'Primary calendar is required' }),
     coBookedCalendarIds: z.array(z.number()),
-    internalAttendeeUserId: z.string().optional(),
+    attendances: z.array(
+      z.object({
+        user_id: z.number().int().positive(),
+        name: z.string(),
+        email: z.string(),
+      })
+    ),
+    externalAttendances: z.array(
+      z.object({
+        name: z.string().optional(),
+        email: z.string().email('Valid email required'),
+      })
+    ),
     // Recurrence fields
     repeat: z.boolean(),
     recurrenceFreq: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']),
@@ -182,7 +197,8 @@ function getDefaultValues(localZone: string): BookingFormSchema {
     timezone: localZone,
     primaryCalendarId: '',
     coBookedCalendarIds: [],
-    internalAttendeeUserId: '',
+    attendances: [],
+    externalAttendances: [],
     repeat: false,
     recurrenceFreq: 'WEEKLY',
     recurrenceInterval: 1,
@@ -539,9 +555,12 @@ export function BookingFormDialog({
   ) => {
     setIsPending(true);
     try {
-      const attendances = values.internalAttendeeUserId
-        ? [{ user_id: parseInt(values.internalAttendeeUserId, 10) }]
-        : [];
+      const attendances = values.attendances.map((a) => ({
+        user_id: a.user_id,
+      }));
+      const external_attendances = values.externalAttendances.map((a) => ({
+        external_attendee: { name: a.name || undefined, email: a.email },
+      }));
 
       // Build recurrence: send rrule_string if the repeat toggle is on.
       // We prefer rrule_string over the structured recurrence_rule to avoid
@@ -556,7 +575,7 @@ export function BookingFormDialog({
           end_time: endDatetime,
           timezone: values.timezone,
           calendar: primaryId,
-          external_attendances: [],
+          external_attendances,
           attendances,
           resource_allocations: [],
           ...(rrule_string !== undefined ? { rrule_string } : {}),
@@ -619,6 +638,27 @@ export function BookingFormDialog({
   const primaryCalendarId = form.watch('primaryCalendarId');
   const coBookedCalendarIds = form.watch('coBookedCalendarIds');
   const repeat = form.watch('repeat');
+
+  // Attendee search — debounced so every keystroke doesn't fire a request.
+  const [attendeeSearch, setAttendeeSearch] = React.useState('');
+  const [debouncedAttendeeSearch, setDebouncedAttendeeSearch] = React.useState('');
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedAttendeeSearch(attendeeSearch), 300);
+    return () => clearTimeout(t);
+  }, [attendeeSearch]);
+  const { members: attendeeOptions, isLoading: attendeesLoading } =
+    useOrgMemberSearch(debouncedAttendeeSearch);
+
+  const {
+    fields: attendanceFields,
+    replace: replaceAttendances,
+  } = useFieldArray({ control: form.control, name: 'attendances' });
+
+  const {
+    fields: externalFields,
+    append: appendExternal,
+    remove: removeExternal,
+  } = useFieldArray({ control: form.control, name: 'externalAttendances' });
 
   // Calendars available for co-booking = all calendars except the primary one.
   const coBookableCalendars = React.useMemo(
@@ -757,26 +797,21 @@ export function BookingFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Primary calendar</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={calendarsLoading}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder='Select a calendar' />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {calendars
+                    <FormControl>
+                      <Combobox
+                        options={calendars
                           .filter((c) => c.is_active)
-                          .map((cal) => (
-                            <SelectItem key={cal.id} value={String(cal.id)}>
-                              {cal.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                          .map((cal) => ({
+                            value: String(cal.id),
+                            label: cal.name,
+                          }))}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={calendarsLoading}
+                        placeholder='Select a calendar'
+                        searchPlaceholder='Search calendars…'
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -810,29 +845,112 @@ export function BookingFormDialog({
                 </VStack>
               )}
 
-              {/* Internal attendee (optional) */}
-              <FormField
-                control={form.control}
-                name='internalAttendeeUserId'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Internal attendee user ID (optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='number'
-                        placeholder='User ID'
-                        autoComplete='off'
-                        {...field}
+              {/* Internal attendees */}
+              <VStack gap={2}>
+                <label className='text-sm leading-none font-medium'>
+                  Internal attendees
+                </label>
+                <Combobox
+                  multiple
+                  options={attendeeOptions.map((m) => ({
+                    value: String(m.id),
+                    label: m.name,
+                    description: m.email,
+                  }))}
+                  value={attendanceFields.map((f) => String(f.user_id))}
+                  onValueChange={(values) =>
+                    replaceAttendances(
+                      values.map((v) => {
+                        const id = parseInt(v, 10);
+                        const opt = attendeeOptions.find((m) => m.id === id);
+                        const existing = attendanceFields.find(
+                          (f) => f.user_id === id
+                        );
+                        return {
+                          user_id: id,
+                          name: opt?.name ?? existing?.name ?? '',
+                          email: opt?.email ?? existing?.email ?? '',
+                        };
+                      })
+                    )
+                  }
+                  onSearchChange={setAttendeeSearch}
+                  isLoading={attendeesLoading}
+                  placeholder='Add internal attendees…'
+                  searchPlaceholder='Search by name or email…'
+                  emptyText={
+                    debouncedAttendeeSearch
+                      ? 'No members found.'
+                      : 'Type to search members.'
+                  }
+                />
+              </VStack>
+
+              {/* External attendees */}
+              <VStack gap={2}>
+                <label className='text-sm leading-none font-medium'>
+                  External attendees
+                </label>
+                {externalFields.map((field, index) => (
+                  <VStack key={field.id} gap={2} className='border-border rounded-md border p-2'>
+                    <HStack gap={2} align='start'>
+                      <FormField
+                        control={form.control}
+                        name={`externalAttendances.${index}.name`}
+                        render={({ field: f }) => (
+                          <FormItem className='flex-1'>
+                            <FormLabel>Name (optional)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type='text'
+                                placeholder='Jane Doe'
+                                autoComplete='off'
+                                {...f}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <Text size='xs' color='muted-foreground'>
-                      Leave blank to create a booking without internal
-                      attendees.
-                    </Text>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormField
+                        control={form.control}
+                        name={`externalAttendances.${index}.email`}
+                        render={({ field: f }) => (
+                          <FormItem className='flex-1'>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input
+                                type='email'
+                                placeholder='jane@example.com'
+                                autoComplete='off'
+                                {...f}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </HStack>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='sm'
+                      className='self-end'
+                      onClick={() => removeExternal(index)}
+                    >
+                      Remove
+                    </Button>
+                  </VStack>
+                ))}
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  onClick={() => appendExternal({ name: '', email: '' })}
+                >
+                  + Add external attendee
+                </Button>
+              </VStack>
 
               {/* Repeat toggle */}
               <HStack gap={3} align='center'>

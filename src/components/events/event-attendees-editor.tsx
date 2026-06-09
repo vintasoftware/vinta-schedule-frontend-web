@@ -23,16 +23,11 @@ import { toast } from 'sonner';
 import { Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { VStack, HStack, Text } from '@/components/layout';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
 import { useUpdateAttendees } from '@/hooks/events/use-update-attendees';
+import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
 import type {
   EventAttendance,
   EventExternalAttendance,
@@ -70,6 +65,8 @@ interface InternalRow {
   user_id: number;
   /** Preserved id for update-semantics (the backend uses this to match rows). */
   id?: number | null;
+  /** Human-readable label derived from the user's name or email. */
+  label: string;
 }
 
 /** External attendee row. */
@@ -140,6 +137,10 @@ export function EventAttendeesEditor({
       key: nextKey(),
       user_id: a.user.id,
       id: a.id,
+      label:
+        [a.user.profile?.first_name, a.user.profile?.last_name]
+          .filter(Boolean)
+          .join(' ') || a.user.email,
     }))
   );
 
@@ -163,10 +164,16 @@ export function EventAttendeesEditor({
 
   // ---- "New row" draft inputs ----------------------------------------------
 
-  const [newInternalUserId, setNewInternalUserId] = React.useState('');
+  const [internalSearch, setInternalSearch] = React.useState('');
+  const [debouncedInternalSearch, setDebouncedInternalSearch] = React.useState('');
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedInternalSearch(internalSearch), 300);
+    return () => clearTimeout(t);
+  }, [internalSearch]);
+  const { members: internalOptions, isLoading: internalOptionsLoading } =
+    useOrgMemberSearch(debouncedInternalSearch);
   const [newExternalEmail, setNewExternalEmail] = React.useState('');
   const [newExternalName, setNewExternalName] = React.useState('');
-  const [newResourceCalendarId, setNewResourceCalendarId] = React.useState('');
 
   // ---- Data -----------------------------------------------------------------
 
@@ -184,13 +191,19 @@ export function EventAttendeesEditor({
 
   // ---- Internal attendees handlers -----------------------------------------
 
-  const addInternal = () => {
-    const uid = parseInt(newInternalUserId, 10);
+  const addInternal = (userId: string) => {
+    const uid = parseInt(userId, 10);
     if (isNaN(uid) || uid <= 0) return;
-    // Prevent duplicates.
     if (internalRows.some((r) => r.user_id === uid)) return;
-    setInternalRows((prev) => [...prev, { key: nextKey(), user_id: uid }]);
-    setNewInternalUserId('');
+    const member = internalOptions.find((m) => m.id === uid);
+    setInternalRows((prev) => [
+      ...prev,
+      {
+        key: nextKey(),
+        user_id: uid,
+        label: member?.name ?? member?.email ?? `User ${uid}`,
+      },
+    ]);
   };
 
   const removeInternal = (key: string) => {
@@ -216,12 +229,11 @@ export function EventAttendeesEditor({
 
   // ---- Resource allocation handlers ----------------------------------------
 
-  const addResource = () => {
-    const calId = parseInt(newResourceCalendarId, 10);
+  const addResource = (calendarId: string) => {
+    const calId = parseInt(calendarId, 10);
     if (isNaN(calId) || calId <= 0) return;
     if (resourceRows.some((r) => r.calendarId === calId)) return;
     setResourceRows((prev) => [...prev, { key: nextKey(), calendarId: calId }]);
-    setNewResourceCalendarId('');
   };
 
   const removeResource = (key: string) => {
@@ -268,13 +280,13 @@ export function EventAttendeesEditor({
         {internalRows.map((row) => (
           <HStack key={row.key} gap={2} align='center'>
             <Text size='sm' className='flex-1'>
-              User ID: {row.user_id}
+              {row.label}
             </Text>
             <Button
               type='button'
               variant='ghost'
               size='icon'
-              aria-label={`Remove internal attendee with user ID ${row.user_id}`}
+              aria-label={`Remove ${row.label}`}
               onClick={() => removeInternal(row.key)}
               disabled={isPending}
             >
@@ -283,28 +295,26 @@ export function EventAttendeesEditor({
           </HStack>
         ))}
 
-        {/* Add new internal attendee */}
-        <HStack gap={2} align='center'>
-          <Input
-            type='number'
-            placeholder='User ID'
-            value={newInternalUserId}
-            onChange={(e) => setNewInternalUserId(e.target.value)}
-            disabled={isPending}
-            className='flex-1'
-            aria-label='Internal attendee user ID'
-          />
-          <Button
-            type='button'
-            variant='outline'
-            size='icon'
-            aria-label='Add internal attendee'
-            onClick={addInternal}
-            disabled={isPending || !newInternalUserId}
-          >
-            <Plus className='h-4 w-4' />
-          </Button>
-        </HStack>
+        {/* Add new internal attendee via org member search */}
+        <Combobox
+          options={internalOptions
+            .filter((m) => !internalRows.some((r) => r.user_id === m.id))
+            .map((m) => ({
+              value: String(m.id),
+              label: m.name,
+              description: m.email,
+            }))}
+          value=''
+          onValueChange={addInternal}
+          onSearchChange={setInternalSearch}
+          isLoading={internalOptionsLoading}
+          disabled={isPending}
+          placeholder='Add internal attendee…'
+          searchPlaceholder='Search by name or email…'
+          emptyText={
+            debouncedInternalSearch ? 'No members found.' : 'Type to search members.'
+          }
+        />
       </VStack>
 
       {/* ------------------------------------------------------------------ */}
@@ -413,34 +423,16 @@ export function EventAttendeesEditor({
         })}
 
         {/* Add new resource allocation */}
-        <HStack gap={2} align='center'>
-          <Select
-            value={newResourceCalendarId}
-            onValueChange={setNewResourceCalendarId}
-            disabled={isPending || calendarsLoading}
-          >
-            <SelectTrigger className='flex-1' aria-label='Resource calendar'>
-              <SelectValue placeholder='Select resource calendar' />
-            </SelectTrigger>
-            <SelectContent>
-              {resourceCalendars.map((cal) => (
-                <SelectItem key={cal.id} value={String(cal.id)}>
-                  {cal.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            type='button'
-            variant='outline'
-            size='icon'
-            aria-label='Add resource calendar'
-            onClick={addResource}
-            disabled={isPending || !newResourceCalendarId}
-          >
-            <Plus className='h-4 w-4' />
-          </Button>
-        </HStack>
+        <Combobox
+          options={resourceCalendars
+            .filter((c) => !resourceRows.some((r) => r.calendarId === c.id))
+            .map((c) => ({ value: String(c.id), label: c.name }))}
+          value=''
+          onValueChange={addResource}
+          disabled={isPending || calendarsLoading}
+          placeholder='Add resource calendar…'
+          searchPlaceholder='Search resource calendars…'
+        />
       </VStack>
 
       {/* ------------------------------------------------------------------ */}
