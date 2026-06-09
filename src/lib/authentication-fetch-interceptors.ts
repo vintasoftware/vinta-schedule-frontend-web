@@ -1,98 +1,50 @@
 import { client } from '@/client/client.gen';
-import { client as authClient } from '@/auth-client/client.gen';
 import { TokenStorageStrategy } from './base-token-storage-strategy';
 
 function configureClientAuthentication(tokenStore: TokenStorageStrategy) {
-  if (tokenStore.shouldIntercept()) {
-    client.interceptors.request.use(
-      includeTokenFromLocalStorageOrCookie(tokenStore)
-    );
-    client.interceptors.response.use(refreshTokenAndRetryOnFailure(tokenStore));
-  }
-}
+  if (!tokenStore.shouldIntercept()) return;
 
-// Supports async functions
-function includeTokenFromLocalStorageOrCookie(
-  tokenStore: TokenStorageStrategy
-) {
-  return async (request: Request) => {
+  // One in-flight refresh at a time. Concurrent 401s queue onto the same
+  // promise so only one token rotation happens — preventing the race that
+  // burns a single-use refresh token and forces re-login.
+  let refreshPromise: Promise<string | null> | null = null;
+
+  const refresh = async (): Promise<string | null> => {
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = tokenStore
+      .refreshTokens()
+      .catch(async () => {
+        await tokenStore.removeTokens();
+        return null;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+    return refreshPromise;
+  };
+
+  client.interceptors.request.use(async (request: Request) => {
     const token = await tokenStore.getAccessToken();
-
-    if (token) {
-      request.headers.set('Authorization', `Bearer ${token}`);
-    }
+    if (token) request.headers.set('Authorization', `Bearer ${token}`);
     return request;
-  };
-}
+  });
 
-function refreshTokenAndRetryOnFailure(tokenStore: TokenStorageStrategy) {
-  return async (response: Response, request: Request) => {
-    if (
-      !(
-        response.status === 401 ||
-        (response.status === 403 &&
-          (
-            await response
-              .clone()
-              .json()
-              .catch(() => ({}))
-          ).detail === 'Authentication credentials were not provided.')
-      )
-    ) {
-      return response; // Not an unauthorized error, return the response as is
-    }
+  client.interceptors.response.use(async (response: Response, request: Request) => {
+    const is401 = response.status === 401;
+    const is403NoCreds =
+      response.status === 403 &&
+      (await response.clone().json().catch(() => ({}))).detail ===
+        'Authentication credentials were not provided.';
 
-    const refreshToken = await tokenStore.getRefreshToken();
+    if (!is401 && !is403NoCreds) return response;
 
-    if (!refreshToken) {
-      return response; // No refresh token available, return the original response
-    }
+    const newToken = await refresh();
+    if (!newToken) return response;
 
-    // django-allauth native headless refresh (rotating, single-use tokens).
-    const refreshTokenResponse = await fetch(
-      `${authClient.getConfig().baseUrl}/auth/app/v1/tokens/refresh`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          refresh_token: refreshToken,
-        }),
-      }
-    );
-
-    if (refreshTokenResponse.status === 400) {
-      // Refresh token is invalid/expired → force re-login.
-      await tokenStore.removeTokens();
-      return response;
-    }
-
-    if (!refreshTokenResponse.ok) {
-      return response; // Transient failure, return the original response
-    }
-
-    // Shape: { status: 200, data: { access_token, refresh_token? } }
-    const { data } = await refreshTokenResponse.json();
-    const accessToken: string = data.access_token;
-    const rotatedRefreshToken: string | undefined = data.refresh_token;
-
-    await tokenStore.setAccessToken(accessToken);
-    // Rotation: each refresh may return a NEW refresh token. Overwrite the
-    // stored one; the old token is invalidated immediately. If absent, keep current.
-    if (rotatedRefreshToken) {
-      await tokenStore.setRefreshToken(rotatedRefreshToken);
-    }
-
-    const newHeaders = new Headers(request.headers);
-    newHeaders.set('Authorization', `Bearer ${accessToken}`);
-
-    const retryRequest = new Request(request, {
-      headers: newHeaders,
-    });
-
-    return fetch(retryRequest);
-  };
+    const headers = new Headers(request.headers);
+    headers.set('Authorization', `Bearer ${newToken}`);
+    return fetch(new Request(request, { headers }));
+  });
 }
 
 export { configureClientAuthentication };

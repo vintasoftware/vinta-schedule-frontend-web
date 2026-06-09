@@ -125,7 +125,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
 
   // Mirrors OnboardingGate: check localStorage for token presence on mount.
   useEffect(() => {
-    setIsAuthenticated(Boolean(localStorage.getItem('accessToken')));
+    setIsAuthenticated(document.cookie.split('; ').some((c) => c.startsWith('sessionActive=')));
     setAuthChecked(true);
   }, []);
 
@@ -216,6 +216,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
       userName={userName}
       userEmail={userEmail}
       userInitials={initialsFromName(userName)}
+      userPicture={profile?.profile_picture ?? undefined}
       onLogout={handleLogout}
     />
   );

@@ -9,14 +9,18 @@ import {
   ChevronsUpDown,
   ListChecks,
   LogOut,
+  Moon,
   Settings,
+  Sun,
   Ticket,
+  User,
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 import { cn } from '@/lib/utils/index';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,6 +72,7 @@ export interface AppSidebarProps extends React.HTMLAttributes<HTMLElement> {
   userName?: string;
   userEmail?: string;
   userInitials?: string;
+  userPicture?: string;
   /** Called when the user selects "Log out" from the account menu. */
   onLogout?: () => void;
 }
@@ -85,13 +90,25 @@ function AppSidebarInner(
     userName = 'Renata Pires',
     userEmail = 'renata@quilted.health',
     userInitials = 'RP',
+    userPicture,
     onLogout,
     ...props
   }: AppSidebarProps,
   ref: React.Ref<HTMLElement>
 ) {
-  // Detect current pathname so href-based items can show as active.
   const pathname = usePathname();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
+  const toggleTheme = () => {
+    if (theme === 'system') {
+      setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+    } else {
+      setTheme(theme === 'light' ? 'dark' : 'light');
+    }
+  };
+  const isDark = mounted && resolvedTheme === 'dark';
   return (
     <VStack
       as='aside'
@@ -203,6 +220,21 @@ function AppSidebarInner(
       <VStack gap={1} p={3} className='border-sidebar-border border-t'>
         <button
           type='button'
+          onClick={toggleTheme}
+          aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+          className='hover:bg-sidebar-accent flex h-9 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
+        >
+          {isDark ? (
+            <Sun className='text-muted-foreground size-[17px]' />
+          ) : (
+            <Moon className='text-muted-foreground size-[17px]' />
+          )}
+          <Text as='span' className='text-[13px]'>
+            {isDark ? 'Light mode' : 'Dark mode'}
+          </Text>
+        </button>
+        <button
+          type='button'
           className='hover:bg-sidebar-accent flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
         >
           <Box
@@ -243,6 +275,9 @@ function AppSidebarInner(
               className='hover:bg-sidebar-accent flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
             >
               <Avatar className='size-7'>
+                {userPicture ? (
+                  <AvatarImage src={userPicture} alt={userName} />
+                ) : null}
                 <AvatarFallback className='bg-teal-100 text-[11px] text-teal-700'>
                   {userInitials}
                 </AvatarFallback>
@@ -271,6 +306,12 @@ function AppSidebarInner(
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='start' side='top' className='w-56'>
+            <DropdownMenuItem asChild>
+              <Link href='/profile'>
+                <User />
+                Profile
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onLogout?.()}>
               <LogOut />
               Log out

@@ -969,6 +969,23 @@ export type Profile = {
     profile_picture?: string | null;
 };
 
+export type ProfilePictureUploadParams = {
+    object_key: string;
+    access_key_id: string | null;
+    session_token: string | null;
+    region: string;
+    bucket: string;
+    endpoint: string;
+    acl: string;
+    allow_existence_optimization: boolean;
+};
+
+export type ProfilePictureUploadParamsRequest = {
+    file_name: string;
+    file_type: string;
+    file_size: number;
+};
+
 /**
  * * `internal` - Internal Calendar
  * * `google` - Google Calendar
@@ -5352,6 +5369,43 @@ export type ProfileFormattedUpdateResponses = {
 };
 
 export type ProfileFormattedUpdateResponse = ProfileFormattedUpdateResponses[keyof ProfileFormattedUpdateResponses];
+
+export type ProfileProfilePictureUploadParamsCreateData = {
+    body: ProfilePictureUploadParamsRequest;
+    path: {
+        /**
+         * User ID. Use 'me' to refer to the currently authenticated user.
+         */
+        user: string;
+    };
+    query?: never;
+    url: '/profile/{user}/profile-picture-upload-params/';
+};
+
+export type ProfileProfilePictureUploadParamsCreateResponses = {
+    200: ProfilePictureUploadParams;
+};
+
+export type ProfileProfilePictureUploadParamsCreateResponse = ProfileProfilePictureUploadParamsCreateResponses[keyof ProfileProfilePictureUploadParamsCreateResponses];
+
+export type ProfileProfilePictureUploadParamsFormattedCreateData = {
+    body: ProfilePictureUploadParamsRequest;
+    path: {
+        format: '.json';
+        /**
+         * User ID. Use 'me' to refer to the currently authenticated user.
+         */
+        user: string;
+    };
+    query?: never;
+    url: '/profile/{user}/profile-picture-upload-params{format}';
+};
+
+export type ProfileProfilePictureUploadParamsFormattedCreateResponses = {
+    200: ProfilePictureUploadParams;
+};
+
+export type ProfileProfilePictureUploadParamsFormattedCreateResponse = ProfileProfilePictureUploadParamsFormattedCreateResponses[keyof ProfileProfilePictureUploadParamsFormattedCreateResponses];
 
 export type PublicApiTokensListData = {
     body?: never;

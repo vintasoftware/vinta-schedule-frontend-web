@@ -22,7 +22,7 @@
  */
 
 import * as React from 'react';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Combobox } from '@/components/ui/combobox';
 import {
   Form,
   FormField,
@@ -321,21 +321,6 @@ function SlotEditor({
 }: SlotEditorProps) {
   const calendarIds = form.watch(`slots.${index}.calendar_ids`);
 
-  const handleCalendarToggle = (calendarId: number, checked: boolean) => {
-    const current = form.getValues(`slots.${index}.calendar_ids`);
-    if (checked) {
-      form.setValue(`slots.${index}.calendar_ids`, [...current, calendarId], {
-        shouldValidate: true,
-      });
-    } else {
-      form.setValue(
-        `slots.${index}.calendar_ids`,
-        current.filter((id) => id !== calendarId),
-        { shouldValidate: true }
-      );
-    }
-  };
-
   return (
     <VStack
       gap={3}
@@ -408,52 +393,31 @@ function SlotEditor({
         )}
       />
 
-      {/* Calendar pool (multi-select checkboxes) */}
+      {/* Calendar pool (multi-select combobox) */}
       <VStack gap={2}>
         <label className='text-sm leading-none font-medium'>
           Calendar pool
         </label>
 
-        {calendarsLoading && (
-          <Text size='xs' color='muted-foreground'>
-            Loading calendars…
-          </Text>
-        )}
-
-        {!calendarsLoading && calendars.length === 0 && (
-          <Text size='xs' color='muted-foreground'>
-            No calendars available.
-          </Text>
-        )}
-
-        {!calendarsLoading && calendars.length > 0 && (
-          <VStack gap={2}>
-            {calendars.map((cal) => (
-              <HStack key={cal.id} gap={2} align='center'>
-                <Controller
-                  control={form.control}
-                  name={`slots.${index}.calendar_ids`}
-                  render={() => (
-                    <Checkbox
-                      id={`slot-${index}-cal-${cal.id}`}
-                      checked={calendarIds.includes(cal.id)}
-                      onCheckedChange={(checked) =>
-                        handleCalendarToggle(cal.id, Boolean(checked))
-                      }
-                      aria-label={cal.name}
-                    />
-                  )}
-                />
-                <label
-                  htmlFor={`slot-${index}-cal-${cal.id}`}
-                  className='cursor-pointer text-sm select-none'
-                >
-                  {cal.name}
-                </label>
-              </HStack>
-            ))}
-          </VStack>
-        )}
+        <Combobox
+          multiple
+          options={calendars.map((cal) => ({
+            value: String(cal.id),
+            label: cal.name,
+          }))}
+          value={calendarIds.map(String)}
+          onValueChange={(values) =>
+            form.setValue(
+              `slots.${index}.calendar_ids`,
+              values.map((v) => parseInt(v, 10)),
+              { shouldValidate: true }
+            )
+          }
+          isLoading={calendarsLoading}
+          disabled={isPending}
+          placeholder='Select calendars…'
+          emptyText='No calendars found.'
+        />
 
         {/* Pool error */}
         {form.formState.errors.slots?.[index]?.calendar_ids && (

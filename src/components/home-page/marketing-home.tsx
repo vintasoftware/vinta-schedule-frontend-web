@@ -44,7 +44,7 @@ function MarketingNav() {
   // is client-only); defaults to the signed-out actions until then.
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   React.useEffect(() => {
-    setIsAuthenticated(Boolean(localStorage.getItem('accessToken')));
+    setIsAuthenticated(document.cookie.split('; ').some((c) => c.startsWith('sessionActive=')));
   }, []);
 
   return (

@@ -1,45 +1,41 @@
 'use client';
 import { TokenStorageStrategy } from './base-token-storage-strategy';
+import { clearAuthCookies } from './auth-server-actions';
+
+let memoryAccessToken: string | null = null;
+
+/** Set the in-memory access token directly (e.g. immediately after login). */
+export function setMemoryAccessToken(token: string) {
+  memoryAccessToken = token;
+}
+
+export function clearMemoryAccessToken() {
+  memoryAccessToken = null;
+}
 
 export class ClientTokenStorageStrategy implements TokenStorageStrategy {
   shouldIntercept() {
-    return typeof window !== 'undefined'; // Always intercept on the client side
+    return typeof window !== 'undefined';
   }
 
   async getAccessToken() {
-    const localToken = localStorage.getItem('accessToken');
-    if (localToken !== null) return localToken;
-    const cookieToken = document.cookie
-      .split('; ')
-      .find((row) => row.startsWith('accessToken='))
-      ?.split('=')[1];
-    return cookieToken ?? null;
+    return memoryAccessToken;
   }
 
   async setAccessToken(token: string) {
-    localStorage.setItem('accessToken', token);
-    document.cookie = `accessToken=${token}; path=/; Secure; SameSite=Lax`;
+    memoryAccessToken = token;
   }
 
-  async getRefreshToken() {
-    const localToken = localStorage.getItem('refreshToken');
-    if (localToken !== null) return localToken;
-    const cookieToken = document.cookie
-      .split('; ')
-      .find((row) => row.startsWith('refreshToken='))
-      ?.split('=')[1];
-    return cookieToken ?? null;
-  }
-
-  async setRefreshToken(token: string) {
-    localStorage.setItem('refreshToken', token);
-    document.cookie = `refreshToken=${token}; path=/; Secure; SameSite=Lax`;
+  async refreshTokens() {
+    const response = await fetch('/api/auth/refresh', { method: 'POST' });
+    if (!response.ok) return null;
+    const { access_token } = await response.json();
+    memoryAccessToken = access_token as string;
+    return access_token as string;
   }
 
   async removeTokens() {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    document.cookie = `accessToken=; path=/; Secure; SameSite=Lax; Max-Age=0`;
-    document.cookie = `refreshToken=; path=/; Secure; SameSite=Lax; Max-Age=0`;
+    memoryAccessToken = null;
+    await clearAuthCookies();
   }
 }
