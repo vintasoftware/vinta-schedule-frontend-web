@@ -13,10 +13,10 @@ const schedulingChipVariants = cva(
   {
     variants: {
       status: {
-        booked: 'border-vinta-600 bg-vinta-50 text-vinta-800',
-        available: 'border-teal-600 bg-teal-100 text-teal-700',
-        tentative: 'border-warning bg-amber-100 text-warning',
-        conflict: 'border-destructive bg-red-100 text-destructive',
+        booked: 'border-vinta-600 bg-vinta-50 text-vinta-800 dark:border-vinta-400 dark:bg-vinta-950 dark:text-vinta-200',
+        available: 'border-teal-600 bg-teal-100 text-teal-700 dark:border-teal-400 dark:bg-teal-950 dark:text-teal-300',
+        tentative: 'border-warning bg-amber-100 text-warning dark:border-amber-400 dark:bg-amber-950 dark:text-amber-300',
+        conflict: 'border-destructive bg-red-100 text-destructive dark:border-red-400 dark:bg-red-950 dark:text-red-300',
       },
     },
     defaultVariants: {
