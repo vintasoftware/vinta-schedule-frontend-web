@@ -282,9 +282,13 @@ export type Calendar = {
      */
     manage_available_windows?: boolean;
     /**
-     * Whether this calendar is active. Inactive calendars are hidden from default list/detail queries. Use DELETE /calendar/{id}/ to soft-disable (sets this to False) instead of deleting the row. Opt-in to see disabled calendars via ?include_inactive=true. Default True keeps every existing read unchanged.
+     * Controls how this calendar appears in queries. active: listed and available for booking (default). unlisted: hidden from listing/booking queries but still synced for conflict detection; survives re-import so user opt-out is preserved. inactive: soft-deleted, hidden from all queries and not synced. Use DELETE /calendars/{id}/ to transition to inactive instead of hard-deleting.
+     *
+     * * `active` - Active
+     * * `unlisted` - Unlisted
+     * * `inactive` - Inactive
      */
-    readonly is_active: boolean;
+    visibility?: VisibilityEnum;
     /**
      * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
      */
@@ -835,9 +839,13 @@ export type PatchedCalendar = {
      */
     manage_available_windows?: boolean;
     /**
-     * Whether this calendar is active. Inactive calendars are hidden from default list/detail queries. Use DELETE /calendar/{id}/ to soft-disable (sets this to False) instead of deleting the row. Opt-in to see disabled calendars via ?include_inactive=true. Default True keeps every existing read unchanged.
+     * Controls how this calendar appears in queries. active: listed and available for booking (default). unlisted: hidden from listing/booking queries but still synced for conflict detection; survives re-import so user opt-out is preserved. inactive: soft-deleted, hidden from all queries and not synced. Use DELETE /calendars/{id}/ to transition to inactive instead of hard-deleting.
+     *
+     * * `active` - Active
+     * * `unlisted` - Unlisted
+     * * `inactive` - Inactive
      */
-    readonly is_active?: boolean;
+    visibility?: VisibilityEnum;
     /**
      * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
      */
@@ -1230,6 +1238,13 @@ export type User = {
     readonly last_login: string | null;
 };
 
+/**
+ * * `active` - Active
+ * * `unlisted` - Unlisted
+ * * `inactive` - Inactive
+ */
+export type VisibilityEnum = 'active' | 'unlisted' | 'inactive';
+
 export type WebhookConfiguration = {
     readonly id: number;
     event_type?: EventTypeEnum;
@@ -1387,6 +1402,14 @@ export type CalendarWritable = {
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
     manage_available_windows?: boolean;
+    /**
+     * Controls how this calendar appears in queries. active: listed and available for booking (default). unlisted: hidden from listing/booking queries but still synced for conflict detection; survives re-import so user opt-out is preserved. inactive: soft-deleted, hidden from all queries and not synced. Use DELETE /calendars/{id}/ to transition to inactive instead of hard-deleting.
+     *
+     * * `active` - Active
+     * * `unlisted` - Unlisted
+     * * `inactive` - Inactive
+     */
+    visibility?: VisibilityEnum;
     /**
      * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
      */
@@ -1664,6 +1687,14 @@ export type PatchedCalendarWritable = {
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
     manage_available_windows?: boolean;
+    /**
+     * Controls how this calendar appears in queries. active: listed and available for booking (default). unlisted: hidden from listing/booking queries but still synced for conflict detection; survives re-import so user opt-out is preserved. inactive: soft-deleted, hidden from all queries and not synced. Use DELETE /calendars/{id}/ to transition to inactive instead of hard-deleting.
+     *
+     * * `active` - Active
+     * * `unlisted` - Unlisted
+     * * `inactive` - Inactive
+     */
+    visibility?: VisibilityEnum;
     /**
      * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
      */
@@ -2907,6 +2938,14 @@ export type CalendarListData = {
     path?: never;
     query?: {
         /**
+         * When true, include inactive (soft-deleted) calendars (visibility=inactive). Defaults to false.
+         */
+        include_inactive?: boolean;
+        /**
+         * When true, include unlisted calendars (visibility=unlisted) in the response. Unlisted calendars are hidden from booking queries but still synced. Defaults to false.
+         */
+        include_unlisted?: boolean;
+        /**
          * Number of results to return per page.
          */
         limit?: number;
@@ -2943,6 +2982,14 @@ export type CalendarFormattedListData = {
         format: '.json';
     };
     query?: {
+        /**
+         * When true, include inactive (soft-deleted) calendars (visibility=inactive). Defaults to false.
+         */
+        include_inactive?: boolean;
+        /**
+         * When true, include unlisted calendars (visibility=unlisted) in the response. Unlisted calendars are hidden from booking queries but still synced. Defaults to false.
+         */
+        include_unlisted?: boolean;
         /**
          * Number of results to return per page.
          */

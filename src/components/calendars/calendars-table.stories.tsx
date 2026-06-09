@@ -23,7 +23,7 @@ const ALL_CALENDARS: Calendar[] = [
     calendar_type: 'personal',
     capacity: null,
     manage_available_windows: true,
-    is_active: true,
+    visibility: 'active',
     sync_enabled: true,
   },
   {
@@ -35,7 +35,7 @@ const ALL_CALENDARS: Calendar[] = [
     calendar_type: 'resource',
     capacity: 10,
     manage_available_windows: false,
-    is_active: true,
+    visibility: 'active',
     sync_enabled: true,
   },
   {
@@ -47,7 +47,7 @@ const ALL_CALENDARS: Calendar[] = [
     calendar_type: 'personal',
     capacity: null,
     manage_available_windows: true,
-    is_active: false,
+    visibility: 'unlisted',
     sync_enabled: false,
   },
 ];
@@ -85,6 +85,7 @@ function CalendarsTableStory({
     () =>
       createColumns(
         pendingRowIds,
+        async () => {},
         async () => {},
         async () => {},
         async () => {}

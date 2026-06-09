@@ -811,6 +811,8 @@ export const blockedTimesExpandedFormattedList = <ThrowOnError extends boolean =
 });
 
 /**
+ * List calendars
+ *
  * ViewSet for managing calendars.
  */
 export const calendarList = <ThrowOnError extends boolean = false>(options?: Options<CalendarListData, ThrowOnError>): RequestResult<CalendarListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<CalendarListResponses, unknown, ThrowOnError>({
@@ -841,6 +843,8 @@ export const calendarCreate = <ThrowOnError extends boolean = false>(options: Op
 });
 
 /**
+ * List calendars
+ *
  * ViewSet for managing calendars.
  */
 export const calendarFormattedList = <ThrowOnError extends boolean = false>(options: Options<CalendarFormattedListData, ThrowOnError>): RequestResult<CalendarFormattedListResponses, unknown, ThrowOnError> => (options.client ?? client).get<CalendarFormattedListResponses, unknown, ThrowOnError>({
@@ -1521,7 +1525,7 @@ export const calendarGroupsEventsFormattedCreate = <ThrowOnError extends boolean
 /**
  * Soft-disable a calendar
  *
- * Disables a calendar by setting is_active=False instead of deleting the row. The row persists and is hidden from default list/detail queries.
+ * Disables a calendar by setting visibility=inactive instead of deleting the row. The row persists and is hidden from default list/detail queries.
  *
  * **Authorization rules (enforced after org-scoping):**
  * - BUNDLE calendar: caller must be an org admin. Non-admin members receive 403.
@@ -1590,7 +1594,7 @@ export const calendarUpdate = <ThrowOnError extends boolean = false>(options: Op
 /**
  * Soft-disable a calendar
  *
- * Disables a calendar by setting is_active=False instead of deleting the row. The row persists and is hidden from default list/detail queries.
+ * Disables a calendar by setting visibility=inactive instead of deleting the row. The row persists and is hidden from default list/detail queries.
  *
  * **Authorization rules (enforced after org-scoping):**
  * - BUNDLE calendar: caller must be an org admin. Non-admin members receive 403.

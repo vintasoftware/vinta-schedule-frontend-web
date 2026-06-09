@@ -1173,6 +1173,8 @@ export const blockedTimesExpandedFormattedListInfiniteOptions = (options: Option
 export const calendarListQueryKey = (options?: Options<CalendarListData>) => createQueryKey('calendarList', options);
 
 /**
+ * List calendars
+ *
  * ViewSet for managing calendars.
  */
 export const calendarListOptions = (options?: Options<CalendarListData>) => queryOptions<CalendarListResponse, DefaultError, CalendarListResponse, ReturnType<typeof calendarListQueryKey>>({
@@ -1191,6 +1193,8 @@ export const calendarListOptions = (options?: Options<CalendarListData>) => quer
 export const calendarListInfiniteQueryKey = (options?: Options<CalendarListData>): QueryKey<Options<CalendarListData>> => createQueryKey('calendarList', options, true);
 
 /**
+ * List calendars
+ *
  * ViewSet for managing calendars.
  */
 export const calendarListInfiniteOptions = (options?: Options<CalendarListData>) => infiniteQueryOptions<CalendarListResponse, DefaultError, InfiniteData<CalendarListResponse>, QueryKey<Options<CalendarListData>>, number | Pick<QueryKey<Options<CalendarListData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
@@ -1235,6 +1239,8 @@ export const calendarCreateMutation = (options?: Partial<Options<CalendarCreateD
 export const calendarFormattedListQueryKey = (options: Options<CalendarFormattedListData>) => createQueryKey('calendarFormattedList', options);
 
 /**
+ * List calendars
+ *
  * ViewSet for managing calendars.
  */
 export const calendarFormattedListOptions = (options: Options<CalendarFormattedListData>) => queryOptions<CalendarFormattedListResponse, DefaultError, CalendarFormattedListResponse, ReturnType<typeof calendarFormattedListQueryKey>>({
@@ -1253,6 +1259,8 @@ export const calendarFormattedListOptions = (options: Options<CalendarFormattedL
 export const calendarFormattedListInfiniteQueryKey = (options: Options<CalendarFormattedListData>): QueryKey<Options<CalendarFormattedListData>> => createQueryKey('calendarFormattedList', options, true);
 
 /**
+ * List calendars
+ *
  * ViewSet for managing calendars.
  */
 export const calendarFormattedListInfiniteOptions = (options: Options<CalendarFormattedListData>) => infiniteQueryOptions<CalendarFormattedListResponse, DefaultError, InfiniteData<CalendarFormattedListResponse>, QueryKey<Options<CalendarFormattedListData>>, number | Pick<QueryKey<Options<CalendarFormattedListData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
@@ -2313,7 +2321,7 @@ export const calendarGroupsEventsFormattedCreateMutation = (options?: Partial<Op
 /**
  * Soft-disable a calendar
  *
- * Disables a calendar by setting is_active=False instead of deleting the row. The row persists and is hidden from default list/detail queries.
+ * Disables a calendar by setting visibility=inactive instead of deleting the row. The row persists and is hidden from default list/detail queries.
  *
  * **Authorization rules (enforced after org-scoping):**
  * - BUNDLE calendar: caller must be an org admin. Non-admin members receive 403.
@@ -2391,7 +2399,7 @@ export const calendarUpdateMutation = (options?: Partial<Options<CalendarUpdateD
 /**
  * Soft-disable a calendar
  *
- * Disables a calendar by setting is_active=False instead of deleting the row. The row persists and is hidden from default list/detail queries.
+ * Disables a calendar by setting visibility=inactive instead of deleting the row. The row persists and is hidden from default list/detail queries.
  *
  * **Authorization rules (enforced after org-scoping):**
  * - BUNDLE calendar: caller must be an org admin. Non-admin members receive 403.

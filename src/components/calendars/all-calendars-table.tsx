@@ -38,8 +38,12 @@ const PROVIDER_VARIANT: Record<
   ics: 'default',
 };
 
-function getStatusVariant(isActive: boolean): 'success' | 'danger' {
-  return isActive ? 'success' : 'danger';
+function getStatusVariant(
+  visibility: Calendar['visibility']
+): 'success' | 'warning' | 'danger' {
+  if (visibility === 'unlisted') return 'warning';
+  if (visibility === 'inactive') return 'danger';
+  return 'success';
 }
 
 // ---------------------------------------------------------------------------
@@ -84,13 +88,13 @@ export function createColumns(
       ),
     },
     {
-      accessorKey: 'is_active',
-      id: 'is_active',
+      accessorKey: 'visibility',
+      id: 'visibility',
       header: 'Status',
       enableSorting: false,
       cell: ({ row }) => (
-        <Badge variant={getStatusVariant(row.original.is_active)}>
-          {row.original.is_active ? 'active' : 'disabled'}
+        <Badge variant={getStatusVariant(row.original.visibility)}>
+          {row.original.visibility ?? 'active'}
         </Badge>
       ),
     },

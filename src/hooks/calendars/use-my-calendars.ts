@@ -41,9 +41,9 @@ export const MY_CALENDARS_QUERY_KEY = calendarListQueryKey();
 // Maps the DataTableQuery `page`/`pageSize` to the API's `limit`/`offset`
 // style pagination.
 //
-// Note: the `/calendar/` endpoint only supports `limit` and `offset`
-// — it has no `search` or `ordering` query params. Those fields in DataTableQuery
-// are accepted for future compatibility but are not forwarded to the API.
+// Note: the `/calendar/` endpoint supports `limit`, `offset`, `include_unlisted`,
+// and `include_inactive`. It has no `search` or `ordering` params. Those fields
+// in DataTableQuery are accepted for future compatibility but not forwarded.
 // ---------------------------------------------------------------------------
 
 export function useMyCalendars(query: DataTableQuery) {
@@ -51,7 +51,7 @@ export function useMyCalendars(query: DataTableQuery) {
   const offset = (query.page - 1) * query.pageSize;
 
   const calendarsQuery = useQuery(
-    calendarListOptions({ query: { limit, offset } })
+    calendarListOptions({ query: { limit, offset, include_unlisted: true } })
   );
 
   const raw = calendarsQuery.data?.results ?? [];

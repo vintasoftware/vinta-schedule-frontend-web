@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Trash2, RotateCw, Cloud } from 'lucide-react';
+import { Plus, Trash2, RotateCw, Cloud, EyeOff, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
@@ -25,6 +25,7 @@ import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
 import { useDeleteCalendar } from '@/hooks/calendars/use-delete-calendar';
 import { useRequestCalendarSync } from '@/hooks/calendars/use-request-calendar-sync';
 import { useToggleCalendarSync } from '@/hooks/calendars/use-toggle-calendar-sync';
+import { useSetCalendarVisibility } from '@/hooks/calendars/use-set-calendar-visibility';
 import { CreateCalendarDialog } from './create-calendar-dialog';
 
 // ---------------------------------------------------------------------------
@@ -52,8 +53,12 @@ const PROVIDER_VARIANT: Record<
   ics: 'default',
 };
 
-function getStatusVariant(isActive: boolean): 'success' | 'danger' {
-  return isActive ? 'success' : 'danger';
+function getStatusVariant(
+  visibility: Calendar['visibility']
+): 'success' | 'warning' | 'danger' {
+  if (visibility === 'unlisted') return 'warning';
+  if (visibility === 'inactive') return 'danger';
+  return 'success';
 }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +73,8 @@ export function createColumns(
   pendingRowIds: Set<number>,
   onDelete: (row: Calendar) => Promise<void>,
   onSync: (row: Calendar) => Promise<void>,
-  onToggleSync: (row: Calendar, next: boolean) => Promise<void>
+  onToggleSync: (row: Calendar, next: boolean) => Promise<void>,
+  onToggleUnlisted: (row: Calendar) => Promise<void>
 ): DataTableColumn<Calendar>[] {
   return [
     {
@@ -101,13 +107,13 @@ export function createColumns(
       ),
     },
     {
-      accessorKey: 'is_active',
-      id: 'is_active',
+      accessorKey: 'visibility',
+      id: 'visibility',
       header: 'Status',
       enableSorting: false,
       cell: ({ row }) => (
-        <Badge variant={getStatusVariant(row.original.is_active)}>
-          {row.original.is_active ? 'active' : 'disabled'}
+        <Badge variant={getStatusVariant(row.original.visibility)}>
+          {row.original.visibility ?? 'active'}
         </Badge>
       ),
     },
@@ -134,6 +140,11 @@ export function createColumns(
             isLoading={pendingRowIds.has(row.original.id)}
             onSync={onSync}
           />
+          <UnlistButton
+            calendar={row.original}
+            isLoading={pendingRowIds.has(row.original.id)}
+            onToggleUnlisted={onToggleUnlisted}
+          />
           <DeleteButton
             calendar={row.original}
             isLoading={pendingRowIds.has(row.original.id)}
@@ -148,6 +159,7 @@ export function createColumns(
 // Legacy export for backward compatibility (stories/tests that build columns statically).
 export const COLUMNS = createColumns(
   new Set(),
+  async () => {},
   async () => {},
   async () => {},
   async () => {}
@@ -205,6 +217,46 @@ function SyncButton({ calendar, isLoading, onSync }: SyncButtonProps) {
         <>
           <Cloud className='mr-1 size-4' aria-hidden />
           Sync
+        </>
+      )}
+    </Button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// UnlistButton — per-row toggle to hide a calendar from booking/listing
+// queries (unlisted) or restore it to active visibility.
+// ---------------------------------------------------------------------------
+
+interface UnlistButtonProps {
+  calendar: Calendar;
+  isLoading: boolean;
+  onToggleUnlisted: (calendar: Calendar) => Promise<void>;
+}
+
+function UnlistButton({ calendar, isLoading, onToggleUnlisted }: UnlistButtonProps) {
+  const isUnlisted = calendar.visibility === 'unlisted';
+  return (
+    <Button
+      size='sm'
+      variant='outline'
+      onClick={() => onToggleUnlisted(calendar)}
+      disabled={isLoading}
+      aria-label={
+        isUnlisted
+          ? `Make calendar ${calendar.name} visible`
+          : `Mark calendar ${calendar.name} as unlisted`
+      }
+    >
+      {isUnlisted ? (
+        <>
+          <Eye className='mr-1 size-4' aria-hidden />
+          List
+        </>
+      ) : (
+        <>
+          <EyeOff className='mr-1 size-4' aria-hidden />
+          Unlist
         </>
       )}
     </Button>
@@ -315,6 +367,7 @@ function CalendarsTableInner() {
   const { deleteCalendar } = useDeleteCalendar();
   const { requestSync } = useRequestCalendarSync();
   const { toggleSync } = useToggleCalendarSync();
+  const { setVisibility } = useSetCalendarVisibility();
 
   // Handle sync action: track in-flight row, call hook, show toast.
   // Fire-and-toast with no live tracking — the sync is async on the backend.
@@ -380,6 +433,42 @@ function CalendarsTableInner() {
     [deleteCalendar]
   );
 
+  // Handle visibility toggle: unlisted hides from booking/listing but keeps sync.
+  // active restores full visibility.
+  const handleToggleUnlisted = React.useCallback(
+    async (calendar: Calendar) => {
+      const next = calendar.visibility === 'unlisted' ? 'active' : 'unlisted';
+      setPendingRowIds((prev) => new Set(prev).add(calendar.id));
+
+      try {
+        await setVisibility(calendar.id, next);
+        toast.success(
+          next === 'unlisted' ? 'Calendar unlisted' : 'Calendar listed',
+          {
+            description:
+              next === 'unlisted'
+                ? `${calendar.name} is now hidden from booking queries.`
+                : `${calendar.name} is now visible for booking.`,
+          }
+        );
+      } catch (err) {
+        toast.error('Failed to update visibility', {
+          description:
+            err instanceof Error
+              ? err.message
+              : 'An unexpected error occurred.',
+        });
+      } finally {
+        setPendingRowIds((prev) => {
+          const next = new Set(prev);
+          next.delete(calendar.id);
+          return next;
+        });
+      }
+    },
+    [setVisibility]
+  );
+
   // Handle sync-enabled toggle: track in-flight row, call hook, show toast.
   // The row reflects the new state after list invalidation.
   const handleToggleSync = React.useCallback(
@@ -437,7 +526,8 @@ function CalendarsTableInner() {
     pendingRowIds,
     handleDelete,
     handleSync,
-    handleToggleSync
+    handleToggleSync,
+    handleToggleUnlisted
   );
 
   return (
