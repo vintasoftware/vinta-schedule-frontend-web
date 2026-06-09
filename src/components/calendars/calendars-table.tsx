@@ -8,6 +8,7 @@ import { useDataTableQuery } from '@/components/data-table/use-data-table-query'
 import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,7 @@ import type { Calendar } from '@/client';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
 import { useDeleteCalendar } from '@/hooks/calendars/use-delete-calendar';
 import { useRequestCalendarSync } from '@/hooks/calendars/use-request-calendar-sync';
+import { useToggleCalendarSync } from '@/hooks/calendars/use-toggle-calendar-sync';
 import { CreateCalendarDialog } from './create-calendar-dialog';
 
 // ---------------------------------------------------------------------------
@@ -65,7 +67,8 @@ function getStatusVariant(isActive: boolean): 'success' | 'danger' {
 export function createColumns(
   pendingRowIds: Set<number>,
   onDelete: (row: Calendar) => Promise<void>,
-  onSync: (row: Calendar) => Promise<void>
+  onSync: (row: Calendar) => Promise<void>,
+  onToggleSync: (row: Calendar, next: boolean) => Promise<void>
 ): DataTableColumn<Calendar>[] {
   return [
     {
@@ -109,6 +112,18 @@ export function createColumns(
       ),
     },
     {
+      id: 'sync_enabled',
+      header: 'Auto-sync',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <SyncToggle
+          calendar={row.original}
+          isLoading={pendingRowIds.has(row.original.id)}
+          onToggleSync={onToggleSync}
+        />
+      ),
+    },
+    {
       id: 'actions',
       header: 'Actions',
       enableSorting: false,
@@ -134,8 +149,33 @@ export function createColumns(
 export const COLUMNS = createColumns(
   new Set(),
   async () => {},
+  async () => {},
   async () => {}
 );
+
+// ---------------------------------------------------------------------------
+// SyncToggle — per-row switch to enable/disable external sync for a calendar.
+// Disabling stops new CalendarSyncs (and their BlockedTimes) for calendars that
+// aren't useful for scheduling.
+// ---------------------------------------------------------------------------
+
+interface SyncToggleProps {
+  calendar: Calendar;
+  isLoading: boolean;
+  onToggleSync: (calendar: Calendar, next: boolean) => Promise<void>;
+}
+
+function SyncToggle({ calendar, isLoading, onToggleSync }: SyncToggleProps) {
+  const enabled = calendar.sync_enabled ?? true;
+  return (
+    <Switch
+      checked={enabled}
+      disabled={isLoading}
+      onCheckedChange={(next) => onToggleSync(calendar, next)}
+      aria-label={`${enabled ? 'Disable' : 'Enable'} sync for ${calendar.name}`}
+    />
+  );
+}
 
 // ---------------------------------------------------------------------------
 // SyncButton — per-row action to request a calendar sync (fire-and-toast)
@@ -274,6 +314,7 @@ function CalendarsTableInner() {
 
   const { deleteCalendar } = useDeleteCalendar();
   const { requestSync } = useRequestCalendarSync();
+  const { toggleSync } = useToggleCalendarSync();
 
   // Handle sync action: track in-flight row, call hook, show toast.
   // Fire-and-toast with no live tracking — the sync is async on the backend.
@@ -339,6 +380,37 @@ function CalendarsTableInner() {
     [deleteCalendar]
   );
 
+  // Handle sync-enabled toggle: track in-flight row, call hook, show toast.
+  // The row reflects the new state after list invalidation.
+  const handleToggleSync = React.useCallback(
+    async (calendar: Calendar, next: boolean) => {
+      setPendingRowIds((prev) => new Set(prev).add(calendar.id));
+
+      try {
+        await toggleSync(calendar.id, next);
+        toast.success(next ? 'Sync enabled' : 'Sync disabled', {
+          description: next
+            ? `${calendar.name} will sync from its provider.`
+            : `${calendar.name} will no longer sync.`,
+        });
+      } catch (err) {
+        toast.error('Failed to update sync', {
+          description:
+            err instanceof Error
+              ? err.message
+              : 'An unexpected error occurred.',
+        });
+      } finally {
+        setPendingRowIds((prev) => {
+          const next = new Set(prev);
+          next.delete(calendar.id);
+          return next;
+        });
+      }
+    },
+    [toggleSync]
+  );
+
   if (isError) {
     return (
       <VStack gap={2} py={6} align='center'>
@@ -361,7 +433,12 @@ function CalendarsTableInner() {
     </Button>
   );
 
-  const columns = createColumns(pendingRowIds, handleDelete, handleSync);
+  const columns = createColumns(
+    pendingRowIds,
+    handleDelete,
+    handleSync,
+    handleToggleSync
+  );
 
   return (
     <>

@@ -680,121 +680,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedAvailableTimeList'
           description: ''
-  /available-times/bulk-create/:
-    post:
-      operationId: available_times_bulk_create_create
-      description: Create multiple available times.
-      summary: Create bulk available times
-      parameters:
-        - in: query
-          name: end_time
-          schema:
-            type: string
-            format: date-time
-          description: End time (less than or equal to)
-        - name: limit
-          required: false
-          in: query
-          description: Number of results to return per page.
-          schema:
-            type: integer
-        - name: offset
-          required: false
-          in: query
-          description: The initial index from which to return the results.
-          schema:
-            type: integer
-        - in: query
-          name: start_time
-          schema:
-            type: string
-            format: date-time
-          description: Start time (greater than or equal to)
-      tags:
-        - available-times
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BulkAvailableTime'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/BulkAvailableTime'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/BulkAvailableTime'
-        required: true
-      security:
-        - jwtAuth: []
-        - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedAvailableTimeList'
-          description: ''
-  /available-times/bulk-create{format}:
-    post:
-      operationId: available_times_bulk_create_formatted_create
-      description: Create multiple available times.
-      summary: Create bulk available times
-      parameters:
-        - in: query
-          name: end_time
-          schema:
-            type: string
-            format: date-time
-          description: End time (less than or equal to)
-        - in: path
-          name: format
-          schema:
-            type: string
-            enum:
-              - .json
-          required: true
-        - name: limit
-          required: false
-          in: query
-          description: Number of results to return per page.
-          schema:
-            type: integer
-        - name: offset
-          required: false
-          in: query
-          description: The initial index from which to return the results.
-          schema:
-            type: integer
-        - in: query
-          name: start_time
-          schema:
-            type: string
-            format: date-time
-          description: Start time (greater than or equal to)
-      tags:
-        - available-times
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BulkAvailableTime'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/BulkAvailableTime'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/BulkAvailableTime'
-        required: true
-      security:
-        - jwtAuth: []
-        - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedAvailableTimeList'
-          description: ''
   /available-times/expanded/:
     get:
       operationId: available_times_expanded_list
@@ -4087,6 +3972,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/CalendarSync'
           description: ''
+        '409':
+          description: Sync is disabled for this calendar.
   /calendar/{id}/admin-sync{format}:
     post:
       operationId: calendar_admin_sync_formatted_create
@@ -4129,6 +4016,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/CalendarSync'
           description: ''
+        '409':
+          description: Sync is disabled for this calendar.
   /calendar/{id}/available-windows/:
     get:
       operationId: calendar_available_windows_list
@@ -4334,6 +4223,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/CalendarSync'
           description: ''
+        '409':
+          description: Sync is disabled for this calendar.
   /calendar/{id}/request-sync{format}:
     post:
       operationId: calendar_request_sync_formatted_create
@@ -4376,6 +4267,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/CalendarSync'
           description: ''
+        '409':
+          description: Sync is disabled for this calendar.
   /calendar/{id}/unavailable-windows/:
     get:
       operationId: calendar_unavailable_windows_list
@@ -8517,16 +8410,6 @@ components:
       required:
         - end_time
         - start_time
-    BulkAvailableTime:
-      type: object
-      description: Serializer for creating multiple available times.
-      properties:
-        available_times:
-          type: array
-          items:
-            $ref: '#/components/schemas/AvailableTime'
-      required:
-        - available_times
     BulkBlockedTime:
       type: object
       description: Serializer for creating multiple blocked times.
@@ -8592,6 +8475,15 @@ components:
             (sets this to False) instead of deleting the row. Opt-in to see disabled
             calendars via ?include_inactive=true. Default True keeps every existing
             read unchanged.
+        sync_enabled:
+          type: boolean
+          description:
+            Whether this calendar's events are pulled from the external
+            provider. Set to False to skip syncing calendars that aren't useful for
+            scheduling — holidays, birthdays, organization-wide events, etc. When
+            False, no new CalendarSync is requested for this calendar (including webhook-
+            and import-triggered syncs); previously synced events are left untouched.
+            Default True keeps existing calendars syncing as before.
       required:
         - calendar_type
         - capacity
@@ -8894,6 +8786,17 @@ components:
           format: date-time
         should_update_events:
           type: boolean
+        trigger_source:
+          allOf:
+            - $ref: '#/components/schemas/TriggerSourceEnum'
+          readOnly: true
+          description: |-
+            What kicked off this sync: import, manual, webhook, or admin.
+
+            * `import` - Import
+            * `manual` - Manual
+            * `webhook` - Webhook
+            * `admin` - Admin
         error_message:
           type: string
           readOnly: true
@@ -8904,6 +8807,7 @@ components:
         - should_update_events
         - start_datetime
         - status
+        - trigger_source
     CalendarSyncRequest:
       type: object
       properties:
@@ -9823,6 +9727,15 @@ components:
             (sets this to False) instead of deleting the row. Opt-in to see disabled
             calendars via ?include_inactive=true. Default True keeps every existing
             read unchanged.
+        sync_enabled:
+          type: boolean
+          description:
+            Whether this calendar's events are pulled from the external
+            provider. Set to False to skip syncing calendars that aren't useful for
+            scheduling — holidays, birthdays, organization-wide events, etc. When
+            False, no new CalendarSync is requested for this calendar (including webhook-
+            and import-triggered syncs); previously synced events are left untouched.
+            Default True keeps existing calendars syncing as before.
     PatchedCalendarBundleUpdate:
       type: object
       description:
@@ -10398,6 +10311,18 @@ components:
             $ref: '#/components/schemas/AvailableResourcesEnum'
       required:
         - available_resources
+    TriggerSourceEnum:
+      enum:
+        - import
+        - manual
+        - webhook
+        - admin
+      type: string
+      description: |-
+        * `import` - Import
+        * `manual` - Manual
+        * `webhook` - Webhook
+        * `admin` - Admin
     UnavailableTimeWindow:
       type: object
       properties:

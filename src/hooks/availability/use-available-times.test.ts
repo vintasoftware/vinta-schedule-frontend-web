@@ -3,9 +3,9 @@
  *
  * Covers:
  * - List reads: useQuery wraps availableTimesList correctly
- * - Weekly pattern save: bulk-create is called with rrule_string for weekly entries
- * - Ad-hoc save: bulk-create is called without rrule_string for specific dates
- * - Cache invalidation: availableTimesList queries are invalidated on success
+ * - Batch update: availableTimesBatchCreate is called with the operations and
+ *   target calendar; the resulting list is returned to the caller
+ * - Error propagation: batch rejection surfaces to the caller
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -22,7 +22,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     availableTimesList: vi.fn(),
-    availableTimesBulkCreateCreate: vi.fn(),
+    availableTimesBatchCreate: vi.fn(),
   };
 });
 
@@ -32,12 +32,12 @@ vi.mock('sonner', () => ({
 
 import {
   availableTimesList,
-  availableTimesBulkCreateCreate,
+  availableTimesBatchCreate,
 } from '@/client/sdk.gen';
 import { useAvailableTimes } from './use-available-times';
 import type {
   AvailableTime,
-  BulkAvailableTimeWritable,
+  AvailableTimeBatch,
   PaginatedAvailableTimeList,
 } from '@/client';
 
@@ -82,14 +82,14 @@ function makeListResponse(
   } as unknown as Awaited<ReturnType<typeof availableTimesList>>;
 }
 
-function makeBulkCreateResponse(): Awaited<
-  ReturnType<typeof availableTimesBulkCreateCreate>
-> {
+function makeBatchResponse(
+  results: AvailableTime[] = []
+): Awaited<ReturnType<typeof availableTimesBatchCreate>> {
   const data: PaginatedAvailableTimeList = {
-    count: 0,
+    count: results.length,
     next: null,
     previous: null,
-    results: [],
+    results,
   };
   return {
     data,
@@ -97,7 +97,7 @@ function makeBulkCreateResponse(): Awaited<
       status: 201,
       headers: { 'Content-Type': 'application/json' },
     }),
-  } as unknown as Awaited<ReturnType<typeof availableTimesBulkCreateCreate>>;
+  } as unknown as Awaited<ReturnType<typeof availableTimesBatchCreate>>;
 }
 
 function makeQueryWrapper() {
@@ -138,7 +138,6 @@ describe('useAvailableTimes', () => {
         wrapper: Wrapper,
       });
 
-      // Wait for data to resolve
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       expect(result.current.availableTimes).toHaveLength(1);
@@ -183,16 +182,16 @@ describe('useAvailableTimes', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Weekly pattern save
+  // Batch update
   // -------------------------------------------------------------------------
 
-  describe('weekly pattern bulk-create', () => {
-    it('calls availableTimesBulkCreateCreate with rrule_string for weekly entries', async () => {
+  describe('batchUpdate', () => {
+    it('calls availableTimesBatchCreate with the operations and calendar', async () => {
       vi.mocked(availableTimesList).mockResolvedValue(
         makeListResponse(FIXTURE_PAGINATED_LIST)
       );
-      vi.mocked(availableTimesBulkCreateCreate).mockResolvedValue(
-        makeBulkCreateResponse()
+      vi.mocked(availableTimesBatchCreate).mockResolvedValue(
+        makeBatchResponse([FIXTURE_AVAILABLE_TIME])
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -200,35 +199,37 @@ describe('useAvailableTimes', () => {
         wrapper: Wrapper,
       });
 
-      const weeklyEntry = {
-        start_time: '2024-01-01T09:00:00',
-        end_time: '2024-01-01T17:00:00',
-        timezone: 'America/New_York',
-        rrule_string: 'FREQ=WEEKLY;BYDAY=MO',
-        calendar: null as number | null,
-      };
-
       await act(async () => {
-        await result.current.bulkCreate([weeklyEntry]);
+        await result.current.batchUpdate(
+          [
+            { action: 'delete', id: 7 },
+            {
+              action: 'create',
+              start_time: '2024-01-01T09:00:00',
+              end_time: '2024-01-01T17:00:00',
+              timezone: 'America/New_York',
+              rrule_string: 'FREQ=WEEKLY;BYDAY=MO',
+            },
+          ],
+          3
+        );
       });
 
-      expect(availableTimesBulkCreateCreate).toHaveBeenCalledOnce();
-      const callArg = vi.mocked(availableTimesBulkCreateCreate).mock
-        .calls[0][0];
-      const body = callArg.body as BulkAvailableTimeWritable;
-      expect(body.available_times).toHaveLength(1);
-      expect(body.available_times[0].rrule_string).toBe('FREQ=WEEKLY;BYDAY=MO');
-      expect(body.available_times[0].start_time).toBe('2024-01-01T09:00:00');
-      expect(body.available_times[0].end_time).toBe('2024-01-01T17:00:00');
-      expect(body.available_times[0].timezone).toBe('America/New_York');
+      expect(availableTimesBatchCreate).toHaveBeenCalledOnce();
+      const callArg = vi.mocked(availableTimesBatchCreate).mock.calls[0][0];
+      const body = callArg.body as AvailableTimeBatch;
+      expect(body.calendar).toBe(3);
+      expect(body.operations).toHaveLength(2);
+      expect(body.operations[0]).toEqual({ action: 'delete', id: 7 });
+      expect(body.operations[1].rrule_string).toBe('FREQ=WEEKLY;BYDAY=MO');
     });
 
-    it('sends multiple weekly entries for multiple weekdays', async () => {
+    it('returns the resulting list so callers can rebuild their delete-baseline', async () => {
       vi.mocked(availableTimesList).mockResolvedValue(
         makeListResponse(FIXTURE_PAGINATED_LIST)
       );
-      vi.mocked(availableTimesBulkCreateCreate).mockResolvedValue(
-        makeBulkCreateResponse()
+      vi.mocked(availableTimesBatchCreate).mockResolvedValue(
+        makeBatchResponse([FIXTURE_AVAILABLE_TIME])
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -236,81 +237,28 @@ describe('useAvailableTimes', () => {
         wrapper: Wrapper,
       });
 
-      const entries = [
-        {
-          start_time: '2024-01-01T09:00:00',
-          end_time: '2024-01-01T17:00:00',
-          timezone: 'UTC',
-          rrule_string: 'FREQ=WEEKLY;BYDAY=MO',
-          calendar: null as number | null,
-        },
-        {
-          start_time: '2024-01-03T10:00:00',
-          end_time: '2024-01-03T16:00:00',
-          timezone: 'UTC',
-          rrule_string: 'FREQ=WEEKLY;BYDAY=WE',
-          calendar: null as number | null,
-        },
-      ];
-
+      let returned: AvailableTime[] = [];
       await act(async () => {
-        await result.current.bulkCreate(entries);
+        returned = await result.current.batchUpdate([
+          {
+            action: 'create',
+            start_time: '2024-01-01T09:00:00',
+            end_time: '2024-01-01T17:00:00',
+            timezone: 'UTC',
+          },
+        ]);
       });
 
-      const callArg = vi.mocked(availableTimesBulkCreateCreate).mock
-        .calls[0][0];
-      const body = callArg.body as BulkAvailableTimeWritable;
-      expect(body.available_times).toHaveLength(2);
-      expect(body.available_times[0].rrule_string).toBe('FREQ=WEEKLY;BYDAY=MO');
-      expect(body.available_times[1].rrule_string).toBe('FREQ=WEEKLY;BYDAY=WE');
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // Ad-hoc save
-  // -------------------------------------------------------------------------
-
-  describe('ad-hoc bulk-create', () => {
-    it('calls availableTimesBulkCreateCreate WITHOUT rrule_string for ad-hoc entries', async () => {
-      vi.mocked(availableTimesList).mockResolvedValue(
-        makeListResponse(FIXTURE_PAGINATED_LIST)
-      );
-      vi.mocked(availableTimesBulkCreateCreate).mockResolvedValue(
-        makeBulkCreateResponse()
-      );
-
-      const { Wrapper } = makeQueryWrapper();
-      const { result } = renderHook(() => useAvailableTimes(), {
-        wrapper: Wrapper,
-      });
-
-      const adHocEntry = {
-        start_time: '2024-06-15T09:00:00',
-        end_time: '2024-06-15T17:00:00',
-        timezone: 'America/New_York',
-        // No rrule_string — ad-hoc
-        calendar: null as number | null,
-      };
-
-      await act(async () => {
-        await result.current.bulkCreate([adHocEntry]);
-      });
-
-      expect(availableTimesBulkCreateCreate).toHaveBeenCalledOnce();
-      const callArg = vi.mocked(availableTimesBulkCreateCreate).mock
-        .calls[0][0];
-      const body = callArg.body as BulkAvailableTimeWritable;
-      expect(body.available_times).toHaveLength(1);
-      expect(body.available_times[0].rrule_string).toBeUndefined();
-      expect(body.available_times[0].start_time).toBe('2024-06-15T09:00:00');
+      expect(returned).toHaveLength(1);
+      expect(returned[0].id).toBe(1);
     });
 
-    it('can mix weekly and ad-hoc entries in one bulk-create', async () => {
+    it('defaults calendar to null when omitted', async () => {
       vi.mocked(availableTimesList).mockResolvedValue(
         makeListResponse(FIXTURE_PAGINATED_LIST)
       );
-      vi.mocked(availableTimesBulkCreateCreate).mockResolvedValue(
-        makeBulkCreateResponse()
+      vi.mocked(availableTimesBatchCreate).mockResolvedValue(
+        makeBatchResponse([])
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -318,32 +266,13 @@ describe('useAvailableTimes', () => {
         wrapper: Wrapper,
       });
 
-      const mixed = [
-        {
-          start_time: '2024-01-01T09:00:00',
-          end_time: '2024-01-01T17:00:00',
-          timezone: 'UTC',
-          rrule_string: 'FREQ=WEEKLY;BYDAY=MO',
-          calendar: null as number | null,
-        },
-        {
-          start_time: '2024-06-15T10:00:00',
-          end_time: '2024-06-15T12:00:00',
-          timezone: 'UTC',
-          calendar: null as number | null,
-        },
-      ];
-
       await act(async () => {
-        await result.current.bulkCreate(mixed);
+        await result.current.batchUpdate([{ action: 'delete', id: 1 }]);
       });
 
-      const callArg = vi.mocked(availableTimesBulkCreateCreate).mock
-        .calls[0][0];
-      const body = callArg.body as BulkAvailableTimeWritable;
-      expect(body.available_times).toHaveLength(2);
-      expect(body.available_times[0].rrule_string).toBe('FREQ=WEEKLY;BYDAY=MO');
-      expect(body.available_times[1].rrule_string).toBeUndefined();
+      const callArg = vi.mocked(availableTimesBatchCreate).mock.calls[0][0];
+      const body = callArg.body as AvailableTimeBatch;
+      expect(body.calendar).toBeNull();
     });
   });
 
@@ -352,11 +281,11 @@ describe('useAvailableTimes', () => {
   // -------------------------------------------------------------------------
 
   describe('error propagation', () => {
-    it('throws when bulk-create rejects', async () => {
+    it('throws when batch rejects', async () => {
       vi.mocked(availableTimesList).mockResolvedValue(
         makeListResponse(FIXTURE_PAGINATED_LIST)
       );
-      vi.mocked(availableTimesBulkCreateCreate).mockRejectedValue(
+      vi.mocked(availableTimesBatchCreate).mockRejectedValue(
         new Error('API error')
       );
 
@@ -367,15 +296,7 @@ describe('useAvailableTimes', () => {
 
       await act(async () => {
         await expect(
-          result.current.bulkCreate([
-            {
-              start_time: '2024-01-01T09:00:00',
-              end_time: '2024-01-01T17:00:00',
-              timezone: 'UTC',
-              rrule_string: 'FREQ=WEEKLY;BYDAY=MO',
-              calendar: null,
-            },
-          ])
+          result.current.batchUpdate([{ action: 'delete', id: 1 }])
         ).rejects.toThrow('API error');
       });
     });

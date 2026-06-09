@@ -251,13 +251,6 @@ export type BookableSlotProposal = {
 };
 
 /**
- * Serializer for creating multiple available times.
- */
-export type BulkAvailableTime = {
-    available_times: Array<AvailableTime>;
-};
-
-/**
  * Serializer for creating multiple blocked times.
  */
 export type BulkBlockedTime = {
@@ -292,6 +285,10 @@ export type Calendar = {
      * Whether this calendar is active. Inactive calendars are hidden from default list/detail queries. Use DELETE /calendar/{id}/ to soft-disable (sets this to False) instead of deleting the row. Opt-in to see disabled calendars via ?include_inactive=true. Default True keeps every existing read unchanged.
      */
     readonly is_active: boolean;
+    /**
+     * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
+     */
+    sync_enabled?: boolean;
 };
 
 export type CalendarBundleCreate = {
@@ -832,6 +829,10 @@ export type PatchedCalendar = {
      * Whether this calendar is active. Inactive calendars are hidden from default list/detail queries. Use DELETE /calendar/{id}/ to soft-disable (sets this to False) instead of deleting the row. Opt-in to see disabled calendars via ?include_inactive=true. Default True keeps every existing read unchanged.
      */
     readonly is_active?: boolean;
+    /**
+     * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
+     */
+    sync_enabled?: boolean;
 };
 
 /**
@@ -1339,13 +1340,6 @@ export type BlockedTimeBulkModificationWritable = {
 };
 
 /**
- * Serializer for creating multiple available times.
- */
-export type BulkAvailableTimeWritable = {
-    available_times: Array<AvailableTimeWritable>;
-};
-
-/**
  * Serializer for creating multiple blocked times.
  */
 export type BulkBlockedTimeWritable = {
@@ -1359,6 +1353,10 @@ export type CalendarWritable = {
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
     manage_available_windows?: boolean;
+    /**
+     * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
+     */
+    sync_enabled?: boolean;
 };
 
 export type CalendarEventWritable = {
@@ -1632,6 +1630,10 @@ export type PatchedCalendarWritable = {
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
     manage_available_windows?: boolean;
+    /**
+     * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
+     */
+    sync_enabled?: boolean;
 };
 
 export type PatchedCalendarEventWritable = {
@@ -2197,68 +2199,6 @@ export type AvailableTimesBatchFormattedCreateResponses = {
 };
 
 export type AvailableTimesBatchFormattedCreateResponse = AvailableTimesBatchFormattedCreateResponses[keyof AvailableTimesBatchFormattedCreateResponses];
-
-export type AvailableTimesBulkCreateCreateData = {
-    body: BulkAvailableTimeWritable;
-    path?: never;
-    query?: {
-        /**
-         * End time (less than or equal to)
-         */
-        end_time?: string;
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
-         * Start time (greater than or equal to)
-         */
-        start_time?: string;
-    };
-    url: '/available-times/bulk-create/';
-};
-
-export type AvailableTimesBulkCreateCreateResponses = {
-    201: PaginatedAvailableTimeList;
-};
-
-export type AvailableTimesBulkCreateCreateResponse = AvailableTimesBulkCreateCreateResponses[keyof AvailableTimesBulkCreateCreateResponses];
-
-export type AvailableTimesBulkCreateFormattedCreateData = {
-    body: BulkAvailableTimeWritable;
-    path: {
-        format: '.json';
-    };
-    query?: {
-        /**
-         * End time (less than or equal to)
-         */
-        end_time?: string;
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
-         * Start time (greater than or equal to)
-         */
-        start_time?: string;
-    };
-    url: '/available-times/bulk-create{format}';
-};
-
-export type AvailableTimesBulkCreateFormattedCreateResponses = {
-    201: PaginatedAvailableTimeList;
-};
-
-export type AvailableTimesBulkCreateFormattedCreateResponse = AvailableTimesBulkCreateFormattedCreateResponses[keyof AvailableTimesBulkCreateFormattedCreateResponses];
 
 export type AvailableTimesExpandedListData = {
     body?: never;
@@ -4108,6 +4048,13 @@ export type CalendarAdminSyncCreateData = {
     url: '/calendar/{id}/admin-sync/';
 };
 
+export type CalendarAdminSyncCreateErrors = {
+    /**
+     * Sync is disabled for this calendar.
+     */
+    409: unknown;
+};
+
 export type CalendarAdminSyncCreateResponses = {
     202: CalendarSync;
 };
@@ -4122,6 +4069,13 @@ export type CalendarAdminSyncFormattedCreateData = {
     };
     query?: never;
     url: '/calendar/{id}/admin-sync{format}';
+};
+
+export type CalendarAdminSyncFormattedCreateErrors = {
+    /**
+     * Sync is disabled for this calendar.
+     */
+    409: unknown;
 };
 
 export type CalendarAdminSyncFormattedCreateResponses = {
@@ -4219,6 +4173,13 @@ export type CalendarRequestSyncCreateData = {
     url: '/calendar/{id}/request-sync/';
 };
 
+export type CalendarRequestSyncCreateErrors = {
+    /**
+     * Sync is disabled for this calendar.
+     */
+    409: unknown;
+};
+
 export type CalendarRequestSyncCreateResponses = {
     202: CalendarSync;
 };
@@ -4233,6 +4194,13 @@ export type CalendarRequestSyncFormattedCreateData = {
     };
     query?: never;
     url: '/calendar/{id}/request-sync{format}';
+};
+
+export type CalendarRequestSyncFormattedCreateErrors = {
+    /**
+     * Sync is disabled for this calendar.
+     */
+    409: unknown;
 };
 
 export type CalendarRequestSyncFormattedCreateResponses = {

@@ -353,14 +353,12 @@ describe('DashboardPage', () => {
             start_time: '2025-06-01T09:00:00',
             end_time: '2025-06-01T10:00:00',
             reason_description: 'Meeting',
-            source: 'event',
           },
           {
             id: 2,
             start_time: '2025-06-02T09:00:00',
             end_time: '2025-06-02T10:00:00',
             reason_description: 'Blocked',
-            source: 'block',
           },
         ],
         freeWindows: [

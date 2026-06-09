@@ -11,12 +11,12 @@
  */
 
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { CalendarView } from './calendar-view';
 import type { CalendarEventVM } from './event-vm';
-import { toCalendarEventVM } from './event-vm';
+import { toCalendarEventVM, schedulingChipStatus } from './event-vm';
 import type {
   CalendarEvent,
   RecurrenceRule as ApiRecurrenceRule,
@@ -254,6 +254,164 @@ describe('CalendarView', () => {
       expect(screen.getAllByText('New York Meeting').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Sydney Standup').length).toBeGreaterThan(0);
     });
+
+    it('renders the custom chip list (no RBC agenda table)', () => {
+      const { container } = renderCalendar({ view: 'agenda' });
+      // Our stacked list, not RBC's default agenda <table>.
+      expect(
+        container.querySelector('[data-slot="agenda-chip-list"]')
+      ).toBeTruthy();
+      expect(container.querySelector('table.rbc-agenda-table')).toBeFalsy();
+    });
+
+    it('renders events as scheduling chips in the list', () => {
+      const { container } = renderCalendar({ view: 'agenda' });
+      expect(
+        container.querySelectorAll('[data-slot="scheduling-chip"]').length
+      ).toBeGreaterThan(0);
+    });
+
+    it('calls onSelectEvent when a list chip is clicked', async () => {
+      const user = userEvent.setup();
+      const onSelectEvent = vi.fn();
+      render(
+        <CalendarView
+          events={FIXTURE_EVENTS}
+          view='agenda'
+          onViewChange={vi.fn()}
+          date={new Date('2024-06-15T00:00:00Z')}
+          onDateChange={vi.fn()}
+          onSelectEvent={onSelectEvent}
+        />
+      );
+      await user.click(screen.getAllByText('New York Meeting')[0]);
+      expect(onSelectEvent).toHaveBeenCalled();
+    });
+  });
+
+  describe('scheduling chips', () => {
+    it('renders week-view events as scheduling chips', () => {
+      const { container } = renderCalendar({ view: 'week' });
+      expect(
+        container.querySelectorAll('[data-slot="scheduling-chip"]').length
+      ).toBeGreaterThan(0);
+    });
+
+    it('renders sub-30-min events as a compact single-line chip', () => {
+      // 15-minute event → compact variant (still a scheduling chip).
+      const shortVM = toCalendarEventVM({
+        ...RAW_NY,
+        id: 200,
+        title: 'Quick Sync',
+        external_id: 'ext-200',
+        start_time: '2024-06-15T14:00:00-04:00',
+        end_time: '2024-06-15T14:15:00-04:00',
+      });
+      const { container } = renderCalendar({
+        view: 'week',
+        events: [shortVM],
+      });
+      const compact = container.querySelector(
+        '[data-slot="scheduling-chip"][data-compact]'
+      );
+      expect(compact).toBeTruthy();
+      expect(compact?.textContent).toContain('Quick Sync');
+    });
+
+    it('keeps the full chip (no compact) for events 30 min or longer', () => {
+      // FIXTURE_EVENTS: NY is 60 min, SYD is exactly 30 min — neither compact.
+      const { container } = renderCalendar({ view: 'week' });
+      expect(
+        container.querySelector('[data-slot="scheduling-chip"][data-compact]')
+      ).toBeFalsy();
+    });
+
+    it('does NOT compact short events in the list view (full chip only)', () => {
+      // Same 15-min event as above, but in the list view it keeps the full chip.
+      const shortVM = toCalendarEventVM({
+        ...RAW_NY,
+        id: 201,
+        title: 'Quick Sync',
+        external_id: 'ext-201',
+        start_time: '2024-06-15T14:00:00-04:00',
+        end_time: '2024-06-15T14:15:00-04:00',
+      });
+      const { container } = renderCalendar({
+        view: 'agenda',
+        events: [shortVM],
+      });
+      expect(
+        container.querySelector('[data-slot="scheduling-chip"]')
+      ).toBeTruthy();
+      expect(
+        container.querySelector('[data-slot="scheduling-chip"][data-compact]')
+      ).toBeFalsy();
+    });
+  });
+
+  describe('month view — compact grid', () => {
+    // Five events on the same day (2024-06-15) to exercise the 3 + "more" cap.
+    const sameDayVMs: CalendarEventVM[] = Array.from({ length: 5 }, (_, i) => {
+      const hour = String(9 + i).padStart(2, '0');
+      return toCalendarEventVM({
+        ...RAW_NY,
+        id: 100 + i,
+        title: `Event ${i + 1}`,
+        external_id: `ext-100-${i}`,
+        start_time: `2024-06-15T${hour}:00:00-04:00`,
+        end_time: `2024-06-15T${hour}:30:00-04:00`,
+      });
+    });
+
+    it('renders a compact month grid (not scheduling chips)', () => {
+      const { container } = renderCalendar({ view: 'month' });
+      expect(
+        container.querySelector('[data-slot="month-chip-grid"]')
+      ).toBeTruthy();
+      // Compact items, not the tall chip, in the month grid.
+      expect(
+        container.querySelector('[data-slot="scheduling-chip"]')
+      ).toBeFalsy();
+    });
+
+    it('caps a day at 3 events and shows a "+N more" button', () => {
+      renderCalendar({ view: 'month', events: sameDayVMs });
+      // First three render inline; 4th/5th collapse into "+2 more".
+      expect(screen.getByText('Event 1')).toBeInTheDocument();
+      expect(screen.getByText('Event 2')).toBeInTheDocument();
+      expect(screen.getByText('Event 3')).toBeInTheDocument();
+      expect(screen.queryByText('Event 4')).not.toBeInTheDocument();
+      expect(screen.getByText('+2 more')).toBeInTheDocument();
+    });
+
+    it('opens a dialog with the full day when "+N more" is clicked', async () => {
+      const user = userEvent.setup();
+      renderCalendar({ view: 'month', events: sameDayVMs });
+
+      await user.click(screen.getByText('+2 more'));
+
+      const dialog = await screen.findByRole('dialog');
+      // All five events appear in the dialog (the hidden ones included).
+      expect(within(dialog).getByText('Event 4')).toBeInTheDocument();
+      expect(within(dialog).getByText('Event 5')).toBeInTheDocument();
+    });
+
+    it('fires onSelectEvent when a compact month item is clicked', async () => {
+      const user = userEvent.setup();
+      const onSelectEvent = vi.fn();
+      render(
+        <CalendarView
+          events={sameDayVMs}
+          view='month'
+          onViewChange={vi.fn()}
+          date={new Date('2024-06-15T00:00:00Z')}
+          onDateChange={vi.fn()}
+          onSelectEvent={onSelectEvent}
+        />
+      );
+      await user.click(screen.getByText('Event 1'));
+      expect(onSelectEvent).toHaveBeenCalled();
+    });
   });
 
   describe('per-event timezone labels', () => {
@@ -272,9 +430,9 @@ describe('CalendarView', () => {
       expect(VM_NY.timezoneLabel).not.toBe(VM_SYD.timezoneLabel);
     });
 
-    it('renders timezone labels in the calendar DOM', () => {
-      renderCalendar({ view: 'month' });
-      // Both timezone labels should appear in the rendered output
+    it('renders timezone labels in the calendar DOM (week chips)', () => {
+      // Week/list chips carry the tz label; the compact month grid omits it.
+      renderCalendar({ view: 'week' });
       const nyLabels = screen.getAllByText(VM_NY.timezoneLabel);
       const sydLabels = screen.getAllByText(VM_SYD.timezoneLabel);
       expect(nyLabels.length).toBeGreaterThan(0);
@@ -371,6 +529,23 @@ describe('CalendarView', () => {
       expect(customElements.length).toBeGreaterThan(0);
       expect(customElements[0].textContent).toContain('CUSTOM:');
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// schedulingChipStatus mapping
+// ---------------------------------------------------------------------------
+
+describe('schedulingChipStatus', () => {
+  it('maps confirmed/booked to "booked"', () => {
+    expect(schedulingChipStatus('confirmed')).toBe('booked');
+    expect(schedulingChipStatus('booked')).toBe('booked');
+  });
+
+  it('maps available/tentative through, and cancelled to "conflict"', () => {
+    expect(schedulingChipStatus('available')).toBe('available');
+    expect(schedulingChipStatus('tentative')).toBe('tentative');
+    expect(schedulingChipStatus('cancelled')).toBe('conflict');
   });
 });
 

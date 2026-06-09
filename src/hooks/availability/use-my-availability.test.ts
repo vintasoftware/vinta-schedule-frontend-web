@@ -2,10 +2,10 @@
  * useMyAvailability tests.
  *
  * Covers:
- * - Merges event-busy windows + block-busy windows into busyWindows
- * - Filters out blocks scoped to a DIFFERENT calendar id
- * - Includes blocks with calendar:null (global blocks)
- * - Disabled when no default calendar (hasDefault:false)
+ * - busyWindows come solely from useUserAvailability's unavailable-windows
+ *   (which already includes blocked-times) — no separate /blocked-times fetch
+ * - busyWindows are sorted by start_time
+ * - Disabled / empty when no default calendar (hasDefault:false)
  * - freeWindows pass through unchanged
  */
 
@@ -27,23 +27,13 @@ vi.mock('@/hooks/availability/use-user-availability', () => ({
   useUserAvailability: vi.fn(),
 }));
 
-vi.mock('@/client/sdk.gen', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@/client/sdk.gen')>();
-  return {
-    ...original,
-    blockedTimesList: vi.fn(),
-  };
-});
-
 import { useDefaultCalendar } from '@/hooks/calendars/use-default-calendar';
 import { useUserAvailability } from '@/hooks/availability/use-user-availability';
-import { blockedTimesList } from '@/client/sdk.gen';
 import { useMyAvailability } from './use-my-availability';
 import type {
   Calendar,
   AvailableTimeWindow,
   UnavailableTimeWindow,
-  PaginatedBlockedTimeList,
 } from '@/client';
 
 // ---------------------------------------------------------------------------
@@ -77,6 +67,14 @@ const FIXTURE_EVENT_BUSY: UnavailableTimeWindow = {
   reason_description: 'Busy (calendar event)',
 };
 
+const FIXTURE_BLOCK_BUSY: UnavailableTimeWindow = {
+  id: 3,
+  reason: 'blocked_time',
+  start_time: '2025-06-01T10:00:00',
+  end_time: '2025-06-01T11:00:00',
+  reason_description: 'Lunch break',
+};
+
 const RANGE = {
   startDatetime: '2025-06-01T00:00:00',
   endDatetime: '2025-06-07T23:59:59',
@@ -88,7 +86,6 @@ const RANGE = {
 
 type UseDefaultCalendarReturn = ReturnType<typeof useDefaultCalendar>;
 type UseUserAvailabilityReturn = ReturnType<typeof useUserAvailability>;
-type BlockedTimesResult = Awaited<ReturnType<typeof blockedTimesList>>;
 
 function makeDefaultCalendarResult(
   overrides: Partial<UseDefaultCalendarReturn> = {}
@@ -117,24 +114,6 @@ function makeAvailabilityResult(
   };
 }
 
-function makeBlocksResponse(
-  results: PaginatedBlockedTimeList['results']
-): BlockedTimesResult {
-  const data: PaginatedBlockedTimeList = {
-    count: results.length,
-    next: null,
-    previous: null,
-    results,
-  };
-  return {
-    data,
-    response: new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }),
-  } as unknown as BlockedTimesResult;
-}
-
 function makeQueryWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -156,37 +135,19 @@ function makeQueryWrapper() {
 describe('useMyAvailability', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: has a default calendar, empty availability
     vi.mocked(useDefaultCalendar).mockReturnValue(makeDefaultCalendarResult());
     vi.mocked(useUserAvailability).mockReturnValue(makeAvailabilityResult());
-    vi.mocked(blockedTimesList).mockResolvedValue(makeBlocksResponse([]));
   });
 
   // -------------------------------------------------------------------------
-  // Merge: event-busy + blocks
+  // busyWindows come from unavailable-windows only (no double-counting)
   // -------------------------------------------------------------------------
 
-  it('merges event-busy windows and blocked-time windows into busyWindows', async () => {
+  it('maps unavailable-windows (events + blocks) into busyWindows, sorted by start', async () => {
     vi.mocked(useUserAvailability).mockReturnValue(
-      makeAvailabilityResult({ busyWindows: [FIXTURE_EVENT_BUSY] })
-    );
-    vi.mocked(blockedTimesList).mockResolvedValue(
-      makeBlocksResponse([
-        {
-          id: 99,
-          start_time: '2025-06-02T10:00:00',
-          end_time: '2025-06-02T11:00:00',
-          timezone: 'UTC',
-          reason: 'Lunch break',
-          is_recurring_instance: false,
-          is_recurring: false,
-          parent_blocked_time: null,
-          external_id: 'ext-99',
-          created: '2025-01-01T00:00:00Z',
-          modified: '2025-01-01T00:00:00Z',
-          calendar: 10, // same as FIXTURE_CALENDAR.id
-        },
-      ])
+      makeAvailabilityResult({
+        busyWindows: [FIXTURE_EVENT_BUSY, FIXTURE_BLOCK_BUSY],
+      })
     );
 
     const { Wrapper } = makeQueryWrapper();
@@ -196,88 +157,14 @@ describe('useMyAvailability', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
+    // Both come through the single unavailable-windows source — no duplicates.
     expect(result.current.busyWindows).toHaveLength(2);
-    // One event-source entry
-    const eventEntry = result.current.busyWindows.find(
-      (b) => b.source === 'event'
+    // Sorted by start_time: the 10:00 block precedes the 13:00 event.
+    expect(result.current.busyWindows[0].id).toBe(3);
+    expect(result.current.busyWindows[0].reason_description).toBe(
+      'Lunch break'
     );
-    expect(eventEntry).toBeDefined();
-    expect(eventEntry?.id).toBe(2);
-    // One block-source entry
-    const blockEntry = result.current.busyWindows.find(
-      (b) => b.source === 'block'
-    );
-    expect(blockEntry).toBeDefined();
-    expect(blockEntry?.id).toBe(99);
-    expect(blockEntry?.reason_description).toBe('Lunch break');
-  });
-
-  // -------------------------------------------------------------------------
-  // Filter: blocks for a different calendar are excluded
-  // -------------------------------------------------------------------------
-
-  it('filters out blocked-times scoped to a different calendar id', async () => {
-    vi.mocked(blockedTimesList).mockResolvedValue(
-      makeBlocksResponse([
-        {
-          id: 200,
-          start_time: '2025-06-03T10:00:00',
-          end_time: '2025-06-03T11:00:00',
-          timezone: 'UTC',
-          is_recurring_instance: false,
-          is_recurring: false,
-          parent_blocked_time: null,
-          external_id: 'ext-200',
-          created: '2025-01-01T00:00:00Z',
-          modified: '2025-01-01T00:00:00Z',
-          calendar: 999, // different calendar — must be excluded
-        },
-      ])
-    );
-
-    const { Wrapper } = makeQueryWrapper();
-    const { result } = renderHook(() => useMyAvailability(RANGE), {
-      wrapper: Wrapper,
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.busyWindows).toHaveLength(0);
-  });
-
-  // -------------------------------------------------------------------------
-  // Filter: blocks with calendar:null (global) are included
-  // -------------------------------------------------------------------------
-
-  it('includes blocked-times with calendar:null (global blocks)', async () => {
-    vi.mocked(blockedTimesList).mockResolvedValue(
-      makeBlocksResponse([
-        {
-          id: 300,
-          start_time: '2025-06-04T08:00:00',
-          end_time: '2025-06-04T09:00:00',
-          timezone: 'UTC',
-          is_recurring_instance: false,
-          is_recurring: false,
-          parent_blocked_time: null,
-          external_id: 'ext-300',
-          created: '2025-01-01T00:00:00Z',
-          modified: '2025-01-01T00:00:00Z',
-          calendar: null, // global block — must be included
-        },
-      ])
-    );
-
-    const { Wrapper } = makeQueryWrapper();
-    const { result } = renderHook(() => useMyAvailability(RANGE), {
-      wrapper: Wrapper,
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.busyWindows).toHaveLength(1);
-    expect(result.current.busyWindows[0].source).toBe('block');
-    expect(result.current.busyWindows[0].id).toBe(300);
+    expect(result.current.busyWindows[1].id).toBe(2);
   });
 
   // -------------------------------------------------------------------------
@@ -298,8 +185,6 @@ describe('useMyAvailability', () => {
 
     expect(result.current.hasDefault).toBe(false);
     expect(result.current.busyWindows).toHaveLength(0);
-    // blockedTimesList should not be called — query is disabled
-    expect(blockedTimesList).not.toHaveBeenCalled();
   });
 
   // -------------------------------------------------------------------------
@@ -320,41 +205,5 @@ describe('useMyAvailability', () => {
 
     expect(result.current.freeWindows).toHaveLength(1);
     expect(result.current.freeWindows[0].id).toBe(1);
-  });
-
-  // -------------------------------------------------------------------------
-  // Block reason fallback
-  // -------------------------------------------------------------------------
-
-  it('falls back to "Blocked time" when block has no reason', async () => {
-    vi.mocked(blockedTimesList).mockResolvedValue(
-      makeBlocksResponse([
-        {
-          id: 400,
-          start_time: '2025-06-05T10:00:00',
-          end_time: '2025-06-05T11:00:00',
-          timezone: 'UTC',
-          is_recurring_instance: false,
-          is_recurring: false,
-          parent_blocked_time: null,
-          external_id: 'ext-400',
-          created: '2025-01-01T00:00:00Z',
-          modified: '2025-01-01T00:00:00Z',
-          calendar: null,
-          // no reason field
-        },
-      ])
-    );
-
-    const { Wrapper } = makeQueryWrapper();
-    const { result } = renderHook(() => useMyAvailability(RANGE), {
-      wrapper: Wrapper,
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.busyWindows[0].reason_description).toBe(
-      'Blocked time'
-    );
   });
 });

@@ -148,6 +148,62 @@
   box-shadow: -1px 1px 5px 0 var(--shadow-sm);
 }
 
+/*
+ * SchedulingChip events: when an event cell hosts our design-system chip
+ * (data-slot="scheduling-chip"), strip RBC's default block chrome so the chip
+ * owns the visuals (left accent bar + tint). Applies across month/week.
+ */
+.rbc-event:has([data-slot='scheduling-chip']) {
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.rbc-event:has([data-slot='scheduling-chip']).rbc-selected {
+  background-color: transparent;
+}
+
+.rbc-event:has([data-slot='scheduling-chip']) .rbc-event-content {
+  height: 100%;
+  width: 100%;
+}
+
+.rbc-day-slot .rbc-event:has([data-slot='scheduling-chip']) {
+  border: none;
+}
+
+/*
+ * Time-grid (week/day) chips: the event box height is proportional to the
+ * event duration, so a 30-minute event is only ~20px tall. RBC also renders its
+ * own time label (.rbc-event-label) above the content, which — combined with
+ * the chip's default block padding — pushed the title out of the visible area
+ * (it rendered as an empty pale box). Hide RBC's label (the chip's own meta
+ * carries the time), let the chip fill the box, and compact its padding/type so
+ * the title shows even in short slots.
+ */
+.rbc-time-view .rbc-event:has([data-slot='scheduling-chip']) .rbc-event-label {
+  display: none;
+}
+
+.rbc-time-view [data-slot='scheduling-chip'] {
+  height: 100%;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 0.0625rem 0.375rem;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  overflow: hidden;
+}
+
+/* Sub-30-min events: single centered line so the title stays readable in a
+   slot only a few pixels tall. */
+.rbc-time-view [data-slot='scheduling-chip'][data-compact] {
+  justify-content: center;
+  white-space: nowrap;
+}
+
 /* ============================================================================
    Time-grid (week / day views)
    ============================================================================ */
@@ -180,7 +236,9 @@
 
 .rbc-timeslot-group {
   border-bottom: 1px solid var(--border);
-  min-height: 40px;
+  /* 100px/hour → 50px per 30-min slot so short events have room for the chip
+     title + time range. */
+  min-height: 100px;
 }
 
 .rbc-time-slot {

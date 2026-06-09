@@ -28,6 +28,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     calendarList: vi.fn(),
     calendarDestroy: vi.fn(),
     calendarRequestSyncCreate: vi.fn(),
+    calendarPartialUpdate: vi.fn(),
   };
 });
 
@@ -44,6 +45,7 @@ import {
   calendarList,
   calendarDestroy,
   calendarRequestSyncCreate,
+  calendarPartialUpdate,
 } from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import userEvent from '@testing-library/user-event';
@@ -102,6 +104,7 @@ const CALENDARS_FIXTURE: PaginatedCalendarList['results'] = [
     calendar_type: 'personal',
     capacity: null,
     is_active: true,
+    sync_enabled: true,
   },
   {
     id: 2,
@@ -113,6 +116,7 @@ const CALENDARS_FIXTURE: PaginatedCalendarList['results'] = [
     calendar_type: 'resource',
     capacity: 10,
     is_active: true,
+    sync_enabled: true,
   },
   {
     id: 3,
@@ -124,6 +128,7 @@ const CALENDARS_FIXTURE: PaginatedCalendarList['results'] = [
     calendar_type: 'virtual',
     capacity: null,
     is_active: false,
+    sync_enabled: false,
   },
 ];
 
@@ -691,6 +696,130 @@ describe('CalendarsTable', () => {
       // Only one request should have been made (not two).
       const calls = vi.mocked(calendarRequestSyncCreate).mock.calls;
       expect(calls.length).toBe(1);
+    });
+  });
+
+  describe('auto-sync toggle', () => {
+    it('renders an auto-sync switch per row reflecting sync_enabled', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      // One switch per calendar; aria-label flips on current state.
+      const enableSwitch = screen.getByRole('switch', {
+        name: /enable sync for virtual meetings/i,
+      });
+      const disableSwitch = screen.getByRole('switch', {
+        name: /disable sync for personal calendar/i,
+      });
+      expect(enableSwitch).toHaveAttribute('aria-checked', 'false');
+      expect(disableSwitch).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('PATCHes sync_enabled=false when an enabled calendar is toggled off', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      vi.mocked(calendarPartialUpdate).mockResolvedValue({
+        data: { ...CALENDARS_FIXTURE[0], sync_enabled: false },
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof calendarPartialUpdate>>);
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      await user.click(
+        screen.getByRole('switch', {
+          name: /disable sync for personal calendar/i,
+        })
+      );
+
+      await waitFor(() => {
+        expect(vi.mocked(calendarPartialUpdate)).toHaveBeenCalled();
+      });
+
+      const calls = vi.mocked(calendarPartialUpdate).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]?.path?.id).toBe('1');
+      expect(lastCall[0]?.body).toEqual({ sync_enabled: false });
+
+      expect(vi.mocked(toast.success)).toHaveBeenCalledWith(
+        'Sync disabled',
+        expect.objectContaining({
+          description: expect.stringContaining('Personal Calendar'),
+        })
+      );
+    });
+
+    it('PATCHes sync_enabled=true when a disabled calendar is toggled on', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      vi.mocked(calendarPartialUpdate).mockResolvedValue({
+        data: { ...CALENDARS_FIXTURE[2], sync_enabled: true },
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof calendarPartialUpdate>>);
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Virtual Meetings')).toBeInTheDocument();
+      });
+
+      await user.click(
+        screen.getByRole('switch', {
+          name: /enable sync for virtual meetings/i,
+        })
+      );
+
+      await waitFor(() => {
+        expect(vi.mocked(calendarPartialUpdate)).toHaveBeenCalled();
+      });
+
+      const calls = vi.mocked(calendarPartialUpdate).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]?.path?.id).toBe('3');
+      expect(lastCall[0]?.body).toEqual({ sync_enabled: true });
+    });
+
+    it('shows an error toast when the toggle fails', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      vi.mocked(calendarPartialUpdate).mockRejectedValue(
+        new Error('Update failed')
+      );
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      await user.click(
+        screen.getByRole('switch', {
+          name: /disable sync for personal calendar/i,
+        })
+      );
+
+      await waitFor(() => {
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+          'Failed to update sync',
+          expect.objectContaining({ description: 'Update failed' })
+        );
+      });
     });
   });
 });
