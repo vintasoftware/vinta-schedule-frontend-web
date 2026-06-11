@@ -67,12 +67,14 @@ const Grid = React.forwardRef<HTMLElement, GridProps>(function Grid(
     display: inline ? 'inline-grid' : 'grid',
     gridTemplateColumns: template(columns),
     gridTemplateRows: template(rows),
-    gap: gap != null ? resolveSpace(gap) : undefined,
-    rowGap: rowGap != null ? resolveSpace(rowGap) : undefined,
-    columnGap: columnGap != null ? resolveSpace(columnGap) : undefined,
     alignItems: align ? ALIGN[align] : undefined,
     justifyItems: justify ? ALIGN[justify] : undefined,
   };
+  // Never emit the `gap` shorthand together with `undefined` `rowGap`/`columnGap`
+  // longhands — React drops the shorthand on rerender, zeroing the gap.
+  if (gap != null) gridStyle.gap = resolveSpace(gap);
+  if (rowGap != null) gridStyle.rowGap = resolveSpace(rowGap);
+  if (columnGap != null) gridStyle.columnGap = resolveSpace(columnGap);
   return (
     <Comp
       ref={ref}

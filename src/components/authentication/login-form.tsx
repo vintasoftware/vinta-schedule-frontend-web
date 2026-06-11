@@ -107,16 +107,7 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
         loginPayload = { email: values.login, password: values.password };
       }
       await login(loginPayload);
-      // Get tokens from localStorage (set by useLogin)
-      const accessToken = localStorage.getItem('accessToken');
-      const refreshToken = localStorage.getItem('refreshToken');
-      // Set cookies in the browser (client-side only)
-      const cookieOptions = 'path=/; Secure; SameSite=Lax';
-      if (accessToken)
-        document.cookie = `accessToken=${accessToken}; ${cookieOptions}`;
-      if (refreshToken)
-        document.cookie = `refreshToken=${refreshToken}; ${cookieOptions}`;
-      router.push('/');
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }

@@ -1,0 +1,48 @@
+name: Deploy Production (tag)
+
+# Production deploy is driven by pushing a version tag (e.g. `v1.2.3`),
+# not by branch pushes. Vercel's Git integration is not used for this project
+# (the repo lives under the vintasoftware org while the Vercel project is on a
+# different scope), so deployment runs through the Vercel CLI with a token.
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Never let two tag deploys race each other to production.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      # Non-sensitive project identifiers (from .vercel/project.json). Move to
+      # secrets if you prefer; the CLI reads them from the environment either way.
+      VERCEL_ORG_ID: team_xFUIMMmAXKCC6qohaYwAmTJV
+      VERCEL_PROJECT_ID: prj_kasjFDAGpaSJwmdhTW4ZjuL16EjH
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull production environment
+        run: vercel pull --yes --environment=production
+
+      - name: Build (production)
+        run: vercel build --prod
+
+      - name: Deploy to production
+        run: |
+          URL=$(vercel deploy --prebuilt --prod)
+          echo "Deployed $GITHUB_REF_NAME to $URL"
+          echo "## Production deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tag: \`$GITHUB_REF_NAME\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- URL: $URL" >> "$GITHUB_STEP_SUMMARY"

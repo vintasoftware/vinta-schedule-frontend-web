@@ -13,13 +13,7 @@
  */
 
 import * as React from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { HStack, Text } from '@/components/layout';
 import { CalendarDays } from 'lucide-react';
 
@@ -97,23 +91,18 @@ export function CalendarScopePicker({
       <Text size='sm' color='muted-foreground' className='shrink-0'>
         Calendar:
       </Text>
-      <Select
+      <Combobox
+        options={[
+          { value: ALL_CALENDARS_VALUE, label: 'All calendars' },
+          ...calendars.map((cal) => ({ value: String(cal.id), label: cal.name })),
+        ]}
         value={selectValue}
         onValueChange={handleChange}
         disabled={disabled}
-      >
-        <SelectTrigger className='h-8 min-w-[160px] text-sm'>
-          <SelectValue placeholder='Select calendar' />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL_CALENDARS_VALUE}>All calendars</SelectItem>
-          {calendars.map((cal) => (
-            <SelectItem key={cal.id} value={String(cal.id)}>
-              {cal.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        placeholder='Select calendar'
+        searchPlaceholder='Search calendars…'
+        className='h-8 min-w-[160px] text-sm'
+      />
     </HStack>
   );
 }

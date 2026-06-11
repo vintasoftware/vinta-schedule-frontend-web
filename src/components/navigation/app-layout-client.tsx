@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 
 import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
+import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
+import { useProfile } from '@/hooks/users/use-profile';
+import { useLogout } from '@/hooks/authentication/use-logout';
 import { AppShell } from '@/components/layout/app-shell';
 import {
   AppSidebar,
@@ -29,7 +32,7 @@ import type { RoleEnum } from '@/client';
 // ---------------------------------------------------------------------------
 
 const MEMBER_NAV_ITEMS: SidebarNavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: Calendar },
+  { id: 'dashboard', label: 'Dashboard', icon: Calendar, href: '/dashboard' },
   {
     id: 'calendars',
     label: 'My calendars',
@@ -84,6 +87,14 @@ function buildNavGroups(role: RoleEnum | null): SidebarNavGroup[] {
   return groups;
 }
 
+/** Up to two uppercase initials from a display name; '?' when empty. */
+function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  const letters = parts.slice(0, 2).map((p) => p.charAt(0).toUpperCase());
+  return letters.join('');
+}
+
 // ---------------------------------------------------------------------------
 // LoadingView — shared loading/redirecting placeholder. Used while org data is
 // resolving and while a redirect is in-flight.
@@ -114,7 +125,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
 
   // Mirrors OnboardingGate: check localStorage for token presence on mount.
   useEffect(() => {
-    setIsAuthenticated(Boolean(localStorage.getItem('accessToken')));
+    setIsAuthenticated(document.cookie.split('; ').some((c) => c.startsWith('sessionActive=')));
     setAuthChecked(true);
   }, []);
 
@@ -122,6 +133,23 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     useCurrentOrganization({
       enabled: authChecked && isAuthenticated,
     });
+
+  // Logged-in user: real name from the profile API (JWT-auth), email from the
+  // allauth session (the profile endpoint doesn't expose it).
+  const { profile } = useProfile({ enabled: authChecked && isAuthenticated });
+  const { session } = useCurrentAuthSession({
+    enabled: authChecked && isAuthenticated,
+  });
+
+  const { logout } = useLogout();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      router.replace('/auth/login');
+    }
+  };
 
   // Redirect org-less authenticated users to onboarding (not back into (app)).
   useEffect(() => {
@@ -163,7 +191,35 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
 
   const navGroups = buildNavGroups(role);
 
-  const sidebar = <AppSidebar groups={navGroups} orgName={orgName} />;
+  const sessionUser = session?.data?.user;
+  const userEmail =
+    typeof sessionUser?.email === 'string' ? sessionUser.email : '';
+
+  // Prefer the real profile name (first + last); fall back to the allauth
+  // session display, then the email local-part, then a neutral label.
+  const profileName = [profile?.first_name, profile?.last_name]
+    .filter((p): p is string => typeof p === 'string' && p.trim() !== '')
+    .join(' ')
+    .trim();
+  const sessionDisplay =
+    typeof sessionUser?.display === 'string' ? sessionUser.display.trim() : '';
+  const emailLocalPart = userEmail.includes('@') ? userEmail.split('@')[0] : '';
+  const userName = profileName || sessionDisplay || emailLocalPart || 'Account';
+
+  const orgMeta = role === 'admin' ? 'Admin' : 'Member';
+
+  const sidebar = (
+    <AppSidebar
+      groups={navGroups}
+      orgName={orgName}
+      orgMeta={orgMeta}
+      userName={userName}
+      userEmail={userEmail}
+      userInitials={initialsFromName(userName)}
+      userPicture={profile?.profile_picture ?? undefined}
+      onLogout={handleLogout}
+    />
+  );
 
   const topbar = (
     <AppTopbar title='Vinta Schedule' showSearch={false} sync={null} />

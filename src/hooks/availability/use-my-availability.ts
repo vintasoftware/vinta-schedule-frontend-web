@@ -1,29 +1,21 @@
 /**
- * useMyAvailability — the caller's own free/busy with blocked-times merged.
+ * useMyAvailability — the caller's own free/busy over a date range.
  *
- * Combines three data sources:
+ * Combines two data sources:
  *   1. `useDefaultCalendar` → resolves the user's default calendar id.
- *   2. `useUserAvailability` → event-based free/busy windows from the calendar.
- *   3. `blockedTimesListOptions` → one-off/recurring blocked-time windows.
+ *   2. `useUserAvailability` → free/busy windows for that calendar from
+ *      GET /calendar/{id}/available-windows/ and .../unavailable-windows/.
  *
- * Blocked times are CALLER-SCOPED — `GET /blocked-times/` returns only the
- * authenticated user's own blocks (no path param). This hook is therefore
- * safe only for the self view; the Colleague view must stay events-only.
+ * The unavailable-windows endpoint ALREADY folds the user's blocked-times into
+ * its busy windows, so we do NOT additionally fetch GET /blocked-times/ — doing
+ * so double-counted every block (it appeared once as an unavailable window and
+ * again as a blocked-time). Busy windows here are the single source of truth.
  *
- * Block filter: a BlockedTime is included when `calendar === null` (global,
- * applies to all calendars) or `calendar === defaultCalendar.id` (scoped to
- * this specific calendar). Blocks for a different calendar id are excluded.
- *
- * Merge strategy: event-busy windows (tagged source:'event') and
- * block-busy entries (tagged source:'block') are concatenated and sorted by
- * start_time. Free windows pass through unchanged. We do NOT recompute free
- * windows minus blocks — surfacing blocks as additional busy entries is
- * sufficient for the UI.
+ * Privacy: only available/unavailable windows and system-level reason labels are
+ * surfaced — never private event titles.
  */
 
-import { useQuery } from '@tanstack/react-query';
-import { blockedTimesListOptions } from '@/client/@tanstack/react-query.gen';
-import type { BlockedTime } from '@/client';
+import type { UnavailableTimeWindow } from '@/client';
 import { useDefaultCalendar } from '@/hooks/calendars/use-default-calendar';
 import {
   useUserAvailability,
@@ -39,8 +31,6 @@ export interface BusyEntry {
   start_time: string;
   end_time: string;
   reason_description: string;
-  /** 'event' = came from calendar unavailable-windows; 'block' = blocked-time */
-  source: 'event' | 'block';
 }
 
 export interface MyAvailabilityResult {
@@ -69,7 +59,8 @@ export function useMyAvailability(
 
   const calId = String(defaultCalendar?.id ?? '');
 
-  // Event-based availability — disabled until we have a calendar id.
+  // Event-based availability — disabled until we have a calendar id. The busy
+  // windows already include the user's blocked-times.
   const {
     freeWindows,
     busyWindows: eventBusyRaw,
@@ -77,57 +68,17 @@ export function useMyAvailability(
     isError: avError,
   } = useUserAvailability(enabled ? calId : '', range);
 
-  // Blocked times — only meaningful when we have both a range and a default calendar.
-  const blocksEnabled =
-    enabled &&
-    hasDefault &&
-    Boolean(range?.startDatetime) &&
-    Boolean(range?.endDatetime);
+  const busyWindows: BusyEntry[] = eventBusyRaw
+    .map((w: UnavailableTimeWindow) => ({
+      id: w.id,
+      start_time: w.start_time,
+      end_time: w.end_time,
+      reason_description: w.reason_description,
+    }))
+    .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
-  const blocksQuery = useQuery({
-    ...blockedTimesListOptions({
-      query: {
-        start_time: range?.startDatetime ?? '',
-        end_time: range?.endDatetime ?? '',
-        limit: 100,
-      },
-    }),
-    enabled: blocksEnabled,
-  });
-
-  // ---------------------------------------------------------------------------
-  // Merge
-  // ---------------------------------------------------------------------------
-
-  // Tag event-busy windows with source:'event'.
-  const eventBusy: BusyEntry[] = eventBusyRaw.map((w) => ({
-    id: w.id,
-    start_time: w.start_time,
-    end_time: w.end_time,
-    reason_description: w.reason_description,
-    source: 'event' as const,
-  }));
-
-  // Filter and tag blocked-time windows.
-  const calendarId = defaultCalendar?.id ?? null;
-  const blockBusy: BusyEntry[] = (blocksQuery.data?.results ?? [])
-    .filter(
-      (b: BlockedTime) => b.calendar === null || b.calendar === calendarId
-    )
-    .map((b: BlockedTime) => ({
-      id: b.id,
-      start_time: b.start_time,
-      end_time: b.end_time,
-      reason_description: b.reason ?? 'Blocked time',
-      source: 'block' as const,
-    }));
-
-  const busyWindows: BusyEntry[] = [...eventBusy, ...blockBusy].sort((a, b) =>
-    a.start_time.localeCompare(b.start_time)
-  );
-
-  const isLoading = calLoading || avLoading || blocksQuery.isLoading;
-  const isError = calError || avError || blocksQuery.isError;
+  const isLoading = calLoading || avLoading;
+  const isError = calError || avError;
 
   return {
     defaultCalendar,

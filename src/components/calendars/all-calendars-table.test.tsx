@@ -96,7 +96,7 @@ const ALL_CALENDARS_FIXTURE: PaginatedCalendarList['results'] = [
     provider: 'google',
     calendar_type: 'personal',
     capacity: null,
-    is_active: true,
+    visibility: 'active',
   },
   {
     id: 2,
@@ -107,7 +107,7 @@ const ALL_CALENDARS_FIXTURE: PaginatedCalendarList['results'] = [
     provider: 'microsoft',
     calendar_type: 'resource',
     capacity: 20,
-    is_active: true,
+    visibility: 'active',
   },
   {
     id: 3,
@@ -118,7 +118,7 @@ const ALL_CALENDARS_FIXTURE: PaginatedCalendarList['results'] = [
     provider: 'internal',
     calendar_type: 'virtual',
     capacity: null,
-    is_active: true,
+    visibility: 'active',
   },
   {
     id: 4,
@@ -129,7 +129,7 @@ const ALL_CALENDARS_FIXTURE: PaginatedCalendarList['results'] = [
     provider: 'internal',
     calendar_type: 'bundle',
     capacity: null,
-    is_active: true,
+    visibility: 'active',
   },
 ];
 

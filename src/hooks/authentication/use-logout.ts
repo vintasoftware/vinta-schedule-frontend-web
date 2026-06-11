@@ -1,15 +1,14 @@
 import { deleteAuthByClientV1AuthSessionMutation } from '@/auth-client/@tanstack/react-query.gen';
 import { useMutation } from '@tanstack/react-query';
+import { clearAuthCookies } from '@/lib/auth-server-actions';
+import { clearMemoryAccessToken } from '@/lib/token-storage-strategy.client';
 
-function clearLocalTokens() {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
+async function clearLocalTokens() {
+  clearMemoryAccessToken();
   localStorage.removeItem('sessionToken');
   localStorage.removeItem('uid');
-  const expire = 'path=/; Secure; SameSite=Lax; Max-Age=0';
-  document.cookie = `accessToken=; ${expire}`;
-  document.cookie = `refreshToken=; ${expire}`;
-  document.cookie = `sessionToken=; ${expire}`;
+  document.cookie = `sessionToken=; path=/; Secure; SameSite=Lax; Max-Age=0`;
+  await clearAuthCookies();
 }
 
 export function useLogout() {
@@ -30,7 +29,7 @@ export function useLogout() {
       });
     } finally {
       // Always drop local tokens, even if the server call fails.
-      clearLocalTokens();
+      await clearLocalTokens();
     }
   };
 

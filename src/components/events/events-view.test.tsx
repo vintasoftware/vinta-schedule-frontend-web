@@ -129,7 +129,7 @@ const FIXTURE_CALENDAR_1: Calendar = {
   calendar_type: 'personal',
   capacity: null,
   manage_available_windows: true,
-  is_active: true,
+  visibility: 'active',
 };
 
 const FIXTURE_CALENDAR_2: Calendar = {
@@ -142,7 +142,7 @@ const FIXTURE_CALENDAR_2: Calendar = {
   calendar_type: 'personal',
   capacity: null,
   manage_available_windows: true,
-  is_active: true,
+  visibility: 'active',
 };
 
 // ---------------------------------------------------------------------------

@@ -22,7 +22,7 @@ import { useTriggerOrgCalendarSync } from '@/hooks/sync/use-trigger-org-calendar
 const DEBOUNCE_MS = 500;
 
 export function TriggerOrgCalendarSyncButton() {
-  const { triggerOrgCalendarSync, triggerOrgCalendarSyncMutation } =
+  const { triggerOrgCalendarSync, isPending: isSyncing } =
     useTriggerOrgCalendarSync();
   const [isDebouncing, setIsDebouncing] = React.useState(false);
 
@@ -48,7 +48,7 @@ export function TriggerOrgCalendarSyncButton() {
     }
   };
 
-  const isPending = triggerOrgCalendarSyncMutation.isPending || isDebouncing;
+  const isPending = isSyncing || isDebouncing;
 
   return (
     <Button

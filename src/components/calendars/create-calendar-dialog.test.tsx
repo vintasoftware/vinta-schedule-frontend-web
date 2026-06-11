@@ -81,7 +81,7 @@ function makeCreateResponse(
     external_id: '',
     calendar_type: 'personal',
     provider: 'internal',
-    is_active: true,
+    visibility: 'active',
     capacity: null,
   };
   return {

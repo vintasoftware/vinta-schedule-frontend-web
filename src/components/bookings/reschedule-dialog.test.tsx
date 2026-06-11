@@ -161,21 +161,19 @@ function makeRecurringEventVM(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeUnavailableResponse(hasConflict: boolean): any {
+  // The endpoint returns a bare array (200: Array<…>).
   return {
-    data: {
-      count: hasConflict ? 1 : 0,
-      results: hasConflict
-        ? [
-            {
-              id: 99,
-              reason: 'blocked_time',
-              reason_description: 'Blocked',
-              start_time: '2024-06-15T09:00:00-04:00',
-              end_time: '2024-06-15T10:00:00-04:00',
-            },
-          ]
-        : [],
-    },
+    data: hasConflict
+      ? [
+          {
+            id: 99,
+            reason: 'blocked_time',
+            reason_description: 'Blocked',
+            start_time: '2024-06-15T09:00:00-04:00',
+            end_time: '2024-06-15T10:00:00-04:00',
+          },
+        ]
+      : [],
     response: new Response(null, { status: 200 }),
     request: new Request('https://example.com'),
   };
@@ -183,8 +181,9 @@ function makeUnavailableResponse(hasConflict: boolean): any {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeAvailableResponse(): any {
+  // The endpoint returns a bare array (200: Array<…>).
   return {
-    data: { count: 0, results: [] },
+    data: [],
     response: new Response(null, { status: 200 }),
     request: new Request('https://example.com'),
   };
@@ -463,6 +462,52 @@ describe('RescheduleDialog', () => {
       expect(
         screen.queryByText(/reschedule recurring event/i)
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('naive-local write payload / offset check params', () => {
+    it('write payload start_time/end_time are naive local (no offset, no Z)', async () => {
+      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
+        makeUnavailableResponse(false)
+      );
+      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
+        makeAvailableResponse()
+      );
+      vi.mocked(calendarEventsPartialUpdate).mockResolvedValue(
+        makeOkResponse()
+      );
+
+      const wrapper = makeQueryWrapper();
+      render(
+        <RescheduleDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          event={makeEventVM()}
+        />,
+        { wrapper }
+      );
+
+      await userEvent.click(screen.getByTestId('reschedule-submit'));
+
+      await waitFor(() => {
+        expect(calendarEventsPartialUpdate).toHaveBeenCalledOnce();
+      });
+
+      const callArg = vi.mocked(calendarEventsPartialUpdate).mock.calls[0][0];
+      const startTime = callArg.body?.start_time as string;
+      const endTime = callArg.body?.end_time as string;
+
+      // Write payload must be naive local: no UTC offset and no trailing Z
+      expect(startTime).toMatch(/T\d{2}:\d{2}:\d{2}$/);
+      expect(endTime).toMatch(/T\d{2}:\d{2}:\d{2}$/);
+      expect(startTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+      expect(endTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+
+      // Availability check must still receive the OFFSET form.
+      const checkCall = vi.mocked(calendarUnavailableWindowsList).mock
+        .calls[0][0];
+      const checkStart = checkCall.query?.start_datetime as string;
+      expect(checkStart).toMatch(/[+-]\d{2}:\d{2}$/);
     });
   });
 });

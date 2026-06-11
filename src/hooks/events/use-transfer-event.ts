@@ -5,7 +5,7 @@
  * and sends the destination calendar ID in the request body.
  *
  * Request body shape:
- *   { destination_calendar_id: number }
+ *   { target_calendar_id: number }
  *
  * On success the calendar-events queries are invalidated via the predicate-based
  * `invalidateCalendarEvents` helper so both source and destination calendars
@@ -45,7 +45,7 @@ export function useTransferEvent() {
     transferEventMutation.mutateAsync({
       path: { id: String(eventId) },
       body: {
-        destination_calendar_id: destinationCalendarId,
+        target_calendar_id: destinationCalendarId,
       },
     });
 

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { AuthLayout } from '@/components/layout/auth-layout';
 import { Text } from '@/components/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
+import { setMemoryAccessToken } from '@/lib/token-storage-strategy.client';
 
 export interface SocialSuccessProps {
   sessionToken?: string;
@@ -30,11 +31,14 @@ export function SocialSuccess({
 
   useEffect(() => {
     if (isAuthenticated) {
-      localStorage.setItem('accessToken', accessToken || '');
-      localStorage.setItem('refreshToken', refreshToken || '');
+      // Tokens already stored as httpOnly cookies by the callback route handler.
+      // Just populate the in-memory access token so the tab can make API calls
+      // immediately without waiting for the first 401 → refresh cycle.
+      if (accessToken) setMemoryAccessToken(accessToken);
       localStorage.removeItem('sessionToken');
+      document.cookie = `sessionToken=; path=/; Secure; SameSite=Lax; Max-Age=0`;
 
-      router.push('/');
+      router.push('/dashboard');
     }
     if (session && !isAuthenticated) {
       authenticationFlowControl(session);

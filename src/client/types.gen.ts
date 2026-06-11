@@ -12,6 +12,13 @@ export type AcceptInvitation = {
 };
 
 /**
+ * * `create` - create
+ * * `update` - update
+ * * `delete` - delete
+ */
+export type ActionEnum = 'create' | 'update' | 'delete';
+
+/**
  * * `calendar_event` - Calendar Event
  * * `calendar` - Calendar
  * * `recurrence_rule` - Recurrence Rule
@@ -29,8 +36,9 @@ export type AcceptInvitation = {
  * * `unavailable_windows` - Unavailable Windows
  * * `organization` - Organization
  * * `calendar_group` - Calendar Group
+ * * `system_user` - System User
  */
-export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group';
+export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user';
 
 /**
  * Serializer for AvailableTime model with recurring support.
@@ -64,7 +72,21 @@ export type AvailableTime = {
     readonly recurrence_id: string | null;
     readonly created: string;
     readonly modified: string;
-    calendar: number | null;
+    calendar?: number | null;
+};
+
+/**
+ * Transactional batch of create/update/delete operations on a calendar's available times.
+ *
+ * All operations target a single calendar (resolved from ``calendar`` or the user's
+ * default) and run in one transaction — any failure rolls the whole batch back.
+ */
+export type AvailableTimeBatch = {
+    operations: Array<AvailableTimeOperation>;
+    /**
+     * Calendar to apply the batch to. Defaults to the user's default calendar.
+     */
+    calendar?: number | null;
 };
 
 export type AvailableTimeBulkModification = {
@@ -76,6 +98,24 @@ export type AvailableTimeBulkModification = {
     modified_start_time_offset?: string | null;
     modified_end_time_offset?: string | null;
     is_cancelled?: boolean;
+};
+
+/**
+ * A single create/update/delete operation in an available-times batch.
+ */
+export type AvailableTimeOperation = {
+    action: ActionEnum;
+    /**
+     * Target AvailableTime id (required for update/delete).
+     */
+    id?: number;
+    start_time?: string;
+    end_time?: string;
+    timezone?: string;
+    /**
+     * RRULE string; null clears recurrence. Omit to leave unchanged on update.
+     */
+    rrule_string?: string | null;
 };
 
 /**
@@ -165,7 +205,7 @@ export type BlockedTime = {
     } | null;
     readonly created: string;
     readonly modified: string;
-    calendar: number | null;
+    calendar?: number | null;
 };
 
 export type BlockedTimeBulkModification = {
@@ -212,13 +252,6 @@ export type BookableSlotProposal = {
 };
 
 /**
- * Serializer for creating multiple available times.
- */
-export type BulkAvailableTime = {
-    available_times: Array<AvailableTime>;
-};
-
-/**
  * Serializer for creating multiple blocked times.
  */
 export type BulkBlockedTime = {
@@ -250,9 +283,17 @@ export type Calendar = {
      */
     manage_available_windows?: boolean;
     /**
-     * Whether this calendar is active. Inactive calendars are hidden from default list/detail queries. Use DELETE /calendar/{id}/ to soft-disable (sets this to False) instead of deleting the row. Opt-in to see disabled calendars via ?include_inactive=true. Default True keeps every existing read unchanged.
+     * Controls how this calendar appears in queries. active: listed and available for booking (default). unlisted: hidden from listing/booking queries but still synced for conflict detection; survives re-import so user opt-out is preserved. inactive: soft-deleted, hidden from all queries and not synced. Use DELETE /calendars/{id}/ to transition to inactive instead of hard-deleting.
+     *
+     * * `active` - Active
+     * * `unlisted` - Unlisted
+     * * `inactive` - Inactive
      */
-    readonly is_active: boolean;
+    visibility?: VisibilityEnum;
+    /**
+     * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
+     */
+    sync_enabled?: boolean;
 };
 
 export type CalendarBundleCreate = {
@@ -295,6 +336,10 @@ export type CalendarEvent = {
      * For recurring instances, this identifies which occurrence this is
      */
     recurrence_id?: string | null;
+};
+
+export type CalendarEventTransferRequest = {
+    target_calendar_id: number;
 };
 
 export type CalendarGroup = {
@@ -372,6 +417,15 @@ export type CalendarSync = {
     start_datetime: string;
     end_datetime: string;
     should_update_events: boolean;
+    /**
+     * What kicked off this sync: import, manual, webhook, or admin.
+     *
+     * * `import` - Import
+     * * `manual` - Manual
+     * * `webhook` - Webhook
+     * * `admin` - Admin
+     */
+    trigger_source: TriggerSourceEnum;
     readonly error_message: string;
 };
 
@@ -590,13 +644,6 @@ export type PaginatedAvailableTimeList = {
     results: Array<AvailableTime>;
 };
 
-export type PaginatedAvailableTimeWindowList = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<AvailableTimeWindow>;
-};
-
 export type PaginatedBlockedTimeList = {
     count: number;
     next?: string | null;
@@ -665,13 +712,6 @@ export type PaginatedSystemUserTokenList = {
     next?: string | null;
     previous?: string | null;
     results: Array<SystemUserToken>;
-};
-
-export type PaginatedUnavailableTimeWindowList = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<UnavailableTimeWindow>;
 };
 
 export type PaginatedWebhookConfigurationList = {
@@ -804,9 +844,17 @@ export type PatchedCalendar = {
      */
     manage_available_windows?: boolean;
     /**
-     * Whether this calendar is active. Inactive calendars are hidden from default list/detail queries. Use DELETE /calendar/{id}/ to soft-disable (sets this to False) instead of deleting the row. Opt-in to see disabled calendars via ?include_inactive=true. Default True keeps every existing read unchanged.
+     * Controls how this calendar appears in queries. active: listed and available for booking (default). unlisted: hidden from listing/booking queries but still synced for conflict detection; survives re-import so user opt-out is preserved. inactive: soft-deleted, hidden from all queries and not synced. Use DELETE /calendars/{id}/ to transition to inactive instead of hard-deleting.
+     *
+     * * `active` - Active
+     * * `unlisted` - Unlisted
+     * * `inactive` - Inactive
      */
-    readonly is_active?: boolean;
+    visibility?: VisibilityEnum;
+    /**
+     * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
+     */
+    sync_enabled?: boolean;
 };
 
 /**
@@ -932,6 +980,23 @@ export type Profile = {
     first_name?: string;
     last_name?: string;
     profile_picture?: string | null;
+};
+
+export type ProfilePictureUploadParams = {
+    object_key: string;
+    access_key_id: string | null;
+    session_token: string | null;
+    region: string;
+    bucket: string;
+    endpoint: string;
+    acl: string;
+    allow_existence_optimization: boolean;
+};
+
+export type ProfilePictureUploadParamsRequest = {
+    file_name: string;
+    file_type: string;
+    file_size: number;
 };
 
 /**
@@ -1138,6 +1203,14 @@ export type SystemUserTokenUpdate = {
     available_resources: Array<AvailableResourcesEnum>;
 };
 
+/**
+ * * `import` - Import
+ * * `manual` - Manual
+ * * `webhook` - Webhook
+ * * `admin` - Admin
+ */
+export type TriggerSourceEnum = 'import' | 'manual' | 'webhook' | 'admin';
+
 export type UnavailableTimeWindow = {
     id: number;
     reason: string;
@@ -1169,6 +1242,13 @@ export type User = {
     readonly modified: string;
     readonly last_login: string | null;
 };
+
+/**
+ * * `active` - Active
+ * * `unlisted` - Unlisted
+ * * `inactive` - Inactive
+ */
+export type VisibilityEnum = 'active' | 'unlisted' | 'inactive';
 
 export type WebhookConfiguration = {
     readonly id: number;
@@ -1237,7 +1317,7 @@ export type AvailableTimeWritable = {
      * RRULE string for creating recurring available times
      */
     rrule_string?: string;
-    calendar: number | null;
+    calendar?: number | null;
 };
 
 export type AvailableTimeBulkModificationWritable = {
@@ -1294,7 +1374,7 @@ export type BlockedTimeWritable = {
      * RRULE string for creating recurring blocked times
      */
     rrule_string?: string;
-    calendar: number | null;
+    calendar?: number | null;
 };
 
 export type BlockedTimeBulkModificationWritable = {
@@ -1314,13 +1394,6 @@ export type BlockedTimeBulkModificationWritable = {
 };
 
 /**
- * Serializer for creating multiple available times.
- */
-export type BulkAvailableTimeWritable = {
-    available_times: Array<AvailableTimeWritable>;
-};
-
-/**
  * Serializer for creating multiple blocked times.
  */
 export type BulkBlockedTimeWritable = {
@@ -1334,6 +1407,18 @@ export type CalendarWritable = {
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
     manage_available_windows?: boolean;
+    /**
+     * Controls how this calendar appears in queries. active: listed and available for booking (default). unlisted: hidden from listing/booking queries but still synced for conflict detection; survives re-import so user opt-out is preserved. inactive: soft-deleted, hidden from all queries and not synced. Use DELETE /calendars/{id}/ to transition to inactive instead of hard-deleting.
+     *
+     * * `active` - Active
+     * * `unlisted` - Unlisted
+     * * `inactive` - Inactive
+     */
+    visibility?: VisibilityEnum;
+    /**
+     * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
+     */
+    sync_enabled?: boolean;
 };
 
 export type CalendarEventWritable = {
@@ -1536,13 +1621,6 @@ export type PaginatedSystemUserTokenListWritable = {
     results: Array<unknown>;
 };
 
-export type PaginatedUnavailableTimeWindowListWritable = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<UnavailableTimeWindowWritable>;
-};
-
 export type PaginatedWebhookConfigurationListWritable = {
     count: number;
     next?: string | null;
@@ -1614,6 +1692,18 @@ export type PatchedCalendarWritable = {
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
     manage_available_windows?: boolean;
+    /**
+     * Controls how this calendar appears in queries. active: listed and available for booking (default). unlisted: hidden from listing/booking queries but still synced for conflict detection; survives re-import so user opt-out is preserved. inactive: soft-deleted, hidden from all queries and not synced. Use DELETE /calendars/{id}/ to transition to inactive instead of hard-deleting.
+     *
+     * * `active` - Active
+     * * `unlisted` - Unlisted
+     * * `inactive` - Inactive
+     */
+    visibility?: VisibilityEnum;
+    /**
+     * Whether this calendar's events are pulled from the external provider. Set to False to skip syncing calendars that aren't useful for scheduling — holidays, birthdays, organization-wide events, etc. When False, no new CalendarSync is requested for this calendar (including webhook- and import-triggered syncs); previously synced events are left untouched. Default True keeps existing calendars syncing as before.
+     */
+    sync_enabled?: boolean;
 };
 
 export type PatchedCalendarEventWritable = {
@@ -2118,8 +2208,8 @@ export type AvailableTimesCreateExceptionFormattedCreateResponses = {
 
 export type AvailableTimesCreateExceptionFormattedCreateResponse = AvailableTimesCreateExceptionFormattedCreateResponses[keyof AvailableTimesCreateExceptionFormattedCreateResponses];
 
-export type AvailableTimesBulkCreateCreateData = {
-    body: BulkAvailableTimeWritable;
+export type AvailableTimesBatchCreateData = {
+    body: AvailableTimeBatch;
     path?: never;
     query?: {
         /**
@@ -2139,17 +2229,17 @@ export type AvailableTimesBulkCreateCreateData = {
          */
         start_time?: string;
     };
-    url: '/available-times/bulk-create/';
+    url: '/available-times/batch/';
 };
 
-export type AvailableTimesBulkCreateCreateResponses = {
-    201: PaginatedAvailableTimeList;
+export type AvailableTimesBatchCreateResponses = {
+    200: PaginatedAvailableTimeList;
 };
 
-export type AvailableTimesBulkCreateCreateResponse = AvailableTimesBulkCreateCreateResponses[keyof AvailableTimesBulkCreateCreateResponses];
+export type AvailableTimesBatchCreateResponse = AvailableTimesBatchCreateResponses[keyof AvailableTimesBatchCreateResponses];
 
-export type AvailableTimesBulkCreateFormattedCreateData = {
-    body: BulkAvailableTimeWritable;
+export type AvailableTimesBatchFormattedCreateData = {
+    body: AvailableTimeBatch;
     path: {
         format: '.json';
     };
@@ -2171,14 +2261,14 @@ export type AvailableTimesBulkCreateFormattedCreateData = {
          */
         start_time?: string;
     };
-    url: '/available-times/bulk-create{format}';
+    url: '/available-times/batch{format}';
 };
 
-export type AvailableTimesBulkCreateFormattedCreateResponses = {
-    201: PaginatedAvailableTimeList;
+export type AvailableTimesBatchFormattedCreateResponses = {
+    200: PaginatedAvailableTimeList;
 };
 
-export type AvailableTimesBulkCreateFormattedCreateResponse = AvailableTimesBulkCreateFormattedCreateResponses[keyof AvailableTimesBulkCreateFormattedCreateResponses];
+export type AvailableTimesBatchFormattedCreateResponse = AvailableTimesBatchFormattedCreateResponses[keyof AvailableTimesBatchFormattedCreateResponses];
 
 export type AvailableTimesExpandedListData = {
     body?: never;
@@ -2853,6 +2943,14 @@ export type CalendarListData = {
     path?: never;
     query?: {
         /**
+         * When true, include inactive (soft-deleted) calendars (visibility=inactive). Defaults to false.
+         */
+        include_inactive?: boolean;
+        /**
+         * When true, include unlisted calendars (visibility=unlisted) in the response. Unlisted calendars are hidden from booking queries but still synced. Defaults to false.
+         */
+        include_unlisted?: boolean;
+        /**
          * Number of results to return per page.
          */
         limit?: number;
@@ -2889,6 +2987,14 @@ export type CalendarFormattedListData = {
         format: '.json';
     };
     query?: {
+        /**
+         * When true, include inactive (soft-deleted) calendars (visibility=inactive). Defaults to false.
+         */
+        include_inactive?: boolean;
+        /**
+         * When true, include unlisted calendars (visibility=unlisted) in the response. Unlisted calendars are hidden from booking queries but still synced. Defaults to false.
+         */
+        include_unlisted?: boolean;
         /**
          * Number of results to return per page.
          */
@@ -3269,12 +3375,7 @@ export type CalendarEventsCreateExceptionFormattedCreateResponses = {
 export type CalendarEventsCreateExceptionFormattedCreateResponse = CalendarEventsCreateExceptionFormattedCreateResponses[keyof CalendarEventsCreateExceptionFormattedCreateResponses];
 
 export type CalendarEventsTransferCreateData = {
-    /**
-     * Unspecified request body
-     */
-    body?: {
-        [key: string]: unknown;
-    };
+    body: CalendarEventTransferRequest;
     path: {
         id: string;
     };
@@ -3289,12 +3390,7 @@ export type CalendarEventsTransferCreateResponses = {
 export type CalendarEventsTransferCreateResponse = CalendarEventsTransferCreateResponses[keyof CalendarEventsTransferCreateResponses];
 
 export type CalendarEventsTransferFormattedCreateData = {
-    /**
-     * Unspecified request body
-     */
-    body?: {
-        [key: string]: unknown;
-    };
+    body: CalendarEventTransferRequest;
     path: {
         format: '.json';
         id: string;
@@ -4028,6 +4124,13 @@ export type CalendarAdminSyncCreateData = {
     url: '/calendar/{id}/admin-sync/';
 };
 
+export type CalendarAdminSyncCreateErrors = {
+    /**
+     * Sync is disabled for this calendar.
+     */
+    409: unknown;
+};
+
 export type CalendarAdminSyncCreateResponses = {
     202: CalendarSync;
 };
@@ -4042,6 +4145,13 @@ export type CalendarAdminSyncFormattedCreateData = {
     };
     query?: never;
     url: '/calendar/{id}/admin-sync{format}';
+};
+
+export type CalendarAdminSyncFormattedCreateErrors = {
+    /**
+     * Sync is disabled for this calendar.
+     */
+    409: unknown;
 };
 
 export type CalendarAdminSyncFormattedCreateResponses = {
@@ -4061,14 +4171,6 @@ export type CalendarAvailableWindowsListData = {
          */
         end_datetime: string;
         /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
@@ -4077,7 +4179,7 @@ export type CalendarAvailableWindowsListData = {
 };
 
 export type CalendarAvailableWindowsListResponses = {
-    200: PaginatedAvailableTimeWindowList;
+    200: Array<AvailableTimeWindow>;
 };
 
 export type CalendarAvailableWindowsListResponse = CalendarAvailableWindowsListResponses[keyof CalendarAvailableWindowsListResponses];
@@ -4094,14 +4196,6 @@ export type CalendarAvailableWindowsFormattedListData = {
          */
         end_datetime: string;
         /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
@@ -4110,7 +4204,7 @@ export type CalendarAvailableWindowsFormattedListData = {
 };
 
 export type CalendarAvailableWindowsFormattedListResponses = {
-    200: PaginatedAvailableTimeWindowList;
+    200: Array<AvailableTimeWindow>;
 };
 
 export type CalendarAvailableWindowsFormattedListResponse = CalendarAvailableWindowsFormattedListResponses[keyof CalendarAvailableWindowsFormattedListResponses];
@@ -4155,6 +4249,13 @@ export type CalendarRequestSyncCreateData = {
     url: '/calendar/{id}/request-sync/';
 };
 
+export type CalendarRequestSyncCreateErrors = {
+    /**
+     * Sync is disabled for this calendar.
+     */
+    409: unknown;
+};
+
 export type CalendarRequestSyncCreateResponses = {
     202: CalendarSync;
 };
@@ -4169,6 +4270,13 @@ export type CalendarRequestSyncFormattedCreateData = {
     };
     query?: never;
     url: '/calendar/{id}/request-sync{format}';
+};
+
+export type CalendarRequestSyncFormattedCreateErrors = {
+    /**
+     * Sync is disabled for this calendar.
+     */
+    409: unknown;
 };
 
 export type CalendarRequestSyncFormattedCreateResponses = {
@@ -4188,14 +4296,6 @@ export type CalendarUnavailableWindowsListData = {
          */
         end_datetime: string;
         /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
@@ -4204,7 +4304,7 @@ export type CalendarUnavailableWindowsListData = {
 };
 
 export type CalendarUnavailableWindowsListResponses = {
-    200: PaginatedUnavailableTimeWindowList;
+    200: Array<UnavailableTimeWindow>;
 };
 
 export type CalendarUnavailableWindowsListResponse = CalendarUnavailableWindowsListResponses[keyof CalendarUnavailableWindowsListResponses];
@@ -4221,14 +4321,6 @@ export type CalendarUnavailableWindowsFormattedListData = {
          */
         end_datetime: string;
         /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
@@ -4237,7 +4329,7 @@ export type CalendarUnavailableWindowsFormattedListData = {
 };
 
 export type CalendarUnavailableWindowsFormattedListResponses = {
-    200: PaginatedUnavailableTimeWindowList;
+    200: Array<UnavailableTimeWindow>;
 };
 
 export type CalendarUnavailableWindowsFormattedListResponse = CalendarUnavailableWindowsFormattedListResponses[keyof CalendarUnavailableWindowsFormattedListResponses];
@@ -4597,6 +4689,18 @@ export type OrganizationMembersListData = {
     path?: never;
     query?: {
         /**
+         * Filter by partial email match
+         */
+        email?: string;
+        /**
+         * Filter by partial first name match
+         */
+        first_name?: string;
+        /**
+         * Filter by partial last name match
+         */
+        last_name?: string;
+        /**
          * Number of results to return per page.
          */
         limit?: number;
@@ -4604,6 +4708,10 @@ export type OrganizationMembersListData = {
          * The initial index from which to return the results.
          */
         offset?: number;
+        /**
+         * Search by first name, last name, or email (OR)
+         */
+        search?: string;
     };
     url: '/organization-members/';
 };
@@ -4621,6 +4729,18 @@ export type OrganizationMembersFormattedListData = {
     };
     query?: {
         /**
+         * Filter by partial email match
+         */
+        email?: string;
+        /**
+         * Filter by partial first name match
+         */
+        first_name?: string;
+        /**
+         * Filter by partial last name match
+         */
+        last_name?: string;
+        /**
          * Number of results to return per page.
          */
         limit?: number;
@@ -4628,6 +4748,10 @@ export type OrganizationMembersFormattedListData = {
          * The initial index from which to return the results.
          */
         offset?: number;
+        /**
+         * Search by first name, last name, or email (OR)
+         */
+        search?: string;
     };
     url: '/organization-members{format}';
 };
@@ -5287,6 +5411,43 @@ export type ProfileFormattedUpdateResponses = {
 };
 
 export type ProfileFormattedUpdateResponse = ProfileFormattedUpdateResponses[keyof ProfileFormattedUpdateResponses];
+
+export type ProfileProfilePictureUploadParamsCreateData = {
+    body: ProfilePictureUploadParamsRequest;
+    path: {
+        /**
+         * User ID. Use 'me' to refer to the currently authenticated user.
+         */
+        user: string;
+    };
+    query?: never;
+    url: '/profile/{user}/profile-picture-upload-params/';
+};
+
+export type ProfileProfilePictureUploadParamsCreateResponses = {
+    200: ProfilePictureUploadParams;
+};
+
+export type ProfileProfilePictureUploadParamsCreateResponse = ProfileProfilePictureUploadParamsCreateResponses[keyof ProfileProfilePictureUploadParamsCreateResponses];
+
+export type ProfileProfilePictureUploadParamsFormattedCreateData = {
+    body: ProfilePictureUploadParamsRequest;
+    path: {
+        format: '.json';
+        /**
+         * User ID. Use 'me' to refer to the currently authenticated user.
+         */
+        user: string;
+    };
+    query?: never;
+    url: '/profile/{user}/profile-picture-upload-params{format}';
+};
+
+export type ProfileProfilePictureUploadParamsFormattedCreateResponses = {
+    200: ProfilePictureUploadParams;
+};
+
+export type ProfileProfilePictureUploadParamsFormattedCreateResponse = ProfileProfilePictureUploadParamsFormattedCreateResponses[keyof ProfileProfilePictureUploadParamsFormattedCreateResponses];
 
 export type PublicApiTokensListData = {
     body?: never;

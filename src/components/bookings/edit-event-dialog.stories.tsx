@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EditEventDialog } from './edit-event-dialog';
 import { DateTime } from 'luxon';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
@@ -83,6 +84,18 @@ const meta = {
     open: true,
     onOpenChange: () => {},
   },
+  decorators: [
+    (Story) => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      });
+      return (
+        <QueryClientProvider client={queryClient}>
+          <Story />
+        </QueryClientProvider>
+      );
+    },
+  ],
 } satisfies Meta<typeof EditEventDialog>;
 
 export default meta;

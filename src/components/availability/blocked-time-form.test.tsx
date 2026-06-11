@@ -132,4 +132,50 @@ describe('BlockedTimeForm', () => {
 
     expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
   });
+
+  it('creates one-off blocked time with naive local start_time/end_time (no offset, no Z)', async () => {
+    const user = userEvent.setup();
+    const createBlockedTime = vi.fn().mockResolvedValue(undefined);
+
+    (
+      useBlockedTimes as unknown as {
+        mockReturnValue: (value: unknown) => void;
+      }
+    ).mockReturnValue({
+      createBlockedTime,
+      createRecurringBlockedTime: vi.fn(),
+      isPending: false,
+    });
+
+    render(<BlockedTimeForm />, { wrapper });
+
+    // Set a specific date and times
+    const dateInput = screen.getByLabelText(/date/i);
+    await user.clear(dateInput);
+    await user.type(dateInput, '2024-06-15');
+
+    const startInput = screen.getByLabelText(/start time/i);
+    await user.clear(startInput);
+    await user.type(startInput, '09:00');
+
+    const endInput = screen.getByLabelText(/end time/i);
+    await user.clear(endInput);
+    await user.type(endInput, '10:00');
+
+    await user.click(
+      screen.getByRole('button', { name: /create blocked time/i })
+    );
+
+    await waitFor(() => {
+      expect(createBlockedTime).toHaveBeenCalledOnce();
+    });
+
+    const [startArg, endArg] = createBlockedTime.mock.calls[0] as string[];
+
+    // Must be naive local (no UTC offset, no Z)
+    expect(startArg).toMatch(/T\d{2}:\d{2}:\d{2}$/);
+    expect(endArg).toMatch(/T\d{2}:\d{2}:\d{2}$/);
+    expect(startArg).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+    expect(endArg).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
+  });
 });

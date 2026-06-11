@@ -3,17 +3,19 @@ import {
   isAuthenticatedResponse,
   isInvalidSessionResponse,
 } from '@/lib/authentication-response-type-checks';
+import { storeAuthTokens } from '@/lib/auth-server-actions';
+import { setMemoryAccessToken } from '@/lib/token-storage-strategy.client';
 
 interface Router {
   push: (path: string) => void;
 }
 
 export function useAuthenticationFlowControl(router: Router) {
-  return (response: unknown) => {
+  return async (response: unknown) => {
     if (isInvalidSessionResponse(response)) {
-      // Handle invalid session response
       localStorage.removeItem('sessionToken');
-      document.cookie = `sessionToken=; path=/; Secure; SameSite=Lax`;
+      document.cookie = `sessionToken=; path=/; Secure; SameSite=Lax; Max-Age=0`;
+      document.cookie = `sessionActive=; path=/; Secure; SameSite=Lax; Max-Age=0`;
       console.warn('Invalid session detected, redirecting to login');
       router.push('/auth/social/error');
       return;
@@ -35,44 +37,35 @@ export function useAuthenticationFlowControl(router: Router) {
 
       switch (pendingFlow.id) {
         case 'signup':
-          // Handle signup flow
           router.push(`/auth/signup`);
           break;
         case 'verify_email':
-          // Handle email verification flow
           router.push(`/auth/verify-email`);
           break;
-
         case 'verify_phone':
-          // Handle phone verification flow
           router.push(`/auth/verify-phone`);
           break;
-
         case 'mfa_authenticate':
-          // Handle MFA authentication flow
           router.push(`/auth/mfa-authenticate`);
           break;
-
         case 'provider_signup':
-          // Handle provider signup flow
           router.push(`/auth/social/finish-signup`);
           break;
       }
     } else if (isAuthenticatedResponse(response)) {
-      // native headless `app` flow: meta carries three separate tokens.
       if (response.meta?.access_token) {
         const accessToken = response.meta.access_token;
         const refreshToken = response.meta.refresh_token ?? '';
         localStorage.removeItem('sessionToken');
         document.cookie = `sessionToken=; path=/; Secure; SameSite=Lax`;
-        localStorage.setItem('accessToken', accessToken);
-        document.cookie = `accessToken=${accessToken}; path=/; Secure; SameSite=Lax`;
-        localStorage.setItem('refreshToken', refreshToken);
-        document.cookie = `refreshToken=${refreshToken}; path=/; Secure; SameSite=Lax`;
+        // Access token in memory only; refresh token as httpOnly cookie via server action.
+        setMemoryAccessToken(accessToken);
+        if (refreshToken) {
+          await storeAuthTokens(accessToken, refreshToken);
+        }
       }
       router.push(`/`);
     } else {
-      // Handle other types of responses
       localStorage.removeItem('sessionToken');
       document.cookie = `sessionToken=; path=/; Secure; SameSite=Lax`;
       console.warn('Unhandled response type:', response);

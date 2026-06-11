@@ -8,6 +8,9 @@
  * - Disabled when calendarId is empty
  * - Disabled when range is null
  * - isError exposed when either query fails
+ *
+ * The available/unavailable-windows endpoints return a bare JSON array
+ * (200: Array<…>), so the mocks below resolve `{ data: [...] }`.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -33,40 +36,7 @@ import {
   calendarUnavailableWindowsList,
 } from '@/client/sdk.gen';
 import { useUserAvailability, type DateRange } from './use-user-availability';
-import type {
-  AvailableTimeWindow,
-  UnavailableTimeWindow,
-  PaginatedAvailableTimeWindowList,
-  PaginatedUnavailableTimeWindowList,
-} from '@/client';
-
-// ---------------------------------------------------------------------------
-// Helpers for bare-array (non-paginated) server responses
-// ---------------------------------------------------------------------------
-
-function makeBareArrayFreeResponse(
-  items: AvailableTimeWindow[]
-): Awaited<ReturnType<typeof calendarAvailableWindowsList>> {
-  return {
-    data: items,
-    response: new Response(JSON.stringify(items), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }),
-  } as unknown as Awaited<ReturnType<typeof calendarAvailableWindowsList>>;
-}
-
-function makeBareArrayBusyResponse(
-  items: UnavailableTimeWindow[]
-): Awaited<ReturnType<typeof calendarUnavailableWindowsList>> {
-  return {
-    data: items,
-    response: new Response(JSON.stringify(items), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }),
-  } as unknown as Awaited<ReturnType<typeof calendarUnavailableWindowsList>>;
-}
+import type { AvailableTimeWindow, UnavailableTimeWindow } from '@/client';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -87,49 +57,21 @@ const FIXTURE_BUSY_WINDOW: UnavailableTimeWindow = {
   reason_description: 'Blocked time',
 };
 
-const FIXTURE_FREE_LIST: PaginatedAvailableTimeWindowList = {
-  count: 1,
-  next: null,
-  previous: null,
-  results: [FIXTURE_FREE_WINDOW],
-};
-
-const FIXTURE_BUSY_LIST: PaginatedUnavailableTimeWindowList = {
-  count: 1,
-  next: null,
-  previous: null,
-  results: [FIXTURE_BUSY_WINDOW],
-};
-
-const EMPTY_FREE_LIST: PaginatedAvailableTimeWindowList = {
-  count: 0,
-  next: null,
-  previous: null,
-  results: [],
-};
-
-const EMPTY_BUSY_LIST: PaginatedUnavailableTimeWindowList = {
-  count: 0,
-  next: null,
-  previous: null,
-  results: [],
-};
-
 const VALID_RANGE: DateRange = {
   startDatetime: '2025-06-01T00:00:00',
   endDatetime: '2025-06-07T23:59:59',
 };
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers — the endpoints return a bare array (200: Array<…>)
 // ---------------------------------------------------------------------------
 
 function makeFreeResponse(
-  data: PaginatedAvailableTimeWindowList
+  items: AvailableTimeWindow[]
 ): Awaited<ReturnType<typeof calendarAvailableWindowsList>> {
   return {
-    data,
-    response: new Response(JSON.stringify(data), {
+    data: items,
+    response: new Response(JSON.stringify(items), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     }),
@@ -137,11 +79,11 @@ function makeFreeResponse(
 }
 
 function makeBusyResponse(
-  data: PaginatedUnavailableTimeWindowList
+  items: UnavailableTimeWindow[]
 ): Awaited<ReturnType<typeof calendarUnavailableWindowsList>> {
   return {
-    data,
-    response: new Response(JSON.stringify(data), {
+    data: items,
+    response: new Response(JSON.stringify(items), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     }),
@@ -171,17 +113,13 @@ describe('useUserAvailability', () => {
     vi.clearAllMocks();
   });
 
-  // -------------------------------------------------------------------------
-  // Happy path
-  // -------------------------------------------------------------------------
-
   describe('happy path', () => {
     it('returns free windows from calendarAvailableWindowsList', async () => {
       vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
-        makeFreeResponse(FIXTURE_FREE_LIST)
+        makeFreeResponse([FIXTURE_FREE_WINDOW])
       );
       vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
-        makeBusyResponse(EMPTY_BUSY_LIST)
+        makeBusyResponse([])
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -201,10 +139,10 @@ describe('useUserAvailability', () => {
 
     it('returns busy windows from calendarUnavailableWindowsList', async () => {
       vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
-        makeFreeResponse(EMPTY_FREE_LIST)
+        makeFreeResponse([])
       );
       vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
-        makeBusyResponse(FIXTURE_BUSY_LIST)
+        makeBusyResponse([FIXTURE_BUSY_WINDOW])
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -224,10 +162,10 @@ describe('useUserAvailability', () => {
 
     it('calls calendarAvailableWindowsList with the correct calendarId + range', async () => {
       vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
-        makeFreeResponse(EMPTY_FREE_LIST)
+        makeFreeResponse([])
       );
       vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
-        makeBusyResponse(EMPTY_BUSY_LIST)
+        makeBusyResponse([])
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -247,10 +185,10 @@ describe('useUserAvailability', () => {
 
     it('calls calendarUnavailableWindowsList with the correct calendarId + range', async () => {
       vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
-        makeFreeResponse(EMPTY_FREE_LIST)
+        makeFreeResponse([])
       );
       vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
-        makeBusyResponse(EMPTY_BUSY_LIST)
+        makeBusyResponse([])
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -268,56 +206,12 @@ describe('useUserAvailability', () => {
       expect(call.query.end_datetime).toBe(VALID_RANGE.endDatetime);
     });
 
-    // -----------------------------------------------------------------------
-    // Bare-array regression — the live API returns [] not { count, results }
-    // -----------------------------------------------------------------------
-
-    it('populates freeWindows when server returns a bare array (regression)', async () => {
-      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
-        makeBareArrayFreeResponse([FIXTURE_FREE_WINDOW])
-      );
-      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
-        makeBareArrayBusyResponse([])
-      );
-
-      const { Wrapper } = makeQueryWrapper();
-      const { result } = renderHook(
-        () => useUserAvailability('42', VALID_RANGE),
-        { wrapper: Wrapper }
-      );
-
-      await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-      expect(result.current.freeWindows).toHaveLength(1);
-      expect(result.current.freeWindows[0].id).toBe(1);
-    });
-
-    it('populates busyWindows when server returns a bare array (regression)', async () => {
-      vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
-        makeBareArrayFreeResponse([])
-      );
-      vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
-        makeBareArrayBusyResponse([FIXTURE_BUSY_WINDOW])
-      );
-
-      const { Wrapper } = makeQueryWrapper();
-      const { result } = renderHook(
-        () => useUserAvailability('42', VALID_RANGE),
-        { wrapper: Wrapper }
-      );
-
-      await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-      expect(result.current.busyWindows).toHaveLength(1);
-      expect(result.current.busyWindows[0].id).toBe(2);
-    });
-
     it('free windows do not contain any title field (privacy)', async () => {
       vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
-        makeFreeResponse(FIXTURE_FREE_LIST)
+        makeFreeResponse([FIXTURE_FREE_WINDOW])
       );
       vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
-        makeBusyResponse(EMPTY_BUSY_LIST)
+        makeBusyResponse([])
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -341,10 +235,10 @@ describe('useUserAvailability', () => {
 
     it('busy windows do not contain any private title field (privacy)', async () => {
       vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
-        makeFreeResponse(EMPTY_FREE_LIST)
+        makeFreeResponse([])
       );
       vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
-        makeBusyResponse(FIXTURE_BUSY_LIST)
+        makeBusyResponse([FIXTURE_BUSY_WINDOW])
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -364,10 +258,6 @@ describe('useUserAvailability', () => {
       expect('reason_description' in window).toBe(true);
     });
   });
-
-  // -------------------------------------------------------------------------
-  // Disabled when inputs are incomplete
-  // -------------------------------------------------------------------------
 
   describe('disabled when inputs incomplete', () => {
     it('does not call the API when calendarId is empty', async () => {
@@ -396,17 +286,13 @@ describe('useUserAvailability', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // Error propagation
-  // -------------------------------------------------------------------------
-
   describe('error propagation', () => {
     it('exposes isError when calendarAvailableWindowsList fails', async () => {
       vi.mocked(calendarAvailableWindowsList).mockRejectedValue(
         new Error('Network error')
       );
       vi.mocked(calendarUnavailableWindowsList).mockResolvedValue(
-        makeBusyResponse(EMPTY_BUSY_LIST)
+        makeBusyResponse([])
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -423,7 +309,7 @@ describe('useUserAvailability', () => {
 
     it('exposes isError when calendarUnavailableWindowsList fails', async () => {
       vi.mocked(calendarAvailableWindowsList).mockResolvedValue(
-        makeFreeResponse(EMPTY_FREE_LIST)
+        makeFreeResponse([])
       );
       vi.mocked(calendarUnavailableWindowsList).mockRejectedValue(
         new Error('Network error')

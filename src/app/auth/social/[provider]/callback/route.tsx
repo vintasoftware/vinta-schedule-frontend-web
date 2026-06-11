@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import '@/lib/configure-api-clients';
 import { postAppV1AuthProviderCallbackJson } from '@/addicional-auth-client/provider-login-callback-json';
 import {
   isAuthenticatedResponse,
@@ -122,7 +123,7 @@ function handlePendingAuthenticationResponse(
     );
     return {
       url: `/auth/social/error`,
-      cookiesToUnset: ['accessToken', 'refreshToken', 'sessionToken'],
+      cookiesToUnset: ['accessToken', 'refreshToken', 'sessionToken', 'sessionActive'],
     };
   }
 
@@ -132,7 +133,7 @@ function handlePendingAuthenticationResponse(
     );
     return {
       url: `/auth/social/error`,
-      cookiesToUnset: ['accessToken', 'refreshToken', 'sessionToken'],
+      cookiesToUnset: ['accessToken', 'refreshToken', 'sessionToken', 'sessionActive'],
     };
   }
 
@@ -198,21 +199,19 @@ export async function handleProviderLoginCallback(
       cookiesToSet.push({
         name: 'accessToken',
         value: accessToken,
-        options: {
-          secure: true,
-          httpOnly: false,
-          sameSite: 'lax',
-        },
+        options: { secure: true, httpOnly: true, sameSite: 'lax' },
       });
 
       cookiesToSet.push({
         name: 'refreshToken',
         value: refreshToken,
-        options: {
-          secure: true,
-          httpOnly: false,
-          sameSite: 'lax',
-        },
+        options: { secure: true, httpOnly: true, sameSite: 'lax' },
+      });
+
+      cookiesToSet.push({
+        name: 'sessionActive',
+        value: '1',
+        options: { secure: true, httpOnly: false, sameSite: 'lax' },
       });
 
       cookiesToUnset.push('sessionToken');

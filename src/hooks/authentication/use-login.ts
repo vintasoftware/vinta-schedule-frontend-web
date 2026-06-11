@@ -1,6 +1,8 @@
 import { Login } from '@/auth-client';
 import { postAuthByClientV1AuthLoginMutation } from '@/auth-client/@tanstack/react-query.gen';
 import { useMutation } from '@tanstack/react-query';
+import { storeAuthTokens } from '@/lib/auth-server-actions';
+import { setMemoryAccessToken } from '@/lib/token-storage-strategy.client';
 
 /**
  * Optional device metadata, captured by the backend per refresh token and carried
@@ -54,8 +56,12 @@ export function useLogin() {
     if (loginData.data?.user?.id) {
       localStorage.setItem('uid', String(loginData.data.user.id));
     }
-    if (accessToken) localStorage.setItem('accessToken', accessToken);
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    // Access token lives in memory only. Refresh token is stored as an
+    // httpOnly cookie via the server action — JS never persists it.
+    if (accessToken) setMemoryAccessToken(accessToken);
+    if (accessToken && refreshToken) {
+      await storeAuthTokens(accessToken, refreshToken);
+    }
     if (sessionToken) {
       localStorage.setItem('sessionToken', sessionToken);
     } else {

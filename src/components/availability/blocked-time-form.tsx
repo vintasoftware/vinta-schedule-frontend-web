@@ -54,6 +54,7 @@ import { VStack, HStack, Stack, Text } from '@/components/layout';
 import { useBlockedTimes } from '@/hooks/availability/use-blocked-times';
 import {
   serializeRRule,
+  toNaiveLocal,
   weekdayMatrix,
   type RecurrenceRule,
 } from '@/lib/datetime/index';
@@ -401,11 +402,20 @@ export function BlockedTimeForm({ calendarId = null }: BlockedTimeFormProps) {
 
         const rruleString = serializeRRule(rrule);
 
-        // For recurring blocked times, use the time portion from the form
-        // The date is used only as an anchor; the backend uses the time + RRULE
-        await createRecurringBlockedTime(
+        // Build naive local datetimes for the write payload. The date is used
+        // only as an anchor; the backend uses the time + RRULE to determine
+        // when the block repeats. The timezone is sent separately.
+        const startDt = DateTime.fromISO(
           `${values.date}T${values.startTime}:00`,
-          `${values.date}T${values.endTime}:00`,
+          { zone: values.timezone }
+        );
+        const endDt = DateTime.fromISO(`${values.date}T${values.endTime}:00`, {
+          zone: values.timezone,
+        });
+
+        await createRecurringBlockedTime(
+          toNaiveLocal(startDt),
+          toNaiveLocal(endDt),
           values.timezone,
           rruleString,
           values.reason || undefined,
@@ -416,13 +426,19 @@ export function BlockedTimeForm({ calendarId = null }: BlockedTimeFormProps) {
           description: `Block created with pattern: ${rruleString}`,
         });
       } else {
-        // One-off blocked time on a specific date
-        const startISO = `${values.date}T${values.startTime}:00`;
-        const endISO = `${values.date}T${values.endTime}:00`;
+        // One-off blocked time on a specific date — emit naive local datetimes
+        // (no offset, no Z). The timezone field carries the zone info.
+        const startDt = DateTime.fromISO(
+          `${values.date}T${values.startTime}:00`,
+          { zone: values.timezone }
+        );
+        const endDt = DateTime.fromISO(`${values.date}T${values.endTime}:00`, {
+          zone: values.timezone,
+        });
 
         await createBlockedTime(
-          startISO,
-          endISO,
+          toNaiveLocal(startDt),
+          toNaiveLocal(endDt),
           values.timezone,
           values.reason || undefined,
           calendarId

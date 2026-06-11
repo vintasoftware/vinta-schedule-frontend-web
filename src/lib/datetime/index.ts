@@ -258,6 +258,32 @@ export function dstStatus(dt: DateTime): 'DST' | 'Standard' {
 }
 
 // ---------------------------------------------------------------------------
+// Naive local datetime serialisation (write payloads)
+// ---------------------------------------------------------------------------
+
+/**
+ * Serialise a Luxon DateTime to a **naive local** wall-clock string with no
+ * UTC offset and no `Z` suffix: `"YYYY-MM-DDTHH:mm:ss"`.
+ *
+ * Use this for every datetime field the API stores as an event/window/block
+ * time (start_time, end_time, modified_start_time, modified_end_time, …).
+ * The IANA timezone is sent separately in the `timezone` field so the backend
+ * can compute the correct UTC moment without an embedded offset.
+ *
+ * The caller is responsible for passing a DateTime already converted to the
+ * target zone:
+ *   `const dt = DateTime.fromISO(iso, { zone: 'America/New_York' });`
+ *   `const naive = toNaiveLocal(dt); // "2024-06-15T09:00:00"`
+ *
+ * Do NOT use this for read/filter query params (start_datetime / end_datetime
+ * on availability-check endpoints) — those need the full offset so the backend
+ * can resolve exact instants for filtering.
+ */
+export function toNaiveLocal(dt: DateTime): string {
+  return dt.toFormat("yyyy-MM-dd'T'HH:mm:ss");
+}
+
+// ---------------------------------------------------------------------------
 // RecurrenceRule serialisation (RFC-5545 RRULE)
 // ---------------------------------------------------------------------------
 

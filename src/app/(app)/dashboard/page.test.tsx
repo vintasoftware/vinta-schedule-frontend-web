@@ -104,7 +104,7 @@ function buildCalendar(overrides: {
     calendar_type: 'personal' as const,
     capacity: null,
     manage_available_windows: false,
-    is_active: true,
+    visibility: 'active',
   };
 }
 
@@ -123,7 +123,7 @@ function makeAvailabilityResult(
       calendar_type: 'personal',
       capacity: null,
       manage_available_windows: false,
-      is_active: true,
+      visibility: 'active',
     },
     hasDefault: true,
     freeWindows: [],
@@ -353,14 +353,12 @@ describe('DashboardPage', () => {
             start_time: '2025-06-01T09:00:00',
             end_time: '2025-06-01T10:00:00',
             reason_description: 'Meeting',
-            source: 'event',
           },
           {
             id: 2,
             start_time: '2025-06-02T09:00:00',
             end_time: '2025-06-02T10:00:00',
             reason_description: 'Blocked',
-            source: 'block',
           },
         ],
         freeWindows: [

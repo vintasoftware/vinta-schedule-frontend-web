@@ -51,7 +51,11 @@ import {
 import { HStack, Stack, Text } from '@/components/layout';
 import { weekdayMatrix, type WeekdayEntry } from '@/lib/datetime/index';
 import { useAvailableTimes } from '@/hooks/availability/use-available-times';
-import type { AvailableTime, AvailableTimeWritable } from '@/client';
+import type {
+  AvailableTime,
+  AvailableTimeWritable,
+  AvailableTimeOperation,
+} from '@/client';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -509,7 +513,7 @@ export function AvailabilityEditor({
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : 'UTC';
 
-  const { bulkCreate, isPending, availableTimes, isLoading } =
+  const { batchUpdate, isPending, availableTimes, isLoading } =
     useAvailableTimes();
 
   const weekdays = weekdayMatrix();
@@ -519,7 +523,13 @@ export function AvailabilityEditor({
     defaultValues: makeDefaultValues(),
   });
 
-  // Hydrate form once from server data on first successful load.
+  // The stored rows currently on the server — the baseline for delete ops.
+  // Seeded from the query on first load, then kept in sync with each batch
+  // RESPONSE so a second save (without a page refresh) deletes the rows the
+  // previous save created instead of re-creating duplicates.
+  const [savedTimes, setSavedTimes] = React.useState<AvailableTime[]>([]);
+
+  // Hydrate form + baseline once from server data on first successful load.
   // hasHydratedRef guards against resetting over subsequent user edits.
   const hasHydratedRef = React.useRef(false);
   React.useEffect(() => {
@@ -527,12 +537,33 @@ export function AvailabilityEditor({
     if (isLoading) return;
     hasHydratedRef.current = true;
     form.reset(buildDefaultsFromAvailableTimes(availableTimes));
+    setSavedTimes(availableTimes);
   }, [isLoading, availableTimes, form]);
 
   async function onSubmit(values: AvailabilityFormSchema) {
     const payload = buildPayload(values, timezone, calendarId);
 
-    if (payload.length === 0) {
+    // Atomic full-replace: delete every existing stored window, then create the
+    // desired set. The form's matrix doesn't track per-row ids, so a clean
+    // delete-all + create-all is the safest atomic representation of "this is my
+    // schedule now" (and is the only way to remove old rows — bulk-create can't).
+    // Deletes target `savedTimes` (the current server state), never expanded
+    // recurring instances.
+    const deleteOps: AvailableTimeOperation[] = savedTimes
+      .filter((at) => !at.is_recurring_instance)
+      .map((at) => ({ action: 'delete', id: at.id }));
+
+    const createOps: AvailableTimeOperation[] = payload.map((w) => ({
+      action: 'create',
+      start_time: w.start_time,
+      end_time: w.end_time,
+      timezone: w.timezone,
+      ...(w.rrule_string ? { rrule_string: w.rrule_string } : {}),
+    }));
+
+    const operations = [...deleteOps, ...createOps];
+
+    if (operations.length === 0) {
       toast.error('No availability windows to save', {
         description: 'Add at least one time window before saving.',
       });
@@ -540,9 +571,15 @@ export function AvailabilityEditor({
     }
 
     try {
-      await bulkCreate(payload);
+      // Update the delete-baseline from the response so the next save replaces
+      // these rows instead of re-creating them.
+      const newList = await batchUpdate(operations, calendarId);
+      setSavedTimes(newList);
       toast.success('Availability saved', {
-        description: `${payload.length} window${payload.length === 1 ? '' : 's'} saved.`,
+        description:
+          payload.length === 0
+            ? 'Availability cleared.'
+            : `${payload.length} window${payload.length === 1 ? '' : 's'} saved.`,
       });
     } catch (err) {
       toast.error('Failed to save availability', {

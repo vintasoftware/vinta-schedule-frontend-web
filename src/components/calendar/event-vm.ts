@@ -28,6 +28,31 @@ export type EventStatus =
   | 'available'
   | 'booked';
 
+/** The status palette of the shared SchedulingChip component. */
+export type SchedulingChipStatus =
+  | 'booked'
+  | 'available'
+  | 'tentative'
+  | 'conflict';
+
+const CHIP_STATUS_BY_EVENT_STATUS: Record<EventStatus, SchedulingChipStatus> = {
+  confirmed: 'booked',
+  booked: 'booked',
+  available: 'available',
+  tentative: 'tentative',
+  cancelled: 'conflict',
+};
+
+/**
+ * Map a CalendarEventVM status to the SchedulingChip colour status.
+ * Falls back to 'booked' for any unmapped value.
+ */
+export function schedulingChipStatus(
+  status: EventStatus
+): SchedulingChipStatus {
+  return CHIP_STATUS_BY_EVENT_STATUS[status] ?? 'booked';
+}
+
 export interface CalendarEventVM {
   /** Unique identifier (stringified API id) */
   id: string;

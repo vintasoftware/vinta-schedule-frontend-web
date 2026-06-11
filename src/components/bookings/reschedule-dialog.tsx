@@ -32,6 +32,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { DateTime } from 'luxon';
+import { toNaiveLocal } from '@/lib/datetime/index';
 import {
   Dialog,
   DialogContent,
@@ -143,14 +144,20 @@ export function RescheduleDialog({
   );
   const [scopeOpen, setScopeOpen] = React.useState(false);
 
-  // Store resolved newStart/newEnd/timezone between availability check and
-  // the reschedule call (used when user dismisses conflict then picks scope).
+  // Store resolved datetimes between availability check and the reschedule call
+  // (used when user dismisses conflict then picks scope).
   // State (not ref) is used so that the values are captured in closures for
   // the conflict-override and scope-selection paths without triggering
   // React Compiler ref-during-render warnings.
+  //
+  // Two pairs of times:
+  //   newStart/newEnd      — offset-bearing ISO (for availability-check query params)
+  //   newStartLocal/newEndLocal — naive wall-clock (for the write payload)
   const [pendingReschedule, setPendingReschedule] = React.useState<{
     newStart: string;
     newEnd: string;
+    newStartLocal: string;
+    newEndLocal: string;
     timezone: string;
   } | null>(null);
 
@@ -202,6 +209,14 @@ export function RescheduleDialog({
 
   // ---- Build ISO datetimes from form values --------------------------------
 
+  /**
+   * Build datetimes from form values — returns both offset and naive forms.
+   *
+   * - `newStart`/`newEnd`: full ISO with UTC offset — used for the
+   *   availability-check query params so the backend resolves exact instants.
+   * - `newStartLocal`/`newEndLocal`: naive wall-clock "YYYY-MM-DDTHH:mm:ss"
+   *   (no offset, no Z) — used in the write payload; timezone sent separately.
+   */
   function buildDatetimes(values: RescheduleFormValues) {
     const startISO = `${values.date}T${values.startTime}:00`;
     const endISO = `${values.date}T${values.endTime}:00`;
@@ -210,12 +225,19 @@ export function RescheduleDialog({
     return {
       newStart: startDt.toISO()!,
       newEnd: endDt.toISO()!,
+      newStartLocal: toNaiveLocal(startDt),
+      newEndLocal: toNaiveLocal(endDt),
       timezone: values.timezone,
     };
   }
 
   // ---- doReschedule — final call after checks + scope resolved ------------
 
+  /**
+   * Execute the reschedule write. Receives NAIVE local times (no offset) for
+   * the write payload; timezone is sent separately so the backend computes the
+   * correct UTC moment.
+   */
   const doReschedule = async (
     newStart: string,
     newEnd: string,
@@ -246,10 +268,18 @@ export function RescheduleDialog({
     setIsPending(true);
     setConflicts(null);
 
-    const { newStart, newEnd, timezone } = buildDatetimes(values);
-    setPendingReschedule({ newStart, newEnd, timezone });
+    const { newStart, newEnd, newStartLocal, newEndLocal, timezone } =
+      buildDatetimes(values);
+    setPendingReschedule({
+      newStart,
+      newEnd,
+      newStartLocal,
+      newEndLocal,
+      timezone,
+    });
 
     // Run availability check on the event's own calendar (if known).
+    // Use the OFFSET form so the backend resolves exact instants for filtering.
     if (event.calendarId !== undefined) {
       const result = await checkCalendar({
         calendarId: event.calendarId,
@@ -264,23 +294,31 @@ export function RescheduleDialog({
       }
     }
 
-    // No conflicts — proceed (prompt for scope on recurring events).
+    // No conflicts — proceed using NAIVE local times for the write payload.
     setIsPending(false);
-    proceedAfterCheck(newStart, newEnd, timezone);
+    proceedAfterCheck(newStartLocal, newEndLocal, timezone);
   };
 
   // ---- proceedAfterCheck — called when no conflict or on override ----------
+  // Receives NAIVE local times (write payload form); stashes them in state so
+  // handleScopeSelect can forward them to doReschedule after scope selection.
 
   const proceedAfterCheck = (
-    newStart: string,
-    newEnd: string,
+    newStartLocal: string,
+    newEndLocal: string,
     timezone: string
   ) => {
-    setPendingReschedule({ newStart, newEnd, timezone });
+    setPendingReschedule({
+      newStart: newStartLocal,
+      newEnd: newEndLocal,
+      newStartLocal,
+      newEndLocal,
+      timezone,
+    });
     if (event.isRecurring) {
       setScopeOpen(true);
     } else {
-      void doReschedule(newStart, newEnd, timezone);
+      void doReschedule(newStartLocal, newEndLocal, timezone);
     }
   };
 
@@ -289,9 +327,10 @@ export function RescheduleDialog({
   const onProceed = () => {
     if (!pendingReschedule) return;
     setConflicts(null);
+    // Pass NAIVE local times for the write payload (offset was used for the check).
     proceedAfterCheck(
-      pendingReschedule.newStart,
-      pendingReschedule.newEnd,
+      pendingReschedule.newStartLocal,
+      pendingReschedule.newEndLocal,
       pendingReschedule.timezone
     );
   };
