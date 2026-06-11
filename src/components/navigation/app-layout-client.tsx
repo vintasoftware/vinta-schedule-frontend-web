@@ -8,6 +8,7 @@ import {
   UsersRound,
   Ticket,
   Settings,
+  Webhook,
 } from 'lucide-react';
 
 import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
@@ -74,6 +75,12 @@ const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
     label: 'API tokens',
     icon: Settings,
     href: '/api-tokens',
+  },
+  {
+    id: 'webhooks',
+    label: 'Webhooks',
+    icon: Webhook,
+    href: '/webhooks',
   },
 ];
 
