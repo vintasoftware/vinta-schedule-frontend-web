@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import '@/lib/configure-api-clients';
 import { postAppV1AuthProviderCallbackJson } from '@/addicional-auth-client/provider-login-callback-json';
 import {
   isAuthenticatedResponse,

@@ -17,7 +17,7 @@ const MOCK_CALENDARS: Calendar[] = [
     provider: 'google',
     calendar_type: 'personal',
     capacity: null,
-    is_active: true,
+    visibility: 'active',
     sync_enabled: true,
   },
   {
@@ -28,7 +28,7 @@ const MOCK_CALENDARS: Calendar[] = [
     provider: 'internal',
     calendar_type: 'personal',
     capacity: null,
-    is_active: true,
+    visibility: 'active',
     sync_enabled: true,
   },
   {
@@ -39,7 +39,7 @@ const MOCK_CALENDARS: Calendar[] = [
     provider: 'microsoft',
     calendar_type: 'resource',
     capacity: 10,
-    is_active: true,
+    visibility: 'active',
     sync_enabled: true,
   },
 ];

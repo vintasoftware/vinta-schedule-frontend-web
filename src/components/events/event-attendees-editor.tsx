@@ -182,7 +182,9 @@ export function EventAttendeesEditor({
 
   const resourceCalendars = React.useMemo(
     () =>
-      allCalendars.filter((c) => c.calendar_type === 'resource' && c.is_active),
+      allCalendars.filter(
+        (c) => c.calendar_type === 'resource' && c.visibility === 'active'
+      ),
     [allCalendars]
   );
 

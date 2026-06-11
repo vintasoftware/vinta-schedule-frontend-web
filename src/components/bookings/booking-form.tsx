@@ -664,7 +664,7 @@ export function BookingFormDialog({
   const coBookableCalendars = React.useMemo(
     () =>
       calendars.filter(
-        (cal) => String(cal.id) !== primaryCalendarId && cal.is_active
+        (cal) => String(cal.id) !== primaryCalendarId && cal.visibility === 'active'
       ),
     [calendars, primaryCalendarId]
   );
@@ -800,7 +800,7 @@ export function BookingFormDialog({
                     <FormControl>
                       <Combobox
                         options={calendars
-                          .filter((c) => c.is_active)
+                          .filter((c) => c.visibility === 'active')
                           .map((cal) => ({
                             value: String(cal.id),
                             label: cal.name,

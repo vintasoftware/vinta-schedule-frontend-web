@@ -104,7 +104,7 @@ function buildCalendar(overrides: {
     calendar_type: 'personal' as const,
     capacity: null,
     manage_available_windows: false,
-    is_active: true,
+    visibility: 'active',
   };
 }
 
@@ -123,7 +123,7 @@ function makeAvailabilityResult(
       calendar_type: 'personal',
       capacity: null,
       manage_available_windows: false,
-      is_active: true,
+      visibility: 'active',
     },
     hasDefault: true,
     freeWindows: [],

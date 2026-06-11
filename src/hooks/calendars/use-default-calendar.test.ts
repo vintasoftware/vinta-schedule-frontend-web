@@ -42,7 +42,7 @@ const FIXTURE_CALENDAR: Calendar = {
   calendar_type: 'personal',
   capacity: null,
   manage_available_windows: false,
-  is_active: true,
+  visibility: 'active',
 };
 
 // ---------------------------------------------------------------------------

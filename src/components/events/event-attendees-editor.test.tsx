@@ -130,7 +130,7 @@ const FIXTURE_RESOURCE_CALENDAR: Calendar = {
   calendar_type: 'resource',
   capacity: 10,
   manage_available_windows: false,
-  is_active: true,
+  visibility: 'active',
 };
 
 const FIXTURE_RESOURCE_CALENDAR_2: Calendar = {
@@ -143,7 +143,7 @@ const FIXTURE_RESOURCE_CALENDAR_2: Calendar = {
   calendar_type: 'resource',
   capacity: 5,
   manage_available_windows: false,
-  is_active: true,
+  visibility: 'active',
 };
 
 // ---------------------------------------------------------------------------

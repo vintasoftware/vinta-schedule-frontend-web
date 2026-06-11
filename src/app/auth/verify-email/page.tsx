@@ -57,7 +57,7 @@ export default function VerifyEmailPage() {
           </Heading>
           <VStack align='center' gap={4}>
             <InputOTP
-              maxLength={6}
+              maxLength={8}
               value={otp}
               onChange={setOtp}
               containerClassName='justify-center'

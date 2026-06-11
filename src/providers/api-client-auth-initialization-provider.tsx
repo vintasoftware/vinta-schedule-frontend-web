@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import '@/lib/configure-api-clients';
 import { configureClientAuthentication } from '@/lib/authentication-fetch-interceptors';
 import { ClientTokenStorageStrategy } from '@/lib/token-storage-strategy.client';
 

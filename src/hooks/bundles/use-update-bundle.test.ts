@@ -39,7 +39,7 @@ const FIXTURE_BUNDLE: Calendar = {
   id: 42,
   name: 'Main Office Bundle',
   calendar_type: 'bundle',
-  is_active: true,
+  visibility: 'active',
   email: 'bundle@example.com',
   external_id: 'ext-bundle',
   provider: 'google',

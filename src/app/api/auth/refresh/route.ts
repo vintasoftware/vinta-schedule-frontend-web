@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import '@/lib/configure-api-clients';
 import { client as authClient } from '@/auth-client/client.gen';
 
 const HTTPONLY_COOKIE_OPTIONS = {

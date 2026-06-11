@@ -5,6 +5,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { APIClientAuthInitializationProvider } from '@/providers/api-client-auth-initialization-provider';
 
+import '@/lib/configure-api-clients';
 import { configureClientAuthentication } from '@/lib/authentication-fetch-interceptors';
 import { ServerTokenStorageStrategy } from '@/lib/token-storage-strategy.server';
 
