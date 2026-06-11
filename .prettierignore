@@ -1,0 +1,6 @@
+# Generated API clients — not formatted (mirrors eslint.config.mjs ignores).
+src/client
+src/auth-client
+
+# Built Storybook output.
+storybook-static

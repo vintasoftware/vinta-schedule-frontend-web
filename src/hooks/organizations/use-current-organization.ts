@@ -11,7 +11,8 @@ export const CURRENT_ORGANIZATION_QUERY_KEY = [
 
 export type CurrentOrganizationResult =
   | { status: 'onboarded'; membership: CurrentMembership }
-  | { status: 'gated'; membership: null };
+  | { status: 'gated'; membership: null }
+  | { status: 'disabled'; membership: null };
 
 /**
  * Reads `GET /organizations/current`.
@@ -35,6 +36,11 @@ export function useCurrentOrganization({
       if (response.status === 404) {
         return { status: 'gated', membership: null };
       }
+      if (response.status === 403) {
+        // 403 means the user's membership is disabled. Return a sentinel so
+        // callers can redirect without relying on error message string parsing.
+        return { status: 'disabled', membership: null };
+      }
       if (!response.ok || !data) {
         throw new Error(
           `Failed to load current organization (${response.status})`
@@ -49,6 +55,7 @@ export function useCurrentOrganization({
   return {
     isGated: result?.status === 'gated',
     isOnboarded: result?.status === 'onboarded',
+    isDisabled: result?.status === 'disabled',
     membership: result?.status === 'onboarded' ? result.membership : null,
     role: result?.status === 'onboarded' ? result.membership.role : null,
     organization:
