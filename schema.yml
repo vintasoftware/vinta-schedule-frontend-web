@@ -2671,15 +2671,16 @@ paths:
         - calendar-events
       requestBody:
         content:
-          type:
+          application/json:
             schema:
-              type: object
-              additionalProperties: {}
-              description: Unspecified request body
-          properties:
+              $ref: '#/components/schemas/CalendarEventTransferRequest'
+          application/x-www-form-urlencoded:
             schema:
-              target_calendar_id:
-                type: integer
+              $ref: '#/components/schemas/CalendarEventTransferRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CalendarEventTransferRequest'
+        required: true
       security:
         - jwtAuth: []
         - cookieAuth: []
@@ -2716,15 +2717,16 @@ paths:
         - calendar-events
       requestBody:
         content:
-          type:
+          application/json:
             schema:
-              type: object
-              additionalProperties: {}
-              description: Unspecified request body
-          properties:
+              $ref: '#/components/schemas/CalendarEventTransferRequest'
+          application/x-www-form-urlencoded:
             schema:
-              target_calendar_id:
-                type: integer
+              $ref: '#/components/schemas/CalendarEventTransferRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CalendarEventTransferRequest'
+        required: true
       security:
         - jwtAuth: []
         - cookieAuth: []
@@ -8152,6 +8154,7 @@ components:
         - unavailable_windows
         - organization
         - calendar_group
+        - system_user
       type: string
       description: |-
         * `calendar_event` - Calendar Event
@@ -8171,6 +8174,7 @@ components:
         * `unavailable_windows` - Unavailable Windows
         * `organization` - Organization
         * `calendar_group` - Calendar Group
+        * `system_user` - System User
     AvailableTime:
       type: object
       description: Serializer for AvailableTime model with recurring support.
@@ -8767,6 +8771,13 @@ components:
         - start_time
         - timezone
         - title
+    CalendarEventTransferRequest:
+      type: object
+      properties:
+        target_calendar_id:
+          type: integer
+      required:
+        - target_calendar_id
     CalendarGroup:
       type: object
       properties:

@@ -36,8 +36,9 @@ export type ActionEnum = 'create' | 'update' | 'delete';
  * * `unavailable_windows` - Unavailable Windows
  * * `organization` - Organization
  * * `calendar_group` - Calendar Group
+ * * `system_user` - System User
  */
-export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group';
+export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user';
 
 /**
  * Serializer for AvailableTime model with recurring support.
@@ -335,6 +336,10 @@ export type CalendarEvent = {
      * For recurring instances, this identifies which occurrence this is
      */
     recurrence_id?: string | null;
+};
+
+export type CalendarEventTransferRequest = {
+    target_calendar_id: number;
 };
 
 export type CalendarGroup = {
@@ -3370,12 +3375,7 @@ export type CalendarEventsCreateExceptionFormattedCreateResponses = {
 export type CalendarEventsCreateExceptionFormattedCreateResponse = CalendarEventsCreateExceptionFormattedCreateResponses[keyof CalendarEventsCreateExceptionFormattedCreateResponses];
 
 export type CalendarEventsTransferCreateData = {
-    /**
-     * Unspecified request body
-     */
-    body?: {
-        [key: string]: unknown;
-    };
+    body: CalendarEventTransferRequest;
     path: {
         id: string;
     };
@@ -3390,12 +3390,7 @@ export type CalendarEventsTransferCreateResponses = {
 export type CalendarEventsTransferCreateResponse = CalendarEventsTransferCreateResponses[keyof CalendarEventsTransferCreateResponses];
 
 export type CalendarEventsTransferFormattedCreateData = {
-    /**
-     * Unspecified request body
-     */
-    body?: {
-        [key: string]: unknown;
-    };
+    body: CalendarEventTransferRequest;
     path: {
         format: '.json';
         id: string;

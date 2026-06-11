@@ -1148,7 +1148,7 @@ export const calendarEventsTransferCreate = <ThrowOnError extends boolean = fals
     url: '/calendar-events/{id}/transfer/',
     ...options,
     headers: {
-        'Content-Type': 'type',
+        'Content-Type': 'application/json',
         ...options.headers
     }
 });
@@ -1167,7 +1167,7 @@ export const calendarEventsTransferFormattedCreate = <ThrowOnError extends boole
     url: '/calendar-events/{id}/transfer{format}',
     ...options,
     headers: {
-        'Content-Type': 'type',
+        'Content-Type': 'application/json',
         ...options.headers
     }
 });
