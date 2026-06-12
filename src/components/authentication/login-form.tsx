@@ -144,7 +144,7 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
                       const { redirect_url: redirectUrl } = await providerLogin(
                         {
                           provider: provider.id,
-                          callbackUrl: `http://localhost:3000/auth/social/${provider.id}/callback`,
+                          callbackUrl: `${window.location.origin}/auth/social/${provider.id}/callback`,
                           process: 'login',
                         }
                       );
