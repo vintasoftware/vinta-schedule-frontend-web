@@ -14,6 +14,12 @@ if (!global.ResizeObserver) {
   } as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
+// Polyfill document.elementFromPoint for tests — jsdom doesn't implement it,
+// and input-otp polls it on a timer.
+if (!document.elementFromPoint) {
+  document.elementFromPoint = () => null;
+}
+
 afterEach(() => {
   cleanup();
   localStorage.clear();

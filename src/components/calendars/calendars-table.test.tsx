@@ -192,7 +192,7 @@ describe('CalendarsTable', () => {
       expect(screen.getByText('internal')).toBeInTheDocument();
     });
 
-    it('renders status badges: active and disabled', async () => {
+    it('renders status badges: active and inactive', async () => {
       vi.mocked(calendarList).mockResolvedValue(
         makePagedResponse(CALENDARS_FIXTURE)
       );
@@ -203,11 +203,11 @@ describe('CalendarsTable', () => {
         expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
       });
 
-      // Check for status badges
+      // Check for status badges — the badge shows the visibility value verbatim.
       const activeBadges = screen.getAllByText('active');
       expect(activeBadges.length).toBe(2); // Personal + Team Resources
 
-      expect(screen.getByText('disabled')).toBeInTheDocument(); // Virtual Meetings
+      expect(screen.getByText('inactive')).toBeInTheDocument(); // Virtual Meetings
     });
   });
 

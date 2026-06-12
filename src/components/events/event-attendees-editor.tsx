@@ -4,9 +4,9 @@
  * EventAttendeesEditor — editor for all three attendee kinds on a calendar event.
  *
  * Sections:
- *  1. Internal attendees — add by user ID, remove by row.
- *     (OrganizationMembership does not expose the numeric user.id, so we accept
- *     a manual user-id input. The booking form follows the same pattern.)
+ *  1. Internal attendees — add via org-member search combobox, remove by row.
+ *     (Uses `useOrgMemberSearch`; the selected OrganizationMembership.id is
+ *     sent as `user_id`.)
  *  2. External attendees — add by email + optional name, remove by row.
  *  3. Resource allocations — pick a resource-type calendar by id, remove by row.
  *     Uses `useMyCalendars` filtered to `calendar_type === 'resource'`.
@@ -165,7 +165,8 @@ export function EventAttendeesEditor({
   // ---- "New row" draft inputs ----------------------------------------------
 
   const [internalSearch, setInternalSearch] = React.useState('');
-  const [debouncedInternalSearch, setDebouncedInternalSearch] = React.useState('');
+  const [debouncedInternalSearch, setDebouncedInternalSearch] =
+    React.useState('');
   React.useEffect(() => {
     const t = setTimeout(() => setDebouncedInternalSearch(internalSearch), 300);
     return () => clearTimeout(t);
@@ -299,6 +300,7 @@ export function EventAttendeesEditor({
 
         {/* Add new internal attendee via org member search */}
         <Combobox
+          aria-label='Add internal attendee'
           options={internalOptions
             .filter((m) => !internalRows.some((r) => r.user_id === m.id))
             .map((m) => ({
@@ -314,7 +316,9 @@ export function EventAttendeesEditor({
           placeholder='Add internal attendee…'
           searchPlaceholder='Search by name or email…'
           emptyText={
-            debouncedInternalSearch ? 'No members found.' : 'Type to search members.'
+            debouncedInternalSearch
+              ? 'No members found.'
+              : 'Type to search members.'
           }
         />
       </VStack>
@@ -426,6 +430,7 @@ export function EventAttendeesEditor({
 
         {/* Add new resource allocation */}
         <Combobox
+          aria-label='Add resource calendar'
           options={resourceCalendars
             .filter((c) => !resourceRows.some((r) => r.calendarId === c.id))
             .map((c) => ({ value: String(c.id), label: c.name }))}

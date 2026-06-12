@@ -2,7 +2,11 @@ import type { Meta } from '@storybook/nextjs-vite';
 import * as React from 'react';
 import { Combobox } from './combobox';
 
-const FRAMEWORKS: Array<{ value: string; label: string; description?: string }> = [
+const FRAMEWORKS: Array<{
+  value: string;
+  label: string;
+  description?: string;
+}> = [
   { value: 'next', label: 'Next.js', description: 'React framework' },
   { value: 'sveltekit', label: 'SvelteKit', description: 'Svelte framework' },
   { value: 'nuxt', label: 'Nuxt.js', description: 'Vue framework' },
@@ -18,55 +22,63 @@ const meta: Meta = {
 
 export default meta;
 
+// Hooks must live in components, not in story `render` functions
+// (react-hooks/rules-of-hooks) — hence the named wrappers.
+function SingleSelectStory() {
+  const [value, setValue] = React.useState('');
+  return (
+    <div className='w-64'>
+      <Combobox
+        options={FRAMEWORKS}
+        value={value}
+        onValueChange={setValue}
+        placeholder='Select a framework…'
+        searchPlaceholder='Search frameworks…'
+      />
+    </div>
+  );
+}
+
+function MultiSelectStory() {
+  const [values, setValues] = React.useState<string[]>([]);
+  return (
+    <div className='w-64'>
+      <Combobox
+        multiple
+        options={FRAMEWORKS}
+        value={values}
+        onValueChange={setValues}
+        placeholder='Select frameworks…'
+        searchPlaceholder='Search frameworks…'
+      />
+    </div>
+  );
+}
+
+function WithDescriptionsStory() {
+  const [value, setValue] = React.useState('');
+  return (
+    <div className='w-64'>
+      <Combobox
+        options={FRAMEWORKS}
+        value={value}
+        onValueChange={setValue}
+        placeholder='Select a framework…'
+      />
+    </div>
+  );
+}
+
 export const SingleSelect = {
-  render: () => {
-    const [value, setValue] = React.useState('');
-    return (
-      <div className='w-64'>
-        <Combobox
-          options={FRAMEWORKS}
-          value={value}
-          onValueChange={setValue}
-          placeholder='Select a framework…'
-          searchPlaceholder='Search frameworks…'
-        />
-      </div>
-    );
-  },
+  render: () => <SingleSelectStory />,
 };
 
 export const MultiSelect = {
-  render: () => {
-    const [values, setValues] = React.useState<string[]>([]);
-    return (
-      <div className='w-64'>
-        <Combobox
-          multiple
-          options={FRAMEWORKS}
-          value={values}
-          onValueChange={setValues}
-          placeholder='Select frameworks…'
-          searchPlaceholder='Search frameworks…'
-        />
-      </div>
-    );
-  },
+  render: () => <MultiSelectStory />,
 };
 
 export const WithDescriptions = {
-  render: () => {
-    const [value, setValue] = React.useState('');
-    return (
-      <div className='w-64'>
-        <Combobox
-          options={FRAMEWORKS}
-          value={value}
-          onValueChange={setValue}
-          placeholder='Select a framework…'
-        />
-      </div>
-    );
-  },
+  render: () => <WithDescriptionsStory />,
 };
 
 export const Loading = {

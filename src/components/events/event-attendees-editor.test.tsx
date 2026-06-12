@@ -59,10 +59,15 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     ...original,
     calendarEventsPartialUpdate: vi.fn(),
     calendarList: vi.fn(),
+    organizationMembersList: vi.fn(),
   };
 });
 
-import { calendarEventsPartialUpdate, calendarList } from '@/client/sdk.gen';
+import {
+  calendarEventsPartialUpdate,
+  calendarList,
+  organizationMembersList,
+} from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import { EventAttendeesEditor } from './event-attendees-editor';
 import type {
@@ -71,6 +76,8 @@ import type {
   ResourceAllocation,
   Calendar,
   PaginatedCalendarList,
+  OrganizationMembership,
+  PaginatedOrganizationMembershipList,
 } from '@/client';
 
 // ---------------------------------------------------------------------------
@@ -146,9 +153,45 @@ const FIXTURE_RESOURCE_CALENDAR_2: Calendar = {
   visibility: 'active',
 };
 
+/** Org members returned by the member-search combobox (internal attendees). */
+const MEMBER_SEARCH_FIXTURES: OrganizationMembership[] = [
+  {
+    id: 99,
+    role: 'member',
+    is_active: true,
+    user_email: 'new@example.com',
+    user_first_name: 'New',
+    user_last_name: 'Member',
+  },
+  {
+    id: 55,
+    role: 'member',
+    is_active: true,
+    user_email: 'dave@corp.com',
+    user_first_name: 'Dave',
+    user_last_name: 'Stone',
+  },
+];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function makeMembersResponse(
+  results: OrganizationMembership[]
+): Awaited<ReturnType<typeof organizationMembersList>> {
+  const body: PaginatedOrganizationMembershipList = {
+    count: results.length,
+    results,
+  };
+  return {
+    data: body,
+    response: new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  } as unknown as Awaited<ReturnType<typeof organizationMembersList>>;
+}
 
 function makeCalendarsResponse(
   results: Calendar[]
@@ -245,12 +288,16 @@ describe('EventAttendeesEditor', () => {
     vi.mocked(calendarEventsPartialUpdate).mockResolvedValue(
       makePartialUpdateResponse()
     );
+    vi.mocked(organizationMembersList).mockResolvedValue(
+      makeMembersResponse(MEMBER_SEARCH_FIXTURES)
+    );
   });
 
   describe('initial render', () => {
-    it('renders existing internal attendee user IDs', () => {
+    it('renders existing internal attendee names', () => {
       renderEditor({ initialAttendances: [FIXTURE_INTERNAL_ATTENDANCE] });
-      expect(screen.getByText('User ID: 10')).toBeInTheDocument();
+      // Label is derived from the user's profile first/last name.
+      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
     });
 
     it('renders existing external attendees', () => {
@@ -287,21 +334,24 @@ describe('EventAttendeesEditor', () => {
       renderEditor({ initialAttendances: [FIXTURE_INTERNAL_ATTENDANCE] });
 
       // Existing attendee (user_id=10) already visible.
-      expect(screen.getByText('User ID: 10')).toBeInTheDocument();
+      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
 
-      // Type a new user ID.
-      const userIdInput = screen.getByLabelText('Internal attendee user ID');
-      await user.clear(userIdInput);
-      await user.type(userIdInput, '99');
+      // Open the member-search combobox and search for the new member.
+      await user.click(
+        screen.getByRole('combobox', { name: 'Add internal attendee' })
+      );
+      await user.type(
+        screen.getByPlaceholderText('Search by name or email…'),
+        'new'
+      );
 
-      // Click the "+" button.
-      const addBtn = screen.getByRole('button', {
-        name: 'Add internal attendee',
-      });
-      await user.click(addBtn);
+      // Wait for the (debounced) search results and pick the member (id=99).
+      await user.click(await screen.findByText('New Member'));
 
-      // The new row should appear.
-      expect(screen.getByText('User ID: 99')).toBeInTheDocument();
+      // The new row should appear (the popover closes on select).
+      expect(
+        screen.getByRole('button', { name: 'Remove New Member' })
+      ).toBeInTheDocument();
 
       // Click Save.
       await user.click(screen.getByRole('button', { name: 'Save attendees' }));
@@ -400,27 +450,22 @@ describe('EventAttendeesEditor', () => {
       const user = userEvent.setup();
       renderEditor();
 
-      // Wait for resource calendars to load.
-      await waitFor(() => {
-        expect(screen.getByLabelText('Resource calendar')).toBeInTheDocument();
-      });
-
-      // Open the select and choose "Meeting Room B".
+      // Wait for resource calendars to load (the combobox is disabled until then).
       const selectTrigger = screen.getByRole('combobox', {
-        name: 'Resource calendar',
+        name: 'Add resource calendar',
       });
-      await user.click(selectTrigger);
-
-      // Wait for the popover to open.
       await waitFor(() => {
-        expect(screen.getByText('Meeting Room B')).toBeInTheDocument();
+        expect(selectTrigger).toBeEnabled();
       });
-      await user.click(screen.getByText('Meeting Room B'));
 
-      // Click "+".
-      await user.click(
-        screen.getByRole('button', { name: 'Add resource calendar' })
-      );
+      // Open the combobox and choose "Meeting Room B" — selecting adds the row.
+      await user.click(selectTrigger);
+      await user.click(await screen.findByText('Meeting Room B'));
+
+      // The new allocation row should appear.
+      expect(
+        screen.getByRole('button', { name: 'Remove resource Meeting Room B' })
+      ).toBeInTheDocument();
 
       // Save.
       await user.click(screen.getByRole('button', { name: 'Save attendees' }));
@@ -443,12 +488,15 @@ describe('EventAttendeesEditor', () => {
       const user = userEvent.setup();
       renderEditor();
 
-      // Add internal attendee.
-      const userIdInput = screen.getByLabelText('Internal attendee user ID');
-      await user.type(userIdInput, '55');
+      // Add internal attendee via the member-search combobox (id=55).
       await user.click(
-        screen.getByRole('button', { name: 'Add internal attendee' })
+        screen.getByRole('combobox', { name: 'Add internal attendee' })
       );
+      await user.type(
+        screen.getByPlaceholderText('Search by name or email…'),
+        'dave'
+      );
+      await user.click(await screen.findByText('Dave Stone'));
 
       // Add external attendee.
       await user.type(
@@ -459,21 +507,15 @@ describe('EventAttendeesEditor', () => {
         screen.getByRole('button', { name: 'Add external attendee' })
       );
 
-      // Add resource calendar — wait for list.
-      await waitFor(() => {
-        expect(screen.getByLabelText('Resource calendar')).toBeInTheDocument();
-      });
+      // Add resource calendar — wait for the list to load, then select.
       const selectTrigger = screen.getByRole('combobox', {
-        name: 'Resource calendar',
+        name: 'Add resource calendar',
+      });
+      await waitFor(() => {
+        expect(selectTrigger).toBeEnabled();
       });
       await user.click(selectTrigger);
-      await waitFor(() => {
-        expect(screen.getByText('Meeting Room A')).toBeInTheDocument();
-      });
-      await user.click(screen.getByText('Meeting Room A'));
-      await user.click(
-        screen.getByRole('button', { name: 'Add resource calendar' })
-      );
+      await user.click(await screen.findByText('Meeting Room A'));
 
       // Save.
       await user.click(screen.getByRole('button', { name: 'Save attendees' }));

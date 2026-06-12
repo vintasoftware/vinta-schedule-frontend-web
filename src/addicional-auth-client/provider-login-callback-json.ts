@@ -1,3 +1,4 @@
+// TODO: replace with generated client once backend adds these to the OpenAPI spec
 import {
   GetAuthByClientV1AuthSessionError,
   GetAuthByClientV1AuthSessionResponse,

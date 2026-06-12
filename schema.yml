@@ -2673,13 +2673,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CalendarEventTransferRequest'
+              $ref: '#/components/schemas/CalendarEventTransfer'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/CalendarEventTransferRequest'
+              $ref: '#/components/schemas/CalendarEventTransfer'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CalendarEventTransferRequest'
+              $ref: '#/components/schemas/CalendarEventTransfer'
         required: true
       security:
         - jwtAuth: []
@@ -2719,13 +2719,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CalendarEventTransferRequest'
+              $ref: '#/components/schemas/CalendarEventTransfer'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/CalendarEventTransferRequest'
+              $ref: '#/components/schemas/CalendarEventTransfer'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CalendarEventTransferRequest'
+              $ref: '#/components/schemas/CalendarEventTransfer'
         required: true
       security:
         - jwtAuth: []
@@ -8771,7 +8771,7 @@ components:
         - start_time
         - timezone
         - title
-    CalendarEventTransferRequest:
+    CalendarEventTransfer:
       type: object
       properties:
         target_calendar_id:
@@ -8930,8 +8930,15 @@ components:
           type: array
           items:
             type: integer
+        required_count:
+          type: integer
+        is_bookable:
+          type: boolean
+          readOnly: true
       required:
         - available_calendar_ids
+        - is_bookable
+        - required_count
         - slot_id
     CalendarSync:
       type: object
@@ -10454,8 +10461,9 @@ components:
         Input serializer for creating a new public-API token (SystemUser + ResourceAccess rows).
 
         Accepts ``integration_name`` and ``available_resources`` (a non-empty list of valid
-        ``PublicAPIResources`` values).  On a successful create the view adds a write-once
-        ``token`` field to the response data; this serializer never stores or exposes
+        ``PublicAPIResources`` values).  ``create()`` provisions the ``SystemUser`` via the
+        injected auth service and bulk-creates the ``ResourceAccess`` grants, attaching the
+        write-once plaintext ``token`` to the returned instance.  Never stores or exposes
         ``long_lived_token_hash``.
       properties:
         integration_name:

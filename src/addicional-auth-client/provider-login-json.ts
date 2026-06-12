@@ -1,9 +1,12 @@
+// TODO: replace with generated client once backend adds these to the OpenAPI spec
 import { client } from '@/auth-client/client.gen';
 
 export type ProviderLoginRedirectParams = {
   provider: string;
   callbackUrl: string;
   process: string;
+  /** Extra headers, e.g. `Authorization` for `process: "connect"` (must run authenticated). */
+  headers?: Record<string, string>;
 };
 
 export type ProviderLoginRedirectResponse = {
@@ -35,6 +38,7 @@ export async function postAppV1AuthProviderRedirectJson({
   provider,
   callbackUrl,
   process,
+  headers,
 }: ProviderLoginRedirectParams): Promise<
   GenericFetchResponse<ProviderLoginRedirectResponse>
 > {
@@ -44,6 +48,7 @@ export async function postAppV1AuthProviderRedirectJson({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...headers,
       },
       body: JSON.stringify({
         provider,

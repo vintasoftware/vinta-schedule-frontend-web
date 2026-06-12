@@ -386,7 +386,9 @@ describe('BookingFormDialog', () => {
 
       // Wait for calendars to load
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       // Fill in required fields
@@ -396,7 +398,9 @@ describe('BookingFormDialog', () => {
       );
 
       // Select the primary calendar
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -440,7 +444,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -448,7 +454,9 @@ describe('BookingFormDialog', () => {
         'My Meeting'
       );
 
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -487,7 +495,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -495,7 +505,9 @@ describe('BookingFormDialog', () => {
         'My Meeting'
       );
 
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -540,7 +552,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -548,7 +562,9 @@ describe('BookingFormDialog', () => {
         'My Meeting'
       );
 
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -603,7 +619,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -611,7 +629,9 @@ describe('BookingFormDialog', () => {
         'Clean Meeting'
       );
 
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -645,7 +665,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -653,7 +675,9 @@ describe('BookingFormDialog', () => {
         'Naive Time Meeting'
       );
 
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -724,7 +748,9 @@ describe('BookingFormDialog', () => {
       );
 
       await rtlWaitFor(() =>
-        expect(rtlScreen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          rtlScreen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -732,7 +758,9 @@ describe('BookingFormDialog', () => {
         'Conflict Meeting'
       );
 
-      await userEvent.click(rtlScreen.getByRole('combobox'));
+      await userEvent.click(
+        rtlScreen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await rtlWaitFor(() =>
         expect(
           rtlScreen.getByRole('option', { name: 'Personal' })
@@ -787,7 +815,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -795,7 +825,9 @@ describe('BookingFormDialog', () => {
         'Meeting'
       );
 
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -864,7 +896,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -872,7 +906,9 @@ describe('BookingFormDialog', () => {
         'Simple Meeting'
       );
 
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -909,7 +945,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -918,7 +956,9 @@ describe('BookingFormDialog', () => {
       );
 
       // Select primary calendar
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -968,7 +1008,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -976,7 +1018,9 @@ describe('BookingFormDialog', () => {
         'Every 2 Days'
       );
 
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -1038,7 +1082,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -1046,7 +1092,9 @@ describe('BookingFormDialog', () => {
         'N-Count Meeting'
       );
 
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })
@@ -1115,7 +1163,9 @@ describe('BookingFormDialog', () => {
       renderForm();
 
       await waitFor(() =>
-        expect(screen.getByRole('combobox')).toBeInTheDocument()
+        expect(
+          screen.getByRole('combobox', { name: /primary calendar/i })
+        ).toBeInTheDocument()
       );
 
       await userEvent.type(
@@ -1123,7 +1173,9 @@ describe('BookingFormDialog', () => {
         'Recurring Meeting'
       );
 
-      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /primary calendar/i })
+      );
       await waitFor(() =>
         expect(
           screen.getByRole('option', { name: 'Personal' })

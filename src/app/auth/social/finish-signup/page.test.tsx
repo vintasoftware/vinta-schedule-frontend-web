@@ -10,7 +10,20 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }));
 
+// `storeAuthTokens` is a server action that writes httpOnly cookies via the
+// next/headers cookie store — calling it in jsdom throws "outside a request
+// scope", so mock the module and assert against the mock instead.
+const storeAuthTokens = vi.fn();
+vi.mock('@/lib/auth-server-actions', () => ({
+  storeAuthTokens: (...args: unknown[]) => storeAuthTokens(...args),
+  clearAuthCookies: vi.fn(),
+}));
+
 import ProviderSignupPage from './page';
+import {
+  ClientTokenStorageStrategy,
+  clearMemoryAccessToken,
+} from '@/lib/token-storage-strategy.client';
 
 const AUTH_BASE = 'http://localhost:8000';
 const SIGNUP_URL = `${AUTH_BASE}/auth/app/v1/auth/provider/signup`;
@@ -92,6 +105,7 @@ describe('finish-signup page (pending social signup)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    clearMemoryAccessToken();
   });
 
   afterEach(() => {
@@ -123,8 +137,12 @@ describe('finish-signup page (pending social signup)', () => {
     await fillPhoneAndSubmit('+14155552671');
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/'));
-    expect(localStorage.getItem('accessToken')).toBe('acc-token');
-    expect(localStorage.getItem('refreshToken')).toBe('ref-token');
+    // Access token lives in memory only; refresh token goes to an httpOnly
+    // cookie via the (mocked) server action — neither touches localStorage.
+    await expect(
+      new ClientTokenStorageStrategy().getAccessToken()
+    ).resolves.toBe('acc-token');
+    expect(storeAuthTokens).toHaveBeenCalledWith('acc-token', 'ref-token');
 
     // X-Session-Token threaded from the rotated cookie.
     expect(postBodies[0]?.sessionToken).toBe('rotated-session');

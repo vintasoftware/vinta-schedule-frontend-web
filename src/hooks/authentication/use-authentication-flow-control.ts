@@ -5,6 +5,7 @@ import {
 } from '@/lib/authentication-response-type-checks';
 import { storeAuthTokens } from '@/lib/auth-server-actions';
 import { setMemoryAccessToken } from '@/lib/token-storage-strategy.client';
+import { persistSessionToken } from '@/lib/session-token';
 
 interface Router {
   push: (path: string) => void;
@@ -56,8 +57,14 @@ export function useAuthenticationFlowControl(router: Router) {
       if (response.meta?.access_token) {
         const accessToken = response.meta.access_token;
         const refreshToken = response.meta.refresh_token ?? '';
-        localStorage.removeItem('sessionToken');
-        document.cookie = `sessionToken=; path=/; Secure; SameSite=Lax`;
+        // KEEP the session token after login: the allauth account-management
+        // endpoints (email/phone/providers/MFA) authenticate exclusively via
+        // X-Session-Token — the JWT only covers the app API.
+        const sessionToken = (response.meta as { session_token?: string })
+          .session_token;
+        if (sessionToken) {
+          persistSessionToken(sessionToken);
+        }
         // Access token in memory only; refresh token as httpOnly cookie via server action.
         setMemoryAccessToken(accessToken);
         if (refreshToken) {

@@ -1,9 +1,15 @@
 import { getAuthByClientV1AuthSessionOptions } from '@/auth-client/@tanstack/react-query.gen';
+import { hasSessionToken } from '@/lib/session-token';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 export function useCurrentAuthSession({ enabled }: { enabled: boolean }) {
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  // Session presence + legacy token are browser-only state — read on mount.
+  const [sessionState, setSessionState] = useState<{
+    present: boolean;
+    legacyToken: string | null;
+  }>({ present: false, legacyToken: null });
+
   const sessionQuery = useQuery({
     ...getAuthByClientV1AuthSessionOptions({
       path: {
@@ -11,17 +17,22 @@ export function useCurrentAuthSession({ enabled }: { enabled: boolean }) {
       },
       headers: {
         'Content-Type': 'application/json',
-        ...(sessionToken ? { 'X-Session-Token': sessionToken } : {}),
+        // Legacy/transition: tests seed localStorage directly. In production
+        // this is empty and the /api/allauth proxy attaches the httpOnly
+        // cookie value instead.
+        ...(sessionState.legacyToken
+          ? { 'X-Session-Token': sessionState.legacyToken }
+          : {}),
       },
     }),
-    enabled: Boolean(sessionToken) && enabled,
+    enabled: sessionState.present && enabled,
   });
 
   useEffect(() => {
-    const token = localStorage.getItem('sessionToken');
-    if (token) {
-      setSessionToken(token);
-    }
+    setSessionState({
+      present: hasSessionToken(),
+      legacyToken: localStorage.getItem('sessionToken'),
+    });
   }, []);
 
   const { data: session, isLoading, isError, error } = sessionQuery;

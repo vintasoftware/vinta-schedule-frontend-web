@@ -338,7 +338,7 @@ export type CalendarEvent = {
     recurrence_id?: string | null;
 };
 
-export type CalendarEventTransferRequest = {
+export type CalendarEventTransfer = {
     target_calendar_id: number;
 };
 
@@ -409,6 +409,8 @@ export type CalendarGroupSlot = {
 export type CalendarGroupSlotAvailability = {
     slot_id: number;
     available_calendar_ids: Array<number>;
+    required_count: number;
+    readonly is_bookable: boolean;
 };
 
 export type CalendarSync = {
@@ -1161,8 +1163,9 @@ export type SystemUserToken = {
  * Input serializer for creating a new public-API token (SystemUser + ResourceAccess rows).
  *
  * Accepts ``integration_name`` and ``available_resources`` (a non-empty list of valid
- * ``PublicAPIResources`` values).  On a successful create the view adds a write-once
- * ``token`` field to the response data; this serializer never stores or exposes
+ * ``PublicAPIResources`` values).  ``create()`` provisions the ``SystemUser`` via the
+ * injected auth service and bulk-creates the ``ResourceAccess`` grants, attaching the
+ * write-once plaintext ``token`` to the returned instance.  Never stores or exposes
  * ``long_lived_token_hash``.
  */
 export type SystemUserTokenCreate = {
@@ -1461,6 +1464,12 @@ export type CalendarGroupWritable = {
     slots: Array<CalendarGroupSlotWritable>;
 };
 
+export type CalendarGroupRangeAvailabilityWritable = {
+    start_time: string;
+    end_time: string;
+    slots: Array<CalendarGroupSlotAvailabilityWritable>;
+};
+
 /**
  * Nested slot representation used inside CalendarGroupSerializer.
  *
@@ -1478,6 +1487,12 @@ export type CalendarGroupSlotWritable = {
      */
     required_count?: number;
     calendar_ids: Array<number>;
+};
+
+export type CalendarGroupSlotAvailabilityWritable = {
+    slot_id: number;
+    available_calendar_ids: Array<number>;
+    required_count: number;
 };
 
 export type CalendarSyncWritable = {
@@ -1584,6 +1599,13 @@ export type PaginatedCalendarGroupListWritable = {
     next?: string | null;
     previous?: string | null;
     results: Array<CalendarGroupWritable>;
+};
+
+export type PaginatedCalendarGroupRangeAvailabilityListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<CalendarGroupRangeAvailabilityWritable>;
 };
 
 export type PaginatedCalendarListWritable = {
@@ -3375,7 +3397,7 @@ export type CalendarEventsCreateExceptionFormattedCreateResponses = {
 export type CalendarEventsCreateExceptionFormattedCreateResponse = CalendarEventsCreateExceptionFormattedCreateResponses[keyof CalendarEventsCreateExceptionFormattedCreateResponses];
 
 export type CalendarEventsTransferCreateData = {
-    body: CalendarEventTransferRequest;
+    body: CalendarEventTransfer;
     path: {
         id: string;
     };
@@ -3390,7 +3412,7 @@ export type CalendarEventsTransferCreateResponses = {
 export type CalendarEventsTransferCreateResponse = CalendarEventsTransferCreateResponses[keyof CalendarEventsTransferCreateResponses];
 
 export type CalendarEventsTransferFormattedCreateData = {
-    body: CalendarEventTransferRequest;
+    body: CalendarEventTransfer;
     path: {
         format: '.json';
         id: string;

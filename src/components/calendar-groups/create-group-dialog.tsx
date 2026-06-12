@@ -395,11 +395,15 @@ function SlotEditor({
 
       {/* Calendar pool (multi-select combobox) */}
       <VStack gap={2}>
-        <label className='text-sm leading-none font-medium'>
+        <label
+          htmlFor={`slot-${index}-calendar-pool`}
+          className='text-sm leading-none font-medium'
+        >
           Calendar pool
         </label>
 
         <Combobox
+          id={`slot-${index}-calendar-pool`}
           multiple
           options={calendars.map((cal) => ({
             value: String(cal.id),

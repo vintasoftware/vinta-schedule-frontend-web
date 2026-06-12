@@ -40,6 +40,14 @@ interface ComboboxBaseProps {
   isLoading?: boolean;
   disabled?: boolean;
   className?: string;
+  /**
+   * Forwarded to the trigger button so `<label htmlFor>` and the shadcn
+   * FormControl (Slot) id/aria wiring give the combobox an accessible name.
+   */
+  id?: string;
+  'aria-label'?: string;
+  'aria-describedby'?: string;
+  'aria-invalid'?: React.AriaAttributes['aria-invalid'];
 }
 
 interface ComboboxSingleProps extends ComboboxBaseProps {
@@ -70,6 +78,10 @@ export function Combobox(props: ComboboxProps) {
     isLoading = false,
     disabled = false,
     className,
+    id,
+    'aria-label': ariaLabel,
+    'aria-describedby': ariaDescribedby,
+    'aria-invalid': ariaInvalid,
   } = props;
 
   const [open, setOpen] = React.useState(false);
@@ -117,24 +129,30 @@ export function Combobox(props: ComboboxProps) {
           type='button'
           variant='outline'
           role='combobox'
+          id={id}
+          aria-label={ariaLabel}
+          aria-describedby={ariaDescribedby}
+          aria-invalid={ariaInvalid}
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            'min-h-9 h-auto w-full justify-between',
-            isMultiple && selectedValues.length > 0
-              ? 'px-2 py-1.5'
-              : '',
+            'h-auto min-h-9 w-full justify-between',
+            isMultiple && selectedValues.length > 0 ? 'px-2 py-1.5' : '',
             className
           )}
         >
           {isMultiple && selectedOptions.length > 0 ? (
             <span className='flex flex-wrap gap-1'>
               {selectedOptions.map((o) => (
-                <Badge key={o.value} variant='secondary' className='gap-0.5 pr-1'>
+                <Badge
+                  key={o.value}
+                  variant='secondary'
+                  className='gap-0.5 pr-1'
+                >
                   {o.label}
                   <button
                     aria-label={`Remove ${o.label}`}
-                    className='ml-0.5 rounded-full hover:bg-muted'
+                    className='hover:bg-muted ml-0.5 rounded-full'
                     onMouseDown={(e) => handleRemoveBadge(o.value, e)}
                   >
                     <X className='h-3 w-3' />
@@ -153,7 +171,10 @@ export function Combobox(props: ComboboxProps) {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className='w-[var(--radix-popover-trigger-width)] p-0' align='start'>
+      <PopoverContent
+        className='w-[var(--radix-popover-trigger-width)] p-0'
+        align='start'
+      >
         <Command shouldFilter={!onSearchChange}>
           <CommandInput
             placeholder={searchPlaceholder}

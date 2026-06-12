@@ -19,7 +19,10 @@ const SESSION_FLAG_OPTIONS = {
   path: '/',
 };
 
-export async function storeAuthTokens(accessToken: string, refreshToken: string) {
+export async function storeAuthTokens(
+  accessToken: string,
+  refreshToken: string
+) {
   const store = await cookies();
   store.set('accessToken', accessToken, HTTPONLY_COOKIE_OPTIONS);
   store.set('refreshToken', refreshToken, HTTPONLY_COOKIE_OPTIONS);
@@ -31,4 +34,8 @@ export async function clearAuthCookies() {
   store.set('accessToken', '', { ...HTTPONLY_COOKIE_OPTIONS, maxAge: 0 });
   store.set('refreshToken', '', { ...HTTPONLY_COOKIE_OPTIONS, maxAge: 0 });
   store.set('sessionActive', '', { ...SESSION_FLAG_OPTIONS, maxAge: 0 });
+  // The allauth session token (httpOnly, managed by the /api/allauth proxy)
+  // and its JS-readable presence flag.
+  store.set('sessionToken', '', { ...HTTPONLY_COOKIE_OPTIONS, maxAge: 0 });
+  store.set('sessionTokenPresent', '', { ...SESSION_FLAG_OPTIONS, maxAge: 0 });
 }

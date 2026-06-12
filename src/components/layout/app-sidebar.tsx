@@ -11,6 +11,7 @@ import {
   LogOut,
   Moon,
   Settings,
+  Shield,
   Sun,
   Ticket,
   User,
@@ -310,6 +311,12 @@ function AppSidebarInner(
               <Link href='/profile'>
                 <User />
                 Profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href='/security'>
+                <Shield />
+                Account security
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onLogout?.()}>

@@ -451,9 +451,13 @@ export function GroupBookingFlow({
 
           {/* Group picker */}
           <VStack gap={2}>
-            <Label>Calendar group</Label>
+            <Label htmlFor='group-picker'>Calendar group</Label>
             <Combobox
-              options={groups.map((g) => ({ value: String(g.id), label: g.name }))}
+              id='group-picker'
+              options={groups.map((g) => ({
+                value: String(g.id),
+                label: g.name,
+              }))}
               value={groupId}
               onValueChange={(v) => {
                 setGroupId(v);
@@ -520,8 +524,9 @@ export function GroupBookingFlow({
 
           {/* Timezone picker */}
           <VStack gap={2}>
-            <Label>Timezone</Label>
+            <Label htmlFor='group-timezone'>Timezone</Label>
             <Combobox
+              id='group-timezone'
               options={COMMON_TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
               value={timezone}
               onValueChange={(v) => {

@@ -133,6 +133,27 @@ function renderDialog(open = true) {
   return { ...result, onOpenChange, queryClient };
 }
 
+/**
+ * Select calendars in a slot's "Calendar pool" multi-select combobox: open the
+ * trigger, click each option (options render in a portal, so query via
+ * `screen`), then close the popover with Escape so the rest of the form is
+ * interactable.
+ */
+async function pickPoolCalendars(
+  user: ReturnType<typeof userEvent.setup>,
+  slotEl: HTMLElement,
+  names: string[]
+) {
+  const trigger = within(slotEl).getByRole('combobox', {
+    name: /calendar pool/i,
+  });
+  await user.click(trigger);
+  for (const name of names) {
+    await user.click(await screen.findByRole('option', { name }));
+  }
+  await user.keyboard('{Escape}');
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -163,9 +184,7 @@ describe('CreateGroupDialog', () => {
     mockGroupCreate();
     const { onOpenChange } = renderDialog();
 
-    // Wait for calendars to load
     await screen.findByTestId('slot-editor-0');
-    await screen.findByLabelText('Calendar A');
 
     // Fill group name
     await user.clear(screen.getByPlaceholderText('e.g. Frontend Team'));
@@ -186,11 +205,8 @@ describe('CreateGroupDialog', () => {
     await user.clear(slot0CountInput);
     await user.type(slot0CountInput, '2');
 
-    // Check Calendar A and Calendar B for slot 1
-    const slot0CalA = within(slot0).getByLabelText('Calendar A');
-    const slot0CalB = within(slot0).getByLabelText('Calendar B');
-    await user.click(slot0CalA);
-    await user.click(slot0CalB);
+    // Pick Calendar A and Calendar B for slot 1's pool
+    await pickPoolCalendars(user, slot0, ['Calendar A', 'Calendar B']);
 
     // Add a second slot
     const addSlotButton = screen.getByRole('button', { name: /add slot/i });
@@ -206,9 +222,8 @@ describe('CreateGroupDialog', () => {
     await user.clear(slot1NameInput);
     await user.type(slot1NameInput, 'Room');
 
-    // required_count stays at 1 — check Calendar C only
-    const slot1CalC = within(slot1).getByLabelText('Calendar C');
-    await user.click(slot1CalC);
+    // required_count stays at 1 — pick Calendar C only
+    await pickPoolCalendars(user, slot1, ['Calendar C']);
 
     // Submit
     const submitBtn = screen.getByTestId('create-group-submit');
@@ -309,8 +324,7 @@ describe('CreateGroupDialog', () => {
     await user.type(countInput, '2');
 
     // Only pick 1 calendar (pool size = 1, required = 2)
-    const calA = within(slot0).getByLabelText('Calendar A');
-    await user.click(calA);
+    await pickPoolCalendars(user, slot0, ['Calendar A']);
 
     // Submit
     await user.click(screen.getByTestId('create-group-submit'));
@@ -375,7 +389,7 @@ describe('CreateGroupDialog', () => {
       within(slot0).getByPlaceholderText('e.g. Interviewer'),
       'Slot One'
     );
-    await user.click(within(slot0).getByLabelText('Calendar A'));
+    await pickPoolCalendars(user, slot0, ['Calendar A']);
 
     await user.click(screen.getByTestId('create-group-submit'));
 

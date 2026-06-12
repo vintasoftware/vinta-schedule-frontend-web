@@ -10,7 +10,8 @@ export default async function SocialSuccessPage() {
 
   return (
     <SocialSuccess
-      sessionToken={sessionToken}
+      // Only the presence crosses to the client — the token is httpOnly.
+      hasPendingSession={Boolean(sessionToken)}
       accessToken={accessToken}
       refreshToken={refreshToken}
     />

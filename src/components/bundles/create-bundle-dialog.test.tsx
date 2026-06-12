@@ -1,9 +1,35 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { CreateBundleDialog } from './create-bundle-dialog';
+
+// ---------------------------------------------------------------------------
+// jsdom polyfills for Radix (Dialog/Popover) + cmdk
+// ---------------------------------------------------------------------------
+
+beforeAll(() => {
+  if (!window.HTMLElement.prototype.hasPointerCapture) {
+    window.HTMLElement.prototype.hasPointerCapture = () => false;
+  }
+  if (!window.HTMLElement.prototype.setPointerCapture) {
+    window.HTMLElement.prototype.setPointerCapture = () => {};
+  }
+  if (!window.HTMLElement.prototype.releasePointerCapture) {
+    window.HTMLElement.prototype.releasePointerCapture = () => {};
+  }
+  if (!window.HTMLElement.prototype.scrollIntoView) {
+    window.HTMLElement.prototype.scrollIntoView = () => {};
+  }
+  if (!global.ResizeObserver) {
+    global.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Mocks — hoisted before imports
@@ -61,6 +87,27 @@ function renderDialog(
     { wrapper }
   );
   return Object.assign(result, { onOpenChange });
+}
+
+/**
+ * Select calendars in the "Child calendars" multi-select combobox: open the
+ * trigger, click each option (options render in a portal, so query via
+ * `screen`), then close the popover with Escape so the rest of the form is
+ * interactable.
+ */
+async function selectChildCalendars(
+  user: ReturnType<typeof userEvent.setup>,
+  names: string[]
+) {
+  const trigger = await screen.findByRole('combobox', {
+    name: /child calendars/i,
+  });
+  await waitFor(() => expect(trigger).toBeEnabled());
+  await user.click(trigger);
+  for (const name of names) {
+    await user.click(await screen.findByRole('option', { name }));
+  }
+  await user.keyboard('{Escape}');
 }
 
 const mockCalendars = [
@@ -132,14 +179,23 @@ describe('CreateBundleDialog', () => {
     expect(screen.getByPlaceholderText(/Main office/i)).toBeInTheDocument();
   });
 
-  it('shows all calendars as checkboxes for child selection', async () => {
+  it('shows all calendars as options for child selection', async () => {
+    const user = userEvent.setup();
     renderDialog();
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Alice')).toBeInTheDocument();
-      expect(screen.getByLabelText('Bob')).toBeInTheDocument();
-      expect(screen.getByLabelText('Conference Room')).toBeInTheDocument();
+    const trigger = await screen.findByRole('combobox', {
+      name: /child calendars/i,
     });
+    await waitFor(() => expect(trigger).toBeEnabled());
+    await user.click(trigger);
+
+    expect(
+      await screen.findByRole('option', { name: 'Alice' })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Bob' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Conference Room' })
+    ).toBeInTheDocument();
   });
 
   it('validates that bundle name is required', async () => {
@@ -175,15 +231,10 @@ describe('CreateBundleDialog', () => {
     const user = userEvent.setup();
     renderDialog();
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Alice')).toBeInTheDocument();
-    });
-
     const nameInput = screen.getByPlaceholderText(/Main office/i);
     await user.type(nameInput, 'Test Bundle');
 
-    const aliceCheckbox = screen.getByLabelText('Alice');
-    await user.click(aliceCheckbox);
+    await selectChildCalendars(user, ['Alice']);
 
     const submitButton = screen.getByTestId('create-bundle-submit');
     await user.click(submitButton);
@@ -200,15 +251,10 @@ describe('CreateBundleDialog', () => {
     const onOpenChange = vi.fn();
     renderDialog(true, onOpenChange);
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Alice')).toBeInTheDocument();
-    });
-
     const nameInput = screen.getByPlaceholderText(/Main office/i);
     await user.type(nameInput, 'Single Bundle');
 
-    const aliceCheckbox = screen.getByLabelText('Alice');
-    await user.click(aliceCheckbox);
+    await selectChildCalendars(user, ['Alice']);
 
     const aliceRadio = screen.getByRole('radio', { name: 'Alice' });
     await user.click(aliceRadio);
@@ -235,17 +281,10 @@ describe('CreateBundleDialog', () => {
     const onOpenChange = vi.fn();
     renderDialog(true, onOpenChange);
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Alice')).toBeInTheDocument();
-    });
-
     const nameInput = screen.getByPlaceholderText(/Main office/i);
     await user.type(nameInput, 'Multi Bundle');
 
-    const aliceCheckbox = screen.getByLabelText('Alice');
-    const bobCheckbox = screen.getByLabelText('Bob');
-    await user.click(aliceCheckbox);
-    await user.click(bobCheckbox);
+    await selectChildCalendars(user, ['Alice', 'Bob']);
 
     const bobRadio = screen.getByRole('radio', { name: 'Bob' });
     await user.click(bobRadio);
@@ -270,15 +309,10 @@ describe('CreateBundleDialog', () => {
 
     renderDialog();
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Alice')).toBeInTheDocument();
-    });
-
     const nameInput = screen.getByPlaceholderText(/Main office/i);
     await user.type(nameInput, 'Test Bundle');
 
-    const aliceCheckbox = screen.getByLabelText('Alice');
-    await user.click(aliceCheckbox);
+    await selectChildCalendars(user, ['Alice']);
 
     const aliceRadio = screen.getByRole('radio', { name: 'Alice' });
     await user.click(aliceRadio);
@@ -296,15 +330,10 @@ describe('CreateBundleDialog', () => {
     const onOpenChange = vi.fn();
     renderDialog(true, onOpenChange);
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Alice')).toBeInTheDocument();
-    });
-
     const nameInput = screen.getByPlaceholderText(/Main office/i);
     await user.type(nameInput, 'Test Bundle');
 
-    const aliceCheckbox = screen.getByLabelText('Alice');
-    await user.click(aliceCheckbox);
+    await selectChildCalendars(user, ['Alice']);
 
     const aliceRadio = screen.getByRole('radio', { name: 'Alice' });
     await user.click(aliceRadio);

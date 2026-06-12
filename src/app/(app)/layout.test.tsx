@@ -27,11 +27,6 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-// Mock next/image (used by AppSidebar logo — renders a plain img in test env).
-vi.mock('next/image', () => ({
-  default: ({ alt }: { alt: string }) => <img alt={alt} />, // NOSONAR: ok in test
-}));
-
 import { organizationsCurrentRetrieve } from '@/client';
 import { AppLayoutClient } from '@/components/navigation/app-layout-client';
 
@@ -103,6 +98,12 @@ function mockOrg403() {
   } as unknown as Awaited<ReturnType<typeof organizationsCurrentRetrieve>>);
 }
 
+// AppLayoutClient detects an authenticated user via the `sessionActive` cookie
+// (set by the auth flow). vitest.setup.ts clears cookies between tests.
+function setSessionActiveCookie() {
+  document.cookie = 'sessionActive=1; path=/';
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -115,7 +116,7 @@ describe('AppLayout (integration)', () => {
 
   describe('unauthenticated user', () => {
     it('renders children without the shell when not authenticated', () => {
-      // No accessToken in localStorage → layout passes through children.
+      // No `sessionActive` cookie → layout passes through children.
       mockOrgSuccess(MEMBER_MEMBERSHIP);
       renderLayout(<div>page content</div>);
       // Children visible immediately (no auth check).
@@ -127,7 +128,7 @@ describe('AppLayout (integration)', () => {
 
   describe('onboarded member', () => {
     beforeEach(() => {
-      localStorage.setItem('accessToken', 'test-token');
+      setSessionActiveCookie();
     });
 
     it('renders the app shell with sidebar for an onboarded member', async () => {
@@ -172,7 +173,7 @@ describe('AppLayout (integration)', () => {
 
   describe('onboarded admin', () => {
     beforeEach(() => {
-      localStorage.setItem('accessToken', 'test-token');
+      setSessionActiveCookie();
     });
 
     it('shows admin nav items for an admin user', async () => {
@@ -191,7 +192,7 @@ describe('AppLayout (integration)', () => {
 
   describe('org-less (gated) user', () => {
     beforeEach(() => {
-      localStorage.setItem('accessToken', 'test-token');
+      setSessionActiveCookie();
     });
 
     it('redirects a gated user to /auth/onboarding', async () => {
@@ -209,7 +210,7 @@ describe('AppLayout (integration)', () => {
 
   describe('disabled user (403)', () => {
     beforeEach(() => {
-      localStorage.setItem('accessToken', 'test-token');
+      setSessionActiveCookie();
     });
 
     it('redirects a disabled user to /no-access', async () => {

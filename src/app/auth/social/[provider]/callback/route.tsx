@@ -29,10 +29,6 @@ export async function POST(
   cookiesToUnset?.forEach((name) => {
     response.cookies.delete(name);
   });
-  console.log('Redirecting to:', url);
-  console.log('Cookies to set:', cookiesToSet);
-  console.log('Cookies to unset:', cookiesToUnset);
-  console.log('Request base URL:', requestBaseUrl);
   return response;
 }
 
@@ -60,10 +56,6 @@ export async function GET(
   cookiesToUnset?.forEach((name) => {
     response.cookies.delete(name);
   });
-  console.log('Redirecting to:', url);
-  console.log('Cookies to set:', cookiesToSet);
-  console.log('Cookies to unset:', cookiesToUnset);
-  console.log('Request base URL:', requestBaseUrl);
   return response;
 }
 
@@ -123,7 +115,12 @@ function handlePendingAuthenticationResponse(
     );
     return {
       url: `/auth/social/error`,
-      cookiesToUnset: ['accessToken', 'refreshToken', 'sessionToken', 'sessionActive'],
+      cookiesToUnset: [
+        'accessToken',
+        'refreshToken',
+        'sessionToken',
+        'sessionActive',
+      ],
     };
   }
 
@@ -133,16 +130,28 @@ function handlePendingAuthenticationResponse(
     );
     return {
       url: `/auth/social/error`,
-      cookiesToUnset: ['accessToken', 'refreshToken', 'sessionToken', 'sessionActive'],
+      cookiesToUnset: [
+        'accessToken',
+        'refreshToken',
+        'sessionToken',
+        'sessionActive',
+      ],
     };
   }
 
   return {
     url: nextUrl,
     cookiesToSet: [
+      // The session token is a credential — httpOnly, read only by server
+      // code (the /api/allauth proxy). Client JS gets the presence flag.
       {
         name: 'sessionToken',
         value: sessionToken,
+        options: { secure: true, httpOnly: true, sameSite: 'lax' },
+      },
+      {
+        name: 'sessionTokenPresent',
+        value: '1',
         options: { secure: true, httpOnly: false, sameSite: 'lax' },
       },
     ],
@@ -214,7 +223,24 @@ export async function handleProviderLoginCallback(
         options: { secure: true, httpOnly: false, sameSite: 'lax' },
       });
 
-      cookiesToUnset.push('sessionToken');
+      // KEEP the session token after full login — allauth account-management
+      // endpoints (email/phone/providers/MFA) authenticate via X-Session-Token
+      // (attached by the /api/allauth proxy from this httpOnly cookie).
+      const sessionToken =
+        (response.meta as { session_token?: string }).session_token ??
+        incomingSessionToken;
+      if (sessionToken) {
+        cookiesToSet.push({
+          name: 'sessionToken',
+          value: sessionToken,
+          options: { secure: true, httpOnly: true, sameSite: 'lax' },
+        });
+        cookiesToSet.push({
+          name: 'sessionTokenPresent',
+          value: '1',
+          options: { secure: true, httpOnly: false, sameSite: 'lax' },
+        });
+      }
 
       return {
         url: `/auth/social/${provider}/success`,

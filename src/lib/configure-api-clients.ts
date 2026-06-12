@@ -2,22 +2,28 @@ import { client as apiClient } from '@/client/client.gen';
 import { client as authClient } from '@/auth-client/client.gen';
 
 /**
- * Point the generated API clients at the backend resolved from the
- * environment instead of the codegen-time default (`http://localhost:8000`).
+ * Point the generated API clients at the right base URL for the runtime.
  *
- * The generated `client.gen.ts` files bake in a localhost baseUrl, which is
- * correct for local dev but wrong for any deployed environment. Importing this
- * module for its side effect (server entry, browser entry, and standalone API
- * routes) overrides that baseUrl at runtime. `setConfig` merges, so all other
- * client config (interceptors, headers) is preserved. The call is idempotent.
+ * App API client: the backend resolved from the environment (the generated
+ * `client.gen.ts` bakes in a localhost default, correct only for local dev).
  *
- * `NEXT_PUBLIC_API_BASE_URL` is inlined at build time and available in both the
- * server and browser bundles. When unset (e.g. local dev) the clients keep
- * their localhost default.
+ * Auth client: in the BROWSER it points at the same-origin `/api/allauth`
+ * BFF proxy — the allauth session token lives in an httpOnly cookie that only
+ * the proxy can read, so browser JS must never call the backend auth API
+ * directly. On the SERVER (route handlers, server components) it talks to
+ * the backend directly; server code reads cookies itself when needed.
+ *
+ * `setConfig` merges, so other client config (interceptors, headers) is
+ * preserved. The calls are idempotent.
  */
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 if (baseUrl) {
   apiClient.setConfig({ baseUrl });
+}
+
+if (typeof window !== 'undefined') {
+  authClient.setConfig({ baseUrl: '/api/allauth' });
+} else if (baseUrl) {
   authClient.setConfig({ baseUrl });
 }

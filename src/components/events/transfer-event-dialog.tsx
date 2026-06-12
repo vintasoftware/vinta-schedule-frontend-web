@@ -28,7 +28,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
-import { VStack, Text } from '@/components/layout';
+import { Label } from '@/components/ui/label';
+import { VStack } from '@/components/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useTransferEvent } from '@/hooks/events/use-transfer-event';
 
@@ -104,10 +105,14 @@ export function TransferEventDialog({
         <VStack gap={4}>
           {/* Destination calendar picker */}
           <VStack gap={2}>
-            <Text size='sm' className='font-semibold'>
+            <Label
+              htmlFor='transfer-destination-calendar'
+              className='font-semibold'
+            >
               Destination calendar
-            </Text>
+            </Label>
             <Combobox
+              id='transfer-destination-calendar'
               options={calendars.map((cal) => ({
                 value: String(cal.id),
                 label: cal.name,

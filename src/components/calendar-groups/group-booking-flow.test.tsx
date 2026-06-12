@@ -236,8 +236,18 @@ describe('GroupBookingFlow', () => {
     const user = userEvent.setup();
     // Nurse C (12) busy; Room 2 (21) busy.
     mockAvailability([
-      { slot_id: 1, available_calendar_ids: [10, 11] },
-      { slot_id: 2, available_calendar_ids: [20] },
+      {
+        slot_id: 1,
+        available_calendar_ids: [10, 11],
+        required_count: 2,
+        is_bookable: true,
+      },
+      {
+        slot_id: 2,
+        available_calendar_ids: [20],
+        required_count: 1,
+        is_bookable: true,
+      },
     ]);
     renderFlow();
     await selectGroup(user);
@@ -261,8 +271,18 @@ describe('GroupBookingFlow', () => {
   it('blocks submit when a slot has too FEW calendars selected', async () => {
     const user = userEvent.setup();
     mockAvailability([
-      { slot_id: 1, available_calendar_ids: [10, 11, 12] },
-      { slot_id: 2, available_calendar_ids: [20, 21] },
+      {
+        slot_id: 1,
+        available_calendar_ids: [10, 11, 12],
+        required_count: 2,
+        is_bookable: true,
+      },
+      {
+        slot_id: 2,
+        available_calendar_ids: [20, 21],
+        required_count: 1,
+        is_bookable: true,
+      },
     ]);
     renderFlow();
     await selectGroup(user);
@@ -286,8 +306,18 @@ describe('GroupBookingFlow', () => {
   it('caps a slot at its required count (cannot select too many → still submittable)', async () => {
     const user = userEvent.setup();
     mockAvailability([
-      { slot_id: 1, available_calendar_ids: [10, 11, 12] },
-      { slot_id: 2, available_calendar_ids: [20, 21] },
+      {
+        slot_id: 1,
+        available_calendar_ids: [10, 11, 12],
+        required_count: 2,
+        is_bookable: true,
+      },
+      {
+        slot_id: 2,
+        available_calendar_ids: [20, 21],
+        required_count: 1,
+        is_bookable: true,
+      },
     ]);
     mockEventCreate();
     renderFlow();
@@ -320,8 +350,18 @@ describe('GroupBookingFlow', () => {
     const user = userEvent.setup();
     // Nurses needs 2 but only 1 free → unsatisfiable.
     mockAvailability([
-      { slot_id: 1, available_calendar_ids: [10] },
-      { slot_id: 2, available_calendar_ids: [20] },
+      {
+        slot_id: 1,
+        available_calendar_ids: [10],
+        required_count: 2,
+        is_bookable: false,
+      },
+      {
+        slot_id: 2,
+        available_calendar_ids: [20],
+        required_count: 1,
+        is_bookable: true,
+      },
     ]);
     renderFlow();
     await selectGroup(user);
@@ -350,8 +390,18 @@ describe('GroupBookingFlow', () => {
     const user = userEvent.setup();
     // First availability check: all free.
     mockAvailability([
-      { slot_id: 1, available_calendar_ids: [10, 11, 12] },
-      { slot_id: 2, available_calendar_ids: [20, 21] },
+      {
+        slot_id: 1,
+        available_calendar_ids: [10, 11, 12],
+        required_count: 2,
+        is_bookable: true,
+      },
+      {
+        slot_id: 2,
+        available_calendar_ids: [20, 21],
+        required_count: 1,
+        is_bookable: true,
+      },
     ]);
     // Create call rejects (slot became busy).
     vi.mocked(calendarGroupsEventsCreate).mockRejectedValue(
@@ -367,8 +417,18 @@ describe('GroupBookingFlow', () => {
             start_time: 's',
             end_time: 'e',
             slots: [
-              { slot_id: 1, available_calendar_ids: [10, 11] },
-              { slot_id: 2, available_calendar_ids: [20] },
+              {
+                slot_id: 1,
+                available_calendar_ids: [10, 11],
+                required_count: 2,
+                is_bookable: true,
+              },
+              {
+                slot_id: 2,
+                available_calendar_ids: [20],
+                required_count: 1,
+                is_bookable: true,
+              },
             ],
           },
         ],
@@ -434,8 +494,18 @@ describe('GroupBookingFlow', () => {
   it('success path: complete satisfiable selection books with correct slot assignments', async () => {
     const user = userEvent.setup();
     mockAvailability([
-      { slot_id: 1, available_calendar_ids: [10, 11, 12] },
-      { slot_id: 2, available_calendar_ids: [20, 21] },
+      {
+        slot_id: 1,
+        available_calendar_ids: [10, 11, 12],
+        required_count: 2,
+        is_bookable: true,
+      },
+      {
+        slot_id: 2,
+        available_calendar_ids: [20, 21],
+        required_count: 1,
+        is_bookable: true,
+      },
     ]);
     mockEventCreate();
     renderFlow();

@@ -641,7 +641,8 @@ export function BookingFormDialog({
 
   // Attendee search — debounced so every keystroke doesn't fire a request.
   const [attendeeSearch, setAttendeeSearch] = React.useState('');
-  const [debouncedAttendeeSearch, setDebouncedAttendeeSearch] = React.useState('');
+  const [debouncedAttendeeSearch, setDebouncedAttendeeSearch] =
+    React.useState('');
   React.useEffect(() => {
     const t = setTimeout(() => setDebouncedAttendeeSearch(attendeeSearch), 300);
     return () => clearTimeout(t);
@@ -649,10 +650,8 @@ export function BookingFormDialog({
   const { members: attendeeOptions, isLoading: attendeesLoading } =
     useOrgMemberSearch(debouncedAttendeeSearch);
 
-  const {
-    fields: attendanceFields,
-    replace: replaceAttendances,
-  } = useFieldArray({ control: form.control, name: 'attendances' });
+  const { fields: attendanceFields, replace: replaceAttendances } =
+    useFieldArray({ control: form.control, name: 'attendances' });
 
   const {
     fields: externalFields,
@@ -664,7 +663,8 @@ export function BookingFormDialog({
   const coBookableCalendars = React.useMemo(
     () =>
       calendars.filter(
-        (cal) => String(cal.id) !== primaryCalendarId && cal.visibility === 'active'
+        (cal) =>
+          String(cal.id) !== primaryCalendarId && cal.visibility === 'active'
       ),
     [calendars, primaryCalendarId]
   );
@@ -847,11 +847,15 @@ export function BookingFormDialog({
 
               {/* Internal attendees */}
               <VStack gap={2}>
-                <label className='text-sm leading-none font-medium'>
+                <label
+                  htmlFor='internal-attendees'
+                  className='text-sm leading-none font-medium'
+                >
                   Internal attendees
                 </label>
                 <Combobox
                   multiple
+                  id='internal-attendees'
                   options={attendeeOptions.map((m) => ({
                     value: String(m.id),
                     label: m.name,
@@ -892,7 +896,11 @@ export function BookingFormDialog({
                   External attendees
                 </label>
                 {externalFields.map((field, index) => (
-                  <VStack key={field.id} gap={2} className='border-border rounded-md border p-2'>
+                  <VStack
+                    key={field.id}
+                    gap={2}
+                    className='border-border rounded-md border p-2'
+                  >
                     <HStack gap={2} align='start'>
                       <FormField
                         control={form.control}

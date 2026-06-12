@@ -202,8 +202,20 @@ describe('buildSlotAvailability', () => {
       start_time: '2024-06-15T09:00:00-04:00',
       end_time: '2024-06-15T10:00:00-04:00',
       slots: [
-        { slot_id: 1, available_calendar_ids: [10, 11] }, // 2 free, needs 2 → ok
-        { slot_id: 2, available_calendar_ids: [20] }, // 1 free, needs 1 → ok
+        // 2 free, needs 2 → ok
+        {
+          slot_id: 1,
+          available_calendar_ids: [10, 11],
+          required_count: 2,
+          is_bookable: true,
+        },
+        // 1 free, needs 1 → ok
+        {
+          slot_id: 2,
+          available_calendar_ids: [20],
+          required_count: 1,
+          is_bookable: true,
+        },
       ],
     };
     const result = buildSlotAvailability([SLOT_NURSES, SLOT_ROOM], range);
@@ -226,8 +238,19 @@ describe('buildSlotAvailability', () => {
       start_time: 's',
       end_time: 'e',
       slots: [
-        { slot_id: 1, available_calendar_ids: [10] }, // only 1 free, needs 2
-        { slot_id: 2, available_calendar_ids: [20] },
+        // only 1 free, needs 2
+        {
+          slot_id: 1,
+          available_calendar_ids: [10],
+          required_count: 2,
+          is_bookable: false,
+        },
+        {
+          slot_id: 2,
+          available_calendar_ids: [20],
+          required_count: 1,
+          is_bookable: true,
+        },
       ],
     };
     const result = buildSlotAvailability([SLOT_NURSES, SLOT_ROOM], range);
@@ -238,7 +261,15 @@ describe('buildSlotAvailability', () => {
     const range: CalendarGroupRangeAvailability = {
       start_time: 's',
       end_time: 'e',
-      slots: [{ slot_id: 1, available_calendar_ids: [10, 11] }], // slot 2 missing
+      // slot 2 missing
+      slots: [
+        {
+          slot_id: 1,
+          available_calendar_ids: [10, 11],
+          required_count: 2,
+          is_bookable: true,
+        },
+      ],
     };
     const result = buildSlotAvailability([SLOT_NURSES, SLOT_ROOM], range);
     expect(result[1].availableCalendarIds).toEqual([]);
@@ -249,7 +280,15 @@ describe('buildSlotAvailability', () => {
     const range: CalendarGroupRangeAvailability = {
       start_time: 's',
       end_time: 'e',
-      slots: [{ slot_id: 2, available_calendar_ids: [20, 999] }], // 999 not in pool
+      // 999 not in pool
+      slots: [
+        {
+          slot_id: 2,
+          available_calendar_ids: [20, 999],
+          required_count: 1,
+          is_bookable: true,
+        },
+      ],
     };
     const result = buildSlotAvailability([SLOT_ROOM], range);
     expect(result[0].availableCalendarIds).toEqual([20]);
@@ -333,7 +372,14 @@ describe('useGroupBooking', () => {
         {
           start_time: '2024-06-15T09:00:00-04:00',
           end_time: '2024-06-15T10:00:00-04:00',
-          slots: [{ slot_id: 1, available_calendar_ids: [10, 11] }],
+          slots: [
+            {
+              slot_id: 1,
+              available_calendar_ids: [10, 11],
+              required_count: 2,
+              is_bookable: true,
+            },
+          ],
         },
       ])
     );

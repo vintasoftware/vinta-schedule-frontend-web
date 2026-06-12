@@ -9,7 +9,8 @@ interface ProviderLogin {
 
 interface ProviderLoginResponse {
   redirect_url: string;
-  session_token: string;
+  /** Stripped by the /api/allauth proxy (kept in the httpOnly cookie). */
+  session_token?: string;
 }
 
 export function useProviderLogin() {
@@ -26,8 +27,12 @@ export function useProviderLogin() {
           process,
         });
         const data = (await response.json()) as ProviderLoginResponse;
-        localStorage.setItem('sessionToken', data.session_token);
-        document.cookie = `sessionToken=${data.session_token}; path=/; Secure; SameSite=Lax`;
+        // The /api/allauth proxy strips the token (kept in the httpOnly
+        // cookie); this only runs on legacy direct-to-backend responses.
+        if (data.session_token) {
+          localStorage.setItem('sessionToken', data.session_token);
+          document.cookie = `sessionTokenPresent=1; path=/; Secure; SameSite=Lax`;
+        }
         return data;
       } catch (error) {
         throw error;

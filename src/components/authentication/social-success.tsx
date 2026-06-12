@@ -11,13 +11,18 @@ import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { setMemoryAccessToken } from '@/lib/token-storage-strategy.client';
 
 export interface SocialSuccessProps {
-  sessionToken?: string;
+  /**
+   * Whether an allauth session is in progress. The token itself stays in the
+   * httpOnly cookie (the /api/allauth proxy attaches it) — never pass it to
+   * client code.
+   */
+  hasPendingSession?: boolean;
   accessToken?: string;
   refreshToken?: string;
 }
 
 export function SocialSuccess({
-  sessionToken,
+  hasPendingSession,
   accessToken,
   refreshToken,
 }: SocialSuccessProps) {
@@ -25,7 +30,7 @@ export function SocialSuccess({
   const isAuthenticated = Boolean(accessToken);
 
   const { session, error: sessionError } = useCurrentAuthSession({
-    enabled: Boolean(sessionToken) && !isAuthenticated,
+    enabled: Boolean(hasPendingSession) && !isAuthenticated,
   });
   const authenticationFlowControl = useAuthenticationFlowControl(router);
 
@@ -35,8 +40,8 @@ export function SocialSuccess({
       // Just populate the in-memory access token so the tab can make API calls
       // immediately without waiting for the first 401 → refresh cycle.
       if (accessToken) setMemoryAccessToken(accessToken);
-      localStorage.removeItem('sessionToken');
-      document.cookie = `sessionToken=; path=/; Secure; SameSite=Lax; Max-Age=0`;
+      // The session token stays in its httpOnly cookie (set by the callback
+      // route) — account-management endpoints reach it via the proxy.
 
       router.push('/dashboard');
     }
@@ -52,7 +57,7 @@ export function SocialSuccess({
     isAuthenticated,
     accessToken,
     refreshToken,
-    sessionToken,
+    hasPendingSession,
     authenticationFlowControl,
     router,
   ]);
