@@ -105,6 +105,7 @@ const CALENDARS_FIXTURE: PaginatedCalendarList['results'] = [
     capacity: null,
     visibility: 'active',
     sync_enabled: true,
+    manage_available_windows: true,
   },
   {
     id: 2,
@@ -117,6 +118,7 @@ const CALENDARS_FIXTURE: PaginatedCalendarList['results'] = [
     capacity: 10,
     visibility: 'active',
     sync_enabled: true,
+    manage_available_windows: false,
   },
   {
     id: 3,
@@ -129,6 +131,7 @@ const CALENDARS_FIXTURE: PaginatedCalendarList['results'] = [
     capacity: null,
     visibility: 'inactive',
     sync_enabled: false,
+    manage_available_windows: false,
   },
 ];
 
@@ -817,6 +820,97 @@ describe('CalendarsTable', () => {
       await waitFor(() => {
         expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
           'Failed to update sync',
+          expect.objectContaining({ description: 'Update failed' })
+        );
+      });
+    });
+  });
+
+  describe('manage-available-windows toggle', () => {
+    it('renders a manage-windows switch per row reflecting manage_available_windows', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+
+      const enabled = screen.getByRole('switch', {
+        name: /disable managing available windows for personal calendar/i,
+      });
+      const disabled = screen.getByRole('switch', {
+        name: /enable managing available windows for team resources/i,
+      });
+      expect(enabled).toHaveAttribute('aria-checked', 'true');
+      expect(disabled).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('PATCHes manage_available_windows=true when toggled on', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      vi.mocked(calendarPartialUpdate).mockResolvedValue({
+        data: { ...CALENDARS_FIXTURE[1], manage_available_windows: true },
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof calendarPartialUpdate>>);
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Team Resources')).toBeInTheDocument();
+      });
+
+      await user.click(
+        screen.getByRole('switch', {
+          name: /enable managing available windows for team resources/i,
+        })
+      );
+
+      await waitFor(() => {
+        expect(vi.mocked(calendarPartialUpdate)).toHaveBeenCalled();
+      });
+
+      const calls = vi.mocked(calendarPartialUpdate).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]?.path?.id).toBe('2');
+      expect(lastCall[0]?.body).toEqual({ manage_available_windows: true });
+
+      expect(vi.mocked(toast.success)).toHaveBeenCalledWith(
+        'Managing own windows',
+        expect.objectContaining({
+          description: expect.stringContaining('Team Resources'),
+        })
+      );
+    });
+
+    it('shows an error toast when the toggle fails', async () => {
+      vi.mocked(calendarList).mockResolvedValue(
+        makePagedResponse(CALENDARS_FIXTURE)
+      );
+      vi.mocked(calendarPartialUpdate).mockRejectedValue(
+        new Error('Update failed')
+      );
+
+      const user = userEvent.setup();
+      renderCalendarsTable();
+
+      await waitFor(() => {
+        expect(screen.getByText('Team Resources')).toBeInTheDocument();
+      });
+
+      await user.click(
+        screen.getByRole('switch', {
+          name: /enable managing available windows for team resources/i,
+        })
+      );
+
+      await waitFor(() => {
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+          'Failed to update availability windows',
           expect.objectContaining({ description: 'Update failed' })
         );
       });

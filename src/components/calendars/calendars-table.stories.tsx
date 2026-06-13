@@ -88,6 +88,7 @@ function CalendarsTableStory({
         async () => {},
         async () => {},
         async () => {},
+        async () => {},
         async () => {}
       ),
     [pendingRowIds]

@@ -25,6 +25,7 @@ import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
 import { useDeleteCalendar } from '@/hooks/calendars/use-delete-calendar';
 import { useRequestCalendarSync } from '@/hooks/calendars/use-request-calendar-sync';
 import { useToggleCalendarSync } from '@/hooks/calendars/use-toggle-calendar-sync';
+import { useToggleCalendarManageWindows } from '@/hooks/calendars/use-toggle-calendar-manage-windows';
 import { useSetCalendarVisibility } from '@/hooks/calendars/use-set-calendar-visibility';
 import { CreateCalendarDialog } from './create-calendar-dialog';
 
@@ -74,6 +75,7 @@ export function createColumns(
   onDelete: (row: Calendar) => Promise<void>,
   onSync: (row: Calendar) => Promise<void>,
   onToggleSync: (row: Calendar, next: boolean) => Promise<void>,
+  onToggleManageWindows: (row: Calendar, next: boolean) => Promise<void>,
   onToggleUnlisted: (row: Calendar) => Promise<void>
 ): DataTableColumn<Calendar>[] {
   return [
@@ -130,6 +132,18 @@ export function createColumns(
       ),
     },
     {
+      id: 'manage_available_windows',
+      header: 'Manage windows',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <ManageWindowsToggle
+          calendar={row.original}
+          isLoading={pendingRowIds.has(row.original.id)}
+          onToggleManageWindows={onToggleManageWindows}
+        />
+      ),
+    },
+    {
       id: 'actions',
       header: 'Actions',
       enableSorting: false,
@@ -162,6 +176,7 @@ export const COLUMNS = createColumns(
   async () => {},
   async () => {},
   async () => {},
+  async () => {},
   async () => {}
 );
 
@@ -185,6 +200,34 @@ function SyncToggle({ calendar, isLoading, onToggleSync }: SyncToggleProps) {
       disabled={isLoading}
       onCheckedChange={(next) => onToggleSync(calendar, next)}
       aria-label={`${enabled ? 'Disable' : 'Enable'} sync for ${calendar.name}`}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ManageWindowsToggle — per-row switch to control whether a calendar manages
+// its own available time windows. When off, it inherits the available windows
+// of the external calendar it's attached to.
+// ---------------------------------------------------------------------------
+
+interface ManageWindowsToggleProps {
+  calendar: Calendar;
+  isLoading: boolean;
+  onToggleManageWindows: (calendar: Calendar, next: boolean) => Promise<void>;
+}
+
+function ManageWindowsToggle({
+  calendar,
+  isLoading,
+  onToggleManageWindows,
+}: ManageWindowsToggleProps) {
+  const enabled = calendar.manage_available_windows ?? false;
+  return (
+    <Switch
+      checked={enabled}
+      disabled={isLoading}
+      onCheckedChange={(next) => onToggleManageWindows(calendar, next)}
+      aria-label={`${enabled ? 'Disable' : 'Enable'} managing available windows for ${calendar.name}`}
     />
   );
 }
@@ -367,6 +410,7 @@ function CalendarsTableInner() {
   const { deleteCalendar } = useDeleteCalendar();
   const { requestSync } = useRequestCalendarSync();
   const { toggleSync } = useToggleCalendarSync();
+  const { toggleManageWindows } = useToggleCalendarManageWindows();
   const { setVisibility } = useSetCalendarVisibility();
 
   // Handle sync action: track in-flight row, call hook, show toast.
@@ -500,6 +544,40 @@ function CalendarsTableInner() {
     [toggleSync]
   );
 
+  // Handle manage-available-windows toggle: track in-flight row, call hook,
+  // show toast. The row reflects the new state after list invalidation.
+  const handleToggleManageWindows = React.useCallback(
+    async (calendar: Calendar, next: boolean) => {
+      setPendingRowIds((prev) => new Set(prev).add(calendar.id));
+
+      try {
+        await toggleManageWindows(calendar.id, next);
+        toast.success(
+          next ? 'Managing own windows' : 'Inheriting external windows',
+          {
+            description: next
+              ? `${calendar.name} now manages its own available windows.`
+              : `${calendar.name} now uses its external calendar's windows.`,
+          }
+        );
+      } catch (err) {
+        toast.error('Failed to update availability windows', {
+          description:
+            err instanceof Error
+              ? err.message
+              : 'An unexpected error occurred.',
+        });
+      } finally {
+        setPendingRowIds((prev) => {
+          const next = new Set(prev);
+          next.delete(calendar.id);
+          return next;
+        });
+      }
+    },
+    [toggleManageWindows]
+  );
+
   if (isError) {
     return (
       <VStack gap={2} py={6} align='center'>
@@ -527,6 +605,7 @@ function CalendarsTableInner() {
     handleDelete,
     handleSync,
     handleToggleSync,
+    handleToggleManageWindows,
     handleToggleUnlisted
   );
 
