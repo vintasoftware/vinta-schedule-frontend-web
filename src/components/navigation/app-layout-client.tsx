@@ -230,15 +230,9 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     />
   );
 
-  const topbar = (
-    <AppTopbar title='Vinta Schedule' showSearch={false} sync={null} />
-  );
-
   return (
     <RoleProvider role={role}>
-      <AppShell sidebar={sidebar} topbar={topbar}>
-        {children}
-      </AppShell>
+      <AppShell sidebar={sidebar}>{children}</AppShell>
     </RoleProvider>
   );
 }
