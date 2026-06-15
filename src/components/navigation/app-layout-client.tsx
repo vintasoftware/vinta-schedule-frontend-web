@@ -11,6 +11,8 @@ import {
   Webhook,
 } from 'lucide-react';
 
+import { CreateOrganizationDialog } from '@/components/organizations/create-organization-dialog';
+
 import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
 import { useActiveOrganization } from '@/hooks/organizations/use-active-organization';
 import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
@@ -130,6 +132,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   // Mirrors OnboardingGate: check localStorage for token presence on mount.
   useEffect(() => {
@@ -264,12 +267,21 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
       memberships={memberships}
       activeOrgId={activeOrganizationId}
       onSelectOrg={setActive}
+      onCreateOrg={() => setCreateDialogOpen(true)}
     />
   );
 
   return (
     <RoleProvider role={role}>
       <AppShell sidebar={sidebar}>{children}</AppShell>
+      <CreateOrganizationDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onCreated={(newOrg) => {
+          setCreateDialogOpen(false);
+          setActive(String(newOrg.id));
+        }}
+      />
     </RoleProvider>
   );
 }
