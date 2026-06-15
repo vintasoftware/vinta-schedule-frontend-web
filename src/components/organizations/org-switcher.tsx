@@ -94,7 +94,7 @@ export function OrgSwitcher({
           return (
             <DropdownMenuItem
               key={m.organization.id}
-              onSelect={() => onSelect(String(m.organization.id))}
+              onSelect={() => !isActive && onSelect(String(m.organization.id))}
               className='flex items-center gap-2'
             >
               <Box
@@ -131,17 +131,13 @@ export function OrgSwitcher({
           );
         })}
         <DropdownMenuSeparator />
-        {onCreateOrg ? (
-          <DropdownMenuItem onSelect={onCreateOrg}>
-            <Plus className='size-4' />
-            New organization
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem disabled>
-            <Plus className='size-4' />
-            New organization
-          </DropdownMenuItem>
-        )}
+        <DropdownMenuItem
+          disabled={!onCreateOrg}
+          onSelect={() => onCreateOrg?.()}
+        >
+          <Plus className='size-4' />
+          New organization
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

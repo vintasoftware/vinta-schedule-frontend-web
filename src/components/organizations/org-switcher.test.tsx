@@ -198,6 +198,17 @@ describe('OrgSwitcher', () => {
       expect(typeof calledWith).toBe('string');
       expect(calledWith).toBe('2');
     });
+
+    it('does NOT call onSelect when clicking the already-active org', async () => {
+      const user = userEvent.setup();
+      // activeOrgId is '1', so Alpha Corp is the active org.
+      const { onSelect } = renderSwitcher({ activeOrgId: '1' });
+      await openDropdown(user);
+
+      await user.click(screen.getByRole('menuitem', { name: /alpha corp/i }));
+
+      expect(onSelect).not.toHaveBeenCalled();
+    });
   });
 
   // -------------------------------------------------------------------------
