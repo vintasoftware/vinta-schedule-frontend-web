@@ -18,7 +18,8 @@ export interface AppTopbarProps extends Omit<
   React.HTMLAttributes<HTMLElement>,
   'title'
 > {
-  title: React.ReactNode;
+  /** Optional — omit for a minimal bar (e.g. just a leading trigger + actions). */
+  title?: React.ReactNode;
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
   /** Leading slot — e.g. a mobile nav trigger injected by AppShell. */
@@ -58,16 +59,20 @@ const AppTopbar = React.forwardRef<HTMLElement, AppTopbarProps>(
       >
         {leading}
 
-        <div className='min-w-0'>
-          <h1 className='truncate text-[15px] leading-tight font-semibold @2xl/topbar:text-[17px]'>
-            {title}
-          </h1>
-          {subtitle ? (
-            <p className='text-muted-foreground truncate text-[12.5px] leading-tight'>
-              {subtitle}
-            </p>
-          ) : null}
-        </div>
+        {title || subtitle ? (
+          <div className='min-w-0'>
+            {title ? (
+              <h1 className='truncate text-[15px] leading-tight font-semibold @2xl/topbar:text-[17px]'>
+                {title}
+              </h1>
+            ) : null}
+            {subtitle ? (
+              <p className='text-muted-foreground truncate text-[12.5px] leading-tight'>
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className='flex-1' />
 
