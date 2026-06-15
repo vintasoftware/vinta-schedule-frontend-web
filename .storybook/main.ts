@@ -12,6 +12,17 @@ const config: StorybookConfig = {
     options: {},
   },
   staticDirs: ['../public'],
+  // When deploying to GitHub Pages the site lives under a repo subpath
+  // (e.g. /vinta-schedule-frontend-web/), so the built assets must be
+  // referenced relative to that base. STORYBOOK_BASE_PATH is set by the
+  // deploy workflow; locally it is unset and the base stays at '/'.
+  async viteFinal(config) {
+    const basePath = process.env.STORYBOOK_BASE_PATH;
+    if (basePath) {
+      config.base = basePath;
+    }
+    return config;
+  },
 };
 
 export default config;
