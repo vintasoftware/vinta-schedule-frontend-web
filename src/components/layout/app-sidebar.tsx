@@ -79,10 +79,11 @@ export interface AppSidebarProps extends React.HTMLAttributes<HTMLElement> {
   /** Called when the user selects "Log out" from the account menu. */
   onLogout?: () => void;
   /**
-   * Full list of the user's active memberships. When 2+ are provided the static
-   * org button is replaced with an interactive OrgSwitcher dropdown. When absent
-   * or empty (≤1), the existing static org button renders unchanged so single-org
-   * stories and consumers are unaffected.
+   * Full list of the user's active memberships. When 1+ are provided (with an
+   * onSelectOrg handler) the static org button is replaced with an interactive
+   * OrgSwitcher dropdown — a single-org user still needs the switcher to reach
+   * "+ New organization". When absent or empty, the existing static org button
+   * renders unchanged so design stories and consumers are unaffected.
    */
   memberships?: MyMembership[];
   /** The string id of the currently active org (e.g. "1"). */
@@ -253,7 +254,7 @@ function AppSidebarInner(
             {isDark ? 'Light mode' : 'Dark mode'}
           </Text>
         </button>
-        {memberships && memberships.length > 1 && onSelectOrg ? (
+        {memberships && memberships.length >= 1 && onSelectOrg ? (
           <OrgSwitcher
             memberships={memberships}
             activeOrgId={activeOrgId ?? null}
