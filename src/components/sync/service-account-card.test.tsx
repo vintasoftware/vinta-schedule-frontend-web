@@ -35,7 +35,7 @@ import { toast } from 'sonner';
 const mockServiceAccount: ServiceAccountRead = {
   id: 1,
   email: 'my-sa@project.iam.gserviceaccount.com',
-  audience: 'https://example.com',
+  admin_email: 'admin@example.com',
   configured: true,
   created: '2024-01-15T00:00:00Z',
   modified: '2024-06-15T00:00:00Z',
@@ -121,8 +121,8 @@ describe('ServiceAccountCard — not configured', () => {
     fireEvent.change(screen.getByTestId('service-account-email'), {
       target: { value: 'test@project.iam.gserviceaccount.com' },
     });
-    fireEvent.change(screen.getByTestId('service-account-audience'), {
-      target: { value: 'https://example.com' },
+    fireEvent.change(screen.getByTestId('service-account-admin-email'), {
+      target: { value: 'admin@example.com' },
     });
     fireEvent.change(screen.getByTestId('service-account-public-key'), {
       target: { value: '-----BEGIN CERTIFICATE-----' },
@@ -144,7 +144,7 @@ describe('ServiceAccountCard — not configured', () => {
       expect(mockSave).toHaveBeenCalledWith(
         expect.objectContaining({
           email: 'test@project.iam.gserviceaccount.com',
-          audience: 'https://example.com',
+          admin_email: 'admin@example.com',
           public_key: '-----BEGIN CERTIFICATE-----',
           private_key_id: 'key-id-123',
           private_key: '-----BEGIN RSA PRIVATE KEY-----',
@@ -169,10 +169,12 @@ describe('ServiceAccountCard — configured', () => {
     vi.mocked(useDeleteServiceAccount).mockReturnValue(makeDeleteMock());
   });
 
-  it('shows email, audience, Configured badge, and action buttons', () => {
+  it('shows email, admin_email, Configured badge, and action buttons', () => {
     render(<ServiceAccountCard />);
     expect(screen.getByText(mockServiceAccount.email)).toBeInTheDocument();
-    expect(screen.getByText(mockServiceAccount.audience)).toBeInTheDocument();
+    expect(
+      screen.getByText(mockServiceAccount.admin_email)
+    ).toBeInTheDocument();
     expect(screen.getByText('Configured')).toBeInTheDocument();
     expect(
       screen.getByTestId('rotate-service-account-button')
@@ -207,8 +209,8 @@ describe('ServiceAccountCard — configured', () => {
     fireEvent.change(screen.getByTestId('service-account-email'), {
       target: { value: 'rotated@project.iam.gserviceaccount.com' },
     });
-    fireEvent.change(screen.getByTestId('service-account-audience'), {
-      target: { value: 'https://example.com' },
+    fireEvent.change(screen.getByTestId('service-account-admin-email'), {
+      target: { value: 'admin@example.com' },
     });
     fireEvent.change(screen.getByTestId('service-account-public-key'), {
       target: { value: '-----BEGIN CERTIFICATE-----' },
@@ -303,8 +305,8 @@ describe('ServiceAccountCard — configured', () => {
     fireEvent.change(screen.getByTestId('service-account-email'), {
       target: { value: 'test@project.iam.gserviceaccount.com' },
     });
-    fireEvent.change(screen.getByTestId('service-account-audience'), {
-      target: { value: 'https://example.com' },
+    fireEvent.change(screen.getByTestId('service-account-admin-email'), {
+      target: { value: 'admin@example.com' },
     });
     fireEvent.change(screen.getByTestId('service-account-public-key'), {
       target: { value: '-----BEGIN CERTIFICATE-----' },

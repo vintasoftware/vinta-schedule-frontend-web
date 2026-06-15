@@ -6,7 +6,7 @@
  * States:
  *  - Loading: skeleton placeholder.
  *  - Not configured: empty state + "Configure" button that opens the form dialog.
- *  - Configured: shows email, audience, "Configured" badge, created/modified dates.
+ *  - Configured: shows email, admin_email, "Configured" badge, created/modified dates.
  *    Offers "Rotate credentials" (open form, pre-fills only non-secret fields) and
  *    "Remove" (AlertDialog confirmation).
  *
@@ -19,7 +19,7 @@
  *
  * Optional: "Paste service-account JSON" textarea to best-effort populate
  * email ← client_email, private_key ← private_key, private_key_id ← private_key_id
- * from a pasted Google service-account JSON. audience and public_key require manual entry.
+ * from a pasted Google service-account JSON. admin_email and public_key require manual entry.
  */
 
 import * as React from 'react';
@@ -76,7 +76,11 @@ const serviceAccountSchema = z.object({
     .trim()
     .min(1, { message: 'Email is required' })
     .email({ message: 'Must be a valid email address' }),
-  audience: z.string().trim().min(1, { message: 'Audience is required' }),
+  admin_email: z
+    .string()
+    .trim()
+    .min(1, { message: 'Admin email is required' })
+    .email({ message: 'Must be a valid email address' }),
   public_key: z.string().trim().min(1, { message: 'Public key is required' }),
   private_key_id: z
     .string()
@@ -110,7 +114,7 @@ function ServiceAccountFormDialog({
     resolver: zodResolver(serviceAccountSchema),
     defaultValues: {
       email: '',
-      audience: '',
+      admin_email: '',
       public_key: '',
       private_key_id: '',
       private_key: '',
@@ -120,7 +124,7 @@ function ServiceAccountFormDialog({
   // ---------------------------------------------------------------------------
   // Optional: paste Google service-account JSON for convenience.
   // Best-effort: maps client_email→email, private_key→private_key,
-  // private_key_id→private_key_id. audience and public_key require manual entry.
+  // private_key_id→private_key_id. admin_email and public_key require manual entry.
   // The textarea is cleared on close (see below effect).
   // ---------------------------------------------------------------------------
   const [pasteJson, setPasteJson] = React.useState('');
@@ -240,17 +244,17 @@ function ServiceAccountFormDialog({
 
             <FormField
               control={form.control}
-              name='audience'
+              name='admin_email'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Audience</FormLabel>
+                  <FormLabel>Admin email</FormLabel>
                   <FormControl>
                     <Input
-                      type='text'
-                      placeholder='https://example.com'
+                      type='email'
+                      placeholder='admin@yourdomain.com'
                       autoComplete='off'
                       {...field}
-                      data-testid='service-account-audience'
+                      data-testid='service-account-admin-email'
                     />
                   </FormControl>
                   <FormMessage />
@@ -417,10 +421,10 @@ export function ServiceAccountCard() {
 
               <VStack gap={1}>
                 <Text size='sm' color='muted-foreground'>
-                  Audience
+                  Admin email
                 </Text>
                 <Text size='sm' weight='medium'>
-                  {serviceAccount.audience}
+                  {serviceAccount.admin_email}
                 </Text>
               </VStack>
 
