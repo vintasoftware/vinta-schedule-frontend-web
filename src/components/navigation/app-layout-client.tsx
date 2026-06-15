@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
+import { useActiveOrganization } from '@/hooks/organizations/use-active-organization';
 import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
 import { useProfile } from '@/hooks/users/use-profile';
 import { useLogout } from '@/hooks/authentication/use-logout';
@@ -143,6 +144,14 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
       enabled: authChecked && isAuthenticated,
     });
 
+  // Bootstrap the active-org selection. Runs only for authenticated users so
+  // mine/ is not fetched on public/auth pages. The hook auto-resolves single-org
+  // users, heals stale stored ids, and surfaces needsSelection for Phase 3b.
+  const { isLoading: isActiveOrgLoading, needsSelection } =
+    useActiveOrganization({
+      enabled: authChecked && isAuthenticated,
+    });
+
   // Logged-in user: real name from the profile API (JWT-auth), email from the
   // allauth session (the profile endpoint doesn't expose it).
   const { profile } = useProfile({ enabled: authChecked && isAuthenticated });
@@ -180,9 +189,16 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  if (isLoading || isGated || isDisabled) {
+  // Wait for both the current-org check and the mine/ list to resolve before
+  // rendering tenant views. isActiveOrgLoading ensures the bootstrap effect has
+  // had a chance to prime the X-Organization-Id header for single-org users.
+  // needsSelection is surfaced here so Phase 3b can add the redirect effect.
+  if (isLoading || isActiveOrgLoading || isGated || isDisabled) {
     return <LoadingView />;
   }
+
+  // needsSelection: Phase 3b will add a redirect effect here.
+  void needsSelection;
 
   if (isError) {
     // Unexpected error: show a neutral loading state while a redirect (if any)
