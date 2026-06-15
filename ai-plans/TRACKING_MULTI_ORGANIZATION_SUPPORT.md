@@ -15,12 +15,19 @@
 ## Environment notes
 
 - **Baseline (pre-implementation)**: typecheck clean; full suite 728 passed / 76 files.
-- **Dirty-tree decision**: an uncommitted client regen (schema.yml + src/client/\* + auth-client) was
-  folded into the **Phase 1 base** (commit `chore(client): regenerate API client…`). An unrelated
-  **notifications WIP** (app-topbar, app-layout-client, service-account-card, use-service-account,
-  untracked notifications/ dirs) is left riding in the working tree per user decision — must NOT be
-  staged into any phase commit. Watch for it in `git status`; stage explicitly only.
+- **Dirty-tree decision (revised)**: the uncommitted client regen (schema.yml + src/client/\* +
+  auth-client) was folded into the **Phase 1 base**. The WIP that rode in the tree split two ways:
+  - **service-account** (`service-account-card.*`, `use-service-account.*`) was **regen reconciliation**
+    — backend renamed `audience` → `admin_email`; the committed regen does NOT typecheck without it.
+    Committed onto Phase 1 (`fix(service-accounts): Rename audience to admin_email…`, a5f4f68); Phase 2
+    rebased on top; both force-pushed.
+  - **notifications WIP** (`app-topbar.tsx`, `app-layout-client.tsx`, untracked `notifications/` dirs) is
+    **stashed** (`stash@{0}` "notifications WIP (parked during multi-org plan)") for the plan's duration
+    — it collided with app-layout-client.tsx edits in Phases 3a/3b/6/9. **Restore at plan end** via
+    `git stash pop` of that entry (NOT `stash@{1}`, which belongs to another branch). Per user.
 - **Phase 0 (regen)**: folded into Phase 1 base; no separate Phase 0 PR.
+- **Format gate**: `main` is not prettier-clean, so repo-wide `npm run format` is red on pre-existing
+  files. Agents run prettier scoped to their own files; the gate is per-file, not repo-wide.
 
 ## Feature flag
 
@@ -57,13 +64,27 @@ None — shipped unflagged (Guiding Decisions). No flag-removal phase.
   `enabled:false` test (real proof is `not.toHaveBeenCalled`), unused `Response` in a mock helper,
   untyped `enabled` param. Outer gate: typecheck clean, 749 tests.
 
+### Phase 3a — Active-org selection hook + bootstrap ✅
+
+- **Status**: PR [#47](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/47) (base: phase-2)
+- **Branch**: `plan/multi-organization-support/phase-3a`
+- **Model**: Tier 3 → `claude-sonnet-4-6` (impl + fix)
+- **Commits**: `feat(organizations): Bootstrap active organization selection on load` · `refactor(organizations): Memoize setActive and harden bootstrap convergence`
+- **Summary**: `useActiveOrganization` reads the store via `useSyncExternalStore`, derives
+  `activeMembership`, bootstraps (single-org auto-resolve, stale self-heal in one write, multi-org
+  left unset → `needsSelection`), exposes memoized `setActive` (store + invalidate-all). Mounted in
+  `app-layout-client.tsx`; loading guard waits on `mine/`. No redirect yet (`void needsSelection`).
+- **Review**: no BLOCKER. Reviewer verified no render-loop + no LoadingView deadlock. Fix-up:
+  memoized setActive, collapsed stale-then-single into one write (no transient null), `waitFor`
+  instead of flaky timer, added 2 convergence/no-loop tests (verified non-vacuous). 758 tests.
+- **Note**: first agent turn was cut off mid-work; resumed same agent to finish + commit.
+
 ## Current Phase
 
-- **Phase 3a — Active-org selection hook + bootstrap** — pending app-layout-client.tsx collision decision.
+- **Phase 3b — Login-time org selection gate + auth page** — starting.
 
 ## Remaining Phases
 
-- Phase 3a — Active-org selection hook + bootstrap
 - Phase 3b — Login-time org selection gate + auth page
 - Phase 4 — Sidebar org switcher dropdown
 - Phase 5 — Create another organization from the switcher
