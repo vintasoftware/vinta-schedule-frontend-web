@@ -32,6 +32,7 @@ import {
   getActiveOrganizationId,
   setActiveOrganizationId,
   clearActiveOrganization,
+  subscribeActiveOrganization,
   ACTIVE_ORGANIZATION_STORAGE_KEY,
 } from '@/lib/active-organization';
 import { useActiveOrganization } from './use-active-organization';
@@ -264,11 +265,65 @@ describe('useActiveOrganization', () => {
       { wrapper: Wrapper }
     );
 
-    // Give effects time to run (they should not).
-    await new Promise((r) => setTimeout(r, 30));
+    // Use a deterministic wait: confirm the query was never called.
+    await waitFor(() => expect(organizationsMineList).not.toHaveBeenCalled());
 
-    expect(organizationsMineList).not.toHaveBeenCalled();
     expect(result.current.activeOrganizationId).toBeNull();
     expect(result.current.needsSelection).toBe(false);
+  });
+
+  // -------------------------------------------------------------------------
+  // No-loop / convergence: store write fires exactly once per single-org user
+  // -------------------------------------------------------------------------
+
+  it('bootstrap converges for a single-org user with empty storage (store never emits null)', async () => {
+    vi.mocked(organizationsMineList).mockResolvedValue(
+      makeListResponse([FIXTURE_MEMBERSHIP_1])
+    );
+
+    // Subscribe to the store before the hook mounts to capture every value
+    // transition. The store notifies on every write that changes the value.
+    const storeTransitions: Array<string | null> = [];
+    const unsubscribe = subscribeActiveOrganization(() => {
+      storeTransitions.push(getActiveOrganizationId());
+    });
+
+    const { Wrapper } = makeQueryWrapper();
+    renderHook(() => useActiveOrganization(), { wrapper: Wrapper });
+
+    // Wait for the bootstrap to settle.
+    await waitFor(() => expect(getActiveOrganizationId()).toBe('1'));
+
+    unsubscribe();
+
+    // Exactly one transition: null → '1'. No redundant re-fires after settling.
+    expect(storeTransitions).toEqual(['1']);
+  });
+
+  it('bootstrap converges for a single-org user with a stale id: one transition, never emits null', async () => {
+    // Stale id — not in the memberships list.
+    setActiveOrganizationId('999');
+
+    vi.mocked(organizationsMineList).mockResolvedValue(
+      makeListResponse([FIXTURE_MEMBERSHIP_1])
+    );
+
+    // Subscribe AFTER the stale write so we only see bootstrap-driven transitions.
+    const storeTransitions: Array<string | null> = [];
+    const unsubscribe = subscribeActiveOrganization(() => {
+      storeTransitions.push(getActiveOrganizationId());
+    });
+
+    const { Wrapper } = makeQueryWrapper();
+    renderHook(() => useActiveOrganization(), { wrapper: Wrapper });
+
+    // Wait for the heal to settle.
+    await waitFor(() => expect(getActiveOrganizationId()).toBe('1'));
+
+    unsubscribe();
+
+    // Exactly one transition: '999' → '1'. No transient null (clear) before
+    // the set — the interceptor must never observe null here.
+    expect(storeTransitions).toEqual(['1']);
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -67,33 +67,41 @@ export function useActiveOrganization({ enabled = true } = {}) {
       storedId !== null &&
       memberships.some((m) => String(m.organization.id) === storedId);
 
-    if (storedId !== null && !storedIsValid) {
-      // Stale stored id (e.g. membership was deactivated): clear it.
-      clearActiveOrganization();
-      // After clearing, re-evaluate single/multi rule:
-      if (memberships.length === 1) {
-        setActiveOrganizationId(String(memberships[0].organization.id));
+    if (memberships.length === 1) {
+      // Single-org user: always land on exactly one store write. A non-null
+      // overwrite IS the heal for a stale id — no need to clear first.
+      // setActiveOrganizationId is a no-op when the value is already correct,
+      // which prevents an infinite subscribe→render cycle.
+      const targetId = String(memberships[0].organization.id);
+      if (storedId !== targetId) {
+        setActiveOrganizationId(targetId);
       }
-      // 2+ memberships with no valid id → leave unset; needsSelection handles it
       return;
     }
 
-    if (activeMembership === null && memberships.length === 1) {
-      // Single-org user with no valid stored id: auto-resolve.
-      // Use setActiveOrganizationId directly — no need to invalidate-all at
-      // first paint (no prior org in flight).
-      setActiveOrganizationId(String(memberships[0].organization.id));
+    if (storedId !== null && !storedIsValid) {
+      // Stale stored id with 2+ memberships (or 0): clear it.
+      // 2+ memberships with no valid id → leave unset; needsSelection handles it.
+      // 0 memberships (gated) → leave unset (handled by isGated/onboarding gate).
+      clearActiveOrganization();
+      return;
     }
+
     // 2+ memberships and no valid selection → leave unset (needsSelection).
     // 0 memberships (gated) → leave unset (handled by isGated/onboarding gate).
-  }, [enabled, isLoading, isError, memberships, activeMembership]);
+    // Valid stored id → no action needed (storedIsValid guard above).
+  }, [enabled, isLoading, isError, memberships]);
 
   // setActive: for mid-session switches. Writes the store and flushes all
   // tenant-scoped caches so queries refetch under the new X-Organization-Id.
-  function setActive(id: string) {
-    setActiveOrganizationId(id);
-    queryClient.invalidateQueries();
-  }
+  // Memoized so Phase 3b/4 callers can safely put it in effect/callback deps.
+  const setActive = useCallback(
+    (id: string) => {
+      setActiveOrganizationId(id);
+      queryClient.invalidateQueries();
+    },
+    [queryClient]
+  );
 
   // needsSelection: true when an authenticated multi-org user has no valid
   // stored selection after mine/ has resolved. Phase 3b uses this to gate.
