@@ -92,13 +92,26 @@ None — shipped unflagged (Guiding Decisions). No flag-removal phase.
   `isError` as neutral (don't bounce multi-org user to onboarding on a blip) + negative test
   assertions. 766 tests.
 
+### Phase 4 — Sidebar org switcher dropdown ✅
+
+- **Status**: PR [#49](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/49) (base: phase-3b)
+- **Branch**: `plan/multi-organization-support/phase-4`
+- **Model**: Tier 3 → `claude-sonnet-4-6` (impl + fix)
+- **Commits**: `feat(organizations): Add sidebar organization switcher` · `refactor(organizations): Guard self-select and simplify create item in switcher`
+- **Summary**: Presentational `OrgSwitcher` (DropdownMenu, props-only); `app-sidebar` renders it when
+  2+ memberships + `onSelectOrg`, else the unchanged static button; `app-layout-client` wires
+  `setActive`. Select → `setActive(String id)` → store + invalidate-all. Disabled "+ New org" until
+  Phase 5. Storybook stories added.
+- **Review**: no BLOCKER; string-ids, single-org regression, Radix-portal test non-vacuity verified.
+  Fix-up: guard self-select (avoid wasteful refetch), collapse duplicate create-item markup. 778 tests.
+
 ## Current Phase
 
-- **Phase 4 — Sidebar org switcher dropdown** — starting.
+- **Phase 5 — Create another organization from the switcher** — starting.
 
 ## Remaining Phases
 
-- Phase 4 — Sidebar org switcher dropdown
+- Phase 5 — Create another organization from the switcher
 - Phase 5 — Create another organization from the switcher
 - Phase 6 — Gated onboarding drives off `mine/`
 - Phase 7 — Accept invitation into an additional org
