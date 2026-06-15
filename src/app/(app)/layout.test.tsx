@@ -290,5 +290,47 @@ describe('AppLayout (integration)', () => {
 
       expect(replace).not.toHaveBeenCalledWith('/auth/select-organization');
     });
+
+    // isMineGated in isolation: current/ returns 200 (not 404/403) but mine/
+    // returns [] — the empty mine/ list alone must be enough to gate the user
+    // and redirect to /auth/onboarding.
+    it('redirects to /auth/onboarding when mine/ is empty even if current/ is not 404', async () => {
+      // current/ says "onboarded" (200), but mine/ returns an empty list.
+      // isMineGated must still gate the user toward onboarding.
+      mockOrgSuccess(MEMBER_MEMBERSHIP);
+      mockMineEmpty();
+      renderLayout();
+
+      await waitFor(() => {
+        expect(replace).toHaveBeenCalledWith('/auth/onboarding');
+      });
+
+      // Shell must not be shown while redirecting.
+      expect(screen.queryByAltText('Vinta')).not.toBeInTheDocument();
+    });
+  });
+
+  // Phase 6 BLOCKER: disabled + empty mine/ must be mutually exclusive.
+  // A disabled user (403 from current/) with an empty mine/ list must go to
+  // /no-access ONLY — never to /auth/onboarding.
+  describe('disabled user with empty mine/ (collision guard)', () => {
+    beforeEach(() => {
+      setSessionActiveCookie();
+    });
+
+    it('redirects to /no-access and NOT /auth/onboarding when disabled and mine/ is empty', async () => {
+      // current/ 403 (isDisabled=true) + mine/ empty (isMineGated=true).
+      // isDisabled must take precedence: only /no-access should fire.
+      mockOrg403();
+      mockMineEmpty();
+      renderLayout();
+
+      await waitFor(() => {
+        expect(replace).toHaveBeenCalledWith('/no-access');
+      });
+
+      // The onboarding redirect must never fire for a disabled user.
+      expect(replace).not.toHaveBeenCalledWith('/auth/onboarding');
+    });
   });
 });

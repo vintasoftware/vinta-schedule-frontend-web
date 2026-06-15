@@ -51,9 +51,10 @@ export default function OnboardingPage() {
     try {
       const newOrg = await createOrganization({ name });
       // Prime X-Organization-Id before entering the app so the first tenant
-      // request carries the header (UC4a). setActive also invalidates all
-      // tenant queries, but there are none yet — the call is side-effect-free
-      // for a user who just completed onboarding.
+      // request carries the header (UC4a). setActive calls
+      // queryClient.invalidateQueries() (unfiltered), which is a cheap blanket
+      // invalidation — harmless here because no tenant queries have fired yet,
+      // but it is not side-effect-free.
       setActive(String(newOrg.id));
       // Now an ADMIN of a fresh org — back to the app.
       router.replace('/');

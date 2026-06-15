@@ -182,18 +182,36 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Redirect org-less authenticated users to onboarding (not back into (app)).
-  // Two authoritative signals for "no memberships":
+  // Single authoritative "send to onboarding" signal — combines both sources of
+  // "no memberships" while ensuring isDisabled takes precedence:
   //   • isGated — useCurrentOrganization returned 404 (current/ not onboarded)
   //   • isMineGated — mine/ returned [] (authoritative per plan Guiding Decisions)
-  // Guard against the mine/ error case so a transient network failure does not
-  // mistakenly bounce a real multi-org user to onboarding.
-  // Both fire router.replace('/auth/onboarding') — idempotent, no loop risk.
+  // isDisabled (403 → /no-access) wins over both: a disabled user is NEVER sent
+  // to onboarding, even if mine/ is also empty.
+  // authChecked && isAuthenticated: both queries are disabled until auth is
+  // confirmed. Before that, isMineGated defaults to true (empty memberships
+  // array) and isActiveOrgLoading is false (disabled query never fetches) —
+  // which would falsely trigger isOnboardingGated. Gate on auth confirmation so
+  // we never evaluate gating signals for unauthenticated/unconfirmed sessions.
+  // !isLoading guards the isMineGated path against a race where mine/ resolves
+  // before current/: we must know current/'s status (especially disabled) before
+  // acting on mine/. Guard against transient mine/ errors so a network failure
+  // doesn't bounce a real user to onboarding.
+  const isOnboardingGated =
+    authChecked &&
+    isAuthenticated &&
+    !isDisabled &&
+    (isGated ||
+      (!isLoading && isMineGated && !isActiveOrgLoading && !isActiveOrgError));
+
+  // Redirect org-less (but not disabled) users to onboarding.
+  // idempotent, no loop risk; isDisabled precedence prevents double-redirect
+  // to both /auth/onboarding and /no-access in the same render.
   useEffect(() => {
-    if (isGated || (isMineGated && !isActiveOrgLoading && !isActiveOrgError)) {
+    if (isOnboardingGated) {
       router.replace('/auth/onboarding');
     }
-  }, [isGated, isMineGated, isActiveOrgLoading, isActiveOrgError, router]);
+  }, [isOnboardingGated, router]);
 
   // Disabled membership (403): route to /no-access — lives outside (app) to
   // avoid re-running this layout and triggering an infinite redirect loop.
@@ -217,21 +235,18 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Wait for both the current-org check and the mine/ list to resolve before
-  // rendering tenant views. isActiveOrgLoading ensures the bootstrap effect has
-  // had a chance to prime the X-Organization-Id header for single-org users.
-  // needsSelection is included so tenant views don't flash before the redirect
-  // fires (the effect above will replace to /auth/select-organization).
-  // Render guard: hold LoadingView while any gating signal is active or
-  // redirects are in-flight. isMineGated is included (when mine/ has resolved
-  // without error) so tenant views don't flash before the onboarding redirect.
-  const mineGatedAndResolved =
-    isMineGated && !isActiveOrgLoading && !isActiveOrgError;
+  // Render guard: hold LoadingView while any gating signal is active or a
+  // redirect is in-flight. isOnboardingGated covers both isGated and the
+  // resolved-isMineGated case so tenant views don't flash before the onboarding
+  // redirect fires. isDisabled is listed separately so disabled users also hold
+  // LoadingView while the /no-access redirect fires.
+  // isActiveOrgLoading ensures the bootstrap effect has had a chance to prime
+  // the X-Organization-Id header for single-org users.
+  // needsSelection keeps tenant views from flashing before /auth/select-organization.
   if (
     isLoading ||
     isActiveOrgLoading ||
-    isGated ||
-    mineGatedAndResolved ||
+    isOnboardingGated ||
     isDisabled ||
     needsSelection
   ) {
