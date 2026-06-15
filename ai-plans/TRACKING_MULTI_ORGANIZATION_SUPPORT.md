@@ -45,9 +45,21 @@ None — shipped unflagged (Guiding Decisions). No flag-removal phase.
   agent produced (main is not prettier-clean). Going forward, agents run prettier scoped to their
   own files only — never `npm run format:fix`.
 
+### Phase 2 — `useMyOrganizations` hook (`mine/`) ✅
+
+- **Status**: PR [#46](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/46) (base: phase-1)
+- **Branch**: `plan/multi-organization-support/phase-2`
+- **Model**: Tier 2 → `claude-haiku-4-5`
+- **Commit**: `feat(organizations): Add useMyOrganizations hook for mine endpoint`
+- **Summary**: `src/hooks/organizations/use-my-organizations.ts` wraps `organizationsMineListOptions`,
+  exports `MY_ORGANIZATIONS_QUERY_KEY`, derives `isGated`/`isMultiOrg`. Bare-array response.
+- **Review**: reviewer clean (no BLOCKER/SHOULD-FIX). 3 NITs left as-is: flaky-prone timer in the
+  `enabled:false` test (real proof is `not.toHaveBeenCalled`), unused `Response` in a mock helper,
+  untyped `enabled` param. Outer gate: typecheck clean, 749 tests.
+
 ## Current Phase
 
-- **Phase 2 — `useMyOrganizations` hook (`mine/`)** — starting.
+- **Phase 3a — Active-org selection hook + bootstrap** — pending app-layout-client.tsx collision decision.
 
 ## Remaining Phases
 
