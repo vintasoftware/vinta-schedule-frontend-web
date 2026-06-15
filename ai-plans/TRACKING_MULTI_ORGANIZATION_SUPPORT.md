@@ -118,13 +118,26 @@ None — shipped unflagged (Guiding Decisions). No flag-removal phase.
   (setActive correct) + onboarding backward-compat. Fix-up: max-255 test, VStack primitive, story
   cleanup. 793 tests.
 
+### Phase 6 — Gated onboarding drives off `mine/` ✅
+
+- **Status**: PR [#51](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/51) (base: phase-5)
+- **Branch**: `plan/multi-organization-support/phase-6`
+- **Model**: Tier 3 → `claude-sonnet-4-6` (impl + fix)
+- **Commits**: `feat(organizations): Drive gated onboarding off mine/ and set new org active` · `fix(organizations): Make onboarding gate mutually exclusive with disabled redirect`
+- **Summary**: `isMineGated` (mine/ empty) drives onboarding redirect via one `isOnboardingGated`
+  boolean (reused by effect + render guard); disabled wins precedence. Onboarding primes
+  `setActive(String(newOrg.id))` before `/`.
+- **Review**: caught + fixed a **BLOCKER** — `isMineGated` wasn't mutually exclusive with `isDisabled`
+  (disabled + empty mine ⇒ double-redirect). Fix: `!isDisabled` precedence + auth/loading guards (also
+  closed a latent first-render false-redirect); added isolation + collision tests (non-vacuous). 804 tests.
+
 ## Current Phase
 
-- **Phase 6 — Gated onboarding drives off `mine/`** — starting.
+- **Phase 7 — Accept invitation into an additional org** — starting.
 
 ## Remaining Phases
 
-- Phase 6 — Gated onboarding drives off `mine/`
+- Phase 7 — Accept invitation into an additional org
 - Phase 5 — Create another organization from the switcher
 - Phase 6 — Gated onboarding drives off `mine/`
 - Phase 7 — Accept invitation into an additional org
