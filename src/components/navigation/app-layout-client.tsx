@@ -147,10 +147,15 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   // Bootstrap the active-org selection. Runs only for authenticated users so
   // mine/ is not fetched on public/auth pages. The hook auto-resolves single-org
   // users, heals stale stored ids, and surfaces needsSelection for Phase 3b.
-  const { isLoading: isActiveOrgLoading, needsSelection } =
-    useActiveOrganization({
-      enabled: authChecked && isAuthenticated,
-    });
+  const {
+    isLoading: isActiveOrgLoading,
+    needsSelection,
+    memberships,
+    activeOrganizationId,
+    setActive,
+  } = useActiveOrganization({
+    enabled: authChecked && isAuthenticated,
+  });
 
   // Logged-in user: real name from the profile API (JWT-auth), email from the
   // allauth session (the profile endpoint doesn't expose it).
@@ -256,6 +261,9 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
       userInitials={initialsFromName(userName)}
       userPicture={profile?.profile_picture ?? undefined}
       onLogout={handleLogout}
+      memberships={memberships}
+      activeOrgId={activeOrganizationId}
+      onSelectOrg={setActive}
     />
   );
 
