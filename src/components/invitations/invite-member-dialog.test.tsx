@@ -58,6 +58,13 @@ function makeQueryClient() {
   });
 }
 
+// Fill the mandatory first/last name fields so the form passes validation and
+// reaches the duplicate-check / create flow.
+async function fillNames(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText(/first name/i), 'Alice');
+  await user.type(screen.getByLabelText(/last name/i), 'Souza');
+}
+
 function renderDialog(open = true, onOpenChange = vi.fn()) {
   const queryClient = makeQueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -226,6 +233,7 @@ describe('InviteMemberDialog', () => {
 
       renderDialog(true, onOpenChange);
 
+      await fillNames(user);
       await user.type(screen.getByLabelText(/email address/i), 'new@acme.com');
       await user.click(
         screen.getByRole('button', { name: /send invitation/i })
@@ -239,6 +247,8 @@ describe('InviteMemberDialog', () => {
       // Verify the body passed to create.
       const createArgs = vi.mocked(invitationsCreate).mock.calls[0][0];
       expect(createArgs?.body?.email).toBe('new@acme.com');
+      expect(createArgs?.body?.first_name).toBe('Alice');
+      expect(createArgs?.body?.last_name).toBe('Souza');
 
       // Dialog should close.
       expect(onOpenChange).toHaveBeenCalledWith(false);
@@ -262,6 +272,7 @@ describe('InviteMemberDialog', () => {
       const user = userEvent.setup();
       renderDialog();
 
+      await fillNames(user);
       await user.type(
         screen.getByLabelText(/email address/i),
         'fresh@acme.com'
@@ -294,6 +305,7 @@ describe('InviteMemberDialog', () => {
 
       renderDialog();
 
+      await fillNames(user);
       await user.type(
         screen.getByLabelText(/email address/i),
         'alice@acme.com'
@@ -331,6 +343,7 @@ describe('InviteMemberDialog', () => {
 
       renderDialog(true, onOpenChange);
 
+      await fillNames(user);
       await user.type(
         screen.getByLabelText(/email address/i),
         'alice@acme.com'
@@ -405,6 +418,7 @@ describe('InviteMemberDialog', () => {
 
       renderDialog();
 
+      await fillNames(user);
       await user.type(
         screen.getByLabelText(/email address/i),
         'alice@acme.com'
@@ -439,6 +453,7 @@ describe('InviteMemberDialog', () => {
 
       renderDialog();
 
+      await fillNames(user);
       await user.type(
         screen.getByLabelText(/email address/i),
         'pending@acme.com'
@@ -479,6 +494,7 @@ describe('InviteMemberDialog', () => {
 
       renderDialog();
 
+      await fillNames(user);
       await user.type(
         screen.getByLabelText(/email address/i),
         'double@acme.com'

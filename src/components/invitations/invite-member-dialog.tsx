@@ -33,6 +33,14 @@ import { invitationsList } from '@/client/sdk.gen';
 // ---------------------------------------------------------------------------
 
 const inviteMemberSchema = z.object({
+  firstName: z
+    .string()
+    .trim()
+    .min(1, { message: 'First name is required' }),
+  lastName: z
+    .string()
+    .trim()
+    .min(1, { message: 'Last name is required' }),
   // .trim() normalises whitespace before validation so leading/trailing spaces
   // can't cause a false "new" invite when the same address was already invited.
   email: z
@@ -99,7 +107,7 @@ export function InviteMemberDialog({
 
   const form = useForm<InviteMemberSchema>({
     resolver: zodResolver(inviteMemberSchema),
-    defaultValues: { email: '' },
+    defaultValues: { firstName: '', lastName: '', email: '' },
   });
 
   // Reset dialog state when it opens/closes.
@@ -172,7 +180,11 @@ export function InviteMemberDialog({
 
     // 2b. No duplicate — create the invitation.
     try {
-      await createInvitation({ email: values.email });
+      await createInvitation({
+        email: values.email,
+        first_name: values.firstName,
+        last_name: values.lastName,
+      });
       toast.success('Invitation sent', {
         description: `An invitation was sent to ${values.email}.`,
       });
@@ -220,6 +232,44 @@ export function InviteMemberDialog({
             className='flex flex-col gap-4'
             noValidate
           >
+            <FormField
+              control={form.control}
+              name='firstName'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>First name</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='text'
+                      autoComplete='given-name'
+                      placeholder='Jane'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='lastName'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last name</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='text'
+                      autoComplete='family-name'
+                      placeholder='Doe'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name='email'
