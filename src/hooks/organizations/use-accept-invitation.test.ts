@@ -4,10 +4,12 @@
  * Covers:
  * - On success: invalidates MY_ORGANIZATIONS_QUERY_KEY and
  *   CURRENT_ORGANIZATION_QUERY_KEY.
- * - On success: detects the newly-joined org via cache-diff and calls
+ * - On success: detects the newly-joined org via fetchQuery diff and calls
  *   setActiveOrganizationId with the new org's id.
- * - When no new org can be detected (e.g. already had it), leaves selection
- *   unchanged (setActiveOrganizationId NOT called with a new id).
+ * - WARM-LOAD: user had org A, accepted invite into org B → switches to B.
+ * - COLD-LOAD: user had no orgs (before=[]), accepted → switches to B.
+ * - AMBIGUOUS: two new orgs appear → does NOT call setActiveOrganizationId.
+ * - When no new org is detected (already had both), leaves selection unchanged.
  * - isAlreadyMemberError returns true for the new message "User is already a
  *   member of this organization." and for the DRF code
  *   "user_already_has_membership".
@@ -30,6 +32,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     invitationsAcceptCreate: vi.fn(),
+    organizationsMineList: vi.fn(),
   };
 });
 
@@ -49,7 +52,10 @@ vi.mock('@/lib/active-organization', async (importOriginal) => {
   };
 });
 
-import { invitationsAcceptCreate } from '@/client/sdk.gen';
+import {
+  invitationsAcceptCreate,
+  organizationsMineList,
+} from '@/client/sdk.gen';
 import { CURRENT_ORGANIZATION_QUERY_KEY } from './use-current-organization';
 import { MY_ORGANIZATIONS_QUERY_KEY } from './use-my-organizations';
 import {
@@ -73,7 +79,11 @@ const MEMBERSHIP_B: MyMembership = {
   role: 'member',
 };
 
-function makeSuccessResponse(
+// ---------------------------------------------------------------------------
+// SDK response helpers
+// ---------------------------------------------------------------------------
+
+function makeAcceptResponse(
   data: AcceptInvitation
 ): Awaited<ReturnType<typeof invitationsAcceptCreate>> {
   return {
@@ -83,6 +93,18 @@ function makeSuccessResponse(
       headers: { 'Content-Type': 'application/json' },
     }),
   } as unknown as Awaited<ReturnType<typeof invitationsAcceptCreate>>;
+}
+
+function makeMineListResponse(
+  data: MyMembership[]
+): Awaited<ReturnType<typeof organizationsMineList>> {
+  return {
+    data,
+    response: new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  } as unknown as Awaited<ReturnType<typeof organizationsMineList>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -183,8 +205,14 @@ describe('useAcceptInvitation', () => {
 
   it('invalidates MY_ORGANIZATIONS_QUERY_KEY on success', async () => {
     vi.mocked(invitationsAcceptCreate).mockResolvedValue(
-      makeSuccessResponse(ACCEPT_TOKEN_RESPONSE)
+      makeAcceptResponse(ACCEPT_TOKEN_RESPONSE)
     );
+    // before: [A], after: [A, B]
+    vi.mocked(organizationsMineList)
+      .mockResolvedValueOnce(makeMineListResponse([MEMBERSHIP_A]))
+      .mockResolvedValueOnce(
+        makeMineListResponse([MEMBERSHIP_A, MEMBERSHIP_B])
+      );
 
     const queryClient = makeQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
@@ -210,8 +238,14 @@ describe('useAcceptInvitation', () => {
 
   it('invalidates CURRENT_ORGANIZATION_QUERY_KEY on success', async () => {
     vi.mocked(invitationsAcceptCreate).mockResolvedValue(
-      makeSuccessResponse(ACCEPT_TOKEN_RESPONSE)
+      makeAcceptResponse(ACCEPT_TOKEN_RESPONSE)
     );
+    // before: [A], after: [A, B]
+    vi.mocked(organizationsMineList)
+      .mockResolvedValueOnce(makeMineListResponse([MEMBERSHIP_A]))
+      .mockResolvedValueOnce(
+        makeMineListResponse([MEMBERSHIP_A, MEMBERSHIP_B])
+      );
 
     const queryClient = makeQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
@@ -235,38 +269,53 @@ describe('useAcceptInvitation', () => {
     });
   });
 
-  it('calls setActiveOrganizationId with the new org id detected via cache-diff', async () => {
+  // -------------------------------------------------------------------------
+  // WARM-LOAD: user already had org A, accepts invite into org B → switches to B
+  // -------------------------------------------------------------------------
+
+  it('WARM-LOAD: calls setActiveOrganizationId with B when user had A before and B appears after', async () => {
     vi.mocked(invitationsAcceptCreate).mockResolvedValue(
-      makeSuccessResponse(ACCEPT_TOKEN_RESPONSE)
+      makeAcceptResponse(ACCEPT_TOKEN_RESPONSE)
     );
+    // before=[A], after=[A, B] — B is the new membership
+    vi.mocked(organizationsMineList)
+      .mockResolvedValueOnce(makeMineListResponse([MEMBERSHIP_A]))
+      .mockResolvedValueOnce(
+        makeMineListResponse([MEMBERSHIP_A, MEMBERSHIP_B])
+      );
 
     const queryClient = makeQueryClient();
 
-    // Seed "before" state: only MEMBERSHIP_A in cache.
-    queryClient.setQueryData(MY_ORGANIZATIONS_QUERY_KEY, [MEMBERSHIP_A]);
+    const { result } = renderHook(() => useAcceptInvitation(), {
+      wrapper: makeQueryWrapper(queryClient),
+    });
 
-    // After invalidation, the query refetch will return both A and B.
-    // We mock invalidateQueries to also update the cache with the new data.
-    const originalInvalidate = queryClient.invalidateQueries.bind(queryClient);
-    vi.spyOn(queryClient, 'invalidateQueries').mockImplementation(
-      async (filters, options) => {
-        const result = await originalInvalidate(filters, options);
-        // Simulate the refetch: update cache to show both memberships.
-        if (
-          filters &&
-          typeof filters === 'object' &&
-          'queryKey' in filters &&
-          JSON.stringify(filters.queryKey) ===
-            JSON.stringify(MY_ORGANIZATIONS_QUERY_KEY)
-        ) {
-          queryClient.setQueryData(MY_ORGANIZATIONS_QUERY_KEY, [
-            MEMBERSHIP_A,
-            MEMBERSHIP_B,
-          ]);
-        }
-        return result;
-      }
+    await act(async () => {
+      await result.current.acceptInvitation({ token: 'tok' });
+    });
+
+    await waitFor(() => {
+      expect(mockSetActiveOrganizationId).toHaveBeenCalledWith('2');
+    });
+
+    // Non-vacuity: if the diff were broken (e.g. before === after), this would fail.
+    expect(mockSetActiveOrganizationId).toHaveBeenCalledTimes(1);
+  });
+
+  // -------------------------------------------------------------------------
+  // COLD-LOAD: user had no orgs before (cold accept page visit) → switches to B
+  // -------------------------------------------------------------------------
+
+  it('COLD-LOAD: calls setActiveOrganizationId with B when before=[] and after=[B]', async () => {
+    vi.mocked(invitationsAcceptCreate).mockResolvedValue(
+      makeAcceptResponse(ACCEPT_TOKEN_RESPONSE)
     );
+    // before=[], after=[B] — proves it works with no prior observer/cache
+    vi.mocked(organizationsMineList)
+      .mockResolvedValueOnce(makeMineListResponse([]))
+      .mockResolvedValueOnce(makeMineListResponse([MEMBERSHIP_B]));
+
+    const queryClient = makeQueryClient();
 
     const { result } = renderHook(() => useAcceptInvitation(), {
       wrapper: makeQueryWrapper(queryClient),
@@ -281,18 +330,50 @@ describe('useAcceptInvitation', () => {
     });
   });
 
-  it('does NOT call setActiveOrganizationId when no new org is detected (e.g. already had both)', async () => {
+  // -------------------------------------------------------------------------
+  // AMBIGUOUS: two new orgs appear → graceful fallback, no switch
+  // -------------------------------------------------------------------------
+
+  it('AMBIGUOUS: does NOT call setActiveOrganizationId when two new orgs appear', async () => {
     vi.mocked(invitationsAcceptCreate).mockResolvedValue(
-      makeSuccessResponse(ACCEPT_TOKEN_RESPONSE)
+      makeAcceptResponse(ACCEPT_TOKEN_RESPONSE)
     );
+    // before=[], after=[A, B] — ambiguous, cannot determine which is "the" new org
+    vi.mocked(organizationsMineList)
+      .mockResolvedValueOnce(makeMineListResponse([]))
+      .mockResolvedValueOnce(
+        makeMineListResponse([MEMBERSHIP_A, MEMBERSHIP_B])
+      );
 
     const queryClient = makeQueryClient();
 
-    // Both orgs already in cache before the accept — no new org appears.
-    queryClient.setQueryData(MY_ORGANIZATIONS_QUERY_KEY, [
-      MEMBERSHIP_A,
-      MEMBERSHIP_B,
-    ]);
+    const { result } = renderHook(() => useAcceptInvitation(), {
+      wrapper: makeQueryWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.acceptInvitation({ token: 'tok' });
+    });
+
+    await waitFor(() =>
+      expect(result.current.acceptInvitationMutation.isSuccess).toBe(true)
+    );
+
+    expect(mockSetActiveOrganizationId).not.toHaveBeenCalled();
+  });
+
+  it('does NOT call setActiveOrganizationId when no new org is detected (already had both)', async () => {
+    vi.mocked(invitationsAcceptCreate).mockResolvedValue(
+      makeAcceptResponse(ACCEPT_TOKEN_RESPONSE)
+    );
+    // before=[A, B], after=[A, B] — no diff, no switch
+    vi.mocked(organizationsMineList)
+      .mockResolvedValueOnce(makeMineListResponse([MEMBERSHIP_A, MEMBERSHIP_B]))
+      .mockResolvedValueOnce(
+        makeMineListResponse([MEMBERSHIP_A, MEMBERSHIP_B])
+      );
+
+    const queryClient = makeQueryClient();
 
     const { result } = renderHook(() => useAcceptInvitation(), {
       wrapper: makeQueryWrapper(queryClient),
@@ -312,6 +393,10 @@ describe('useAcceptInvitation', () => {
   it('throws and does NOT invalidate queries when the API fails', async () => {
     const apiError = { error: 'Token not found.' };
     vi.mocked(invitationsAcceptCreate).mockRejectedValue(apiError);
+    // before fetch still resolves (fetchQuery runs before the accept)
+    vi.mocked(organizationsMineList).mockResolvedValueOnce(
+      makeMineListResponse([MEMBERSHIP_A])
+    );
 
     const queryClient = makeQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');

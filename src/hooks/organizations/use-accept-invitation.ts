@@ -1,5 +1,8 @@
-import type { AcceptInvitation, MyMembership } from '@/client';
-import { invitationsAcceptCreateMutation } from '@/client/@tanstack/react-query.gen';
+import type { AcceptInvitation } from '@/client';
+import {
+  invitationsAcceptCreateMutation,
+  organizationsMineListOptions,
+} from '@/client/@tanstack/react-query.gen';
 import { setActiveOrganizationId } from '@/lib/active-organization';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CURRENT_ORGANIZATION_QUERY_KEY } from './use-current-organization';
@@ -56,13 +59,23 @@ export function isAlreadyMemberError(error: unknown): boolean {
 
 /**
  * Accepts an organization invitation by token. On success:
- * - Invalidates MY_ORGANIZATIONS_QUERY_KEY so the switcher shows the new org.
- * - Invalidates CURRENT_ORGANIZATION_QUERY_KEY so current/org state refreshes.
- * - Performs a cache-diff to detect the newly-joined org and sets it as
- *   active, so the next tenant request carries the correct X-Organization-Id.
+ * - Actively fetches the mine/ list BEFORE accepting (via fetchQuery, which
+ *   works regardless of active observers — safe on /auth/accept-invite outside
+ *   the (app) group where useMyOrganizations is NOT mounted).
+ * - Accepts the invite.
+ * - Invalidates MY_ORGANIZATIONS_QUERY_KEY (marks stale) then re-fetches via
+ *   fetchQuery so the fresh list is available synchronously before the page
+ *   navigates into (app).
+ * - Diffs before/after to find the newly-joined org and sets it active so the
+ *   next tenant request carries the correct X-Organization-Id.
+ * - Invalidates CURRENT_ORGANIZATION_QUERY_KEY for the gated/role state.
  *
  * The 201 body is just { token } — it does NOT return the org id — so we
  * snapshot the before/after mine/ list to find the new membership.
+ *
+ * Using fetchQuery (not passive invalidate + getQueryData) is critical here:
+ * invalidateQueries with no active observer does NOT trigger a refetch, so
+ * getQueryData would return stale/undefined and the diff would find no new org.
  */
 export function useAcceptInvitation() {
   const queryClient = useQueryClient();
@@ -71,33 +84,29 @@ export function useAcceptInvitation() {
   });
 
   const acceptInvitation = async (body: AcceptInvitation) => {
-    // Snapshot org ids before accepting so we can diff after.
+    // Actively fetch the "before" snapshot — works with no active observer.
+    const beforeList = await queryClient.fetchQuery(
+      organizationsMineListOptions({})
+    );
     const before = new Set(
-      (
-        (queryClient.getQueryData(MY_ORGANIZATIONS_QUERY_KEY) as
-          | MyMembership[]
-          | undefined) ?? []
-      ).map((m) => String(m.organization.id))
+      (beforeList ?? []).map((m) => String(m.organization.id))
     );
 
     const result = await acceptInvitationMutation.mutateAsync({ body });
 
-    // Invalidate mine/ first (await so we get the fresh list for the diff).
+    // Mark mine/ stale so the subsequent fetchQuery re-fetches rather than
+    // returning the cached pre-accept list.
     await queryClient.invalidateQueries({
       queryKey: MY_ORGANIZATIONS_QUERY_KEY,
     });
 
-    // Invalidate current/ (fire-and-forget; we don't need to await this).
-    void queryClient.invalidateQueries({
-      queryKey: CURRENT_ORGANIZATION_QUERY_KEY,
-    });
+    // Re-fetch fresh after invalidation — fetchQuery always fetches when stale.
+    const afterList = await queryClient.fetchQuery(
+      organizationsMineListOptions({})
+    );
 
-    // Diff the fresh mine/ list to find the newly-joined org.
-    const after =
-      (queryClient.getQueryData(MY_ORGANIZATIONS_QUERY_KEY) as
-        | MyMembership[]
-        | undefined) ?? [];
-    const newMemberships = after.filter(
+    // Diff to detect the newly-joined org.
+    const newMemberships = (afterList ?? []).filter(
       (m) => !before.has(String(m.organization.id))
     );
 
@@ -105,8 +114,14 @@ export function useAcceptInvitation() {
       // Exactly one new org — switch into it so the next request carries its id.
       setActiveOrganizationId(String(newMemberships[0].organization.id));
     }
-    // If none or ambiguous, leave the selection unchanged. The new org still
-    // appears in the switcher via the mine/ invalidation above.
+    // If none or ambiguous (>1 new), leave selection unchanged. The new org
+    // still appears in the switcher via the mine/ invalidation above.
+
+    // Refresh current/ for the gated/role state (fire-and-forget; errors are
+    // non-fatal and should not bubble up to the caller).
+    queryClient
+      .invalidateQueries({ queryKey: CURRENT_ORGANIZATION_QUERY_KEY })
+      .catch(() => {});
 
     return result;
   };
