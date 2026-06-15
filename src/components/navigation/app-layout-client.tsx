@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   Calendar,
   CalendarSync,
@@ -13,7 +15,10 @@ import {
 
 import { CreateOrganizationDialog } from '@/components/organizations/create-organization-dialog';
 
-import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
+import {
+  useCurrentOrganization,
+  CURRENT_ORGANIZATION_QUERY_KEY,
+} from '@/hooks/organizations/use-current-organization';
 import { useActiveOrganization } from '@/hooks/organizations/use-active-organization';
 import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
 import { useProfile } from '@/hooks/users/use-profile';
@@ -160,6 +165,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     needsSelection,
     memberships,
     activeOrganizationId,
+    activeMembership,
     setActive,
   } = useActiveOrganization({
     enabled: authChecked && isAuthenticated,
@@ -173,6 +179,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   });
 
   const { logout } = useLogout();
+  const queryClient = useQueryClient();
 
   const handleLogout = async () => {
     try {
@@ -181,6 +188,48 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
       router.replace('/auth/login');
     }
   };
+
+  // Stale-selection recovery (Phase 9 — UC6 on-shell path).
+  //
+  // When the bootstrap (useActiveOrganization) heals a stale stored id and a
+  // valid activeMembership is now available, `current/` still holds the cached
+  // `disabled` sentinel from the original 403. The QueryCache.onError recovery
+  // never fires here because use-current-organization SWALLOWS the 403 (returns
+  // a sentinel instead of throwing). This effect bridges that gap:
+  //
+  //   isDisabled           — current/ returned a stale-selection 403.
+  //   activeMembership     — bootstrap has already healed the store; the user
+  //                          has a valid active org (non-null means resolved + valid).
+  //
+  // When both are true: invalidate current/ so it refetches with the corrected
+  // X-Organization-Id header. Toast once to inform the user.
+  //
+  // LOOP GUARD: `staleRecoveredRef` is set to `true` the moment we invalidate,
+  // and reset only when `isDisabled` clears (i.e. the refetch resolved 200).
+  // This prevents re-invalidating on every render while current/ is still in
+  // flight after the first invalidation.
+  //
+  // MULTI-ORG UNSET case (bootstrap leaves selection unset → needsSelection →
+  // /auth/select-organization redirect): `activeMembership` is null when no valid
+  // selection exists, so this effect never fires in that path — naturally excluded.
+  const staleRecoveredRef = useRef(false);
+  useEffect(() => {
+    if (!isDisabled) {
+      // Reset guard when the stale episode clears so a future stale episode
+      // can trigger recovery again.
+      staleRecoveredRef.current = false;
+      return;
+    }
+
+    if (activeMembership === null) return; // no healed selection yet; wait
+    if (staleRecoveredRef.current) return; // already invalidated this episode
+
+    staleRecoveredRef.current = true;
+    void queryClient.invalidateQueries({
+      queryKey: CURRENT_ORGANIZATION_QUERY_KEY,
+    });
+    toast('Organization updated — refreshing your session.');
+  }, [isDisabled, activeMembership, queryClient]);
 
   // Single authoritative "send to onboarding" signal — combines both sources of
   // "no memberships" while ensuring isDisabled takes precedence:

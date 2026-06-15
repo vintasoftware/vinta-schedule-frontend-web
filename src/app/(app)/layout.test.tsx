@@ -38,6 +38,14 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+// Mock sonner's toast — the stale-selection recovery effect toasts once when it
+// heals a stale selection. `toast` is called as a function, so the mock must be
+// callable.
+const toast = vi.fn();
+vi.mock('sonner', () => ({
+  toast: (...args: unknown[]) => toast(...args),
+}));
+
 import { organizationsCurrentRetrieve } from '@/client';
 import { organizationsMineList } from '@/client/sdk.gen';
 import { AppLayoutClient } from '@/components/navigation/app-layout-client';
@@ -110,6 +118,23 @@ function mockOrg403() {
   } as unknown as Awaited<ReturnType<typeof organizationsCurrentRetrieve>>);
 }
 
+// Stale-selection recovery sequence: current/ returns 403 on the first call
+// (stale stored selection → isDisabled), then 200 on every subsequent call once
+// the bootstrap heals the store and the layout invalidates current/.
+function mockOrg403Then200(membership: CurrentMembership) {
+  vi.mocked(organizationsCurrentRetrieve)
+    .mockResolvedValueOnce({
+      data: undefined,
+      response: new Response(null, { status: 403 }),
+      error: undefined,
+    } as unknown as Awaited<ReturnType<typeof organizationsCurrentRetrieve>>)
+    .mockResolvedValue({
+      data: membership,
+      response: jsonResponse(200, membership),
+      error: undefined,
+    } as unknown as Awaited<ReturnType<typeof organizationsCurrentRetrieve>>);
+}
+
 function mockMineList(memberships: MyMembership[]) {
   vi.mocked(organizationsMineList).mockResolvedValue({
     data: memberships,
@@ -138,6 +163,7 @@ describe('AppLayout (integration)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    toast.mockClear();
   });
 
   describe('unauthenticated user', () => {
@@ -254,39 +280,50 @@ describe('AppLayout (integration)', () => {
   });
 
   // Phase 9: stale-selection 403 recovery — isDisabled + mine NON-empty must
-  // NOT redirect to /no-access. The QueryCache 403 recovery re-picks from
-  // mine/ and invalidates; then current/ refetches with a valid header and
-  // isDisabled clears. The layout should hold LoadingView while this happens.
-  describe('stale-selection 403 (Phase 9 — UC6)', () => {
+  // NOT redirect to /no-access and must RECOVER on the shell path. The bootstrap
+  // (useActiveOrganization) heals the stale stored id to a valid membership; the
+  // layout's stale-recovery effect then invalidates current/ (so it refetches
+  // with the corrected X-Organization-Id header) and toasts once. current/ then
+  // resolves 200 → isDisabled clears → the shell mounts.
+  describe('stale-selection 403 recovery (Phase 9 — UC6)', () => {
     beforeEach(() => {
       setSessionActiveCookie();
     });
 
-    it('does NOT redirect to /no-access when current/ 403 (isDisabled) but mine/ has orgs', async () => {
-      // Simulate a stale-selection scenario: current/ returns 403 (→ isDisabled)
-      // but mine/ returns orgs (user is still a member of some orgs).
-      mockOrg403();
+    it('recovers: heals selection, refetches current/, and mounts the shell (no /no-access)', async () => {
+      // current/ 403 first (stale selection → isDisabled), then 200 once the
+      // recovery effect invalidates and current/ refetches with a valid header.
+      mockOrg403Then200(MEMBER_MEMBERSHIP);
+      // mine/ has a single org → bootstrap auto-heals the active selection, so
+      // activeMembership becomes non-null and the recovery effect can fire.
       mockMineList([
         {
-          organization: { id: 1, name: 'Org A' },
-          role: 'admin',
+          organization: { id: 1, name: 'Test Org' },
+          role: 'member',
         } as MyMembership,
       ]);
-      renderLayout();
+      renderLayout(<div>page content</div>);
 
-      // Give the component time to settle (queries resolve, effects run).
+      // The recovery effect invalidates current/, it refetches 200, isDisabled
+      // clears, and the shell mounts.
       await waitFor(() => {
-        // mine/ query has resolved to a non-empty list.
-        expect(screen.getByText('Loading…')).toBeInTheDocument();
+        expect(screen.getByAltText('Vinta')).toBeInTheDocument();
       });
 
-      // /no-access redirect must NOT fire — the user still has valid orgs.
+      // The recovery path fired: current/ was refetched (>1 call) and the
+      // neutral "switched" toast surfaced exactly once.
+      expect(
+        vi.mocked(organizationsCurrentRetrieve).mock.calls.length
+      ).toBeGreaterThan(1);
+      expect(toast).toHaveBeenCalledTimes(1);
+
+      // /no-access must NOT fire — the user still has a valid org.
       expect(replace).not.toHaveBeenCalledWith('/no-access');
-      // Shell must not be shown while recovery is in-flight.
-      expect(screen.queryByAltText('Vinta')).not.toBeInTheDocument();
+      expect(screen.getByText('page content')).toBeInTheDocument();
     });
 
-    it('holds LoadingView (no shell flash) while isDisabled + mine/ has orgs', async () => {
+    it('does NOT redirect to /no-access while recovery is in-flight (isDisabled + mine/ has orgs)', async () => {
+      // current/ stays 403 (recovery refetch not yet resolved); mine/ has orgs.
       mockOrg403();
       mockMineList([
         {
@@ -296,13 +333,17 @@ describe('AppLayout (integration)', () => {
       ]);
       renderLayout(<div>page content</div>);
 
-      // The Loading text confirms LoadingView is held — page content must not be
-      // visible (tenant view must not flash while recovery is running).
+      // The recovery effect still fires (heals + invalidates + toasts once), but
+      // current/ stays 403 so the shell is held behind LoadingView.
       await waitFor(() => {
-        expect(screen.getByText('Loading…')).toBeInTheDocument();
+        expect(toast).toHaveBeenCalledTimes(1);
       });
 
+      // LoadingView is held — tenant view must not flash while recovery runs.
+      expect(screen.getByText('Loading…')).toBeInTheDocument();
       expect(screen.queryByText('page content')).not.toBeInTheDocument();
+      expect(screen.queryByAltText('Vinta')).not.toBeInTheDocument();
+      // /no-access must NOT fire — the user still has valid orgs.
       expect(replace).not.toHaveBeenCalledWith('/no-access');
     });
   });
