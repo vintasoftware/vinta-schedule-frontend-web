@@ -5,17 +5,17 @@ import { client } from './client.gen';
 import type { DeleteAuthByClientV1AccountAuthenticatorsTotpData, DeleteAuthByClientV1AccountAuthenticatorsTotpErrors, DeleteAuthByClientV1AccountAuthenticatorsTotpResponses, DeleteAuthByClientV1AccountEmailData, DeleteAuthByClientV1AccountEmailErrors, DeleteAuthByClientV1AccountEmailResponses, DeleteAuthByClientV1AccountProvidersData, DeleteAuthByClientV1AccountProvidersErrors, DeleteAuthByClientV1AccountProvidersResponses, DeleteAuthByClientV1AuthSessionData, DeleteAuthByClientV1AuthSessionErrors, GetAuthByClientV1AccountAuthenticatorsData, GetAuthByClientV1AccountAuthenticatorsErrors, GetAuthByClientV1AccountAuthenticatorsRecoveryCodesData, GetAuthByClientV1AccountAuthenticatorsRecoveryCodesErrors, GetAuthByClientV1AccountAuthenticatorsRecoveryCodesResponses, GetAuthByClientV1AccountAuthenticatorsResponses, GetAuthByClientV1AccountAuthenticatorsTotpData, GetAuthByClientV1AccountAuthenticatorsTotpErrors, GetAuthByClientV1AccountAuthenticatorsTotpResponses, GetAuthByClientV1AccountEmailData, GetAuthByClientV1AccountEmailErrors, GetAuthByClientV1AccountEmailResponses, GetAuthByClientV1AccountPhoneData, GetAuthByClientV1AccountPhoneErrors, GetAuthByClientV1AccountPhoneResponses, GetAuthByClientV1AccountProvidersData, GetAuthByClientV1AccountProvidersResponses, GetAuthByClientV1AuthEmailVerifyData, GetAuthByClientV1AuthEmailVerifyErrors, GetAuthByClientV1AuthEmailVerifyResponses, GetAuthByClientV1AuthPasswordResetData, GetAuthByClientV1AuthPasswordResetErrors, GetAuthByClientV1AuthPasswordResetResponses, GetAuthByClientV1AuthProviderSignupData, GetAuthByClientV1AuthProviderSignupErrors, GetAuthByClientV1AuthProviderSignupResponses, GetAuthByClientV1AuthSessionData, GetAuthByClientV1AuthSessionErrors, GetAuthByClientV1AuthSessionResponses, GetAuthByClientV1ConfigData, GetAuthByClientV1ConfigResponses, PatchAuthByClientV1AccountEmailData, PatchAuthByClientV1AccountEmailErrors, PatchAuthByClientV1AccountEmailResponses, PostAuthAppV1TokensRefreshData, PostAuthAppV1TokensRefreshErrors, PostAuthAppV1TokensRefreshResponses, PostAuthBrowserV1AuthProviderRedirectData, PostAuthByClientV1AccountAuthenticatorsRecoveryCodesData, PostAuthByClientV1AccountAuthenticatorsRecoveryCodesErrors, PostAuthByClientV1AccountAuthenticatorsTotpData, PostAuthByClientV1AccountAuthenticatorsTotpErrors, PostAuthByClientV1AccountAuthenticatorsTotpResponses, PostAuthByClientV1AccountEmailData, PostAuthByClientV1AccountEmailErrors, PostAuthByClientV1AccountEmailResponses, PostAuthByClientV1AccountPasswordChangeData, PostAuthByClientV1AccountPasswordChangeErrors, PostAuthByClientV1AccountPhoneData, PostAuthByClientV1AccountPhoneErrors, PostAuthByClientV1AccountPhoneResponses, PostAuthByClientV1Auth2FaAuthenticateData, PostAuthByClientV1Auth2FaAuthenticateErrors, PostAuthByClientV1Auth2FaAuthenticateResponses, PostAuthByClientV1Auth2FaReauthenticateData, PostAuthByClientV1Auth2FaReauthenticateErrors, PostAuthByClientV1Auth2FaReauthenticateResponses, PostAuthByClientV1AuthCodeConfirmData, PostAuthByClientV1AuthCodeConfirmErrors, PostAuthByClientV1AuthCodeConfirmResponses, PostAuthByClientV1AuthEmailVerifyData, PostAuthByClientV1AuthEmailVerifyErrors, PostAuthByClientV1AuthEmailVerifyResendData, PostAuthByClientV1AuthEmailVerifyResendErrors, PostAuthByClientV1AuthEmailVerifyResendResponses, PostAuthByClientV1AuthEmailVerifyResponses, PostAuthByClientV1AuthLoginData, PostAuthByClientV1AuthLoginErrors, PostAuthByClientV1AuthLoginResponses, PostAuthByClientV1AuthPasswordRequestData, PostAuthByClientV1AuthPasswordRequestErrors, PostAuthByClientV1AuthPasswordRequestResponses, PostAuthByClientV1AuthPasswordResetData, PostAuthByClientV1AuthPasswordResetErrors, PostAuthByClientV1AuthPasswordResetResponses, PostAuthByClientV1AuthPhoneVerifyData, PostAuthByClientV1AuthPhoneVerifyErrors, PostAuthByClientV1AuthPhoneVerifyResendData, PostAuthByClientV1AuthPhoneVerifyResendErrors, PostAuthByClientV1AuthPhoneVerifyResendResponses, PostAuthByClientV1AuthPhoneVerifyResponses, PostAuthByClientV1AuthProviderSignupData, PostAuthByClientV1AuthProviderSignupErrors, PostAuthByClientV1AuthProviderSignupResponses, PostAuthByClientV1AuthProviderTokenData, PostAuthByClientV1AuthProviderTokenErrors, PostAuthByClientV1AuthProviderTokenResponses, PostAuthByClientV1AuthReauthenticateData, PostAuthByClientV1AuthReauthenticateErrors, PostAuthByClientV1AuthReauthenticateResponses, PostAuthByClientV1AuthSignupData, PostAuthByClientV1AuthSignupErrors, PostAuthByClientV1AuthSignupResponses, PutAuthByClientV1AccountEmailData, PutAuthByClientV1AccountEmailErrors, PutAuthByClientV1AccountEmailResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
-  /**
-   * You can provide a client instance returned by `createClient()` instead of
-   * individual options. This might be also useful if you want to implement a
-   * custom client.
-   */
-  client?: Client;
-  /**
-   * You can pass arbitrary values through the `meta` object. This can be
-   * used to access values that aren't defined as part of the SDK function.
-   */
-  meta?: Record<string, unknown>;
+    /**
+     * You can provide a client instance returned by `createClient()` instead of
+     * individual options. This might be also useful if you want to implement a
+     * custom client.
+     */
+    client?: Client;
+    /**
+     * You can pass arbitrary values through the `meta` object. This can be
+     * used to access values that aren't defined as part of the SDK function.
+     */
+    meta?: Record<string, unknown>;
 };
 
 /**
@@ -27,12 +27,12 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  *
  */
 export const postAuthAppV1TokensRefresh = <ThrowOnError extends boolean = false>(options?: Options<PostAuthAppV1TokensRefreshData, ThrowOnError>): RequestResult<PostAuthAppV1TokensRefreshResponses, PostAuthAppV1TokensRefreshErrors, ThrowOnError> => (options?.client ?? client).post<PostAuthAppV1TokensRefreshResponses, PostAuthAppV1TokensRefreshErrors, ThrowOnError>({
-  url: '/auth/app/v1/tokens/refresh',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options?.headers
-  }
+    url: '/auth/app/v1/tokens/refresh',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
+    }
 });
 
 /**
@@ -45,13 +45,13 @@ export const postAuthAppV1TokensRefresh = <ThrowOnError extends boolean = false>
  *
  */
 export const postAuthBrowserV1AuthProviderRedirect = <ThrowOnError extends boolean = false>(options: Options<PostAuthBrowserV1AuthProviderRedirectData, ThrowOnError>): RequestResult<unknown, unknown, ThrowOnError> => (options.client ?? client).post<unknown, unknown, ThrowOnError>({
-  ...urlSearchParamsBodySerializer,
-  url: '/auth/browser/v1/auth/provider/redirect',
-  ...options,
-  headers: {
-    'Content-Type': 'application/x-www-form-urlencoded',
-    ...options.headers
-  }
+    ...urlSearchParamsBodySerializer,
+    url: '/auth/browser/v1/auth/provider/redirect',
+    ...options,
+    headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        ...options.headers
+    }
 });
 
 /**
@@ -98,12 +98,12 @@ export const getAuthByClientV1AccountAuthenticatorsTotp = <ThrowOnError extends 
  *
  */
 export const postAuthByClientV1AccountAuthenticatorsTotp = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AccountAuthenticatorsTotpData, ThrowOnError>): RequestResult<PostAuthByClientV1AccountAuthenticatorsTotpResponses, PostAuthByClientV1AccountAuthenticatorsTotpErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AccountAuthenticatorsTotpResponses, PostAuthByClientV1AccountAuthenticatorsTotpErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/account/authenticators/totp',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/account/authenticators/totp',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -113,12 +113,12 @@ export const postAuthByClientV1AccountAuthenticatorsTotp = <ThrowOnError extends
  *
  */
 export const deleteAuthByClientV1AccountEmail = <ThrowOnError extends boolean = false>(options: Options<DeleteAuthByClientV1AccountEmailData, ThrowOnError>): RequestResult<DeleteAuthByClientV1AccountEmailResponses, DeleteAuthByClientV1AccountEmailErrors, ThrowOnError> => (options.client ?? client).delete<DeleteAuthByClientV1AccountEmailResponses, DeleteAuthByClientV1AccountEmailErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/account/email',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/account/email',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -137,12 +137,12 @@ export const getAuthByClientV1AccountEmail = <ThrowOnError extends boolean = fal
  *
  */
 export const patchAuthByClientV1AccountEmail = <ThrowOnError extends boolean = false>(options: Options<PatchAuthByClientV1AccountEmailData, ThrowOnError>): RequestResult<PatchAuthByClientV1AccountEmailResponses, PatchAuthByClientV1AccountEmailErrors, ThrowOnError> => (options.client ?? client).patch<PatchAuthByClientV1AccountEmailResponses, PatchAuthByClientV1AccountEmailErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/account/email',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/account/email',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -159,12 +159,12 @@ export const patchAuthByClientV1AccountEmail = <ThrowOnError extends boolean = f
  *
  */
 export const postAuthByClientV1AccountEmail = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AccountEmailData, ThrowOnError>): RequestResult<PostAuthByClientV1AccountEmailResponses, PostAuthByClientV1AccountEmailErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AccountEmailResponses, PostAuthByClientV1AccountEmailErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/account/email',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/account/email',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -176,12 +176,12 @@ export const postAuthByClientV1AccountEmail = <ThrowOnError extends boolean = fa
  *
  */
 export const putAuthByClientV1AccountEmail = <ThrowOnError extends boolean = false>(options: Options<PutAuthByClientV1AccountEmailData, ThrowOnError>): RequestResult<PutAuthByClientV1AccountEmailResponses, PutAuthByClientV1AccountEmailErrors, ThrowOnError> => (options.client ?? client).put<PutAuthByClientV1AccountEmailResponses, PutAuthByClientV1AccountEmailErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/account/email',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/account/email',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -194,12 +194,12 @@ export const putAuthByClientV1AccountEmail = <ThrowOnError extends boolean = fal
  *
  */
 export const postAuthByClientV1AccountPasswordChange = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AccountPasswordChangeData, ThrowOnError>): RequestResult<unknown, PostAuthByClientV1AccountPasswordChangeErrors, ThrowOnError> => (options.client ?? client).post<unknown, PostAuthByClientV1AccountPasswordChangeErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/account/password/change',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/account/password/change',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -228,12 +228,12 @@ export const getAuthByClientV1AccountPhone = <ThrowOnError extends boolean = fal
  *
  */
 export const postAuthByClientV1AccountPhone = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AccountPhoneData, ThrowOnError>): RequestResult<PostAuthByClientV1AccountPhoneResponses, PostAuthByClientV1AccountPhoneErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AccountPhoneResponses, PostAuthByClientV1AccountPhoneErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/account/phone',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/account/phone',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -247,12 +247,12 @@ export const postAuthByClientV1AccountPhone = <ThrowOnError extends boolean = fa
  *
  */
 export const deleteAuthByClientV1AccountProviders = <ThrowOnError extends boolean = false>(options: Options<DeleteAuthByClientV1AccountProvidersData, ThrowOnError>): RequestResult<DeleteAuthByClientV1AccountProvidersResponses, DeleteAuthByClientV1AccountProvidersErrors, ThrowOnError> => (options.client ?? client).delete<DeleteAuthByClientV1AccountProvidersResponses, DeleteAuthByClientV1AccountProvidersErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/account/providers',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/account/providers',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -269,12 +269,12 @@ export const getAuthByClientV1AccountProviders = <ThrowOnError extends boolean =
  *
  */
 export const postAuthByClientV1Auth2FaAuthenticate = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1Auth2FaAuthenticateData, ThrowOnError>): RequestResult<PostAuthByClientV1Auth2FaAuthenticateResponses, PostAuthByClientV1Auth2FaAuthenticateErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1Auth2FaAuthenticateResponses, PostAuthByClientV1Auth2FaAuthenticateErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/2fa/authenticate',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/2fa/authenticate',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -290,12 +290,12 @@ export const postAuthByClientV1Auth2FaAuthenticate = <ThrowOnError extends boole
  *
  */
 export const postAuthByClientV1Auth2FaReauthenticate = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1Auth2FaReauthenticateData, ThrowOnError>): RequestResult<PostAuthByClientV1Auth2FaReauthenticateResponses, PostAuthByClientV1Auth2FaReauthenticateErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1Auth2FaReauthenticateResponses, PostAuthByClientV1Auth2FaReauthenticateErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/2fa/reauthenticate',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/2fa/reauthenticate',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -305,12 +305,12 @@ export const postAuthByClientV1Auth2FaReauthenticate = <ThrowOnError extends boo
  *
  */
 export const postAuthByClientV1AuthCodeConfirm = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AuthCodeConfirmData, ThrowOnError>): RequestResult<PostAuthByClientV1AuthCodeConfirmResponses, PostAuthByClientV1AuthCodeConfirmErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AuthCodeConfirmResponses, PostAuthByClientV1AuthCodeConfirmErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/code/confirm',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/code/confirm',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -338,12 +338,12 @@ export const getAuthByClientV1AuthEmailVerify = <ThrowOnError extends boolean = 
  *
  */
 export const postAuthByClientV1AuthEmailVerify = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AuthEmailVerifyData, ThrowOnError>): RequestResult<PostAuthByClientV1AuthEmailVerifyResponses, PostAuthByClientV1AuthEmailVerifyErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AuthEmailVerifyResponses, PostAuthByClientV1AuthEmailVerifyErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/email/verify',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/email/verify',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -362,12 +362,12 @@ export const postAuthByClientV1AuthEmailVerifyResend = <ThrowOnError extends boo
  *
  */
 export const postAuthByClientV1AuthLogin = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AuthLoginData, ThrowOnError>): RequestResult<PostAuthByClientV1AuthLoginResponses, PostAuthByClientV1AuthLoginErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AuthLoginResponses, PostAuthByClientV1AuthLoginErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/login',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/login',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -387,12 +387,12 @@ export const postAuthByClientV1AuthLogin = <ThrowOnError extends boolean = false
  *
  */
 export const postAuthByClientV1AuthPasswordRequest = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AuthPasswordRequestData, ThrowOnError>): RequestResult<PostAuthByClientV1AuthPasswordRequestResponses, PostAuthByClientV1AuthPasswordRequestErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AuthPasswordRequestResponses, PostAuthByClientV1AuthPasswordRequestErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/password/request',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/password/request',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -420,12 +420,12 @@ export const getAuthByClientV1AuthPasswordReset = <ThrowOnError extends boolean 
  *
  */
 export const postAuthByClientV1AuthPasswordReset = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AuthPasswordResetData, ThrowOnError>): RequestResult<PostAuthByClientV1AuthPasswordResetResponses, PostAuthByClientV1AuthPasswordResetErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AuthPasswordResetResponses, PostAuthByClientV1AuthPasswordResetErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/password/reset',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/password/reset',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -437,12 +437,12 @@ export const postAuthByClientV1AuthPasswordReset = <ThrowOnError extends boolean
  *
  */
 export const postAuthByClientV1AuthPhoneVerify = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AuthPhoneVerifyData, ThrowOnError>): RequestResult<PostAuthByClientV1AuthPhoneVerifyResponses, PostAuthByClientV1AuthPhoneVerifyErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AuthPhoneVerifyResponses, PostAuthByClientV1AuthPhoneVerifyErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/phone/verify',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/phone/verify',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -477,12 +477,12 @@ export const getAuthByClientV1AuthProviderSignup = <ThrowOnError extends boolean
  *
  */
 export const postAuthByClientV1AuthProviderSignup = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AuthProviderSignupData, ThrowOnError>): RequestResult<PostAuthByClientV1AuthProviderSignupResponses, PostAuthByClientV1AuthProviderSignupErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AuthProviderSignupResponses, PostAuthByClientV1AuthProviderSignupErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/provider/signup',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/provider/signup',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -497,12 +497,12 @@ export const postAuthByClientV1AuthProviderSignup = <ThrowOnError extends boolea
  *
  */
 export const postAuthByClientV1AuthProviderToken = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AuthProviderTokenData, ThrowOnError>): RequestResult<PostAuthByClientV1AuthProviderTokenResponses, PostAuthByClientV1AuthProviderTokenErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AuthProviderTokenResponses, PostAuthByClientV1AuthProviderTokenErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/provider/token',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/provider/token',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -517,12 +517,12 @@ export const postAuthByClientV1AuthProviderToken = <ThrowOnError extends boolean
  *
  */
 export const postAuthByClientV1AuthReauthenticate = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AuthReauthenticateData, ThrowOnError>): RequestResult<PostAuthByClientV1AuthReauthenticateResponses, PostAuthByClientV1AuthReauthenticateErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AuthReauthenticateResponses, PostAuthByClientV1AuthReauthenticateErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/reauthenticate',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/reauthenticate',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -553,12 +553,12 @@ export const getAuthByClientV1AuthSession = <ThrowOnError extends boolean = fals
  *
  */
 export const postAuthByClientV1AuthSignup = <ThrowOnError extends boolean = false>(options: Options<PostAuthByClientV1AuthSignupData, ThrowOnError>): RequestResult<PostAuthByClientV1AuthSignupResponses, PostAuthByClientV1AuthSignupErrors, ThrowOnError> => (options.client ?? client).post<PostAuthByClientV1AuthSignupResponses, PostAuthByClientV1AuthSignupErrors, ThrowOnError>({
-  url: '/auth/{client}/v1/auth/signup',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
+    url: '/auth/{client}/v1/auth/signup',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
