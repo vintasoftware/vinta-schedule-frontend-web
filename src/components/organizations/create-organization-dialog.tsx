@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import type { Organization } from '@/client';
 import { useCreateOrganization } from '@/hooks/organizations/use-create-organization';
+import { VStack } from '@/components/layout';
 import {
   Dialog,
   DialogContent,
@@ -105,52 +106,51 @@ export function CreateOrganizationDialog({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-          >
-            <FormField
-              control={form.control}
-              name='name'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Organization Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='text'
-                      autoComplete='organization'
-                      placeholder='Your organization'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <VStack gap={4}>
+              <FormField
+                control={form.control}
+                name='name'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Organization Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='text'
+                        autoComplete='organization'
+                        placeholder='Your organization'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {error && (
+                <Alert variant='destructive'>
+                  <AlertTitle>Could not create organization</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
-            />
-            {error && (
-              <Alert variant='destructive'>
-                <AlertTitle>Could not create organization</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <DialogFooter>
-              <Button
-                type='button'
-                variant='outline'
-                onClick={() => handleOpenChange(false)}
-                disabled={createOrganizationMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type='submit'
-                disabled={createOrganizationMutation.isPending}
-              >
-                {createOrganizationMutation.isPending
-                  ? 'Creating...'
-                  : 'Create organization'}
-              </Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => handleOpenChange(false)}
+                  disabled={createOrganizationMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type='submit'
+                  disabled={createOrganizationMutation.isPending}
+                >
+                  {createOrganizationMutation.isPending
+                    ? 'Creating...'
+                    : 'Create organization'}
+                </Button>
+              </DialogFooter>
+            </VStack>
           </form>
         </Form>
       </DialogContent>

@@ -66,20 +66,14 @@ export const Interactive: FreeStory = {
         >
           Open dialog
         </button>
-        <QueryClientProvider
-          client={
-            new QueryClient({ defaultOptions: { mutations: { retry: false } } })
-          }
-        >
-          <CreateOrganizationDialog
-            open={open}
-            onOpenChange={setOpen}
-            onCreated={(org) => {
-              console.log('Created:', org);
-              setOpen(false);
-            }}
-          />
-        </QueryClientProvider>
+        <CreateOrganizationDialog
+          open={open}
+          onOpenChange={setOpen}
+          onCreated={(org) => {
+            console.log('Created:', org);
+            setOpen(false);
+          }}
+        />
       </div>
     );
   },

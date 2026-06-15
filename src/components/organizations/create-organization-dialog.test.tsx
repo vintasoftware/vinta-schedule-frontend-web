@@ -5,6 +5,7 @@
  * - Renders dialog with name input and submit button when open
  * - Submitting a valid name calls createOrganization with { name }
  * - Submitting an empty name is blocked by zod validation (no create call)
+ * - Submitting a name longer than 255 chars is blocked by zod validation (no create call)
  * - On successful create, onCreated fires with the created org
  * - Shows error alert when the API call fails
  * - Dialog closes (onOpenChange(false)) when Cancel is clicked
@@ -165,6 +166,37 @@ describe('CreateOrganizationDialog', () => {
     await waitFor(() => {
       expect(
         screen.getByText(/organization name is required/i)
+      ).toBeInTheDocument();
+    });
+
+    expect(organizationsCreate).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // Validation — name longer than 255 chars is blocked
+  // -------------------------------------------------------------------------
+
+  it('does NOT call createOrganization when name exceeds 255 characters', async () => {
+    vi.mocked(organizationsCreate).mockResolvedValue(
+      makeSuccessResponse(NEW_ORG)
+    );
+    const user = userEvent.setup();
+    renderDialog();
+
+    const input = screen.getByRole('textbox', { name: /organization name/i });
+    // 256 'a' characters — one over the max
+    const tooLongName = 'a'.repeat(256);
+    await user.type(input, tooLongName);
+
+    const submitButton = screen.getByRole('button', {
+      name: /create organization/i,
+    });
+    await user.click(submitButton);
+
+    // zod max(255) rule should block the submission and show the error
+    await waitFor(() => {
+      expect(
+        screen.getByText(/organization name is too long/i)
       ).toBeInTheDocument();
     });
 
