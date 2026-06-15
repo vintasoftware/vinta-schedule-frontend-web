@@ -105,13 +105,26 @@ None — shipped unflagged (Guiding Decisions). No flag-removal phase.
 - **Review**: no BLOCKER; string-ids, single-org regression, Radix-portal test non-vacuity verified.
   Fix-up: guard self-select (avoid wasteful refetch), collapse duplicate create-item markup. 778 tests.
 
+### Phase 5 — Create another organization from the switcher ✅
+
+- **Status**: PR [#50](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/50) (base: phase-4)
+- **Branch**: `plan/multi-organization-support/phase-5`
+- **Model**: Tier 3 → `claude-sonnet-4-6` (impl + fix)
+- **Commits**: `feat(organizations): Add create-organization dialog from switcher` · `test(organizations): Cover max-length validation and tidy create-org dialog`
+- **Summary**: `useCreateOrganization` invalidates both `mine/` + `current/` and returns the created
+  `Organization`. New controlled `CreateOrganizationDialog` (form mirrors onboarding). app-layout-client
+  owns dialog state; `onCreateOrg` opens it; `onCreated` → close + `setActive(String(newOrg.id))`.
+- **Review**: no BLOCKER; reviewer verified mutateAsync resolves to `Organization` w/ numeric id
+  (setActive correct) + onboarding backward-compat. Fix-up: max-255 test, VStack primitive, story
+  cleanup. 793 tests.
+
 ## Current Phase
 
-- **Phase 5 — Create another organization from the switcher** — starting.
+- **Phase 6 — Gated onboarding drives off `mine/`** — starting.
 
 ## Remaining Phases
 
-- Phase 5 — Create another organization from the switcher
+- Phase 6 — Gated onboarding drives off `mine/`
 - Phase 5 — Create another organization from the switcher
 - Phase 6 — Gated onboarding drives off `mine/`
 - Phase 7 — Accept invitation into an additional org
