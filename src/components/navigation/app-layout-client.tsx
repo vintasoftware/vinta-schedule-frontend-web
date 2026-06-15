@@ -184,6 +184,15 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     }
   }, [isDisabled, router]);
 
+  // Multi-org user with no valid stored selection: send them to the
+  // selection gate (/auth/select-organization lives outside (app) so this
+  // layout does not re-run for that route — no redirect loop).
+  useEffect(() => {
+    if (needsSelection) {
+      router.replace('/auth/select-organization');
+    }
+  }, [needsSelection, router]);
+
   // Not yet checked — render nothing until we know auth state.
   if (!authChecked || !isAuthenticated) {
     return <>{children}</>;
@@ -192,13 +201,17 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   // Wait for both the current-org check and the mine/ list to resolve before
   // rendering tenant views. isActiveOrgLoading ensures the bootstrap effect has
   // had a chance to prime the X-Organization-Id header for single-org users.
-  // needsSelection is surfaced here so Phase 3b can add the redirect effect.
-  if (isLoading || isActiveOrgLoading || isGated || isDisabled) {
+  // needsSelection is included so tenant views don't flash before the redirect
+  // fires (the effect above will replace to /auth/select-organization).
+  if (
+    isLoading ||
+    isActiveOrgLoading ||
+    isGated ||
+    isDisabled ||
+    needsSelection
+  ) {
     return <LoadingView />;
   }
-
-  // needsSelection: Phase 3b will add a redirect effect here.
-  void needsSelection;
 
   if (isError) {
     // Unexpected error: show a neutral loading state while a redirect (if any)
