@@ -15,18 +15,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { QueryClient } from '@tanstack/react-query';
 import type { MyMembership } from '@/client';
+import { organizationsMineListQueryKey } from '@/client/@tanstack/react-query.gen';
 
 // ---------------------------------------------------------------------------
 // Mocks — hoisted before imports
 // ---------------------------------------------------------------------------
-
-vi.mock('@/client/sdk.gen', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@/client/sdk.gen')>();
-  return {
-    ...original,
-    organizationsMineList: vi.fn(),
-  };
-});
 
 // Use vi.hoisted so the mock fns are initialized before vi.mock factories run.
 const { mockGetActiveOrganizationId, mockSetActiveOrganizationId } = vi.hoisted(
@@ -46,7 +39,6 @@ vi.mock('@/lib/active-organization', async (importOriginal) => {
   };
 });
 
-import { organizationsMineList } from '@/client/sdk.gen';
 import { recoverFromOrganizationQueryError } from './use-organization-error-recovery';
 
 // ---------------------------------------------------------------------------
@@ -66,22 +58,6 @@ const MEMBERSHIP_B: MyMembership = {
 const ERROR_400_HEADER_REQUIRED = {
   detail: 'X-Organization-Id header required.',
 };
-
-// ---------------------------------------------------------------------------
-// SDK response helpers
-// ---------------------------------------------------------------------------
-
-function makeMineListResponse(
-  data: MyMembership[]
-): Awaited<ReturnType<typeof organizationsMineList>> {
-  return {
-    data,
-    response: new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }),
-  } as unknown as Awaited<ReturnType<typeof organizationsMineList>>;
-}
 
 // ---------------------------------------------------------------------------
 // QueryClient mock factory
@@ -107,11 +83,6 @@ function makeMockQueryClient(fetchQueryResult: MyMembership[]) {
 describe('recoverFromOrganizationQueryError', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: mock organizationsMineList to prevent un-mocked SDK calls.
-    // Individual tests override this as needed.
-    vi.mocked(organizationsMineList).mockResolvedValue(
-      makeMineListResponse([])
-    );
   });
 
   // -------------------------------------------------------------------------
@@ -130,6 +101,12 @@ describe('recoverFromOrganizationQueryError', () => {
     expect(result).toBe('recovered-400');
     expect(mockSetActiveOrganizationId).toHaveBeenCalledWith('1');
     expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(1);
+    // Guard against fetching the wrong key — must use the generated options key.
+    expect(queryClient.fetchQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: organizationsMineListQueryKey({}),
+      })
+    );
   });
 
   it('400 + no selection + mine [A] (single org) → sets A + invalidates + returns recovered-400', async () => {

@@ -23,7 +23,7 @@ import { recoverFromOrganizationQueryError } from '@/hooks/organizations/use-org
 //   still allowing the cache and client to be created in the right order.
 // ---------------------------------------------------------------------------
 
-function makeQueryClient(): QueryClient {
+export function makeQueryClient(): QueryClient {
   // A mutable ref so the onError closure can reach the same client instance.
   const clientRef: { current: QueryClient | null } = { current: null };
 

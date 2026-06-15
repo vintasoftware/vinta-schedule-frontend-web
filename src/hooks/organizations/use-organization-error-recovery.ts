@@ -39,13 +39,14 @@ function isHeaderRequiredError(error: unknown): boolean {
  * Use-case UC5: triggered from the global QueryCache onError when a tenant
  * request fires without a selection (near-unreachable after Phase 3 bootstrap).
  *
- * Recovery logic:
+ * Recovery logic (execution order):
  * 1. If the error is not the header-required 400, return 'ignored'.
- * 2. LOOP GUARD: if there is already a valid active selection (it appears in
- *    mine/), return 'ignored' — re-setting it would not help and would create
- *    an invalidate → refetch → error loop.
- * 3. Fetch mine/ to get the membership list.
- * 4. If mine/ has ≥1 entry and no valid selection exists: set the first org
+ * 2. Fetch mine/ to get the membership list (one network call validates
+ *    membership and gives us the first org to recover to).
+ * 3. LOOP GUARD: if the current selection already appears in mine/, return
+ *    'ignored' — re-setting it would not help and would create an
+ *    invalidate → refetch → error loop.
+ * 4. If mine/ has entries and no valid selection exists: set the first org
  *    active and invalidate all queries so they refetch with the header.
  *    Return 'recovered-400'.
  * 5. If mine/ is empty: the user is gated — the onboarding gate (Phase 6)
@@ -63,7 +64,7 @@ export async function recoverFromOrganizationQueryError(
     return 'ignored';
   }
 
-  // Step 3: fetch the membership list actively (fetchQuery works regardless
+  // Step 2: fetch the membership list actively (fetchQuery works regardless
   // of mounted observers — same pattern as Phase 7 in use-accept-invitation.ts).
   const memberships = await queryClient.fetchQuery(
     organizationsMineListOptions({})
@@ -71,7 +72,7 @@ export async function recoverFromOrganizationQueryError(
 
   const list = memberships ?? [];
 
-  // Step 2 (LOOP GUARD): check if the current selection is already valid.
+  // Step 3 (LOOP GUARD): check if the current selection is already valid.
   // We fetch mine/ first so we can check membership in a single network call.
   const currentId = getActiveOrganizationId();
   if (currentId !== null) {
@@ -86,7 +87,7 @@ export async function recoverFromOrganizationQueryError(
   }
 
   // Step 4: mine/ has entries and no valid selection — recover.
-  if (list.length >= 1) {
+  if (list.length > 0) {
     setActiveOrganizationId(String(list[0].organization.id));
     await queryClient.invalidateQueries();
     return 'recovered-400';
