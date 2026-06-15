@@ -131,13 +131,26 @@ None — shipped unflagged (Guiding Decisions). No flag-removal phase.
   (disabled + empty mine ⇒ double-redirect). Fix: `!isDisabled` precedence + auth/loading guards (also
   closed a latent first-render false-redirect); added isolation + collision tests (non-vacuous). 804 tests.
 
+### Phase 7 — Accept invitation into an additional org ✅
+
+- **Status**: PR [#52](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/52) (base: phase-6)
+- **Branch**: `plan/multi-organization-support/phase-7`
+- **Model**: Tier 3 → `claude-sonnet-4-6` (impl + fix)
+- **Commits**: `feat(organizations): Accept invite into an additional org and switch into it` · `fix(organizations): Actively fetch mine/ for accept-invite auto-switch`
+- **Summary**: `useAcceptInvitation` matches `user_already_has_membership` code (same-org dup),
+  invalidates both keys, and auto-switches into the accepted org via a `fetchQuery` before/after
+  diff (201 body lacks the org id). Page copy updated.
+- **Review**: caught + fixed a **BLOCKER** — the auto-switch was dead code (passive `invalidateQueries`
+  doesn't refetch the unmounted `mine/` on the accept route; test masked it by faking the cache). Fix:
+  `fetchQuery` before/after, rewrote tests against the real SDK path (warm/cold/ambiguous). 829 tests.
+
 ## Current Phase
 
-- **Phase 7 — Accept invitation into an additional org** — starting.
+- **Phase 8 — Recover from 400 (header required)** — starting (stepped up to sonnet: global query-error wiring + retry-loop risk).
 
 ## Remaining Phases
 
-- Phase 7 — Accept invitation into an additional org
+- Phase 8 — Recover from 400 (header required)
 - Phase 5 — Create another organization from the switcher
 - Phase 6 — Gated onboarding drives off `mine/`
 - Phase 7 — Accept invitation into an additional org
