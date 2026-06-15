@@ -79,13 +79,25 @@ None — shipped unflagged (Guiding Decisions). No flag-removal phase.
   instead of flaky timer, added 2 convergence/no-loop tests (verified non-vacuous). 758 tests.
 - **Note**: first agent turn was cut off mid-work; resumed same agent to finish + commit.
 
+### Phase 3b — Login-time org selection gate + auth page ✅
+
+- **Status**: PR [#48](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/48) (base: phase-3a)
+- **Branch**: `plan/multi-organization-support/phase-3b`
+- **Model**: Tier 3 → `claude-sonnet-4-6` (impl + fix)
+- **Commits**: `feat(organizations): Add login-time org selection gate and page` · `fix(organizations): Treat mine/ error as neutral on org-selection page`
+- **Summary**: New `/auth/select-organization` page (outside `(app)`) lists memberships; pick →
+  `setActive(String id)` + `/`. Guards: 0 → onboarding, single/valid → `/`, error → neutral. Gate
+  effect in app-layout-client redirects `needsSelection` users; render guard includes it.
+- **Review**: no BLOCKER; loop-safety confirmed (page outside `(app)`). Fix-up: handle `mine/`
+  `isError` as neutral (don't bounce multi-org user to onboarding on a blip) + negative test
+  assertions. 766 tests.
+
 ## Current Phase
 
-- **Phase 3b — Login-time org selection gate + auth page** — starting.
+- **Phase 4 — Sidebar org switcher dropdown** — starting.
 
 ## Remaining Phases
 
-- Phase 3b — Login-time org selection gate + auth page
 - Phase 4 — Sidebar org switcher dropdown
 - Phase 5 — Create another organization from the switcher
 - Phase 6 — Gated onboarding drives off `mine/`
