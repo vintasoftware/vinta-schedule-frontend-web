@@ -28,6 +28,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { MyMembership } from '@/client';
+import { OrgSwitcher } from '@/components/organizations/org-switcher';
 import { Box } from './box';
 import { VStack } from './flex';
 import { Text } from './text';
@@ -76,6 +78,19 @@ export interface AppSidebarProps extends React.HTMLAttributes<HTMLElement> {
   userPicture?: string;
   /** Called when the user selects "Log out" from the account menu. */
   onLogout?: () => void;
+  /**
+   * Full list of the user's active memberships. When 2+ are provided the static
+   * org button is replaced with an interactive OrgSwitcher dropdown. When absent
+   * or empty (≤1), the existing static org button renders unchanged so single-org
+   * stories and consumers are unaffected.
+   */
+  memberships?: MyMembership[];
+  /** The string id of the currently active org (e.g. "1"). */
+  activeOrgId?: string | null;
+  /** Called when the user picks a different org from the switcher. */
+  onSelectOrg?: (orgId: string) => void;
+  /** Called when the user clicks "+ New organization" in the switcher. Phase 5 wires this. */
+  onCreateOrg?: () => void;
 }
 
 // AppSidebarInner is a named component so hooks are valid without any
@@ -93,6 +108,10 @@ function AppSidebarInner(
     userInitials = 'RP',
     userPicture,
     onLogout,
+    memberships,
+    activeOrgId,
+    onSelectOrg,
+    onCreateOrg,
     ...props
   }: AppSidebarProps,
   ref: React.Ref<HTMLElement>
@@ -234,40 +253,49 @@ function AppSidebarInner(
             {isDark ? 'Light mode' : 'Dark mode'}
           </Text>
         </button>
-        <button
-          type='button'
-          className='hover:bg-sidebar-accent flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
-        >
-          <Box
-            width={28}
-            height={28}
-            radius='md'
-            bg='vinta-600'
-            shrink={0}
-            className='flex items-center justify-center text-[13px] font-bold text-white'
+        {memberships && memberships.length > 1 && onSelectOrg ? (
+          <OrgSwitcher
+            memberships={memberships}
+            activeOrgId={activeOrgId ?? null}
+            onSelect={onSelectOrg}
+            onCreateOrg={onCreateOrg}
+          />
+        ) : (
+          <button
+            type='button'
+            className='hover:bg-sidebar-accent flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
           >
-            {orgName.charAt(0)}
-          </Box>
-          <Box minWidth={0} grow={1}>
-            <Text
-              as='div'
-              weight='semibold'
-              leading='tight'
-              truncate
-              className='text-[13px]'
+            <Box
+              width={28}
+              height={28}
+              radius='md'
+              bg='vinta-600'
+              shrink={0}
+              className='flex items-center justify-center text-[13px] font-bold text-white'
             >
-              {orgName}
-            </Text>
-            <Text
-              as='div'
-              color='muted-foreground'
-              leading='tight'
-              className='text-[11px]'
-            >
-              {orgMeta}
-            </Text>
-          </Box>
-        </button>
+              {orgName.charAt(0)}
+            </Box>
+            <Box minWidth={0} grow={1}>
+              <Text
+                as='div'
+                weight='semibold'
+                leading='tight'
+                truncate
+                className='text-[13px]'
+              >
+                {orgName}
+              </Text>
+              <Text
+                as='div'
+                color='muted-foreground'
+                leading='tight'
+                className='text-[11px]'
+              >
+                {orgMeta}
+              </Text>
+            </Box>
+          </button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button

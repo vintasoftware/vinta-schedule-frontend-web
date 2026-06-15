@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   Calendar,
   CalendarSync,
@@ -11,7 +13,13 @@ import {
   Webhook,
 } from 'lucide-react';
 
-import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
+import { CreateOrganizationDialog } from '@/components/organizations/create-organization-dialog';
+
+import {
+  useCurrentOrganization,
+  CURRENT_ORGANIZATION_QUERY_KEY,
+} from '@/hooks/organizations/use-current-organization';
+import { useActiveOrganization } from '@/hooks/organizations/use-active-organization';
 import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
 import { useProfile } from '@/hooks/users/use-profile';
 import { useLogout } from '@/hooks/authentication/use-logout';
@@ -130,6 +138,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   // Mirrors OnboardingGate: check localStorage for token presence on mount.
   useEffect(() => {
@@ -144,6 +153,25 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
       enabled: authChecked && isAuthenticated,
     });
 
+  // Bootstrap the active-org selection. Runs only for authenticated users so
+  // mine/ is not fetched on public/auth pages. The hook auto-resolves single-org
+  // users, heals stale stored ids, and surfaces needsSelection for Phase 3b.
+  // isGated (isMineGated) is the authoritative "0 active memberships" signal
+  // from mine/ and drives the onboarding redirect alongside useCurrentOrganization's
+  // 404-based isGated signal.
+  const {
+    isLoading: isActiveOrgLoading,
+    isError: isActiveOrgError,
+    isGated: isMineGated,
+    needsSelection,
+    memberships,
+    activeOrganizationId,
+    activeMembership,
+    setActive,
+  } = useActiveOrganization({
+    enabled: authChecked && isAuthenticated,
+  });
+
   // Logged-in user: real name from the profile API (JWT-auth), email from the
   // allauth session (the profile endpoint doesn't expose it).
   const { profile } = useProfile({ enabled: authChecked && isAuthenticated });
@@ -152,6 +180,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   });
 
   const { logout } = useLogout();
+  const queryClient = useQueryClient();
 
   const handleLogout = async () => {
     try {
@@ -161,27 +190,127 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Redirect org-less authenticated users to onboarding (not back into (app)).
+  // Stale-selection recovery (Phase 9 — UC6 on-shell path).
+  //
+  // When the bootstrap (useActiveOrganization) heals a stale stored id and a
+  // valid activeMembership is now available, `current/` still holds the cached
+  // `disabled` sentinel from the original 403. The QueryCache.onError recovery
+  // never fires here because use-current-organization SWALLOWS the 403 (returns
+  // a sentinel instead of throwing). This effect bridges that gap:
+  //
+  //   isDisabled           — current/ returned a stale-selection 403.
+  //   activeMembership     — bootstrap has already healed the store; the user
+  //                          has a valid active org (non-null means resolved + valid).
+  //
+  // When both are true: invalidate current/ so it refetches with the corrected
+  // X-Organization-Id header. Toast once to inform the user.
+  //
+  // LOOP GUARD: `staleRecoveredRef` is set to `true` the moment we invalidate,
+  // and reset only when `isDisabled` clears (i.e. the refetch resolved 200).
+  // This prevents re-invalidating on every render while current/ is still in
+  // flight after the first invalidation.
+  //
+  // MULTI-ORG UNSET case (bootstrap leaves selection unset → needsSelection →
+  // /auth/select-organization redirect): `activeMembership` is null when no valid
+  // selection exists, so this effect never fires in that path — naturally excluded.
+  const staleRecoveredRef = useRef(false);
   useEffect(() => {
-    if (isGated) {
+    if (!isDisabled) {
+      // Reset guard when the stale episode clears so a future stale episode
+      // can trigger recovery again.
+      staleRecoveredRef.current = false;
+      return;
+    }
+
+    if (activeMembership === null) return; // no healed selection yet; wait
+    if (staleRecoveredRef.current) return; // already invalidated this episode
+
+    staleRecoveredRef.current = true;
+    void queryClient.invalidateQueries({
+      queryKey: CURRENT_ORGANIZATION_QUERY_KEY,
+    });
+    toast('Organization updated — refreshing your session.');
+  }, [isDisabled, activeMembership, queryClient]);
+
+  // Single authoritative "send to onboarding" signal — combines both sources of
+  // "no memberships" while ensuring isDisabled takes precedence:
+  //   • isGated — useCurrentOrganization returned 404 (current/ not onboarded)
+  //   • isMineGated — mine/ returned [] (authoritative per plan Guiding Decisions)
+  // isDisabled (403 → /no-access) wins over both: a disabled user is NEVER sent
+  // to onboarding, even if mine/ is also empty.
+  // authChecked && isAuthenticated: both queries are disabled until auth is
+  // confirmed. Before that, isMineGated defaults to true (empty memberships
+  // array) and isActiveOrgLoading is false (disabled query never fetches) —
+  // which would falsely trigger isOnboardingGated. Gate on auth confirmation so
+  // we never evaluate gating signals for unauthenticated/unconfirmed sessions.
+  // !isLoading guards the isMineGated path against a race where mine/ resolves
+  // before current/: we must know current/'s status (especially disabled) before
+  // acting on mine/. Guard against transient mine/ errors so a network failure
+  // doesn't bounce a real user to onboarding.
+  const isOnboardingGated =
+    authChecked &&
+    isAuthenticated &&
+    !isDisabled &&
+    (isGated ||
+      (!isLoading && isMineGated && !isActiveOrgLoading && !isActiveOrgError));
+
+  // Redirect org-less (but not disabled) users to onboarding.
+  // idempotent, no loop risk; isDisabled precedence prevents double-redirect
+  // to both /auth/onboarding and /no-access in the same render.
+  useEffect(() => {
+    if (isOnboardingGated) {
       router.replace('/auth/onboarding');
     }
-  }, [isGated, router]);
+  }, [isOnboardingGated, router]);
 
-  // Disabled membership (403): route to /no-access — lives outside (app) to
-  // avoid re-running this layout and triggering an infinite redirect loop.
+  // Disabled membership (403): route to /no-access only when the user
+  // genuinely has no orgs remaining in mine/. With multi-org support, a stale
+  // selection also produces current/ 403 (→ isDisabled), but those users
+  // still have valid orgs — the QueryCache 403 recovery (Phase 9 UC6)
+  // re-picks from mine/ and invalidates, then current/ refetches and resolves.
+  // We must NOT redirect them to /no-access; instead we hold LoadingView while
+  // recovery runs. Only redirect when mine/ has resolved to empty (isMineGated),
+  // which confirms the user has absolutely no remaining memberships.
+  //
+  // Redirect lives outside (app) to avoid re-running this layout and
+  // triggering an infinite redirect loop.
+  const isMineEmptyResolved =
+    isMineGated && !isActiveOrgLoading && !isActiveOrgError;
   useEffect(() => {
-    if (isDisabled) {
+    if (isDisabled && isMineEmptyResolved) {
       router.replace('/no-access');
     }
-  }, [isDisabled, router]);
+  }, [isDisabled, isMineEmptyResolved, router]);
+
+  // Multi-org user with no valid stored selection: send them to the
+  // selection gate (/auth/select-organization lives outside (app) so this
+  // layout does not re-run for that route — no redirect loop).
+  useEffect(() => {
+    if (needsSelection) {
+      router.replace('/auth/select-organization');
+    }
+  }, [needsSelection, router]);
 
   // Not yet checked — render nothing until we know auth state.
   if (!authChecked || !isAuthenticated) {
     return <>{children}</>;
   }
 
-  if (isLoading || isGated || isDisabled) {
+  // Render guard: hold LoadingView while any gating signal is active or a
+  // redirect is in-flight. isOnboardingGated covers both isGated and the
+  // resolved-isMineGated case so tenant views don't flash before the onboarding
+  // redirect fires. isDisabled is listed separately so disabled users also hold
+  // LoadingView while the /no-access redirect fires.
+  // isActiveOrgLoading ensures the bootstrap effect has had a chance to prime
+  // the X-Organization-Id header for single-org users.
+  // needsSelection keeps tenant views from flashing before /auth/select-organization.
+  if (
+    isLoading ||
+    isActiveOrgLoading ||
+    isOnboardingGated ||
+    isDisabled ||
+    needsSelection
+  ) {
     return <LoadingView />;
   }
 
@@ -228,6 +357,10 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
       userInitials={initialsFromName(userName)}
       userPicture={profile?.profile_picture ?? undefined}
       onLogout={handleLogout}
+      memberships={memberships}
+      activeOrgId={activeOrganizationId}
+      onSelectOrg={setActive}
+      onCreateOrg={() => setCreateDialogOpen(true)}
     />
   );
 
@@ -242,6 +375,14 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
       <AppShell sidebar={sidebar} topbar={topbar}>
         {children}
       </AppShell>
+      <CreateOrganizationDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onCreated={(newOrg) => {
+          setCreateDialogOpen(false);
+          setActive(String(newOrg.id));
+        }}
+      />
     </RoleProvider>
   );
 }

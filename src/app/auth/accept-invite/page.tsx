@@ -52,8 +52,9 @@ function AcceptInviteContent() {
       await acceptInvitation({ token });
       router.replace('/');
     } catch (err) {
-      // 400 { error: "User already belongs to an organization." } — the invite
-      // stays pending and the existing org is untouched. One org per user.
+      // 400 { error: "User is already a member of this organization." } — the
+      // invite was for an org the user already belongs to (same-org duplicate).
+      // A user CAN join additional orgs; only re-accepting the same org is blocked.
       if (isAlreadyMemberError(err)) {
         setAlreadyMember(true);
         return;
@@ -75,10 +76,12 @@ function AcceptInviteContent() {
         </Stack>
         {alreadyMember ? (
           <Alert variant='destructive'>
-            <AlertTitle>You already belong to an organization</AlertTitle>
+            <AlertTitle>
+              You&apos;re already a member of this organization
+            </AlertTitle>
             <AlertDescription>
-              One organization per user is allowed. Your current organization is
-              unchanged and the invitation is still pending.{' '}
+              You already belong to this organization, so the invite cannot be
+              accepted again. Your memberships are unchanged.{' '}
               <Link href='/' className='underline'>
                 Go to the app
               </Link>
