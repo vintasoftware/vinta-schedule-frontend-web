@@ -144,17 +144,23 @@ None — shipped unflagged (Guiding Decisions). No flag-removal phase.
   doesn't refetch the unmounted `mine/` on the accept route; test masked it by faking the cache). Fix:
   `fetchQuery` before/after, rewrote tests against the real SDK path (warm/cold/ambiguous). 829 tests.
 
+### Phase 8 — Recover from 400 (header required) ✅
+
+- **Status**: PR [#53](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/53) (base: phase-7)
+- **Branch**: `plan/multi-organization-support/phase-8`
+- **Model**: Tier 3 → `claude-sonnet-4-6` (impl + fix) — stepped up from plan's Tier 2 (global wiring + loop risk)
+- **Commits**: `feat(organizations): Recover from missing-org-header 400 via mine/` · `test(organizations): Cover provider error wiring and tidy 400-recovery tests`
+- **Summary**: Pure `recoverFromOrganizationQueryError(error, qc)` detects the header-required 400,
+  fetches mine/, sets first org + invalidates (loop-guarded), wired via global `QueryCache({onError})`.
+- **Review**: no BLOCKER; loop safety + onError wiring + detection verified. Fix-up: removed dead SDK
+  mock, asserted fetched query key, added provider-wiring test. 841 tests.
+
 ## Current Phase
 
-- **Phase 8 — Recover from 400 (header required)** — starting (stepped up to sonnet: global query-error wiring + retry-loop risk).
+- **Phase 9 — Recover from 403 (stale active org)** — starting (final phase).
 
 ## Remaining Phases
 
-- Phase 8 — Recover from 400 (header required)
-- Phase 5 — Create another organization from the switcher
-- Phase 6 — Gated onboarding drives off `mine/`
-- Phase 7 — Accept invitation into an additional org
-- Phase 8 — Recover from 400 (header required)
 - Phase 9 — Recover from 403 (stale active org)
 
 ## Deferred Phases
