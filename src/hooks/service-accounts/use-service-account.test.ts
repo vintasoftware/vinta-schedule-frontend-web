@@ -38,7 +38,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
 const mockServiceAccount: ServiceAccountRead = {
   id: 1,
   email: 'my-sa@project.iam.gserviceaccount.com',
-  audience: 'https://example.com',
+  admin_email: 'admin@example.com',
   configured: true,
   created: '2024-01-01T00:00:00Z',
   modified: '2024-06-01T00:00:00Z',
@@ -175,7 +175,7 @@ describe('useUpsertServiceAccount — create', () => {
     await act(async () => {
       await result.current.saveServiceAccount({
         email: 'sa@project.iam.gserviceaccount.com',
-        audience: 'https://example.com',
+        admin_email: 'admin@example.com',
         public_key: '-----BEGIN CERTIFICATE-----',
         private_key_id: 'key-id-123',
         private_key: '-----BEGIN RSA PRIVATE KEY-----',
@@ -187,7 +187,7 @@ describe('useUpsertServiceAccount — create', () => {
       expect.objectContaining({
         body: expect.objectContaining({
           email: 'sa@project.iam.gserviceaccount.com',
-          audience: 'https://example.com',
+          admin_email: 'admin@example.com',
           public_key: '-----BEGIN CERTIFICATE-----',
           private_key_id: 'key-id-123',
           private_key: '-----BEGIN RSA PRIVATE KEY-----',
@@ -235,7 +235,7 @@ describe('useUpsertServiceAccount — create', () => {
     await act(async () => {
       await result.current.saveServiceAccount({
         email: 'sa@project.iam.gserviceaccount.com',
-        audience: 'https://example.com',
+        admin_email: 'admin@example.com',
         public_key: '-----BEGIN CERTIFICATE-----',
         private_key_id: 'key-id-123',
         private_key: '-----BEGIN RSA PRIVATE KEY-----',
@@ -293,7 +293,7 @@ describe('useUpsertServiceAccount — patch', () => {
       await result.current.saveServiceAccount(
         {
           email: 'rotated@project.iam.gserviceaccount.com',
-          audience: 'https://example.com',
+          admin_email: 'admin@example.com',
           public_key: '-----BEGIN CERTIFICATE-----',
           private_key_id: 'new-key-id',
           private_key: '-----BEGIN RSA PRIVATE KEY-----',

@@ -43,7 +43,7 @@ export const NotConfigured: Story = {
 
 /**
  * The card as it appears when a service account is already configured.
- * Shows email, audience, badge, and Rotate / Remove actions.
+ * Shows email, admin_email, badge, and Rotate / Remove actions.
  */
 export const Configured: Story = {
   decorators: [
@@ -63,7 +63,7 @@ export const Configured: Story = {
             {
               id: 1,
               email: 'my-sa@my-project.iam.gserviceaccount.com',
-              audience: 'https://calendar.google.com/',
+              admin_email: 'admin@my-project.com',
               configured: true,
               created: '2024-01-15T10:00:00Z',
               modified: '2024-06-01T08:30:00Z',

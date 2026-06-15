@@ -2,6 +2,7 @@ import { client } from '@/client/client.gen';
 import { client as authClient } from '@/auth-client/client.gen';
 import { TokenStorageStrategy } from './base-token-storage-strategy';
 import { persistSessionToken } from './session-token';
+import { getActiveOrganizationId } from './active-organization';
 
 async function readJsonBody(response: Response): Promise<unknown> {
   if (!response.headers.get('content-type')?.includes('application/json')) {
@@ -59,6 +60,23 @@ function configureClientAuthentication(tokenStore: TokenStorageStrategy) {
   client.interceptors.request.use(async (request: Request) => {
     const token = await tokenStore.getAccessToken();
     if (token) request.headers.set('Authorization', `Bearer ${token}`);
+    return request;
+  });
+
+  // Inject X-Organization-Id header when an active organization is selected.
+  // Browser-only guard: localStorage is unavailable on the server.
+  // If a selection is set, include it on every tenant request (unless it's
+  // already set, to allow explicit overrides in rare cases).
+  client.interceptors.request.use(async (request: Request) => {
+    if (typeof window === 'undefined') {
+      // Server-side (SSR): never inject the header.
+      return request;
+    }
+
+    const organizationId = getActiveOrganizationId();
+    if (organizationId && !request.headers.has('X-Organization-Id')) {
+      request.headers.set('X-Organization-Id', organizationId);
+    }
     return request;
   });
 

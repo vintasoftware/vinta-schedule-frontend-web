@@ -9,6 +9,17 @@ paths:
       operationId: available_times_list
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_time
           schema:
@@ -48,6 +59,18 @@ paths:
     post:
       operationId: available_times_create
       description: ViewSet for managing available times with recurring support.
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - available-times
       requestBody:
@@ -77,6 +100,17 @@ paths:
       operationId: available_times_formatted_list
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_time
           schema:
@@ -124,6 +158,17 @@ paths:
       operationId: available_times_formatted_create
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -160,6 +205,17 @@ paths:
       operationId: available_times_retrieve
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -181,6 +237,17 @@ paths:
       operationId: available_times_update
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -214,6 +281,17 @@ paths:
       operationId: available_times_partial_update
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -246,6 +324,17 @@ paths:
       operationId: available_times_destroy
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -264,6 +353,17 @@ paths:
       operationId: available_times_formatted_retrieve
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -292,6 +392,17 @@ paths:
       operationId: available_times_formatted_update
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -332,6 +443,17 @@ paths:
       operationId: available_times_formatted_partial_update
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -371,6 +493,17 @@ paths:
       operationId: available_times_formatted_destroy
       description: ViewSet for managing available times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -397,6 +530,17 @@ paths:
       description: ViewSet for managing available times with recurring support.
       summary: Bulk modify or cancel recurring available time from a date
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -434,6 +578,17 @@ paths:
       description: ViewSet for managing available times with recurring support.
       summary: Bulk modify or cancel recurring available time from a date
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -480,6 +635,17 @@ paths:
         or modified).
       summary: Create recurring available time exception
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -519,6 +685,17 @@ paths:
         or modified).
       summary: Create recurring available time exception
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -567,6 +744,17 @@ paths:
         times after the batch.
       summary: Batch create/update/delete available times
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_time
           schema:
@@ -625,6 +813,17 @@ paths:
         times after the batch.
       summary: Batch create/update/delete available times
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_time
           schema:
@@ -686,6 +885,17 @@ paths:
       description: Get expanded available times including recurring instances.
       summary: Get expanded available times
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: calendar_id
           schema:
@@ -746,6 +956,17 @@ paths:
       description: Get expanded available times including recurring instances.
       summary: Get expanded available times
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: calendar_id
           schema:
@@ -1050,6 +1271,17 @@ paths:
       operationId: blocked_times_list
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_time
           schema:
@@ -1094,6 +1326,18 @@ paths:
     post:
       operationId: blocked_times_create
       description: ViewSet for managing blocked times with recurring support.
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - blocked-times
       requestBody:
@@ -1123,6 +1367,17 @@ paths:
       operationId: blocked_times_formatted_list
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_time
           schema:
@@ -1175,6 +1430,17 @@ paths:
       operationId: blocked_times_formatted_create
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -1211,6 +1477,17 @@ paths:
       operationId: blocked_times_retrieve
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -1232,6 +1509,17 @@ paths:
       operationId: blocked_times_update
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -1265,6 +1553,17 @@ paths:
       operationId: blocked_times_partial_update
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -1297,6 +1596,17 @@ paths:
       operationId: blocked_times_destroy
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -1315,6 +1625,17 @@ paths:
       operationId: blocked_times_formatted_retrieve
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -1343,6 +1664,17 @@ paths:
       operationId: blocked_times_formatted_update
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -1383,6 +1715,17 @@ paths:
       operationId: blocked_times_formatted_partial_update
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -1422,6 +1765,17 @@ paths:
       operationId: blocked_times_formatted_destroy
       description: ViewSet for managing blocked times with recurring support.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -1448,6 +1802,17 @@ paths:
       description: ViewSet for managing blocked times with recurring support.
       summary: Bulk modify or cancel recurring blocked time from a date
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -1485,6 +1850,17 @@ paths:
       description: ViewSet for managing blocked times with recurring support.
       summary: Bulk modify or cancel recurring blocked time from a date
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -1531,6 +1907,17 @@ paths:
         or modified).
       summary: Create recurring blocked time exception
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -1570,6 +1957,17 @@ paths:
         or modified).
       summary: Create recurring blocked time exception
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -1614,6 +2012,17 @@ paths:
       description: Create multiple blocked times.
       summary: Create bulk blocked times
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_time
           schema:
@@ -1673,6 +2082,17 @@ paths:
       description: Create multiple blocked times.
       summary: Create bulk blocked times
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_time
           schema:
@@ -1739,6 +2159,17 @@ paths:
       description: Get expanded blocked times including recurring instances.
       summary: Get expanded blocked times
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: calendar_id
           schema:
@@ -1804,6 +2235,17 @@ paths:
       description: Get expanded blocked times including recurring instances.
       summary: Get expanded blocked times
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: calendar_id
           schema:
@@ -1876,6 +2318,17 @@ paths:
       description: ViewSet for managing calendars.
       summary: List calendars
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: include_inactive
           schema:
@@ -1918,6 +2371,18 @@ paths:
     post:
       operationId: calendar_create
       description: ViewSet for managing calendars.
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - calendar
       requestBody:
@@ -1948,6 +2413,17 @@ paths:
       description: ViewSet for managing calendars.
       summary: List calendars
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -1998,6 +2474,17 @@ paths:
       operationId: calendar_formatted_create
       description: ViewSet for managing calendars.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -2034,6 +2521,17 @@ paths:
       operationId: calendar_events_list
       description: ViewSet for managing calendar events.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: calendar
           schema:
@@ -2107,6 +2605,18 @@ paths:
     post:
       operationId: calendar_events_create
       description: ViewSet for managing calendar events.
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - calendar-events
       requestBody:
@@ -2136,6 +2646,17 @@ paths:
       operationId: calendar_events_formatted_list
       description: ViewSet for managing calendar events.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: calendar
           schema:
@@ -2217,6 +2738,17 @@ paths:
       operationId: calendar_events_formatted_create
       description: ViewSet for managing calendar events.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -2253,6 +2785,17 @@ paths:
       operationId: calendar_events_retrieve
       description: ViewSet for managing calendar events.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -2274,6 +2817,17 @@ paths:
       operationId: calendar_events_update
       description: ViewSet for managing calendar events.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -2307,6 +2861,17 @@ paths:
       operationId: calendar_events_partial_update
       description: ViewSet for managing calendar events.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -2340,6 +2905,17 @@ paths:
       description: Delete a calendar event.
       summary: Delete calendar event
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -2358,6 +2934,17 @@ paths:
       operationId: calendar_events_formatted_retrieve
       description: ViewSet for managing calendar events.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -2386,6 +2973,17 @@ paths:
       operationId: calendar_events_formatted_update
       description: ViewSet for managing calendar events.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -2426,6 +3024,17 @@ paths:
       operationId: calendar_events_formatted_partial_update
       description: ViewSet for managing calendar events.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -2466,6 +3075,17 @@ paths:
       description: Delete a calendar event.
       summary: Delete calendar event
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -2492,6 +3112,17 @@ paths:
       description: ViewSet for managing calendar events.
       summary: Bulk modify or cancel recurring event from a date
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -2529,6 +3160,17 @@ paths:
       description: ViewSet for managing calendar events.
       summary: Bulk modify or cancel recurring event from a date
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -2575,6 +3217,17 @@ paths:
         modified).
       summary: Create recurring event exception
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -2614,6 +3267,17 @@ paths:
         modified).
       summary: Create recurring event exception
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -2662,6 +3326,17 @@ paths:
         only.
       summary: Transfer event to another calendar (admin)
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -2701,6 +3376,17 @@ paths:
         only.
       summary: Transfer event to another calendar (admin)
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -2743,6 +3429,17 @@ paths:
       description: Get expanded calendar events including materialized recurring instances.
       summary: Get expanded calendar events
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: calendar
           schema:
@@ -2825,6 +3522,17 @@ paths:
       description: Get expanded calendar events including materialized recurring instances.
       summary: Get expanded calendar events
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: calendar
           schema:
@@ -2913,6 +3621,17 @@ paths:
       operationId: calendar_groups_list
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - name: limit
           required: false
           in: query
@@ -2945,6 +3664,18 @@ paths:
     post:
       operationId: calendar_groups_create
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - calendar-groups
       requestBody:
@@ -2974,6 +3705,17 @@ paths:
       operationId: calendar_groups_formatted_list
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3014,6 +3756,17 @@ paths:
       operationId: calendar_groups_formatted_create
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3050,6 +3803,17 @@ paths:
       operationId: calendar_groups_retrieve
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -3071,6 +3835,17 @@ paths:
       operationId: calendar_groups_update
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -3104,6 +3879,17 @@ paths:
       operationId: calendar_groups_partial_update
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -3137,6 +3923,17 @@ paths:
       description: Delete a CalendarGroup. Fails with 400 if the group has any bookings.
       summary: Delete calendar group
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -3155,6 +3952,17 @@ paths:
       operationId: calendar_groups_formatted_retrieve
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3183,6 +3991,17 @@ paths:
       operationId: calendar_groups_formatted_update
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3223,6 +4042,17 @@ paths:
       operationId: calendar_groups_formatted_partial_update
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3263,6 +4093,17 @@ paths:
       description: Delete a CalendarGroup. Fails with 400 if the group has any bookings.
       summary: Delete calendar group
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3289,6 +4130,17 @@ paths:
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       summary: Per-slot availability for requested ranges
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -3341,6 +4193,17 @@ paths:
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       summary: Per-slot availability for requested ranges
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3400,6 +4263,17 @@ paths:
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       summary: Bookable slot proposals for the group within a search window
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: duration_seconds
           schema:
@@ -3463,6 +4337,17 @@ paths:
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       summary: Bookable slot proposals for the group within a search window
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: duration_seconds
           schema:
@@ -3533,6 +4418,17 @@ paths:
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       summary: List events booked under this group
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_datetime
           schema:
@@ -3585,6 +4481,17 @@ paths:
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       summary: List events booked under this group
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_datetime
           schema:
@@ -3644,6 +4551,17 @@ paths:
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       summary: Create grouped event
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -3679,6 +4597,17 @@ paths:
       description: ViewSet for CalendarGroup CRUD and grouped event actions.
       summary: Create grouped event
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3720,6 +4649,17 @@ paths:
       operationId: calendar_retrieve
       description: ViewSet for managing calendars.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -3741,6 +4681,17 @@ paths:
       operationId: calendar_update
       description: ViewSet for managing calendars.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -3774,6 +4725,17 @@ paths:
       operationId: calendar_partial_update
       description: ViewSet for managing calendars.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -3816,6 +4778,17 @@ paths:
         left untouched (event cancellation is out of scope; see plan Phase 11)."
       summary: Soft-disable a calendar
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -3834,6 +4807,17 @@ paths:
       operationId: calendar_formatted_retrieve
       description: ViewSet for managing calendars.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3862,6 +4846,17 @@ paths:
       operationId: calendar_formatted_update
       description: ViewSet for managing calendars.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3902,6 +4897,17 @@ paths:
       operationId: calendar_formatted_partial_update
       description: ViewSet for managing calendars.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3951,6 +4957,17 @@ paths:
         left untouched (event cancellation is out of scope; see plan Phase 11)."
       summary: Soft-disable a calendar
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -3977,6 +4994,17 @@ paths:
       description: Admin syncs any calendar in the organization over a date range.
       summary: Admin syncs another user's calendar
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -4014,6 +5042,17 @@ paths:
       description: Admin syncs any calendar in the organization over a date range.
       summary: Admin syncs another user's calendar
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -4060,6 +5099,17 @@ paths:
         range.
       summary: Get available time windows
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_datetime
           schema:
@@ -4099,6 +5149,17 @@ paths:
         range.
       summary: Get available time windows
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_datetime
           schema:
@@ -4148,6 +5209,17 @@ paths:
         calendar.
       summary: Update a bundle calendar's children and primary
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -4187,6 +5259,17 @@ paths:
         calendar.
       summary: Update a bundle calendar's children and primary
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -4228,6 +5311,17 @@ paths:
       description: Request synchronization of an owned calendar over a date range.
       summary: Request calendar sync
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -4265,6 +5359,17 @@ paths:
       description: Request synchronization of an owned calendar over a date range.
       summary: Request calendar sync
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -4311,6 +5416,17 @@ paths:
         date range.
       summary: Get unavailable time windows
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_datetime
           schema:
@@ -4350,6 +5466,17 @@ paths:
         date range.
       summary: Get unavailable time windows
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: end_datetime
           schema:
@@ -4392,6 +5519,18 @@ paths:
     post:
       operationId: calendar_bundle_create
       description: ViewSet for managing calendars.
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - calendar
       requestBody:
@@ -4421,6 +5560,17 @@ paths:
       operationId: calendar_bundle_formatted_create
       description: ViewSet for managing calendars.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -4460,6 +5610,18 @@ paths:
         (the active CalendarOwnership flagged is_default). 404 when the user has no
         default calendar (e.g. before importing any calendars).
       summary: Get the caller's default calendar
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - calendar
       security:
@@ -4483,6 +5645,17 @@ paths:
         default calendar (e.g. before importing any calendars).
       summary: Get the caller's default calendar
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -4509,6 +5682,18 @@ paths:
       operationId: calendar_request_import_create
       description: Request import of external calendars for the authenticated user.
       summary: Request calendar import
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - calendar
       requestBody:
@@ -4542,6 +5727,17 @@ paths:
       description: Request import of external calendars for the authenticated user.
       summary: Request calendar import
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -4581,6 +5777,17 @@ paths:
       operationId: invitations_list
       description: A viewset for managing organization invitations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: email
           schema:
@@ -4628,6 +5835,18 @@ paths:
     post:
       operationId: invitations_create
       description: A viewset for managing organization invitations.
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - invitations
       requestBody:
@@ -4657,6 +5876,17 @@ paths:
       operationId: invitations_formatted_list
       description: A viewset for managing organization invitations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: email
           schema:
@@ -4712,6 +5942,17 @@ paths:
       operationId: invitations_formatted_create
       description: A viewset for managing organization invitations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -4748,6 +5989,17 @@ paths:
       operationId: invitations_retrieve
       description: A viewset for managing organization invitations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -4769,6 +6021,17 @@ paths:
       operationId: invitations_destroy
       description: A viewset for managing organization invitations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -4787,6 +6050,17 @@ paths:
       operationId: invitations_formatted_retrieve
       description: A viewset for managing organization invitations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -4815,6 +6089,17 @@ paths:
       operationId: invitations_formatted_destroy
       description: A viewset for managing organization invitations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -4848,6 +6133,17 @@ paths:
         Returns the re-serialized invitation with the new token_hash and extended expires_at.
       summary: Resend a pending organization invitation
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -4896,6 +6192,17 @@ paths:
         Returns the re-serialized invitation with the new token_hash and extended expires_at.
       summary: Resend a pending organization invitation
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -4966,6 +6273,331 @@ paths:
               schema:
                 $ref: '#/components/schemas/AcceptInvitation'
           description: ''
+  /notifications/:
+    get:
+      operationId: notifications_list
+      description:
+        "Returns the authenticated user's IN_APP notifications with status
+        in (SENT, READ). Ordered by creation date (newest first). Paginated via page/page_size
+        passthrough. Envelope: {results: [...], page: int, page_size: int, count:
+        int}."
+      summary: List all in-app notifications for the authenticated user
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number (1-based). Defaults to 1.
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+          description: Number of items per page. Defaults to 10, max 100.
+      tags:
+        - Notifications
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description:
+            'Passthrough-paginated list of all in-app notifications. Envelope:
+            {results: [...], page: int, page_size: int, count: int}.'
+        '400':
+          description: Invalid page / page_size parameter
+        '401':
+          description: Unauthenticated
+  /notifications{format}:
+    get:
+      operationId: notifications_formatted_list
+      description:
+        "Returns the authenticated user's IN_APP notifications with status
+        in (SENT, READ). Ordered by creation date (newest first). Paginated via page/page_size
+        passthrough. Envelope: {results: [...], page: int, page_size: int, count:
+        int}."
+      summary: List all in-app notifications for the authenticated user
+      parameters:
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number (1-based). Defaults to 1.
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+          description: Number of items per page. Defaults to 10, max 100.
+      tags:
+        - Notifications
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description:
+            'Passthrough-paginated list of all in-app notifications. Envelope:
+            {results: [...], page: int, page_size: int, count: int}.'
+        '400':
+          description: Invalid page / page_size parameter
+        '401':
+          description: Unauthenticated
+  /notifications/{id}/mark-read/:
+    post:
+      operationId: notifications_mark_read_create
+      description:
+        'Marks a single in-app notification as read for the authenticated
+        user. Fully native + ownership-scoped via mark_read_bulk: an id that is missing,
+        owned by another user, or in a non-SENT/READ state yields 404. Idempotent:
+        an already-READ owned notification returns 200.'
+      summary: Mark a notification as read
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      tags:
+        - Notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: Notification marked as read. Returns the updated notification.
+        '401':
+          description: Unauthenticated
+        '404':
+          description: Notification not found or not owned by the authenticated user
+  /notifications/{id}/mark-read{format}:
+    post:
+      operationId: notifications_mark_read_formatted_create
+      description:
+        'Marks a single in-app notification as read for the authenticated
+        user. Fully native + ownership-scoped via mark_read_bulk: an id that is missing,
+        owned by another user, or in a non-SENT/READ state yields 404. Idempotent:
+        an already-READ owned notification returns 200.'
+      summary: Mark a notification as read
+      parameters:
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      tags:
+        - Notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: Notification marked as read. Returns the updated notification.
+        '401':
+          description: Unauthenticated
+        '404':
+          description: Notification not found or not owned by the authenticated user
+  /notifications/mark-read-bulk/:
+    post:
+      operationId: notifications_mark_read_bulk_create
+      description:
+        'Marks multiple in-app notifications as read for the authenticated
+        user. Ownership-scoped: notifications belonging to other users in the id list
+        are silently skipped (no IDOR error). Idempotent: already-READ ids are returned
+        in the results without error. Non-existent ids are silently skipped.'
+      summary: Mark multiple notifications as read (bulk)
+      tags:
+        - Notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkMarkRead'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BulkMarkRead'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BulkMarkRead'
+        required: true
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description:
+            'Notifications marked as read. Envelope: {results: [...serialized
+            notifications that are READ after the op...]}.'
+        '400':
+          description: Invalid request body (empty or missing ids list)
+        '401':
+          description: Unauthenticated
+  /notifications/mark-read-bulk{format}:
+    post:
+      operationId: notifications_mark_read_bulk_formatted_create
+      description:
+        'Marks multiple in-app notifications as read for the authenticated
+        user. Ownership-scoped: notifications belonging to other users in the id list
+        are silently skipped (no IDOR error). Idempotent: already-READ ids are returned
+        in the results without error. Non-existent ids are silently skipped.'
+      summary: Mark multiple notifications as read (bulk)
+      parameters:
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+      tags:
+        - Notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkMarkRead'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BulkMarkRead'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BulkMarkRead'
+        required: true
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description:
+            'Notifications marked as read. Envelope: {results: [...serialized
+            notifications that are READ after the op...]}.'
+        '400':
+          description: Invalid request body (empty or missing ids list)
+        '401':
+          description: Unauthenticated
+  /notifications/unread/:
+    get:
+      operationId: notifications_unread_retrieve
+      description: |-
+        GET /notifications/unread/ — unread in-app notifications for the current user.
+
+        Uses the native vintasend NotificationService.get_in_app_unread(user_id, page,
+        page_size) which returns an Iterable of vintasend Notification dataclasses
+        (not an ORM queryset). Count comes from get_in_app_unread_count(user_id).
+        Passthrough pagination: the caller controls page + page_size.
+      summary: List unread in-app notifications for the authenticated user
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number (1-based). Defaults to 1.
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+          description: Number of items per page. Defaults to 10.
+      tags:
+        - Notifications
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description:
+            'Passthrough-paginated list of unread notifications. Envelope:
+            {results: [...], page: int, page_size: int, count: int}. count reflects
+            the total number of unread notifications for the user.'
+        '400':
+          description: Invalid page / page_size parameter
+        '401':
+          description: Unauthenticated
+  /notifications/unread{format}:
+    get:
+      operationId: notifications_unread_formatted_retrieve
+      description: |-
+        GET /notifications/unread/ — unread in-app notifications for the current user.
+
+        Uses the native vintasend NotificationService.get_in_app_unread(user_id, page,
+        page_size) which returns an Iterable of vintasend Notification dataclasses
+        (not an ORM queryset). Count comes from get_in_app_unread_count(user_id).
+        Passthrough pagination: the caller controls page + page_size.
+      summary: List unread in-app notifications for the authenticated user
+      parameters:
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number (1-based). Defaults to 1.
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+          description: Number of items per page. Defaults to 10.
+      tags:
+        - Notifications
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description:
+            'Passthrough-paginated list of unread notifications. Envelope:
+            {results: [...], page: int, page_size: int, count: int}. count reflects
+            the total number of unread notifications for the user.'
+        '400':
+          description: Invalid page / page_size parameter
+        '401':
+          description: Unauthenticated
   /organization-members/:
     get:
       operationId: organization_members_list
@@ -4980,6 +6612,17 @@ paths:
           protect the last active admin).
         - `reactivate`: POST to re-enable a member.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: email
           schema:
@@ -5038,6 +6681,17 @@ paths:
           protect the last active admin).
         - `reactivate`: POST to re-enable a member.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: query
           name: email
           schema:
@@ -5103,6 +6757,17 @@ paths:
           protect the last active admin).
         - `reactivate`: POST to re-enable a member.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -5134,6 +6799,17 @@ paths:
           protect the last active admin).
         - `reactivate`: POST to re-enable a member.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -5171,6 +6847,17 @@ paths:
         Idempotency: deactivating an already-inactive member is a no-op success.
       summary: Deactivate an organization member
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -5218,6 +6905,17 @@ paths:
         Idempotency: deactivating an already-inactive member is a no-op success.
       summary: Deactivate an organization member
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -5270,6 +6968,17 @@ paths:
         Idempotency: reactivating an already-active member is a no-op success.
       summary: Reactivate an organization member
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -5313,6 +7022,17 @@ paths:
         Idempotency: reactivating an already-active member is a no-op success.
       summary: Reactivate an organization member
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -5355,7 +7075,22 @@ paths:
   /organizations/:
     post:
       operationId: organizations_create
-      description: A viewset for managing organizations.
+      description: |-
+        Create a new organization for the authenticated user.
+
+        Overrides ``CreateModelMixin.create`` to handle the post-write refetch
+        correctly for members who already have one or more memberships (Phase 5).
+
+        We skip the base mixin's post-write ``_resolve_active_organization`` call
+        entirely.  For the ``create`` action — exempted via
+        ``active_org_optional_actions = ("mine", "create")`` — that re-resolve
+        would leave a multi-org caller with no ``X-Organization-Id`` header
+        resolved to ``None``, making ``get_queryset`` return nothing and causing
+        the re-fetch to raise ``DoesNotExist`` / 500.
+
+        Instead, after ``perform_create`` we look up the just-created membership
+        directly and stash it on the request so the re-fetch (via
+        ``get_queryset``) is scoped to the new organization.
       tags:
         - organizations
       requestBody:
@@ -5383,7 +7118,22 @@ paths:
   /organizations{format}:
     post:
       operationId: organizations_formatted_create
-      description: A viewset for managing organizations.
+      description: |-
+        Create a new organization for the authenticated user.
+
+        Overrides ``CreateModelMixin.create`` to handle the post-write refetch
+        correctly for members who already have one or more memberships (Phase 5).
+
+        We skip the base mixin's post-write ``_resolve_active_organization`` call
+        entirely.  For the ``create`` action — exempted via
+        ``active_org_optional_actions = ("mine", "create")`` — that re-resolve
+        would leave a multi-org caller with no ``X-Organization-Id`` header
+        resolved to ``None``, making ``get_queryset`` return nothing and causing
+        the re-fetch to raise ``DoesNotExist`` / 500.
+
+        Instead, after ``perform_create`` we look up the just-created membership
+        directly and stash it on the request so the re-fetch (via
+        ``get_queryset``) is scoped to the new organization.
       parameters:
         - in: path
           name: format
@@ -5421,6 +7171,17 @@ paths:
       operationId: organizations_retrieve
       description: A viewset for managing organizations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -5456,6 +7217,17 @@ paths:
         The creds check is performed BEFORE any write so that unrelated field changes (e.g.
         renaming the org) are NOT persisted when the 400 is returned.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -5489,6 +7261,17 @@ paths:
       operationId: organizations_partial_update
       description: A viewset for managing organizations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -5521,6 +7304,17 @@ paths:
       operationId: organizations_destroy
       description: A viewset for managing organizations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -5539,6 +7333,17 @@ paths:
       operationId: organizations_formatted_retrieve
       description: A viewset for managing organizations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -5581,6 +7386,17 @@ paths:
         The creds check is performed BEFORE any write so that unrelated field changes (e.g.
         renaming the org) are NOT persisted when the 400 is returned.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -5621,6 +7437,17 @@ paths:
       operationId: organizations_formatted_partial_update
       description: A viewset for managing organizations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -5660,6 +7487,17 @@ paths:
       operationId: organizations_formatted_destroy
       description: A viewset for managing organizations.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -5695,6 +7533,17 @@ paths:
         Returns HTTP 202 with ``{"synced": [...], "skipped": [...]}``.
       summary: Trigger a sync of every calendar in the organization
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -5743,6 +7592,17 @@ paths:
         Returns HTTP 202 with ``{"synced": [...], "skipped": [...]}``.
       summary: Trigger a sync of every calendar in the organization
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -5797,6 +7657,17 @@ paths:
         Returns HTTP 202 on success.
       summary: Trigger a rooms/resources import for the organization
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -5846,6 +7717,17 @@ paths:
         Returns HTTP 202 on success.
       summary: Trigger a rooms/resources import for the organization
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -5897,6 +7779,18 @@ paths:
         HTTP 200 — the user is onboarded (has a membership).
         HTTP 404 — the user is gated (no membership yet).
       summary: Current organization + role for the authenticated user
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - organizations
       security:
@@ -5921,6 +7815,17 @@ paths:
         HTTP 404 — the user is gated (no membership yet).
       summary: Current organization + role for the authenticated user
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -5942,6 +7847,64 @@ paths:
           description: ''
         '404':
           description: No organization membership (gated user)
+  /organizations/mine/:
+    get:
+      operationId: organizations_mine_list
+      description: |-
+        Return all active memberships for the authenticated caller.
+
+        Designed for the frontend org switcher: the client calls this endpoint
+        *before* it knows which ``X-Organization-Id`` to send, so no header is
+        required.  The response is always HTTP 200; gated users receive an empty
+        list (``[]``).
+      summary: List the authenticated user's active organization memberships
+      tags:
+        - organizations
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MyMembership'
+          description: ''
+  /organizations/mine{format}:
+    get:
+      operationId: organizations_mine_formatted_list
+      description: |-
+        Return all active memberships for the authenticated caller.
+
+        Designed for the frontend org switcher: the client calls this endpoint
+        *before* it knows which ``X-Organization-Id`` to send, so no header is
+        required.  The response is always HTTP 200; gated users receive an empty
+        list (``[]``).
+      summary: List the authenticated user's active organization memberships
+      parameters:
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+      tags:
+        - organizations
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MyMembership'
+          description: ''
   /payments/{id}/payment-update/{provider}/:
     post:
       operationId: payments_payment_update_create
@@ -6900,6 +8863,17 @@ paths:
       operationId: public_organizations_events_list
       description: List events with token-based authentication.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - name: limit
           required: false
           in: query
@@ -6931,6 +8905,17 @@ paths:
       operationId: public_organizations_events_create
       description: Create an event with token-based authentication checked first.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: organization_id
           schema:
@@ -6963,6 +8948,17 @@ paths:
       operationId: public_organizations_events_retrieve
       description: Retrieve a single event with token-based authentication.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -6988,6 +8984,17 @@ paths:
       operationId: public_organizations_events_update
       description: Update an event with token-based authentication checked first.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -7027,6 +9034,17 @@ paths:
         Partial update an event with token-based authentication checked
         first.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -7063,6 +9081,17 @@ paths:
       operationId: public_organizations_events_destroy
       description: Delete an event with token-based authentication checked first.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -7536,6 +9565,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - name: limit
           required: false
           in: query
@@ -7565,6 +9605,18 @@ paths:
       description: |-
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
       tags:
         - webhook-configurations
       requestBody:
@@ -7596,6 +9648,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -7633,6 +9696,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -7671,6 +9745,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -7694,6 +9779,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -7729,6 +9825,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -7763,6 +9870,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -7783,6 +9901,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -7813,6 +9942,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -7855,6 +9995,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -7896,6 +10047,17 @@ paths:
         ViewSet for managing webhook configurations.
         Provides full CRUD operations: create, retrieve, update, partial_update, destroy, and list.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -7923,6 +10085,17 @@ paths:
         ViewSet for webhook events.
         Provides read-only operations (list, retrieve) and a custom retry action.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - name: limit
           required: false
           in: query
@@ -7954,6 +10127,17 @@ paths:
         ViewSet for webhook events.
         Provides read-only operations (list, retrieve) and a custom retry action.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -7992,6 +10176,17 @@ paths:
         ViewSet for webhook events.
         Provides read-only operations (list, retrieve) and a custom retry action.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -8016,6 +10211,17 @@ paths:
         ViewSet for webhook events.
         Provides read-only operations (list, retrieve) and a custom retry action.
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -8045,6 +10251,17 @@ paths:
       operationId: webhook_events_retry_create
       description: Retry a failed webhook event
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: id
           schema:
@@ -8079,6 +10296,17 @@ paths:
       operationId: webhook_events_retry_formatted_create
       description: Retry a failed webhook event
       parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
         - in: path
           name: format
           schema:
@@ -8579,6 +10807,21 @@ components:
             $ref: '#/components/schemas/BlockedTime'
       required:
         - blocked_times
+    BulkMarkRead:
+      type: object
+      description: |-
+        Input serializer for the bulk mark-as-read endpoint.
+
+        Validates that the request body contains a non-empty list of notification ids.
+        Empty list or missing field → DRF 400 validation error.
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+          maxItems: 100
+      required:
+        - ids
     Calendar:
       type: object
       properties:
@@ -9224,16 +11467,105 @@ components:
         * `WEEKLY` - Weekly
         * `MONTHLY` - Monthly
         * `YEARLY` - Yearly
+    MyMembership:
+      type: object
+      description: |-
+        Read-only serializer for the caller's active organization memberships.
+
+        Used by ``GET /organizations/mine/`` to power the frontend org switcher.
+        Returns a list of ``{organization: {id, name}, role}`` entries — one per
+        active membership — without requiring the ``X-Organization-Id`` header.
+      properties:
+        organization:
+          allOf:
+            - $ref: '#/components/schemas/OrganizationBrief'
+          readOnly: true
+        role:
+          allOf:
+            - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+          description: |-
+            Role the user holds in this organization. Admins can manage organization-scoped resources (e.g. CalendarGroups) regardless of direct ownership.
+
+            * `member` - Member
+            * `admin` - Admin
+      required:
+        - organization
+        - role
+    Notification:
+      type: object
+      description: |-
+        Read-only serializer for in-app notification objects.
+
+        Works for both vintasend Notification dataclasses (Phase 1 — returned by
+        get_in_app_unread) and vintasend_django model instances (Phase 2 — ORM rows).
+
+        Fields:
+        - id, title, notification_type, status: present on both dataclass and model.
+        - body: rendered at read time via body_template + best-available context.
+        - created, modified: model-only; None for dataclass instances.
+      properties:
+        id:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        notification_type:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          description: |-
+            Render the body template with the best-available context.
+
+            Priority:
+            1. context_used — the context that was recorded at send time (on model rows,
+               set by the backend when the notification was processed).
+            2. context_kwargs — the original kwargs passed at creation time.
+            3. Empty dict — render the template with no context (graceful degradation).
+
+            Returns an empty string on rendering failure so the response always serialises.
+          readOnly: true
+        created:
+          type: string
+          nullable: true
+          description: |-
+            Return the creation timestamp as ISO 8601 string, or None for dataclasses.
+
+            The vintasend Notification dataclass has no `created` attribute; only the
+            vintasend_django ORM model does.
+          readOnly: true
+        modified:
+          type: string
+          nullable: true
+          description: |-
+            Return the last-modified timestamp as ISO 8601 string, or None for dataclasses.
+
+            In vintasend 1.2.0 the Notification dataclass carries `modified`; ORM rows also
+            have it. Returns None when the attribute is absent or None.
+          readOnly: true
+      required:
+        - body
+        - created
+        - id
+        - modified
+        - notification_type
+        - status
+        - title
     Organization:
       type: object
       description: |-
         Serializer for Organization instances.
 
         The ``google_service_account`` field supports both reading and writing:
-        - **Write**: accepts ``email``, ``audience``, ``public_key``,
+        - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
           ``private_key_id`` (write-only), and ``private_key`` (write-only).
           Omitting the field on PATCH leaves existing credentials unchanged.
-        - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+        - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
           Secret fields are never returned.
       properties:
         id:
@@ -9266,6 +11598,24 @@ components:
         - google_service_account
         - id
         - modified
+        - name
+    OrganizationBrief:
+      type: object
+      description: |-
+        Lightweight read-only serializer for an Organization.
+
+        Exposes only the fields needed for the org-switcher list: ``id`` and ``name``.
+        Intentionally avoids the heavier ``OrganizationSerializer`` (which loads the
+        Google service account) to keep ``GET /organizations/mine/`` fast.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+      required:
+        - id
         - name
     OrganizationInvitation:
       type: object
@@ -10038,10 +12388,10 @@ components:
         Serializer for Organization instances.
 
         The ``google_service_account`` field supports both reading and writing:
-        - **Write**: accepts ``email``, ``audience``, ``public_key``,
+        - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
           ``private_key_id`` (write-only), and ``private_key`` (write-only).
           Omitting the field on PATCH leaves existing credentials unchanged.
-        - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+        - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
           Secret fields are never returned.
       properties:
         id:
@@ -10097,8 +12447,13 @@ components:
           type: string
           format: email
           maxLength: 254
-        audience:
+        admin_email:
           type: string
+          format: email
+          description:
+            Google Workspace super-admin email used as the DWD impersonation
+            subject. The service account must have domain-wide delegation granted
+            for the Admin SDK and Calendar API scopes in the Google Admin Console.
           maxLength: 255
         public_key:
           type: string
@@ -10369,9 +12724,14 @@ components:
           type: string
           format: email
           readOnly: true
-        audience:
+        admin_email:
           type: string
+          format: email
           readOnly: true
+          description:
+            Google Workspace super-admin email used as the DWD impersonation
+            subject. The service account must have domain-wide delegation granted
+            for the Admin SDK and Calendar API scopes in the Google Admin Console.
         configured:
           type: boolean
           description: A persisted row is, by definition, configured.
@@ -10385,7 +12745,7 @@ components:
           format: date-time
           readOnly: true
       required:
-        - audience
+        - admin_email
         - configured
         - created
         - email
@@ -10403,8 +12763,13 @@ components:
           type: string
           format: email
           maxLength: 254
-        audience:
+        admin_email:
           type: string
+          format: email
+          description:
+            Google Workspace super-admin email used as the DWD impersonation
+            subject. The service account must have domain-wide delegation granted
+            for the Admin SDK and Calendar API scopes in the Google Admin Console.
           maxLength: 255
         public_key:
           type: string

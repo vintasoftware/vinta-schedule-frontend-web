@@ -31,7 +31,7 @@ export const SERVICE_ACCOUNT_QUERY_KEY = serviceAccountsListQueryKey();
 // or null if none exists.
 //
 // Security: The read model (ServiceAccountRead) never contains secrets
-// (private_key, private_key_id, public_key). Only email, audience,
+// (private_key, private_key_id, public_key). Only email, admin_email,
 // configured, created, modified are returned.
 // ---------------------------------------------------------------------------
 
@@ -92,7 +92,7 @@ export function useUpsertServiceAccount() {
       // Rotate: PATCH the existing account with fresh credentials.
       const patch: PatchedServiceAccountWriteWritable = {
         email: values.email,
-        audience: values.audience,
+        admin_email: values.admin_email,
         public_key: values.public_key,
         private_key_id: values.private_key_id,
         private_key: values.private_key,

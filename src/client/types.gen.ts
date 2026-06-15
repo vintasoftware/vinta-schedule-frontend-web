@@ -258,6 +258,16 @@ export type BulkBlockedTime = {
     blocked_times: Array<BlockedTime>;
 };
 
+/**
+ * Input serializer for the bulk mark-as-read endpoint.
+ *
+ * Validates that the request body contains a non-empty list of notification ids.
+ * Empty list or missing field → DRF 400 validation error.
+ */
+export type BulkMarkRead = {
+    ids: Array<number>;
+};
+
 export type Calendar = {
     readonly id: number;
     name: string;
@@ -573,13 +583,75 @@ export type ExternalAttendee = {
 export type FrequencyEnum = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
 
 /**
+ * Read-only serializer for the caller's active organization memberships.
+ *
+ * Used by ``GET /organizations/mine/`` to power the frontend org switcher.
+ * Returns a list of ``{organization: {id, name}, role}`` entries — one per
+ * active membership — without requiring the ``X-Organization-Id`` header.
+ */
+export type MyMembership = {
+    organization: OrganizationBrief;
+    /**
+     * Role the user holds in this organization. Admins can manage organization-scoped resources (e.g. CalendarGroups) regardless of direct ownership.
+     *
+     * * `member` - Member
+     * * `admin` - Admin
+     */
+    role: RoleEnum;
+};
+
+/**
+ * Read-only serializer for in-app notification objects.
+ *
+ * Works for both vintasend Notification dataclasses (Phase 1 — returned by
+ * get_in_app_unread) and vintasend_django model instances (Phase 2 — ORM rows).
+ *
+ * Fields:
+ * - id, title, notification_type, status: present on both dataclass and model.
+ * - body: rendered at read time via body_template + best-available context.
+ * - created, modified: model-only; None for dataclass instances.
+ */
+export type Notification = {
+    readonly id: string;
+    readonly title: string;
+    readonly notification_type: string;
+    readonly status: string;
+    /**
+     * Render the body template with the best-available context.
+     *
+     * Priority:
+     * 1. context_used — the context that was recorded at send time (on model rows,
+     * set by the backend when the notification was processed).
+     * 2. context_kwargs — the original kwargs passed at creation time.
+     * 3. Empty dict — render the template with no context (graceful degradation).
+     *
+     * Returns an empty string on rendering failure so the response always serialises.
+     */
+    readonly body: string;
+    /**
+     * Return the creation timestamp as ISO 8601 string, or None for dataclasses.
+     *
+     * The vintasend Notification dataclass has no `created` attribute; only the
+     * vintasend_django ORM model does.
+     */
+    readonly created: string | null;
+    /**
+     * Return the last-modified timestamp as ISO 8601 string, or None for dataclasses.
+     *
+     * In vintasend 1.2.0 the Notification dataclass carries `modified`; ORM rows also
+     * have it. Returns None when the attribute is absent or None.
+     */
+    readonly modified: string | null;
+};
+
+/**
  * Serializer for Organization instances.
  *
  * The ``google_service_account`` field supports both reading and writing:
- * - **Write**: accepts ``email``, ``audience``, ``public_key``,
+ * - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
  * ``private_key_id`` (write-only), and ``private_key`` (write-only).
  * Omitting the field on PATCH leaves existing credentials unchanged.
- * - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+ * - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
  * Secret fields are never returned.
  */
 export type Organization = {
@@ -597,6 +669,18 @@ export type Organization = {
     } | null;
     readonly created: string;
     readonly modified: string;
+};
+
+/**
+ * Lightweight read-only serializer for an Organization.
+ *
+ * Exposes only the fields needed for the org-switcher list: ``id`` and ``name``.
+ * Intentionally avoids the heavier ``OrganizationSerializer`` (which loads the
+ * Google service account) to keep ``GET /organizations/mine/`` fast.
+ */
+export type OrganizationBrief = {
+    readonly id: number;
+    readonly name: string;
 };
 
 /**
@@ -916,10 +1000,10 @@ export type PatchedCalendarGroup = {
  * Serializer for Organization instances.
  *
  * The ``google_service_account`` field supports both reading and writing:
- * - **Write**: accepts ``email``, ``audience``, ``public_key``,
+ * - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
  * ``private_key_id`` (write-only), and ``private_key`` (write-only).
  * Omitting the field on PATCH leaves existing credentials unchanged.
- * - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+ * - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
  * Secret fields are never returned.
  */
 export type PatchedOrganization = {
@@ -954,7 +1038,10 @@ export type PatchedProfile = {
  */
 export type PatchedServiceAccountWrite = {
     email?: string;
-    audience?: string;
+    /**
+     * Google Workspace super-admin email used as the DWD impersonation subject. The service account must have domain-wide delegation granted for the Admin SDK and Calendar API scopes in the Google Admin Console.
+     */
+    admin_email?: string;
     public_key?: string;
 };
 
@@ -1115,7 +1202,10 @@ export type RoleEnum = 'member' | 'admin';
 export type ServiceAccountRead = {
     readonly id: number;
     readonly email: string;
-    readonly audience: string;
+    /**
+     * Google Workspace super-admin email used as the DWD impersonation subject. The service account must have domain-wide delegation granted for the Admin SDK and Calendar API scopes in the Google Admin Console.
+     */
+    readonly admin_email: string;
     /**
      * A persisted row is, by definition, configured.
      */
@@ -1132,7 +1222,10 @@ export type ServiceAccountRead = {
  */
 export type ServiceAccountWrite = {
     email: string;
-    audience?: string;
+    /**
+     * Google Workspace super-admin email used as the DWD impersonation subject. The service account must have domain-wide delegation granted for the Admin SDK and Calendar API scopes in the Google Admin Console.
+     */
+    admin_email?: string;
     public_key: string;
 };
 
@@ -1550,10 +1643,10 @@ export type ExternalAttendeeWritable = {
  * Serializer for Organization instances.
  *
  * The ``google_service_account`` field supports both reading and writing:
- * - **Write**: accepts ``email``, ``audience``, ``public_key``,
+ * - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
  * ``private_key_id`` (write-only), and ``private_key`` (write-only).
  * Omitting the field on PATCH leaves existing credentials unchanged.
- * - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+ * - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
  * Secret fields are never returned.
  */
 export type OrganizationWritable = {
@@ -1772,10 +1865,10 @@ export type PatchedCalendarGroupWritable = {
  * Serializer for Organization instances.
  *
  * The ``google_service_account`` field supports both reading and writing:
- * - **Write**: accepts ``email``, ``audience``, ``public_key``,
+ * - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
  * ``private_key_id`` (write-only), and ``private_key`` (write-only).
  * Omitting the field on PATCH leaves existing credentials unchanged.
- * - **Read**: returns ``email``, ``audience``, and ``configured: true/false``.
+ * - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
  * Secret fields are never returned.
  */
 export type PatchedOrganizationWritable = {
@@ -1800,7 +1893,10 @@ export type PatchedProfileWritable = {
  */
 export type PatchedServiceAccountWriteWritable = {
     email?: string;
-    audience?: string;
+    /**
+     * Google Workspace super-admin email used as the DWD impersonation subject. The service account must have domain-wide delegation granted for the Admin SDK and Calendar API scopes in the Google Admin Console.
+     */
+    admin_email?: string;
     public_key?: string;
     private_key_id?: string;
     private_key?: string;
@@ -1902,7 +1998,10 @@ export type ResourceAllocationWritable = {
  */
 export type ServiceAccountWriteWritable = {
     email: string;
-    audience?: string;
+    /**
+     * Google Workspace super-admin email used as the DWD impersonation subject. The service account must have domain-wide delegation granted for the Admin SDK and Calendar API scopes in the Google Admin Console.
+     */
+    admin_email?: string;
     public_key: string;
     private_key_id: string;
     private_key: string;
@@ -1934,6 +2033,12 @@ export type WebhookEventWritable = {
 
 export type AvailableTimesListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -1964,6 +2069,12 @@ export type AvailableTimesListResponse = AvailableTimesListResponses[keyof Avail
 
 export type AvailableTimesCreateData = {
     body: AvailableTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/available-times/';
@@ -1977,6 +2088,12 @@ export type AvailableTimesCreateResponse = AvailableTimesCreateResponses[keyof A
 
 export type AvailableTimesFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -2009,6 +2126,12 @@ export type AvailableTimesFormattedListResponse = AvailableTimesFormattedListRes
 
 export type AvailableTimesFormattedCreateData = {
     body: AvailableTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -2024,6 +2147,12 @@ export type AvailableTimesFormattedCreateResponse = AvailableTimesFormattedCreat
 
 export type AvailableTimesDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2042,6 +2171,12 @@ export type AvailableTimesDestroyResponse = AvailableTimesDestroyResponses[keyof
 
 export type AvailableTimesRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2057,6 +2192,12 @@ export type AvailableTimesRetrieveResponse = AvailableTimesRetrieveResponses[key
 
 export type AvailableTimesPartialUpdateData = {
     body?: PatchedAvailableTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2072,6 +2213,12 @@ export type AvailableTimesPartialUpdateResponse = AvailableTimesPartialUpdateRes
 
 export type AvailableTimesUpdateData = {
     body: AvailableTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2087,6 +2234,12 @@ export type AvailableTimesUpdateResponse = AvailableTimesUpdateResponses[keyof A
 
 export type AvailableTimesFormattedDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2106,6 +2259,12 @@ export type AvailableTimesFormattedDestroyResponse = AvailableTimesFormattedDest
 
 export type AvailableTimesFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2122,6 +2281,12 @@ export type AvailableTimesFormattedRetrieveResponse = AvailableTimesFormattedRet
 
 export type AvailableTimesFormattedPartialUpdateData = {
     body?: PatchedAvailableTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2138,6 +2303,12 @@ export type AvailableTimesFormattedPartialUpdateResponse = AvailableTimesFormatt
 
 export type AvailableTimesFormattedUpdateData = {
     body: AvailableTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2154,6 +2325,12 @@ export type AvailableTimesFormattedUpdateResponse = AvailableTimesFormattedUpdat
 
 export type AvailableTimesBulkModifyCreateData = {
     body: AvailableTimeBulkModificationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2173,6 +2350,12 @@ export type AvailableTimesBulkModifyCreateResponse = AvailableTimesBulkModifyCre
 
 export type AvailableTimesBulkModifyFormattedCreateData = {
     body: AvailableTimeBulkModificationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2193,6 +2376,12 @@ export type AvailableTimesBulkModifyFormattedCreateResponse = AvailableTimesBulk
 
 export type AvailableTimesCreateExceptionCreateData = {
     body: AvailableTimeRecurringException;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2212,6 +2401,12 @@ export type AvailableTimesCreateExceptionCreateResponse = AvailableTimesCreateEx
 
 export type AvailableTimesCreateExceptionFormattedCreateData = {
     body: AvailableTimeRecurringException;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2232,6 +2427,12 @@ export type AvailableTimesCreateExceptionFormattedCreateResponse = AvailableTime
 
 export type AvailableTimesBatchCreateData = {
     body: AvailableTimeBatch;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -2262,6 +2463,12 @@ export type AvailableTimesBatchCreateResponse = AvailableTimesBatchCreateRespons
 
 export type AvailableTimesBatchFormattedCreateData = {
     body: AvailableTimeBatch;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -2294,6 +2501,12 @@ export type AvailableTimesBatchFormattedCreateResponse = AvailableTimesBatchForm
 
 export type AvailableTimesExpandedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query: {
         /**
@@ -2336,6 +2549,12 @@ export type AvailableTimesExpandedListResponse = AvailableTimesExpandedListRespo
 
 export type AvailableTimesExpandedFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -2492,6 +2711,12 @@ export type BillingProfileUpdateBillingProfileFormattedUpdateResponse = BillingP
 
 export type BlockedTimesListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -2526,6 +2751,12 @@ export type BlockedTimesListResponse = BlockedTimesListResponses[keyof BlockedTi
 
 export type BlockedTimesCreateData = {
     body: BlockedTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/blocked-times/';
@@ -2539,6 +2770,12 @@ export type BlockedTimesCreateResponse = BlockedTimesCreateResponses[keyof Block
 
 export type BlockedTimesFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -2575,6 +2812,12 @@ export type BlockedTimesFormattedListResponse = BlockedTimesFormattedListRespons
 
 export type BlockedTimesFormattedCreateData = {
     body: BlockedTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -2590,6 +2833,12 @@ export type BlockedTimesFormattedCreateResponse = BlockedTimesFormattedCreateRes
 
 export type BlockedTimesDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2608,6 +2857,12 @@ export type BlockedTimesDestroyResponse = BlockedTimesDestroyResponses[keyof Blo
 
 export type BlockedTimesRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2623,6 +2878,12 @@ export type BlockedTimesRetrieveResponse = BlockedTimesRetrieveResponses[keyof B
 
 export type BlockedTimesPartialUpdateData = {
     body?: PatchedBlockedTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2638,6 +2899,12 @@ export type BlockedTimesPartialUpdateResponse = BlockedTimesPartialUpdateRespons
 
 export type BlockedTimesUpdateData = {
     body: BlockedTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2653,6 +2920,12 @@ export type BlockedTimesUpdateResponse = BlockedTimesUpdateResponses[keyof Block
 
 export type BlockedTimesFormattedDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2672,6 +2945,12 @@ export type BlockedTimesFormattedDestroyResponse = BlockedTimesFormattedDestroyR
 
 export type BlockedTimesFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2688,6 +2967,12 @@ export type BlockedTimesFormattedRetrieveResponse = BlockedTimesFormattedRetriev
 
 export type BlockedTimesFormattedPartialUpdateData = {
     body?: PatchedBlockedTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2704,6 +2989,12 @@ export type BlockedTimesFormattedPartialUpdateResponse = BlockedTimesFormattedPa
 
 export type BlockedTimesFormattedUpdateData = {
     body: BlockedTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2720,6 +3011,12 @@ export type BlockedTimesFormattedUpdateResponse = BlockedTimesFormattedUpdateRes
 
 export type BlockedTimesBulkModifyCreateData = {
     body: BlockedTimeBulkModificationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2739,6 +3036,12 @@ export type BlockedTimesBulkModifyCreateResponse = BlockedTimesBulkModifyCreateR
 
 export type BlockedTimesBulkModifyFormattedCreateData = {
     body: BlockedTimeBulkModificationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2759,6 +3062,12 @@ export type BlockedTimesBulkModifyFormattedCreateResponse = BlockedTimesBulkModi
 
 export type BlockedTimesCreateExceptionCreateData = {
     body: BlockedTimeRecurringException;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -2778,6 +3087,12 @@ export type BlockedTimesCreateExceptionCreateResponse = BlockedTimesCreateExcept
 
 export type BlockedTimesCreateExceptionFormattedCreateData = {
     body: BlockedTimeRecurringException;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -2798,6 +3113,12 @@ export type BlockedTimesCreateExceptionFormattedCreateResponse = BlockedTimesCre
 
 export type BlockedTimesBulkCreateCreateData = {
     body: BulkBlockedTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -2832,6 +3153,12 @@ export type BlockedTimesBulkCreateCreateResponse = BlockedTimesBulkCreateCreateR
 
 export type BlockedTimesBulkCreateFormattedCreateData = {
     body: BulkBlockedTimeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -2868,6 +3195,12 @@ export type BlockedTimesBulkCreateFormattedCreateResponse = BlockedTimesBulkCrea
 
 export type BlockedTimesExpandedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query: {
         /**
@@ -2914,6 +3247,12 @@ export type BlockedTimesExpandedListResponse = BlockedTimesExpandedListResponses
 
 export type BlockedTimesExpandedFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -2962,6 +3301,12 @@ export type BlockedTimesExpandedFormattedListResponse = BlockedTimesExpandedForm
 
 export type CalendarListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -2992,6 +3337,12 @@ export type CalendarListResponse = CalendarListResponses[keyof CalendarListRespo
 
 export type CalendarCreateData = {
     body: CalendarWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/calendar/';
@@ -3005,6 +3356,12 @@ export type CalendarCreateResponse = CalendarCreateResponses[keyof CalendarCreat
 
 export type CalendarFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3037,6 +3394,12 @@ export type CalendarFormattedListResponse = CalendarFormattedListResponses[keyof
 
 export type CalendarFormattedCreateData = {
     body: CalendarWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3052,6 +3415,12 @@ export type CalendarFormattedCreateResponse = CalendarFormattedCreateResponses[k
 
 export type CalendarEventsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -3106,6 +3475,12 @@ export type CalendarEventsListResponse = CalendarEventsListResponses[keyof Calen
 
 export type CalendarEventsCreateData = {
     body: CalendarEventWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/calendar-events/';
@@ -3119,6 +3494,12 @@ export type CalendarEventsCreateResponse = CalendarEventsCreateResponses[keyof C
 
 export type CalendarEventsFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3175,6 +3556,12 @@ export type CalendarEventsFormattedListResponse = CalendarEventsFormattedListRes
 
 export type CalendarEventsFormattedCreateData = {
     body: CalendarEventWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3190,6 +3577,12 @@ export type CalendarEventsFormattedCreateResponse = CalendarEventsFormattedCreat
 
 export type CalendarEventsDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3208,6 +3601,12 @@ export type CalendarEventsDestroyResponse = CalendarEventsDestroyResponses[keyof
 
 export type CalendarEventsRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3223,6 +3622,12 @@ export type CalendarEventsRetrieveResponse = CalendarEventsRetrieveResponses[key
 
 export type CalendarEventsPartialUpdateData = {
     body?: PatchedCalendarEventWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3238,6 +3643,12 @@ export type CalendarEventsPartialUpdateResponse = CalendarEventsPartialUpdateRes
 
 export type CalendarEventsUpdateData = {
     body: CalendarEventWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3253,6 +3664,12 @@ export type CalendarEventsUpdateResponse = CalendarEventsUpdateResponses[keyof C
 
 export type CalendarEventsFormattedDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3272,6 +3689,12 @@ export type CalendarEventsFormattedDestroyResponse = CalendarEventsFormattedDest
 
 export type CalendarEventsFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3288,6 +3711,12 @@ export type CalendarEventsFormattedRetrieveResponse = CalendarEventsFormattedRet
 
 export type CalendarEventsFormattedPartialUpdateData = {
     body?: PatchedCalendarEventWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3304,6 +3733,12 @@ export type CalendarEventsFormattedPartialUpdateResponse = CalendarEventsFormatt
 
 export type CalendarEventsFormattedUpdateData = {
     body: CalendarEventWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3320,6 +3755,12 @@ export type CalendarEventsFormattedUpdateResponse = CalendarEventsFormattedUpdat
 
 export type CalendarEventsBulkModifyCreateData = {
     body: EventBulkModificationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3339,6 +3780,12 @@ export type CalendarEventsBulkModifyCreateResponse = CalendarEventsBulkModifyCre
 
 export type CalendarEventsBulkModifyFormattedCreateData = {
     body: EventBulkModificationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3359,6 +3806,12 @@ export type CalendarEventsBulkModifyFormattedCreateResponse = CalendarEventsBulk
 
 export type CalendarEventsCreateExceptionCreateData = {
     body: EventRecurringException;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3378,6 +3831,12 @@ export type CalendarEventsCreateExceptionCreateResponse = CalendarEventsCreateEx
 
 export type CalendarEventsCreateExceptionFormattedCreateData = {
     body: EventRecurringException;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3398,6 +3857,12 @@ export type CalendarEventsCreateExceptionFormattedCreateResponse = CalendarEvent
 
 export type CalendarEventsTransferCreateData = {
     body: CalendarEventTransfer;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3413,6 +3878,12 @@ export type CalendarEventsTransferCreateResponse = CalendarEventsTransferCreateR
 
 export type CalendarEventsTransferFormattedCreateData = {
     body: CalendarEventTransfer;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3429,6 +3900,12 @@ export type CalendarEventsTransferFormattedCreateResponse = CalendarEventsTransf
 
 export type CalendarEventsExpandedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query: {
         /**
@@ -3487,6 +3964,12 @@ export type CalendarEventsExpandedListResponse = CalendarEventsExpandedListRespo
 
 export type CalendarEventsExpandedFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3547,6 +4030,12 @@ export type CalendarEventsExpandedFormattedListResponse = CalendarEventsExpanded
 
 export type CalendarGroupsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -3573,6 +4062,12 @@ export type CalendarGroupsListResponse = CalendarGroupsListResponses[keyof Calen
 
 export type CalendarGroupsCreateData = {
     body: CalendarGroupWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/calendar-groups/';
@@ -3586,6 +4081,12 @@ export type CalendarGroupsCreateResponse = CalendarGroupsCreateResponses[keyof C
 
 export type CalendarGroupsFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3614,6 +4115,12 @@ export type CalendarGroupsFormattedListResponse = CalendarGroupsFormattedListRes
 
 export type CalendarGroupsFormattedCreateData = {
     body: CalendarGroupWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3629,6 +4136,12 @@ export type CalendarGroupsFormattedCreateResponse = CalendarGroupsFormattedCreat
 
 export type CalendarGroupsDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3647,6 +4160,12 @@ export type CalendarGroupsDestroyResponse = CalendarGroupsDestroyResponses[keyof
 
 export type CalendarGroupsRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3662,6 +4181,12 @@ export type CalendarGroupsRetrieveResponse = CalendarGroupsRetrieveResponses[key
 
 export type CalendarGroupsPartialUpdateData = {
     body?: PatchedCalendarGroupWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3677,6 +4202,12 @@ export type CalendarGroupsPartialUpdateResponse = CalendarGroupsPartialUpdateRes
 
 export type CalendarGroupsUpdateData = {
     body: CalendarGroupWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3692,6 +4223,12 @@ export type CalendarGroupsUpdateResponse = CalendarGroupsUpdateResponses[keyof C
 
 export type CalendarGroupsFormattedDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3711,6 +4248,12 @@ export type CalendarGroupsFormattedDestroyResponse = CalendarGroupsFormattedDest
 
 export type CalendarGroupsFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3727,6 +4270,12 @@ export type CalendarGroupsFormattedRetrieveResponse = CalendarGroupsFormattedRet
 
 export type CalendarGroupsFormattedPartialUpdateData = {
     body?: PatchedCalendarGroupWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3743,6 +4292,12 @@ export type CalendarGroupsFormattedPartialUpdateResponse = CalendarGroupsFormatt
 
 export type CalendarGroupsFormattedUpdateData = {
     body: CalendarGroupWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3759,6 +4314,12 @@ export type CalendarGroupsFormattedUpdateResponse = CalendarGroupsFormattedUpdat
 
 export type CalendarGroupsAvailabilityCreateData = {
     body: CalendarGroupAvailabilityQuery;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3787,6 +4348,12 @@ export type CalendarGroupsAvailabilityCreateResponse = CalendarGroupsAvailabilit
 
 export type CalendarGroupsAvailabilityFormattedCreateData = {
     body: CalendarGroupAvailabilityQuery;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3816,6 +4383,12 @@ export type CalendarGroupsAvailabilityFormattedCreateResponse = CalendarGroupsAv
 
 export type CalendarGroupsBookableSlotsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3860,6 +4433,12 @@ export type CalendarGroupsBookableSlotsListResponse = CalendarGroupsBookableSlot
 
 export type CalendarGroupsBookableSlotsFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3905,6 +4484,12 @@ export type CalendarGroupsBookableSlotsFormattedListResponse = CalendarGroupsBoo
 
 export type CalendarGroupsBookedEventsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3941,6 +4526,12 @@ export type CalendarGroupsBookedEventsListResponse = CalendarGroupsBookedEventsL
 
 export type CalendarGroupsBookedEventsFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -3978,6 +4569,12 @@ export type CalendarGroupsBookedEventsFormattedListResponse = CalendarGroupsBook
 
 export type CalendarGroupsEventsCreateData = {
     body: CalendarGroupEventCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -3993,6 +4590,12 @@ export type CalendarGroupsEventsCreateResponse = CalendarGroupsEventsCreateRespo
 
 export type CalendarGroupsEventsFormattedCreateData = {
     body: CalendarGroupEventCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4009,6 +4612,12 @@ export type CalendarGroupsEventsFormattedCreateResponse = CalendarGroupsEventsFo
 
 export type CalendarDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4027,6 +4636,12 @@ export type CalendarDestroyResponse = CalendarDestroyResponses[keyof CalendarDes
 
 export type CalendarRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4042,6 +4657,12 @@ export type CalendarRetrieveResponse = CalendarRetrieveResponses[keyof CalendarR
 
 export type CalendarPartialUpdateData = {
     body?: PatchedCalendarWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4057,6 +4678,12 @@ export type CalendarPartialUpdateResponse = CalendarPartialUpdateResponses[keyof
 
 export type CalendarUpdateData = {
     body: CalendarWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4072,6 +4699,12 @@ export type CalendarUpdateResponse = CalendarUpdateResponses[keyof CalendarUpdat
 
 export type CalendarFormattedDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4091,6 +4724,12 @@ export type CalendarFormattedDestroyResponse = CalendarFormattedDestroyResponses
 
 export type CalendarFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4107,6 +4746,12 @@ export type CalendarFormattedRetrieveResponse = CalendarFormattedRetrieveRespons
 
 export type CalendarFormattedPartialUpdateData = {
     body?: PatchedCalendarWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4123,6 +4768,12 @@ export type CalendarFormattedPartialUpdateResponse = CalendarFormattedPartialUpd
 
 export type CalendarFormattedUpdateData = {
     body: CalendarWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4139,6 +4790,12 @@ export type CalendarFormattedUpdateResponse = CalendarFormattedUpdateResponses[k
 
 export type CalendarAdminSyncCreateData = {
     body: CalendarSyncRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4161,6 +4818,12 @@ export type CalendarAdminSyncCreateResponse = CalendarAdminSyncCreateResponses[k
 
 export type CalendarAdminSyncFormattedCreateData = {
     body: CalendarSyncRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4184,6 +4847,12 @@ export type CalendarAdminSyncFormattedCreateResponse = CalendarAdminSyncFormatte
 
 export type CalendarAvailableWindowsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4208,6 +4877,12 @@ export type CalendarAvailableWindowsListResponse = CalendarAvailableWindowsListR
 
 export type CalendarAvailableWindowsFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4233,6 +4908,12 @@ export type CalendarAvailableWindowsFormattedListResponse = CalendarAvailableWin
 
 export type CalendarBundlePartialUpdateData = {
     body?: PatchedCalendarBundleUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4248,6 +4929,12 @@ export type CalendarBundlePartialUpdateResponse = CalendarBundlePartialUpdateRes
 
 export type CalendarBundleFormattedPartialUpdateData = {
     body?: PatchedCalendarBundleUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4264,6 +4951,12 @@ export type CalendarBundleFormattedPartialUpdateResponse = CalendarBundleFormatt
 
 export type CalendarRequestSyncCreateData = {
     body: CalendarSyncRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4286,6 +4979,12 @@ export type CalendarRequestSyncCreateResponse = CalendarRequestSyncCreateRespons
 
 export type CalendarRequestSyncFormattedCreateData = {
     body: CalendarSyncRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4309,6 +5008,12 @@ export type CalendarRequestSyncFormattedCreateResponse = CalendarRequestSyncForm
 
 export type CalendarUnavailableWindowsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4333,6 +5038,12 @@ export type CalendarUnavailableWindowsListResponse = CalendarUnavailableWindowsL
 
 export type CalendarUnavailableWindowsFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4358,6 +5069,12 @@ export type CalendarUnavailableWindowsFormattedListResponse = CalendarUnavailabl
 
 export type CalendarBundleCreateData = {
     body: CalendarBundleCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/calendar/bundle/';
@@ -4371,6 +5088,12 @@ export type CalendarBundleCreateResponse = CalendarBundleCreateResponses[keyof C
 
 export type CalendarBundleFormattedCreateData = {
     body: CalendarBundleCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -4386,6 +5109,12 @@ export type CalendarBundleFormattedCreateResponse = CalendarBundleFormattedCreat
 
 export type CalendarDefaultRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/calendar/default/';
@@ -4406,6 +5135,12 @@ export type CalendarDefaultRetrieveResponse = CalendarDefaultRetrieveResponses[k
 
 export type CalendarDefaultFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -4428,6 +5163,12 @@ export type CalendarDefaultFormattedRetrieveResponse = CalendarDefaultFormattedR
 
 export type CalendarRequestImportCreateData = {
     body: CalendarWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/calendar/request-import/';
@@ -4443,6 +5184,12 @@ export type CalendarRequestImportCreateResponse = CalendarRequestImportCreateRes
 
 export type CalendarRequestImportFormattedCreateData = {
     body: CalendarWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -4460,6 +5207,12 @@ export type CalendarRequestImportFormattedCreateResponse = CalendarRequestImport
 
 export type InvitationsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -4498,6 +5251,12 @@ export type InvitationsListResponse = InvitationsListResponses[keyof Invitations
 
 export type InvitationsCreateData = {
     body: OrganizationInvitationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/invitations/';
@@ -4511,6 +5270,12 @@ export type InvitationsCreateResponse = InvitationsCreateResponses[keyof Invitat
 
 export type InvitationsFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -4551,6 +5316,12 @@ export type InvitationsFormattedListResponse = InvitationsFormattedListResponses
 
 export type InvitationsFormattedCreateData = {
     body: OrganizationInvitationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -4566,6 +5337,12 @@ export type InvitationsFormattedCreateResponse = InvitationsFormattedCreateRespo
 
 export type InvitationsDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4584,6 +5361,12 @@ export type InvitationsDestroyResponse = InvitationsDestroyResponses[keyof Invit
 
 export type InvitationsRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4599,6 +5382,12 @@ export type InvitationsRetrieveResponse = InvitationsRetrieveResponses[keyof Inv
 
 export type InvitationsFormattedDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4618,6 +5407,12 @@ export type InvitationsFormattedDestroyResponse = InvitationsFormattedDestroyRes
 
 export type InvitationsFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4634,6 +5429,12 @@ export type InvitationsFormattedRetrieveResponse = InvitationsFormattedRetrieveR
 
 export type InvitationsResendCreateData = {
     body: OrganizationInvitationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4664,6 +5465,12 @@ export type InvitationsResendCreateResponse = InvitationsResendCreateResponses[k
 
 export type InvitationsResendFormattedCreateData = {
     body: OrganizationInvitationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4706,8 +5513,265 @@ export type InvitationsAcceptCreateResponses = {
 
 export type InvitationsAcceptCreateResponse = InvitationsAcceptCreateResponses[keyof InvitationsAcceptCreateResponses];
 
+export type NotificationsListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page number (1-based). Defaults to 1.
+         */
+        page?: number;
+        /**
+         * Number of items per page. Defaults to 10, max 100.
+         */
+        page_size?: number;
+    };
+    url: '/notifications/';
+};
+
+export type NotificationsListErrors = {
+    /**
+     * Invalid page / page_size parameter
+     */
+    400: unknown;
+    /**
+     * Unauthenticated
+     */
+    401: unknown;
+};
+
+export type NotificationsListResponses = {
+    /**
+     * Passthrough-paginated list of all in-app notifications. Envelope: {results: [...], page: int, page_size: int, count: int}.
+     */
+    200: unknown;
+};
+
+export type NotificationsFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Page number (1-based). Defaults to 1.
+         */
+        page?: number;
+        /**
+         * Number of items per page. Defaults to 10, max 100.
+         */
+        page_size?: number;
+    };
+    url: '/notifications{format}';
+};
+
+export type NotificationsFormattedListErrors = {
+    /**
+     * Invalid page / page_size parameter
+     */
+    400: unknown;
+    /**
+     * Unauthenticated
+     */
+    401: unknown;
+};
+
+export type NotificationsFormattedListResponses = {
+    /**
+     * Passthrough-paginated list of all in-app notifications. Envelope: {results: [...], page: int, page_size: int, count: int}.
+     */
+    200: unknown;
+};
+
+export type NotificationsMarkReadCreateData = {
+    body?: Notification;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/notifications/{id}/mark-read/';
+};
+
+export type NotificationsMarkReadCreateErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: unknown;
+    /**
+     * Notification not found or not owned by the authenticated user
+     */
+    404: unknown;
+};
+
+export type NotificationsMarkReadCreateResponses = {
+    /**
+     * Notification marked as read. Returns the updated notification.
+     */
+    200: Notification;
+};
+
+export type NotificationsMarkReadCreateResponse = NotificationsMarkReadCreateResponses[keyof NotificationsMarkReadCreateResponses];
+
+export type NotificationsMarkReadFormattedCreateData = {
+    body?: Notification;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/notifications/{id}/mark-read{format}';
+};
+
+export type NotificationsMarkReadFormattedCreateErrors = {
+    /**
+     * Unauthenticated
+     */
+    401: unknown;
+    /**
+     * Notification not found or not owned by the authenticated user
+     */
+    404: unknown;
+};
+
+export type NotificationsMarkReadFormattedCreateResponses = {
+    /**
+     * Notification marked as read. Returns the updated notification.
+     */
+    200: Notification;
+};
+
+export type NotificationsMarkReadFormattedCreateResponse = NotificationsMarkReadFormattedCreateResponses[keyof NotificationsMarkReadFormattedCreateResponses];
+
+export type NotificationsMarkReadBulkCreateData = {
+    body: BulkMarkRead;
+    path?: never;
+    query?: never;
+    url: '/notifications/mark-read-bulk/';
+};
+
+export type NotificationsMarkReadBulkCreateErrors = {
+    /**
+     * Invalid request body (empty or missing ids list)
+     */
+    400: unknown;
+    /**
+     * Unauthenticated
+     */
+    401: unknown;
+};
+
+export type NotificationsMarkReadBulkCreateResponses = {
+    /**
+     * Notifications marked as read. Envelope: {results: [...serialized notifications that are READ after the op...]}.
+     */
+    200: unknown;
+};
+
+export type NotificationsMarkReadBulkFormattedCreateData = {
+    body: BulkMarkRead;
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/notifications/mark-read-bulk{format}';
+};
+
+export type NotificationsMarkReadBulkFormattedCreateErrors = {
+    /**
+     * Invalid request body (empty or missing ids list)
+     */
+    400: unknown;
+    /**
+     * Unauthenticated
+     */
+    401: unknown;
+};
+
+export type NotificationsMarkReadBulkFormattedCreateResponses = {
+    /**
+     * Notifications marked as read. Envelope: {results: [...serialized notifications that are READ after the op...]}.
+     */
+    200: unknown;
+};
+
+export type NotificationsUnreadRetrieveData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page number (1-based). Defaults to 1.
+         */
+        page?: number;
+        /**
+         * Number of items per page. Defaults to 10.
+         */
+        page_size?: number;
+    };
+    url: '/notifications/unread/';
+};
+
+export type NotificationsUnreadRetrieveErrors = {
+    /**
+     * Invalid page / page_size parameter
+     */
+    400: unknown;
+    /**
+     * Unauthenticated
+     */
+    401: unknown;
+};
+
+export type NotificationsUnreadRetrieveResponses = {
+    /**
+     * Passthrough-paginated list of unread notifications. Envelope: {results: [...], page: int, page_size: int, count: int}. count reflects the total number of unread notifications for the user.
+     */
+    200: unknown;
+};
+
+export type NotificationsUnreadFormattedRetrieveData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Page number (1-based). Defaults to 1.
+         */
+        page?: number;
+        /**
+         * Number of items per page. Defaults to 10.
+         */
+        page_size?: number;
+    };
+    url: '/notifications/unread{format}';
+};
+
+export type NotificationsUnreadFormattedRetrieveErrors = {
+    /**
+     * Invalid page / page_size parameter
+     */
+    400: unknown;
+    /**
+     * Unauthenticated
+     */
+    401: unknown;
+};
+
+export type NotificationsUnreadFormattedRetrieveResponses = {
+    /**
+     * Passthrough-paginated list of unread notifications. Envelope: {results: [...], page: int, page_size: int, count: int}. count reflects the total number of unread notifications for the user.
+     */
+    200: unknown;
+};
+
 export type OrganizationMembersListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -4746,6 +5810,12 @@ export type OrganizationMembersListResponse = OrganizationMembersListResponses[k
 
 export type OrganizationMembersFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -4786,6 +5856,12 @@ export type OrganizationMembersFormattedListResponse = OrganizationMembersFormat
 
 export type OrganizationMembersRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4801,6 +5877,12 @@ export type OrganizationMembersRetrieveResponse = OrganizationMembersRetrieveRes
 
 export type OrganizationMembersFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4817,6 +5899,12 @@ export type OrganizationMembersFormattedRetrieveResponse = OrganizationMembersFo
 
 export type OrganizationMembersDeactivateCreateData = {
     body?: OrganizationMembership;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4847,6 +5935,12 @@ export type OrganizationMembersDeactivateCreateResponse = OrganizationMembersDea
 
 export type OrganizationMembersDeactivateFormattedCreateData = {
     body?: OrganizationMembership;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4878,6 +5972,12 @@ export type OrganizationMembersDeactivateFormattedCreateResponse = OrganizationM
 
 export type OrganizationMembersReactivateCreateData = {
     body?: OrganizationMembership;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4904,6 +6004,12 @@ export type OrganizationMembersReactivateCreateResponse = OrganizationMembersRea
 
 export type OrganizationMembersReactivateFormattedCreateData = {
     body?: OrganizationMembership;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -4959,6 +6065,12 @@ export type OrganizationsFormattedCreateResponse = OrganizationsFormattedCreateR
 
 export type OrganizationsDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4977,6 +6089,12 @@ export type OrganizationsDestroyResponse = OrganizationsDestroyResponses[keyof O
 
 export type OrganizationsRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -4992,6 +6110,12 @@ export type OrganizationsRetrieveResponse = OrganizationsRetrieveResponses[keyof
 
 export type OrganizationsPartialUpdateData = {
     body?: PatchedOrganizationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -5007,6 +6131,12 @@ export type OrganizationsPartialUpdateResponse = OrganizationsPartialUpdateRespo
 
 export type OrganizationsUpdateData = {
     body: OrganizationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -5022,6 +6152,12 @@ export type OrganizationsUpdateResponse = OrganizationsUpdateResponses[keyof Org
 
 export type OrganizationsFormattedDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -5041,6 +6177,12 @@ export type OrganizationsFormattedDestroyResponse = OrganizationsFormattedDestro
 
 export type OrganizationsFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -5057,6 +6199,12 @@ export type OrganizationsFormattedRetrieveResponse = OrganizationsFormattedRetri
 
 export type OrganizationsFormattedPartialUpdateData = {
     body?: PatchedOrganizationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -5073,6 +6221,12 @@ export type OrganizationsFormattedPartialUpdateResponse = OrganizationsFormatted
 
 export type OrganizationsFormattedUpdateData = {
     body: OrganizationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -5089,6 +6243,12 @@ export type OrganizationsFormattedUpdateResponse = OrganizationsFormattedUpdateR
 
 export type OrganizationsSyncCalendarsCreateData = {
     body: CalendarSyncRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -5120,6 +6280,12 @@ export type OrganizationsSyncCalendarsCreateResponses = {
 
 export type OrganizationsSyncCalendarsFormattedCreateData = {
     body: CalendarSyncRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -5152,6 +6318,12 @@ export type OrganizationsSyncCalendarsFormattedCreateResponses = {
 
 export type OrganizationsSyncRoomsCreateData = {
     body: OrganizationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -5182,6 +6354,12 @@ export type OrganizationsSyncRoomsCreateResponse = OrganizationsSyncRoomsCreateR
 
 export type OrganizationsSyncRoomsFormattedCreateData = {
     body: OrganizationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -5213,6 +6391,12 @@ export type OrganizationsSyncRoomsFormattedCreateResponse = OrganizationsSyncRoo
 
 export type OrganizationsCurrentRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/organizations/current/';
@@ -5233,6 +6417,12 @@ export type OrganizationsCurrentRetrieveResponse = OrganizationsCurrentRetrieveR
 
 export type OrganizationsCurrentFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -5252,6 +6442,34 @@ export type OrganizationsCurrentFormattedRetrieveResponses = {
 };
 
 export type OrganizationsCurrentFormattedRetrieveResponse = OrganizationsCurrentFormattedRetrieveResponses[keyof OrganizationsCurrentFormattedRetrieveResponses];
+
+export type OrganizationsMineListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/organizations/mine/';
+};
+
+export type OrganizationsMineListResponses = {
+    200: Array<MyMembership>;
+};
+
+export type OrganizationsMineListResponse = OrganizationsMineListResponses[keyof OrganizationsMineListResponses];
+
+export type OrganizationsMineFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/organizations/mine{format}';
+};
+
+export type OrganizationsMineFormattedListResponses = {
+    200: Array<MyMembership>;
+};
+
+export type OrganizationsMineFormattedListResponse = OrganizationsMineFormattedListResponses[keyof OrganizationsMineFormattedListResponses];
 
 export type PaymentsPaymentUpdateCreateData = {
     body?: never;
@@ -5671,6 +6889,12 @@ export type PublicApiTokensRevokeFormattedCreateResponse = PublicApiTokensRevoke
 
 export type PublicOrganizationsEventsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         organization_id: string;
     };
@@ -5695,6 +6919,12 @@ export type PublicOrganizationsEventsListResponse = PublicOrganizationsEventsLis
 
 export type PublicOrganizationsEventsCreateData = {
     body: CalendarEventWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         organization_id: string;
     };
@@ -5710,6 +6940,12 @@ export type PublicOrganizationsEventsCreateResponse = PublicOrganizationsEventsC
 
 export type PublicOrganizationsEventsDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         /**
          * A unique integer value identifying this calendar event.
@@ -5732,6 +6968,12 @@ export type PublicOrganizationsEventsDestroyResponse = PublicOrganizationsEvents
 
 export type PublicOrganizationsEventsRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         /**
          * A unique integer value identifying this calendar event.
@@ -5751,6 +6993,12 @@ export type PublicOrganizationsEventsRetrieveResponse = PublicOrganizationsEvent
 
 export type PublicOrganizationsEventsPartialUpdateData = {
     body?: PatchedCalendarEventWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         /**
          * A unique integer value identifying this calendar event.
@@ -5770,6 +7018,12 @@ export type PublicOrganizationsEventsPartialUpdateResponse = PublicOrganizations
 
 export type PublicOrganizationsEventsUpdateData = {
     body: CalendarEventWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         /**
          * A unique integer value identifying this calendar event.
@@ -5993,6 +7247,12 @@ export type ServiceAccountsFormattedUpdateResponse = ServiceAccountsFormattedUpd
 
 export type WebhookConfigurationsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -6015,6 +7275,12 @@ export type WebhookConfigurationsListResponse = WebhookConfigurationsListRespons
 
 export type WebhookConfigurationsCreateData = {
     body: WebhookConfigurationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/webhook-configurations/';
@@ -6028,6 +7294,12 @@ export type WebhookConfigurationsCreateResponse = WebhookConfigurationsCreateRes
 
 export type WebhookConfigurationsFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -6052,6 +7324,12 @@ export type WebhookConfigurationsFormattedListResponse = WebhookConfigurationsFo
 
 export type WebhookConfigurationsFormattedCreateData = {
     body: WebhookConfigurationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -6067,6 +7345,12 @@ export type WebhookConfigurationsFormattedCreateResponse = WebhookConfigurations
 
 export type WebhookConfigurationsDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -6085,6 +7369,12 @@ export type WebhookConfigurationsDestroyResponse = WebhookConfigurationsDestroyR
 
 export type WebhookConfigurationsRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -6100,6 +7390,12 @@ export type WebhookConfigurationsRetrieveResponse = WebhookConfigurationsRetriev
 
 export type WebhookConfigurationsPartialUpdateData = {
     body?: PatchedWebhookConfigurationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -6115,6 +7411,12 @@ export type WebhookConfigurationsPartialUpdateResponse = WebhookConfigurationsPa
 
 export type WebhookConfigurationsUpdateData = {
     body: WebhookConfigurationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -6130,6 +7432,12 @@ export type WebhookConfigurationsUpdateResponse = WebhookConfigurationsUpdateRes
 
 export type WebhookConfigurationsFormattedDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -6149,6 +7457,12 @@ export type WebhookConfigurationsFormattedDestroyResponse = WebhookConfiguration
 
 export type WebhookConfigurationsFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -6165,6 +7479,12 @@ export type WebhookConfigurationsFormattedRetrieveResponse = WebhookConfiguratio
 
 export type WebhookConfigurationsFormattedPartialUpdateData = {
     body?: PatchedWebhookConfigurationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -6181,6 +7501,12 @@ export type WebhookConfigurationsFormattedPartialUpdateResponse = WebhookConfigu
 
 export type WebhookConfigurationsFormattedUpdateData = {
     body: WebhookConfigurationWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -6197,6 +7523,12 @@ export type WebhookConfigurationsFormattedUpdateResponse = WebhookConfigurations
 
 export type WebhookEventsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -6219,6 +7551,12 @@ export type WebhookEventsListResponse = WebhookEventsListResponses[keyof Webhook
 
 export type WebhookEventsFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -6243,6 +7581,12 @@ export type WebhookEventsFormattedListResponse = WebhookEventsFormattedListRespo
 
 export type WebhookEventsRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -6258,6 +7602,12 @@ export type WebhookEventsRetrieveResponse = WebhookEventsRetrieveResponses[keyof
 
 export type WebhookEventsFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -6274,6 +7624,12 @@ export type WebhookEventsFormattedRetrieveResponse = WebhookEventsFormattedRetri
 
 export type WebhookEventsRetryCreateData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -6300,6 +7656,12 @@ export type WebhookEventsRetryCreateResponse = WebhookEventsRetryCreateResponses
 
 export type WebhookEventsRetryFormattedCreateData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
