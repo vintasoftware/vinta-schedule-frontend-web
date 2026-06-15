@@ -1,15 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { configureClientAuthentication } from './authentication-fetch-interceptors';
-import {
-  setActiveOrganizationId,
-  getActiveOrganizationId,
-  clearActiveOrganization,
-  ACTIVE_ORGANIZATION_STORAGE_KEY,
-} from './active-organization';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TokenStorageStrategy } from './base-token-storage-strategy';
 
 /**
  * Mock TokenStorageStrategy for testing.
+ * shouldIntercept() returns true so the interceptor block runs.
+ * getAccessToken() returns null so only the org-header logic is exercised
+ * (no Authorization header noise).
  */
 class MockTokenStorage implements TokenStorageStrategy {
   shouldIntercept(): boolean {
@@ -17,11 +13,11 @@ class MockTokenStorage implements TokenStorageStrategy {
   }
 
   async getAccessToken(): Promise<string | null> {
-    return 'mock-token';
+    return null;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async setAccessToken(token: string): Promise<void> {
+  async setAccessToken(_token: string): Promise<void> {
     // no-op for testing
   }
 
@@ -34,89 +30,143 @@ class MockTokenStorage implements TokenStorageStrategy {
   }
 }
 
-describe('authentication-fetch-interceptors X-Organization-Id header injection', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    clearActiveOrganization();
-    vi.resetModules();
+/**
+ * Each test gets a freshly-imported module pair so the module-level
+ * `configured` guard in authentication-fetch-interceptors.ts is reset to
+ * false between tests (otherwise the second test's call to
+ * configureClientAuthentication would be a no-op and the interceptor
+ * block would never be registered again).
+ *
+ * The helper also wires a mockFetch into the client so we can inspect
+ * the outgoing Request headers after interceptors have run.
+ */
+async function setupFreshModules() {
+  vi.resetModules();
+
+  // Import both modules fresh so module-level state is reset.
+  const [interceptorsModule, clientModule, activeOrgModule] = await Promise.all(
+    [
+      import('./authentication-fetch-interceptors'),
+      import('@/client/client.gen'),
+      import('./active-organization'),
+    ]
+  );
+
+  const { configureClientAuthentication } = interceptorsModule;
+  const { client } = clientModule;
+  const { setActiveOrganizationId, clearActiveOrganization } = activeOrgModule;
+
+  // Wire a mock fetch so we can capture the outgoing Request.
+  const mockFetch = vi.fn(async (_req: Request) => {
+    return new Response(JSON.stringify({}), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   });
 
-  afterEach(() => {
+  client.setConfig({
+    fetch: mockFetch as typeof fetch,
+    baseUrl: 'http://test.local',
+  });
+
+  // Register interceptors (this is the production code path being tested).
+  const tokenStore = new MockTokenStorage();
+  configureClientAuthentication(tokenStore);
+
+  // Reset active org state for a clean slate.
+  clearActiveOrganization();
+  localStorage.clear();
+
+  return {
+    client,
+    mockFetch,
+    setActiveOrganizationId,
+    clearActiveOrganization,
+  };
+}
+
+describe('authentication-fetch-interceptors X-Organization-Id header injection', () => {
+  beforeEach(() => {
     localStorage.clear();
   });
 
   it('injects X-Organization-Id header when an active organization is set', async () => {
-    const tokenStore = new MockTokenStorage();
-    configureClientAuthentication(tokenStore);
+    const { client, mockFetch, setActiveOrganizationId } =
+      await setupFreshModules();
 
-    // Set an active organization.
+    // Set an active organization — the interceptor reads this via getActiveOrganizationId().
     setActiveOrganizationId('org-123');
 
-    // Verify the store is set correctly (the interceptor reads from here).
-    expect(localStorage.getItem(ACTIVE_ORGANIZATION_STORAGE_KEY)).toBe(
-      'org-123'
-    );
-    expect(getActiveOrganizationId()).toBe('org-123');
+    // Drive a real request through the client.
+    await client.get({ url: '/test' });
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const outgoingRequest: Request = mockFetch.mock.calls[0][0];
+    expect(outgoingRequest.headers.get('X-Organization-Id')).toBe('org-123');
   });
 
   it('does not inject the header when no organization is set', async () => {
-    const tokenStore = new MockTokenStorage();
-    configureClientAuthentication(tokenStore);
+    const { client, mockFetch, clearActiveOrganization } =
+      await setupFreshModules();
 
-    // Ensure no active organization is set.
+    // Ensure no active organization is selected.
     clearActiveOrganization();
-    expect(localStorage.getItem(ACTIVE_ORGANIZATION_STORAGE_KEY)).toBeNull();
 
-    // The absence of the header is the expected behavior.
-    // This is the "flag-off-equivalent" case: byte-for-byte prior behavior.
-    // Single-org users or users without a selection will not have the header.
+    // Drive a real request through the client.
+    await client.get({ url: '/test' });
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const outgoingRequest: Request = mockFetch.mock.calls[0][0];
+    expect(outgoingRequest.headers.get('X-Organization-Id')).toBeNull();
   });
 
   it('does not override an explicitly set X-Organization-Id header', async () => {
-    const tokenStore = new MockTokenStorage();
-    configureClientAuthentication(tokenStore);
+    const { client, mockFetch, setActiveOrganizationId } =
+      await setupFreshModules();
 
-    setActiveOrganizationId('org-456');
+    // Active org is set, but the caller also sets the header explicitly.
+    setActiveOrganizationId('org-store');
 
-    // The interceptor includes a guard: !request.headers.has('X-Organization-Id')
-    // This means it won't override an explicitly set header.
-    // Verify the guard logic is in place by checking the condition.
-    const activeOrgId = getActiveOrganizationId();
-    expect(activeOrgId).toBe('org-456');
-
-    // The interceptor will only set the header if it's not already set.
-    const headers = new Headers();
-    if (activeOrgId && !headers.has('X-Organization-Id')) {
-      headers.set('X-Organization-Id', activeOrgId);
-    }
-    expect(headers.get('X-Organization-Id')).toBe('org-456');
-
-    // If the header is already set, it won't be overridden.
-    const existingHeaders = new Headers({
-      'X-Organization-Id': 'org-override',
+    // Drive a request that already carries an explicit X-Organization-Id.
+    await client.get({
+      url: '/test',
+      headers: { 'X-Organization-Id': 'org-explicit' },
     });
-    if (activeOrgId && !existingHeaders.has('X-Organization-Id')) {
-      existingHeaders.set('X-Organization-Id', activeOrgId);
-    }
-    expect(existingHeaders.get('X-Organization-Id')).toBe('org-override');
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const outgoingRequest: Request = mockFetch.mock.calls[0][0];
+    // The interceptor must NOT overwrite the caller-supplied value.
+    expect(outgoingRequest.headers.get('X-Organization-Id')).toBe(
+      'org-explicit'
+    );
   });
 
   it('does not inject the header on the server side (SSR)', async () => {
-    const tokenStore = new MockTokenStorage();
-
-    // Mock typeof window to simulate server-side environment.
-    const originalWindow = global.window;
-    // @ts-expect-error - intentionally undefined
-    global.window = undefined;
+    // Simulate SSR: hide the window global before the module is imported so
+    // the interceptor sees `typeof window === 'undefined'` when it runs.
+    vi.stubGlobal('window', undefined);
 
     try {
-      configureClientAuthentication(tokenStore);
+      const { client, mockFetch, setActiveOrganizationId } =
+        await setupFreshModules();
+
+      // Even though localStorage is not available (window is undefined in SSR),
+      // we prime the in-memory store value directly via the fresh module's setter.
+      // Under real SSR the store returns null (ensureInitialized short-circuits),
+      // but here the interesting assertion is that the interceptor bails out of
+      // header injection when `typeof window === 'undefined'`.
+      // The production guard is: if (typeof window === 'undefined') return request;
       setActiveOrganizationId('org-789');
 
-      // On the server, the header should not be injected even though an org is set.
-      // This test passes because the interceptor guards with typeof window.
+      // Drive a real request — the interceptor must not throw and must not inject
+      // the header.
+      await client.get({ url: '/test' });
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const outgoingRequest: Request = mockFetch.mock.calls[0][0];
+      expect(outgoingRequest.headers.get('X-Organization-Id')).toBeNull();
     } finally {
-      global.window = originalWindow;
+      vi.unstubAllGlobals();
     }
   });
 });

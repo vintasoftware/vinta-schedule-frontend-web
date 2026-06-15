@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   getActiveOrganizationId,
   setActiveOrganizationId,
@@ -145,17 +145,43 @@ describe('active-organization store', () => {
   });
 
   describe('SSR safety', () => {
-    it('does not throw when localStorage is unavailable', () => {
-      // Test by verifying the code guards with typeof window
-      // The actual SSR behavior is tested by checking the code structure
-      // since jsdom provides a window object.
-      expect(() => {
-        getActiveOrganizationId();
-      }).not.toThrow();
+    it('returns null and does not touch localStorage when window is undefined', async () => {
+      // Simulate a real SSR environment: hide the window global so the
+      // `typeof window === 'undefined'` branch in active-organization.ts
+      // is actually executed.
+      vi.stubGlobal('window', undefined);
 
-      expect(() => {
-        setActiveOrganizationId('777');
-      }).not.toThrow();
+      try {
+        // Reset modules so the module-level `initialized` flag is cleared
+        // and ensureInitialized() runs fresh under the SSR condition.
+        vi.resetModules();
+
+        const {
+          getActiveOrganizationId: ssrGet,
+          setActiveOrganizationId: ssrSet,
+        } = await import('./active-organization');
+
+        // In SSR, getActiveOrganizationId must return null (no localStorage).
+        expect(ssrGet()).toBeNull();
+
+        // Setting a value must not throw even without localStorage.
+        expect(() => ssrSet('777')).not.toThrow();
+
+        // The value is held in memory on the server (currentValue is updated),
+        // but localStorage must not be touched (window is undefined).
+        // Verify localStorage was never written — jsdom's localStorage would
+        // throw if accessed without a window, but since the production code
+        // guards on typeof window, no write should have been attempted.
+        // After restoring window we can confirm the key was never persisted.
+      } finally {
+        vi.unstubAllGlobals();
+        // Reset again so subsequent tests get a clean browser-mode module.
+        vi.resetModules();
+      }
+
+      // After restoring window, the real localStorage should be empty —
+      // confirming the SSR code path never wrote to it.
+      expect(localStorage.getItem('activeOrganizationId')).toBeNull();
     });
   });
 });
