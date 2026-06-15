@@ -30,6 +30,7 @@ import {
   type SidebarNavItem,
 } from '@/components/layout/app-sidebar';
 import { AppTopbar } from '@/components/layout/app-topbar';
+import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import { Center } from '@/components/layout/center';
 import { Text } from '@/components/layout/text';
 import { RoleProvider } from '@/components/navigation/role-gate';
@@ -363,9 +364,17 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     />
   );
 
+  // Minimal topbar: no title/search/sync yet — just hosts the notifications
+  // bell (and, on mobile, the nav trigger injected into its leading slot).
+  const topbar = (
+    <AppTopbar showSearch={false} sync={null} actions={<NotificationsBell />} />
+  );
+
   return (
     <RoleProvider role={role}>
-      <AppShell sidebar={sidebar}>{children}</AppShell>
+      <AppShell sidebar={sidebar} topbar={topbar}>
+        {children}
+      </AppShell>
       <CreateOrganizationDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
