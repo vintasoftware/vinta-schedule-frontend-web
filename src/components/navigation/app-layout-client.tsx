@@ -213,13 +213,24 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     }
   }, [isOnboardingGated, router]);
 
-  // Disabled membership (403): route to /no-access — lives outside (app) to
-  // avoid re-running this layout and triggering an infinite redirect loop.
+  // Disabled membership (403): route to /no-access only when the user
+  // genuinely has no orgs remaining in mine/. With multi-org support, a stale
+  // selection also produces current/ 403 (→ isDisabled), but those users
+  // still have valid orgs — the QueryCache 403 recovery (Phase 9 UC6)
+  // re-picks from mine/ and invalidates, then current/ refetches and resolves.
+  // We must NOT redirect them to /no-access; instead we hold LoadingView while
+  // recovery runs. Only redirect when mine/ has resolved to empty (isMineGated),
+  // which confirms the user has absolutely no remaining memberships.
+  //
+  // Redirect lives outside (app) to avoid re-running this layout and
+  // triggering an infinite redirect loop.
+  const isMineEmptyResolved =
+    isMineGated && !isActiveOrgLoading && !isActiveOrgError;
   useEffect(() => {
-    if (isDisabled) {
+    if (isDisabled && isMineEmptyResolved) {
       router.replace('/no-access');
     }
-  }, [isDisabled, router]);
+  }, [isDisabled, isMineEmptyResolved, router]);
 
   // Multi-org user with no valid stored selection: send them to the
   // selection gate (/auth/select-organization lives outside (app) so this

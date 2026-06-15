@@ -239,8 +239,9 @@ describe('AppLayout (integration)', () => {
       setSessionActiveCookie();
     });
 
-    it('redirects a disabled user to /no-access', async () => {
+    it('redirects a disabled user with empty mine/ to /no-access', async () => {
       mockOrg403();
+      mockMineEmpty();
       renderLayout();
 
       await waitFor(() => {
@@ -249,6 +250,60 @@ describe('AppLayout (integration)', () => {
 
       // Shell should NOT be rendered while redirecting.
       expect(screen.queryByAltText('Vinta')).not.toBeInTheDocument();
+    });
+  });
+
+  // Phase 9: stale-selection 403 recovery — isDisabled + mine NON-empty must
+  // NOT redirect to /no-access. The QueryCache 403 recovery re-picks from
+  // mine/ and invalidates; then current/ refetches with a valid header and
+  // isDisabled clears. The layout should hold LoadingView while this happens.
+  describe('stale-selection 403 (Phase 9 — UC6)', () => {
+    beforeEach(() => {
+      setSessionActiveCookie();
+    });
+
+    it('does NOT redirect to /no-access when current/ 403 (isDisabled) but mine/ has orgs', async () => {
+      // Simulate a stale-selection scenario: current/ returns 403 (→ isDisabled)
+      // but mine/ returns orgs (user is still a member of some orgs).
+      mockOrg403();
+      mockMineList([
+        {
+          organization: { id: 1, name: 'Org A' },
+          role: 'admin',
+        } as MyMembership,
+      ]);
+      renderLayout();
+
+      // Give the component time to settle (queries resolve, effects run).
+      await waitFor(() => {
+        // mine/ query has resolved to a non-empty list.
+        expect(screen.getByText('Loading…')).toBeInTheDocument();
+      });
+
+      // /no-access redirect must NOT fire — the user still has valid orgs.
+      expect(replace).not.toHaveBeenCalledWith('/no-access');
+      // Shell must not be shown while recovery is in-flight.
+      expect(screen.queryByAltText('Vinta')).not.toBeInTheDocument();
+    });
+
+    it('holds LoadingView (no shell flash) while isDisabled + mine/ has orgs', async () => {
+      mockOrg403();
+      mockMineList([
+        {
+          organization: { id: 2, name: 'Org B' },
+          role: 'member',
+        } as MyMembership,
+      ]);
+      renderLayout(<div>page content</div>);
+
+      // The Loading text confirms LoadingView is held — page content must not be
+      // visible (tenant view must not flash while recovery is running).
+      await waitFor(() => {
+        expect(screen.getByText('Loading…')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText('page content')).not.toBeInTheDocument();
+      expect(replace).not.toHaveBeenCalledWith('/no-access');
     });
   });
 
