@@ -150,8 +150,13 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   // Bootstrap the active-org selection. Runs only for authenticated users so
   // mine/ is not fetched on public/auth pages. The hook auto-resolves single-org
   // users, heals stale stored ids, and surfaces needsSelection for Phase 3b.
+  // isGated (isMineGated) is the authoritative "0 active memberships" signal
+  // from mine/ and drives the onboarding redirect alongside useCurrentOrganization's
+  // 404-based isGated signal.
   const {
     isLoading: isActiveOrgLoading,
+    isError: isActiveOrgError,
+    isGated: isMineGated,
     needsSelection,
     memberships,
     activeOrganizationId,
@@ -178,11 +183,17 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   };
 
   // Redirect org-less authenticated users to onboarding (not back into (app)).
+  // Two authoritative signals for "no memberships":
+  //   • isGated — useCurrentOrganization returned 404 (current/ not onboarded)
+  //   • isMineGated — mine/ returned [] (authoritative per plan Guiding Decisions)
+  // Guard against the mine/ error case so a transient network failure does not
+  // mistakenly bounce a real multi-org user to onboarding.
+  // Both fire router.replace('/auth/onboarding') — idempotent, no loop risk.
   useEffect(() => {
-    if (isGated) {
+    if (isGated || (isMineGated && !isActiveOrgLoading && !isActiveOrgError)) {
       router.replace('/auth/onboarding');
     }
-  }, [isGated, router]);
+  }, [isGated, isMineGated, isActiveOrgLoading, isActiveOrgError, router]);
 
   // Disabled membership (403): route to /no-access — lives outside (app) to
   // avoid re-running this layout and triggering an infinite redirect loop.
@@ -211,10 +222,16 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   // had a chance to prime the X-Organization-Id header for single-org users.
   // needsSelection is included so tenant views don't flash before the redirect
   // fires (the effect above will replace to /auth/select-organization).
+  // Render guard: hold LoadingView while any gating signal is active or
+  // redirects are in-flight. isMineGated is included (when mine/ has resolved
+  // without error) so tenant views don't flash before the onboarding redirect.
+  const mineGatedAndResolved =
+    isMineGated && !isActiveOrgLoading && !isActiveOrgError;
   if (
     isLoading ||
     isActiveOrgLoading ||
     isGated ||
+    mineGatedAndResolved ||
     isDisabled ||
     needsSelection
   ) {

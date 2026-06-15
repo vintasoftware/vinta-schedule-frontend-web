@@ -21,6 +21,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useCreateOrganization } from '@/hooks/organizations/use-create-organization';
+import { useActiveOrganization } from '@/hooks/organizations/use-active-organization';
 
 const onboardingSchema = z.object({
   name: z
@@ -35,6 +36,9 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { createOrganization, createOrganizationMutation } =
     useCreateOrganization();
+  // setActive primes X-Organization-Id before navigating into the app shell so
+  // the first tenant request carries the header (Phase 6 — UC4a).
+  const { setActive } = useActiveOrganization();
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<OnboardingSchema>({
@@ -45,7 +49,12 @@ export default function OnboardingPage() {
   const onSubmit = async ({ name }: OnboardingSchema) => {
     setError(null);
     try {
-      await createOrganization({ name });
+      const newOrg = await createOrganization({ name });
+      // Prime X-Organization-Id before entering the app so the first tenant
+      // request carries the header (UC4a). setActive also invalidates all
+      // tenant queries, but there are none yet — the call is side-effect-free
+      // for a user who just completed onboarding.
+      setActive(String(newOrg.id));
       // Now an ADMIN of a fresh org — back to the app.
       router.replace('/');
     } catch (err) {

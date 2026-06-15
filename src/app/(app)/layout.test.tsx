@@ -20,6 +20,17 @@ vi.mock('@/client', async (importOriginal) => {
   };
 });
 
+// Mock organizationsMineList from the SDK so we can control the mine/ response
+// independently of organizationsCurrentRetrieve (needed for Phase 6 tests that
+// assert isMineGated → /auth/onboarding without relying on a 404).
+vi.mock('@/client/sdk.gen', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/client/sdk.gen')>();
+  return {
+    ...original,
+    organizationsMineList: vi.fn(),
+  };
+});
+
 // Mock next/link to avoid router context requirement in tests.
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -28,6 +39,7 @@ vi.mock('next/link', () => ({
 }));
 
 import { organizationsCurrentRetrieve } from '@/client';
+import { organizationsMineList } from '@/client/sdk.gen';
 import { AppLayoutClient } from '@/components/navigation/app-layout-client';
 
 // ---------------------------------------------------------------------------
@@ -62,7 +74,7 @@ function renderLayout(ui: ReactNode = <div>page content</div>) {
 // Mock factory helpers
 // ---------------------------------------------------------------------------
 
-import type { CurrentMembership } from '@/client';
+import type { CurrentMembership, MyMembership } from '@/client';
 
 const MEMBER_MEMBERSHIP: CurrentMembership = {
   role: 'member',
@@ -96,6 +108,20 @@ function mockOrg403() {
     response: new Response(null, { status: 403 }),
     error: undefined,
   } as unknown as Awaited<ReturnType<typeof organizationsCurrentRetrieve>>);
+}
+
+function mockMineList(memberships: MyMembership[]) {
+  vi.mocked(organizationsMineList).mockResolvedValue({
+    data: memberships,
+    response: new Response(JSON.stringify(memberships), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  } as unknown as Awaited<ReturnType<typeof organizationsMineList>>);
+}
+
+function mockMineEmpty() {
+  mockMineList([]);
 }
 
 // AppLayoutClient detects an authenticated user via the `sessionActive` cookie
@@ -223,6 +249,46 @@ describe('AppLayout (integration)', () => {
 
       // Shell should NOT be rendered while redirecting.
       expect(screen.queryByAltText('Vinta')).not.toBeInTheDocument();
+    });
+  });
+
+  // Phase 6: mine/-empty is the authoritative "0 memberships" signal.
+  // When mine/ returns [] the layout must redirect to onboarding and suppress
+  // the shell. Crucially it must NOT also redirect to /auth/select-organization
+  // (which would only apply to needsSelection = memberships.length > 1).
+  describe('mine/-empty (isMineGated) user (Phase 6 — UC4a)', () => {
+    beforeEach(() => {
+      setSessionActiveCookie();
+    });
+
+    it('redirects to /auth/onboarding when mine/ returns an empty list', async () => {
+      // current/ also 404s for a 0-org user, but test mine/-empty as the
+      // authoritative signal by making both consistent.
+      mockOrg404();
+      mockMineEmpty();
+      renderLayout();
+
+      await waitFor(() => {
+        expect(replace).toHaveBeenCalledWith('/auth/onboarding');
+      });
+
+      // Shell must not be shown while redirecting.
+      expect(screen.queryByAltText('Vinta')).not.toBeInTheDocument();
+    });
+
+    it('does NOT redirect to /auth/select-organization when mine/ is empty (no double-redirect)', async () => {
+      // A 0-org user must only go to /auth/onboarding, not also get a
+      // /auth/select-organization redirect (needsSelection must be false
+      // when memberships.length === 0, since needsSelection requires length > 1).
+      mockOrg404();
+      mockMineEmpty();
+      renderLayout();
+
+      await waitFor(() => {
+        expect(replace).toHaveBeenCalledWith('/auth/onboarding');
+      });
+
+      expect(replace).not.toHaveBeenCalledWith('/auth/select-organization');
     });
   });
 });
