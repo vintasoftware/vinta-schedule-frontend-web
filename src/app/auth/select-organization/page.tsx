@@ -36,35 +36,40 @@ export default function SelectOrganizationPage() {
     activeMembership,
     isGated,
     isLoading,
+    isError,
     needsSelection,
     setActive,
   } = useActiveOrganization();
 
   // Guard: no orgs → onboarding.
+  // Do NOT fire on error: a transient mine/ failure must not redirect a real
+  // multi-org user to onboarding. Degrade to the neutral loading state instead
+  // (mirrors the pattern in app-layout-client.tsx).
   useEffect(() => {
-    if (!isLoading && isGated) {
+    if (!isLoading && !isError && isGated) {
       router.replace('/auth/onboarding');
     }
-  }, [isGated, isLoading, router]);
+  }, [isError, isGated, isLoading, router]);
 
   // Guard: already have a valid selection or only one org (auto-selected by
   // Phase 3a bootstrap) → dashboard. Also fires if the user picks and
   // useActiveOrganization re-renders with activeMembership set before
   // router.replace fires — harmless double call.
+  // Do NOT fire on error: leave the user on this page in the neutral state.
   useEffect(() => {
-    if (!isLoading && !isGated && !needsSelection) {
+    if (!isLoading && !isError && !isGated && !needsSelection) {
       router.replace('/');
     }
-  }, [isGated, isLoading, needsSelection, router]);
+  }, [isError, isGated, isLoading, needsSelection, router]);
 
   const handleSelect = (orgId: number) => {
     setActive(String(orgId));
     router.replace('/');
   };
 
-  // Render a loading state while resolving or while a redirect effect is about
-  // to fire (isGated / !needsSelection guard above).
-  if (isLoading || isGated || !needsSelection) {
+  // Render a neutral loading state while resolving, on error (transient mine/
+  // failure), or while a redirect effect is about to fire.
+  if (isLoading || isError || isGated || !needsSelection) {
     return (
       <AuthLayout navbar={<AuthNavbar />} variant='single'>
         <Card className='flex w-full max-w-md flex-col gap-8 p-8'>

@@ -78,6 +78,40 @@ describe('SelectOrganizationPage', () => {
     });
   });
 
+  describe('when mine/ query errors (isError = true)', () => {
+    it('renders a neutral loading state and does NOT redirect', async () => {
+      // A transient mine/ error causes memberships=[] which would normally
+      // trigger isGated=true → /auth/onboarding. The isError guard must
+      // suppress both redirect effects so a real multi-org user is not
+      // incorrectly sent to onboarding.
+      mockUseActiveOrganization.mockReturnValue(
+        baseReturn({
+          isError: true,
+          isLoading: false,
+          isGated: true, // memberships=[] looks gated — must be ignored
+          memberships: [],
+          needsSelection: false,
+        })
+      );
+      renderPage();
+
+      // Neutral loading card is shown.
+      expect(screen.getByText(/loading/i)).toBeInTheDocument();
+
+      // Picker heading must NOT appear.
+      expect(
+        screen.queryByRole('heading', { name: /choose an organization/i })
+      ).not.toBeInTheDocument();
+
+      // Neither redirect must have fired.
+      // Use a short waitFor to let any accidental effect flush.
+      await waitFor(() => {
+        expect(replace).not.toHaveBeenCalledWith('/auth/onboarding');
+        expect(replace).not.toHaveBeenCalledWith('/');
+      });
+    });
+  });
+
   describe('when gated (0 orgs)', () => {
     it('redirects to /auth/onboarding', async () => {
       mockUseActiveOrganization.mockReturnValue(
@@ -87,6 +121,10 @@ describe('SelectOrganizationPage', () => {
       await waitFor(() => {
         expect(replace).toHaveBeenCalledWith('/auth/onboarding');
       });
+      // Picker must not be shown while redirecting.
+      expect(
+        screen.queryByRole('heading', { name: /choose an organization/i })
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -104,6 +142,10 @@ describe('SelectOrganizationPage', () => {
       await waitFor(() => {
         expect(replace).toHaveBeenCalledWith('/');
       });
+      // Picker must not be shown while redirecting.
+      expect(
+        screen.queryByRole('heading', { name: /choose an organization/i })
+      ).not.toBeInTheDocument();
     });
 
     it('redirects to / for a single-org user (auto-selected by Phase 3a)', async () => {
@@ -119,6 +161,10 @@ describe('SelectOrganizationPage', () => {
       await waitFor(() => {
         expect(replace).toHaveBeenCalledWith('/');
       });
+      // Picker must not be shown while redirecting.
+      expect(
+        screen.queryByRole('heading', { name: /choose an organization/i })
+      ).not.toBeInTheDocument();
     });
   });
 
