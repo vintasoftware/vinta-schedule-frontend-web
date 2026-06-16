@@ -8,6 +8,7 @@ import {
   Calendar,
   CalendarSync,
   UsersRound,
+  DoorOpen,
   Ticket,
   Settings,
   Webhook,
@@ -61,10 +62,16 @@ const MEMBER_NAV_ITEMS: SidebarNavItem[] = [
 const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
   { id: 'team', label: 'Team', icon: UsersRound, href: '/team' },
   {
-    id: 'all-calendars',
-    label: 'All calendars',
-    icon: CalendarSync,
-    href: '/all-calendars',
+    id: 'people-calendars',
+    label: 'People calendars',
+    icon: UsersRound,
+    href: '/people-calendars',
+  },
+  {
+    id: 'resources',
+    label: 'Resources',
+    icon: DoorOpen,
+    href: '/resources',
   },
   {
     id: 'groups',

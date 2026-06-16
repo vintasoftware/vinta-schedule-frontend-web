@@ -9,7 +9,7 @@ import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { VStack, Text, HStack } from '@/components/layout';
-import type { Calendar } from '@/client';
+import type { Calendar, CalendarTypeEnum } from '@/client';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useTriggerUserCalendarSync } from '@/hooks/sync/use-trigger-user-calendar-sync';
 
@@ -170,7 +170,7 @@ function AllCalendarsTableEmpty() {
 // AllCalendarsTableInner — renders inside the DataTableQueryBoundary.
 // ---------------------------------------------------------------------------
 
-function AllCalendarsTableInner() {
+function AllCalendarsTableInner({ calendarType }: AllCalendarsTableProps) {
   const [pendingRowIds, setPendingRowIds] = React.useState<Set<number>>(
     new Set()
   );
@@ -183,8 +183,10 @@ function AllCalendarsTableInner() {
     [query, setPage]
   );
 
-  const { calendars, totalCount, isLoading, isError, error } =
-    useAllCalendars(query);
+  const { calendars, totalCount, isLoading, isError, error } = useAllCalendars(
+    query,
+    { calendarType }
+  );
 
   const { triggerUserCalendarSync } = useTriggerUserCalendarSync();
 
@@ -255,8 +257,16 @@ function AllCalendarsTableInner() {
 // AllCalendarsTable — exported composition.
 //
 // Must be rendered inside a DataTableQueryBoundary (the page does this).
+//
+// `calendarType` (optional) scopes the list to a single type — the People
+// calendars view passes 'personal', the Resources view passes 'resource'.
+// Omit it to list every calendar type.
 // ---------------------------------------------------------------------------
 
-export function AllCalendarsTable() {
-  return <AllCalendarsTableInner />;
+export interface AllCalendarsTableProps {
+  calendarType?: CalendarTypeEnum;
+}
+
+export function AllCalendarsTable({ calendarType }: AllCalendarsTableProps = {}) {
+  return <AllCalendarsTableInner calendarType={calendarType} />;
 }

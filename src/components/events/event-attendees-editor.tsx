@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Combobox } from '@/components/ui/combobox';
 import { VStack, HStack, Text } from '@/components/layout';
-import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
+import { useResourceCalendars } from '@/hooks/calendars/use-resource-calendars';
 import { useUpdateAttendees } from '@/hooks/events/use-update-attendees';
 import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
 import type {
@@ -178,16 +178,10 @@ export function EventAttendeesEditor({
 
   // ---- Data -----------------------------------------------------------------
 
-  const { calendars: allCalendars, isLoading: calendarsLoading } =
-    useMyCalendars({ page: 1, pageSize: 100, ordering: null, search: null });
-
-  const resourceCalendars = React.useMemo(
-    () =>
-      allCalendars.filter(
-        (c) => c.calendar_type === 'resource' && c.visibility === 'active'
-      ),
-    [allCalendars]
-  );
+  // Org-wide resource calendars — every member can allocate these (not just
+  // the caller's own calendars). Already scoped to active resources.
+  const { calendars: resourceCalendars, isLoading: calendarsLoading } =
+    useResourceCalendars();
 
   const { updateAttendees, updateAttendeesMutation } = useUpdateAttendees();
   const isPending = updateAttendeesMutation.isPending;
@@ -408,7 +402,7 @@ export function EventAttendeesEditor({
         )}
 
         {resourceRows.map((row) => {
-          const cal = allCalendars.find((c) => c.id === row.calendarId);
+          const cal = resourceCalendars.find((c) => c.id === row.calendarId);
           return (
             <HStack key={row.key} gap={2} align='center'>
               <Text size='sm' className='flex-1'>

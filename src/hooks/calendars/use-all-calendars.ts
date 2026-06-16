@@ -2,7 +2,7 @@ import {
   calendarListOptions,
   calendarListQueryKey,
 } from '@/client/@tanstack/react-query.gen';
-import type { Calendar } from '@/client';
+import type { Calendar, CalendarTypeEnum } from '@/client';
 import { useQuery } from '@tanstack/react-query';
 import type { DataTableQuery } from '@/components/data-table/types';
 
@@ -43,16 +43,37 @@ export const ALL_CALENDARS_QUERY_KEY = calendarListQueryKey();
 // style pagination.
 //
 // Note: the `/calendar/` endpoint supports `limit`, `offset`, `include_unlisted`,
-// and `include_inactive`. It has no `search` or `ordering` params. Those fields
-// in DataTableQuery are accepted for future compatibility but not forwarded.
+// `include_inactive`, and `calendar_type`. It has no `search` or `ordering`
+// params. Those fields in DataTableQuery are accepted for future compatibility
+// but not forwarded.
+//
+// Pass `options.calendarType` to scope the list to a single calendar type
+// (e.g. 'personal' for the People-calendars view, 'resource' for Resources).
 // ---------------------------------------------------------------------------
 
-export function useAllCalendars(query: DataTableQuery) {
+export interface UseAllCalendarsOptions {
+  /** When set, only calendars of this type are returned (server-side filter). */
+  calendarType?: CalendarTypeEnum;
+}
+
+export function useAllCalendars(
+  query: DataTableQuery,
+  options: UseAllCalendarsOptions = {}
+) {
   const limit = query.pageSize;
   const offset = (query.page - 1) * query.pageSize;
 
   const calendarsQuery = useQuery(
-    calendarListOptions({ query: { limit, offset, include_unlisted: true } })
+    calendarListOptions({
+      query: {
+        limit,
+        offset,
+        include_unlisted: true,
+        ...(options.calendarType
+          ? { calendar_type: options.calendarType }
+          : {}),
+      },
+    })
   );
 
   const raw = calendarsQuery.data?.results ?? [];

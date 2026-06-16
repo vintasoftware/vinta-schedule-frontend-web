@@ -73,6 +73,7 @@ import {
 } from '@/components/ui/form';
 import { VStack, HStack, Text } from '@/components/layout';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
+import { useResourceCalendars } from '@/hooks/calendars/use-resource-calendars';
 import { useAvailabilityCheck } from '@/hooks/bookings/use-availability-check';
 import { useCreateBooking } from '@/hooks/bookings/use-create-booking';
 import {
@@ -110,6 +111,7 @@ const bookingFormSchema = z
       .string()
       .min(1, { message: 'Primary calendar is required' }),
     coBookedCalendarIds: z.array(z.number()),
+    resourceCalendarIds: z.array(z.number()),
     attendances: z.array(
       z.object({
         user_id: z.number().int().positive(),
@@ -197,6 +199,7 @@ function getDefaultValues(localZone: string): BookingFormSchema {
     timezone: localZone,
     primaryCalendarId: '',
     coBookedCalendarIds: [],
+    resourceCalendarIds: [],
     attendances: [],
     externalAttendances: [],
     repeat: false,
@@ -434,6 +437,10 @@ export function BookingFormDialog({
     search: null,
   });
 
+  // Fetch org-wide resource calendars — every member can book these.
+  const { calendars: resourceCalendars, isLoading: resourceCalendarsLoading } =
+    useResourceCalendars();
+
   const { checkCalendars } = useAvailabilityCheck();
   const { createBooking } = useCreateBooking();
 
@@ -577,7 +584,9 @@ export function BookingFormDialog({
           calendar: primaryId,
           external_attendances,
           attendances,
-          resource_allocations: [],
+          resource_allocations: values.resourceCalendarIds.map((id) => ({
+            calendar: id,
+          })),
           ...(rrule_string !== undefined ? { rrule_string } : {}),
         },
         coBookedCalendarIds: values.coBookedCalendarIds,
@@ -637,6 +646,7 @@ export function BookingFormDialog({
 
   const primaryCalendarId = form.watch('primaryCalendarId');
   const coBookedCalendarIds = form.watch('coBookedCalendarIds');
+  const resourceCalendarIds = form.watch('resourceCalendarIds');
   const repeat = form.watch('repeat');
 
   // Attendee search — debounced so every keystroke doesn't fire a request.
@@ -844,6 +854,35 @@ export function BookingFormDialog({
                   </VStack>
                 </VStack>
               )}
+
+              {/* Resource calendars — bookable by every member */}
+              <VStack gap={2}>
+                <label
+                  htmlFor='resource-calendars'
+                  className='text-sm leading-none font-medium'
+                >
+                  Resource calendars
+                </label>
+                <Combobox
+                  multiple
+                  id='resource-calendars'
+                  options={resourceCalendars.map((cal) => ({
+                    value: String(cal.id),
+                    label: cal.name,
+                  }))}
+                  value={resourceCalendarIds.map(String)}
+                  onValueChange={(values) =>
+                    form.setValue(
+                      'resourceCalendarIds',
+                      values.map((v) => parseInt(v, 10))
+                    )
+                  }
+                  disabled={resourceCalendarsLoading}
+                  placeholder='Book resources (rooms, equipment)…'
+                  searchPlaceholder='Search resources…'
+                  emptyText='No resource calendars available.'
+                />
+              </VStack>
 
               {/* Internal attendees */}
               <VStack gap={2}>

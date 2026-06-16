@@ -29,7 +29,7 @@ const meta = {
 } satisfies Meta<typeof AllCalendarsTable>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<typeof AllCalendarsTable>;
 
 /**
  * Default story showing mixed calendar types and status.
