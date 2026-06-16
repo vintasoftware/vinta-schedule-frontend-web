@@ -81,28 +81,30 @@ describe('ServiceAccountCard — not configured', () => {
     vi.mocked(useDeleteServiceAccount).mockReturnValue(makeDeleteMock());
   });
 
-  it('shows empty state text and Configure button', () => {
+  it('shows empty state text and set-up button', () => {
     render(<ServiceAccountCard />);
     expect(
       screen.getByText(/No service account configured/i)
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /configure/i })
+      screen.getByTestId('configure-service-account-button')
     ).toBeInTheDocument();
   });
 
-  it('opens the configure dialog when Configure is clicked', async () => {
+  it('opens the setup wizard on the first instruction step when set-up is clicked', async () => {
     render(<ServiceAccountCard />);
     const btn = screen.getByTestId('configure-service-account-button');
     fireEvent.click(btn);
     await waitFor(() => {
-      expect(
-        screen.getByText(/Configure service account/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Create a service account/i)).toBeInTheDocument();
     });
+    // The form is not shown until the operator advances through the steps.
+    expect(
+      screen.queryByTestId('service-account-email')
+    ).not.toBeInTheDocument();
   });
 
-  it('calls saveServiceAccount (create path — no existingId) on form submit', async () => {
+  it('calls saveServiceAccount (create path — no existingId) after walking the wizard to the form', async () => {
     const mockSave = vi.fn().mockResolvedValue({});
     vi.mocked(useUpsertServiceAccount).mockReturnValue(
       makeUpsertMock({ saveServiceAccount: mockSave })
@@ -110,8 +112,16 @@ describe('ServiceAccountCard — not configured', () => {
 
     render(<ServiceAccountCard />);
 
-    // Open dialog
+    // Open wizard
     fireEvent.click(screen.getByTestId('configure-service-account-button'));
+
+    // Advance through the four instruction steps to reach the form.
+    for (let i = 0; i < 4; i++) {
+      await waitFor(() => {
+        expect(screen.getByTestId('wizard-next')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('wizard-next'));
+    }
 
     await waitFor(() => {
       expect(screen.getByTestId('service-account-email')).toBeInTheDocument();
@@ -124,14 +134,11 @@ describe('ServiceAccountCard — not configured', () => {
     fireEvent.change(screen.getByTestId('service-account-admin-email'), {
       target: { value: 'admin@example.com' },
     });
-    fireEvent.change(screen.getByTestId('service-account-public-key'), {
-      target: { value: '-----BEGIN CERTIFICATE-----' },
-    });
     fireEvent.change(screen.getByTestId('service-account-private-key-id'), {
       target: { value: 'key-id-123' },
     });
     fireEvent.change(screen.getByTestId('service-account-private-key'), {
-      target: { value: '-----BEGIN RSA PRIVATE KEY-----' },
+      target: { value: '-----BEGIN PRIVATE KEY-----' },
     });
 
     // Submit
@@ -145,9 +152,8 @@ describe('ServiceAccountCard — not configured', () => {
         expect.objectContaining({
           email: 'test@project.iam.gserviceaccount.com',
           admin_email: 'admin@example.com',
-          public_key: '-----BEGIN CERTIFICATE-----',
           private_key_id: 'key-id-123',
-          private_key: '-----BEGIN RSA PRIVATE KEY-----',
+          private_key: '-----BEGIN PRIVATE KEY-----',
         }),
         undefined // no existingId in create path
       );
@@ -212,14 +218,11 @@ describe('ServiceAccountCard — configured', () => {
     fireEvent.change(screen.getByTestId('service-account-admin-email'), {
       target: { value: 'admin@example.com' },
     });
-    fireEvent.change(screen.getByTestId('service-account-public-key'), {
-      target: { value: '-----BEGIN CERTIFICATE-----' },
-    });
     fireEvent.change(screen.getByTestId('service-account-private-key-id'), {
       target: { value: 'new-key-id' },
     });
     fireEvent.change(screen.getByTestId('service-account-private-key'), {
-      target: { value: '-----BEGIN RSA PRIVATE KEY-----' },
+      target: { value: '-----BEGIN PRIVATE KEY-----' },
     });
 
     await act(async () => {
@@ -258,9 +261,9 @@ describe('ServiceAccountCard — configured', () => {
       'super-secret-key'
     );
 
-    // Close the dialog (cancel)
-    const cancelBtn = screen.getByRole('button', { name: /cancel/i });
-    fireEvent.click(cancelBtn);
+    // Close the dialog (the built-in close button)
+    const closeBtn = screen.getByRole('button', { name: /close/i });
+    fireEvent.click(closeBtn);
 
     await waitFor(() => {
       expect(
@@ -307,9 +310,6 @@ describe('ServiceAccountCard — configured', () => {
     });
     fireEvent.change(screen.getByTestId('service-account-admin-email'), {
       target: { value: 'admin@example.com' },
-    });
-    fireEvent.change(screen.getByTestId('service-account-public-key'), {
-      target: { value: '-----BEGIN CERTIFICATE-----' },
     });
     fireEvent.change(screen.getByTestId('service-account-private-key-id'), {
       target: { value: 'key-id' },

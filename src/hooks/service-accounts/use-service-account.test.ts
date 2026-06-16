@@ -176,7 +176,6 @@ describe('useUpsertServiceAccount — create', () => {
       await result.current.saveServiceAccount({
         email: 'sa@project.iam.gserviceaccount.com',
         admin_email: 'admin@example.com',
-        public_key: '-----BEGIN CERTIFICATE-----',
         private_key_id: 'key-id-123',
         private_key: '-----BEGIN RSA PRIVATE KEY-----',
       });
@@ -188,7 +187,6 @@ describe('useUpsertServiceAccount — create', () => {
         body: expect.objectContaining({
           email: 'sa@project.iam.gserviceaccount.com',
           admin_email: 'admin@example.com',
-          public_key: '-----BEGIN CERTIFICATE-----',
           private_key_id: 'key-id-123',
           private_key: '-----BEGIN RSA PRIVATE KEY-----',
         }),
@@ -236,7 +234,6 @@ describe('useUpsertServiceAccount — create', () => {
       await result.current.saveServiceAccount({
         email: 'sa@project.iam.gserviceaccount.com',
         admin_email: 'admin@example.com',
-        public_key: '-----BEGIN CERTIFICATE-----',
         private_key_id: 'key-id-123',
         private_key: '-----BEGIN RSA PRIVATE KEY-----',
       });
@@ -294,7 +291,6 @@ describe('useUpsertServiceAccount — patch', () => {
         {
           email: 'rotated@project.iam.gserviceaccount.com',
           admin_email: 'admin@example.com',
-          public_key: '-----BEGIN CERTIFICATE-----',
           private_key_id: 'new-key-id',
           private_key: '-----BEGIN RSA PRIVATE KEY-----',
         },

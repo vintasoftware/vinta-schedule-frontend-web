@@ -31,7 +31,7 @@ export const SERVICE_ACCOUNT_QUERY_KEY = serviceAccountsListQueryKey();
 // or null if none exists.
 //
 // Security: The read model (ServiceAccountRead) never contains secrets
-// (private_key, private_key_id, public_key). Only email, admin_email,
+// (private_key, private_key_id). Only email, admin_email,
 // configured, created, modified are returned.
 // ---------------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ export function useServiceAccount() {
 //   - No existing id → POST /service-accounts/ (create).
 //   - Existing id passed → PATCH /service-accounts/{id}/ (rotate/update).
 //
-// SECURITY: credentials (private_key, public_key, private_key_id) are
+// SECURITY: credentials (private_key, private_key_id) are
 // write-only and are never returned in responses (per ServiceAccountRead).
 // They must never be placed in the query cache, localStorage, or global state.
 // The form that calls this hook must clear credential fields on close.
@@ -93,7 +93,6 @@ export function useUpsertServiceAccount() {
       const patch: PatchedServiceAccountWriteWritable = {
         email: values.email,
         admin_email: values.admin_email,
-        public_key: values.public_key,
         private_key_id: values.private_key_id,
         private_key: values.private_key,
       };
