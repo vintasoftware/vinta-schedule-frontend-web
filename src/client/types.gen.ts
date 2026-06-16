@@ -287,7 +287,7 @@ export type Calendar = {
     /**
      * The maximum number of attendees that can be accommodated in this calendar's events. This is only applicable for resource calendars.
      */
-    readonly capacity: number | null;
+    capacity?: number | null;
     /**
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
@@ -648,7 +648,7 @@ export type Notification = {
  * Serializer for Organization instances.
  *
  * The ``google_service_account`` field supports both reading and writing:
- * - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
+ * - **Write**: accepts ``email``, ``admin_email``,
  * ``private_key_id`` (write-only), and ``private_key`` (write-only).
  * Omitting the field on PATCH leaves existing credentials unchanged.
  * - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
@@ -924,7 +924,7 @@ export type PatchedCalendar = {
     /**
      * The maximum number of attendees that can be accommodated in this calendar's events. This is only applicable for resource calendars.
      */
-    readonly capacity?: number | null;
+    capacity?: number | null;
     /**
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
@@ -1000,7 +1000,7 @@ export type PatchedCalendarGroup = {
  * Serializer for Organization instances.
  *
  * The ``google_service_account`` field supports both reading and writing:
- * - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
+ * - **Write**: accepts ``email``, ``admin_email``,
  * ``private_key_id`` (write-only), and ``private_key`` (write-only).
  * Omitting the field on PATCH leaves existing credentials unchanged.
  * - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
@@ -1042,7 +1042,6 @@ export type PatchedServiceAccountWrite = {
      * Google Workspace super-admin email used as the DWD impersonation subject. The service account must have domain-wide delegation granted for the Admin SDK and Calendar API scopes in the Google Admin Console.
      */
     admin_email?: string;
-    public_key?: string;
 };
 
 /**
@@ -1188,6 +1187,22 @@ export type ResourceAllocation = {
 };
 
 /**
+ * Create an internal (manual) resource calendar. Admin-gated at the view layer.
+ */
+export type ResourceCalendarCreate = {
+    name: string;
+    description?: string;
+    /**
+     * The maximum number of attendees that can be accommodated in this calendar's events. This is only applicable for resource calendars.
+     */
+    capacity?: number | null;
+    /**
+     * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
+     */
+    manage_available_windows?: boolean;
+};
+
+/**
  * * `member` - Member
  * * `admin` - Admin
  */
@@ -1196,8 +1211,8 @@ export type RoleEnum = 'member' | 'admin';
 /**
  * Read serializer for the org-level Google Calendar service account (CRUD surface).
  *
- * Exposes only non-secret fields plus a ``configured`` flag. ``public_key``,
- * ``private_key`` and ``private_key_id`` are never returned.
+ * Exposes only non-secret fields plus a ``configured`` flag. ``private_key``
+ * and ``private_key_id`` are never returned.
  */
 export type ServiceAccountRead = {
     readonly id: number;
@@ -1226,7 +1241,6 @@ export type ServiceAccountWrite = {
      * Google Workspace super-admin email used as the DWD impersonation subject. The service account must have domain-wide delegation granted for the Admin SDK and Calendar API scopes in the Google Admin Console.
      */
     admin_email?: string;
-    public_key: string;
 };
 
 /**
@@ -1500,6 +1514,10 @@ export type CalendarWritable = {
     name: string;
     description?: string;
     /**
+     * The maximum number of attendees that can be accommodated in this calendar's events. This is only applicable for resource calendars.
+     */
+    capacity?: number | null;
+    /**
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
     manage_available_windows?: boolean;
@@ -1643,7 +1661,7 @@ export type ExternalAttendeeWritable = {
  * Serializer for Organization instances.
  *
  * The ``google_service_account`` field supports both reading and writing:
- * - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
+ * - **Write**: accepts ``email``, ``admin_email``,
  * ``private_key_id`` (write-only), and ``private_key`` (write-only).
  * Omitting the field on PATCH leaves existing credentials unchanged.
  * - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
@@ -1804,6 +1822,10 @@ export type PatchedCalendarWritable = {
     name?: string;
     description?: string;
     /**
+     * The maximum number of attendees that can be accommodated in this calendar's events. This is only applicable for resource calendars.
+     */
+    capacity?: number | null;
+    /**
      * If true, this calendar can manage its own available time windows. If not, it will use the available time windows of the external calendar it's attached to.
      */
     manage_available_windows?: boolean;
@@ -1865,7 +1887,7 @@ export type PatchedCalendarGroupWritable = {
  * Serializer for Organization instances.
  *
  * The ``google_service_account`` field supports both reading and writing:
- * - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
+ * - **Write**: accepts ``email``, ``admin_email``,
  * ``private_key_id`` (write-only), and ``private_key`` (write-only).
  * Omitting the field on PATCH leaves existing credentials unchanged.
  * - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
@@ -1897,7 +1919,6 @@ export type PatchedServiceAccountWriteWritable = {
      * Google Workspace super-admin email used as the DWD impersonation subject. The service account must have domain-wide delegation granted for the Admin SDK and Calendar API scopes in the Google Admin Console.
      */
     admin_email?: string;
-    public_key?: string;
     private_key_id?: string;
     private_key?: string;
 };
@@ -2002,7 +2023,6 @@ export type ServiceAccountWriteWritable = {
      * Google Workspace super-admin email used as the DWD impersonation subject. The service account must have domain-wide delegation granted for the Admin SDK and Calendar API scopes in the Google Admin Console.
      */
     admin_email?: string;
-    public_key: string;
     private_key_id: string;
     private_key: string;
 };
@@ -3310,6 +3330,15 @@ export type CalendarListData = {
     path?: never;
     query?: {
         /**
+         * Filter by calendar type (e.g. resource)
+         *
+         * * `personal` - Personal Calendar
+         * * `resource` - Resource Calendar
+         * * `virtual` - Virtual Calendar
+         * * `bundle` - Bundle Calendar
+         */
+        calendar_type?: 'bundle' | 'personal' | 'resource' | 'virtual';
+        /**
          * When true, include inactive (soft-deleted) calendars (visibility=inactive). Defaults to false.
          */
         include_inactive?: boolean;
@@ -3325,6 +3354,20 @@ export type CalendarListData = {
          * The initial index from which to return the results.
          */
         offset?: number;
+        /**
+         * Filter by provider (internal = manual, others = synced)
+         *
+         * * `internal` - Internal Calendar
+         * * `google` - Google Calendar
+         * * `microsoft` - Microsoft Outlook Calendar
+         * * `apple` - Apple Calendar
+         * * `ics` - ICS
+         */
+        provider?: 'apple' | 'google' | 'ics' | 'internal' | 'microsoft';
+        /**
+         * Filter by whether provider sync is enabled
+         */
+        sync_enabled?: boolean;
     };
     url: '/calendar/';
 };
@@ -3367,6 +3410,15 @@ export type CalendarFormattedListData = {
     };
     query?: {
         /**
+         * Filter by calendar type (e.g. resource)
+         *
+         * * `personal` - Personal Calendar
+         * * `resource` - Resource Calendar
+         * * `virtual` - Virtual Calendar
+         * * `bundle` - Bundle Calendar
+         */
+        calendar_type?: 'bundle' | 'personal' | 'resource' | 'virtual';
+        /**
          * When true, include inactive (soft-deleted) calendars (visibility=inactive). Defaults to false.
          */
         include_inactive?: boolean;
@@ -3382,6 +3434,20 @@ export type CalendarFormattedListData = {
          * The initial index from which to return the results.
          */
         offset?: number;
+        /**
+         * Filter by provider (internal = manual, others = synced)
+         *
+         * * `internal` - Internal Calendar
+         * * `google` - Google Calendar
+         * * `microsoft` - Microsoft Outlook Calendar
+         * * `apple` - Apple Calendar
+         * * `ics` - ICS
+         */
+        provider?: 'apple' | 'google' | 'ics' | 'internal' | 'microsoft';
+        /**
+         * Filter by whether provider sync is enabled
+         */
+        sync_enabled?: boolean;
     };
     url: '/calendar{format}';
 };
@@ -4858,13 +4924,36 @@ export type CalendarAvailableWindowsListData = {
     };
     query: {
         /**
+         * Filter by calendar type (e.g. resource)
+         *
+         * * `personal` - Personal Calendar
+         * * `resource` - Resource Calendar
+         * * `virtual` - Virtual Calendar
+         * * `bundle` - Bundle Calendar
+         */
+        calendar_type?: 'bundle' | 'personal' | 'resource' | 'virtual';
+        /**
          * End datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         end_datetime: string;
         /**
+         * Filter by provider (internal = manual, others = synced)
+         *
+         * * `internal` - Internal Calendar
+         * * `google` - Google Calendar
+         * * `microsoft` - Microsoft Outlook Calendar
+         * * `apple` - Apple Calendar
+         * * `ics` - ICS
+         */
+        provider?: 'apple' | 'google' | 'ics' | 'internal' | 'microsoft';
+        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
+        /**
+         * Filter by whether provider sync is enabled
+         */
+        sync_enabled?: boolean;
     };
     url: '/calendar/{id}/available-windows/';
 };
@@ -4889,13 +4978,36 @@ export type CalendarAvailableWindowsFormattedListData = {
     };
     query: {
         /**
+         * Filter by calendar type (e.g. resource)
+         *
+         * * `personal` - Personal Calendar
+         * * `resource` - Resource Calendar
+         * * `virtual` - Virtual Calendar
+         * * `bundle` - Bundle Calendar
+         */
+        calendar_type?: 'bundle' | 'personal' | 'resource' | 'virtual';
+        /**
          * End datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         end_datetime: string;
         /**
+         * Filter by provider (internal = manual, others = synced)
+         *
+         * * `internal` - Internal Calendar
+         * * `google` - Google Calendar
+         * * `microsoft` - Microsoft Outlook Calendar
+         * * `apple` - Apple Calendar
+         * * `ics` - ICS
+         */
+        provider?: 'apple' | 'google' | 'ics' | 'internal' | 'microsoft';
+        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
+        /**
+         * Filter by whether provider sync is enabled
+         */
+        sync_enabled?: boolean;
     };
     url: '/calendar/{id}/available-windows{format}';
 };
@@ -5019,13 +5131,36 @@ export type CalendarUnavailableWindowsListData = {
     };
     query: {
         /**
+         * Filter by calendar type (e.g. resource)
+         *
+         * * `personal` - Personal Calendar
+         * * `resource` - Resource Calendar
+         * * `virtual` - Virtual Calendar
+         * * `bundle` - Bundle Calendar
+         */
+        calendar_type?: 'bundle' | 'personal' | 'resource' | 'virtual';
+        /**
          * End datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         end_datetime: string;
         /**
+         * Filter by provider (internal = manual, others = synced)
+         *
+         * * `internal` - Internal Calendar
+         * * `google` - Google Calendar
+         * * `microsoft` - Microsoft Outlook Calendar
+         * * `apple` - Apple Calendar
+         * * `ics` - ICS
+         */
+        provider?: 'apple' | 'google' | 'ics' | 'internal' | 'microsoft';
+        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
+        /**
+         * Filter by whether provider sync is enabled
+         */
+        sync_enabled?: boolean;
     };
     url: '/calendar/{id}/unavailable-windows/';
 };
@@ -5050,13 +5185,36 @@ export type CalendarUnavailableWindowsFormattedListData = {
     };
     query: {
         /**
+         * Filter by calendar type (e.g. resource)
+         *
+         * * `personal` - Personal Calendar
+         * * `resource` - Resource Calendar
+         * * `virtual` - Virtual Calendar
+         * * `bundle` - Bundle Calendar
+         */
+        calendar_type?: 'bundle' | 'personal' | 'resource' | 'virtual';
+        /**
          * End datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         end_datetime: string;
         /**
+         * Filter by provider (internal = manual, others = synced)
+         *
+         * * `internal` - Internal Calendar
+         * * `google` - Google Calendar
+         * * `microsoft` - Microsoft Outlook Calendar
+         * * `apple` - Apple Calendar
+         * * `ics` - ICS
+         */
+        provider?: 'apple' | 'google' | 'ics' | 'internal' | 'microsoft';
+        /**
          * Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
          */
         start_datetime: string;
+        /**
+         * Filter by whether provider sync is enabled
+         */
+        sync_enabled?: boolean;
     };
     url: '/calendar/{id}/unavailable-windows{format}';
 };
@@ -5204,6 +5362,46 @@ export type CalendarRequestImportFormattedCreateResponses = {
 };
 
 export type CalendarRequestImportFormattedCreateResponse = CalendarRequestImportFormattedCreateResponses[keyof CalendarRequestImportFormattedCreateResponses];
+
+export type CalendarResourceCreateData = {
+    body: ResourceCalendarCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/calendar/resource/';
+};
+
+export type CalendarResourceCreateResponses = {
+    201: Calendar;
+};
+
+export type CalendarResourceCreateResponse = CalendarResourceCreateResponses[keyof CalendarResourceCreateResponses];
+
+export type CalendarResourceFormattedCreateData = {
+    body: ResourceCalendarCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/calendar/resource{format}';
+};
+
+export type CalendarResourceFormattedCreateResponses = {
+    201: Calendar;
+};
+
+export type CalendarResourceFormattedCreateResponse = CalendarResourceFormattedCreateResponses[keyof CalendarResourceFormattedCreateResponses];
 
 export type InvitationsListData = {
     body?: never;

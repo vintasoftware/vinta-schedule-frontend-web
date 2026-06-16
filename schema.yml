@@ -2330,6 +2330,22 @@ paths:
             an organization the caller is not an active member of, the server returns
             **403**.
         - in: query
+          name: calendar_type
+          schema:
+            type: string
+            enum:
+              - bundle
+              - personal
+              - resource
+              - virtual
+          description: |-
+            Filter by calendar type (e.g. resource)
+
+            * `personal` - Personal Calendar
+            * `resource` - Resource Calendar
+            * `virtual` - Virtual Calendar
+            * `bundle` - Bundle Calendar
+        - in: query
           name: include_inactive
           schema:
             type: boolean
@@ -2356,6 +2372,29 @@ paths:
           description: The initial index from which to return the results.
           schema:
             type: integer
+        - in: query
+          name: provider
+          schema:
+            type: string
+            enum:
+              - apple
+              - google
+              - ics
+              - internal
+              - microsoft
+          description: |-
+            Filter by provider (internal = manual, others = synced)
+
+            * `internal` - Internal Calendar
+            * `google` - Google Calendar
+            * `microsoft` - Microsoft Outlook Calendar
+            * `apple` - Apple Calendar
+            * `ics` - ICS
+        - in: query
+          name: sync_enabled
+          schema:
+            type: boolean
+          description: Filter by whether provider sync is enabled
       tags:
         - calendar
       security:
@@ -2424,6 +2463,22 @@ paths:
             memberships; omitting it in that case returns **400**. If the header names
             an organization the caller is not an active member of, the server returns
             **403**.
+        - in: query
+          name: calendar_type
+          schema:
+            type: string
+            enum:
+              - bundle
+              - personal
+              - resource
+              - virtual
+          description: |-
+            Filter by calendar type (e.g. resource)
+
+            * `personal` - Personal Calendar
+            * `resource` - Resource Calendar
+            * `virtual` - Virtual Calendar
+            * `bundle` - Bundle Calendar
         - in: path
           name: format
           schema:
@@ -2458,6 +2513,29 @@ paths:
           description: The initial index from which to return the results.
           schema:
             type: integer
+        - in: query
+          name: provider
+          schema:
+            type: string
+            enum:
+              - apple
+              - google
+              - ics
+              - internal
+              - microsoft
+          description: |-
+            Filter by provider (internal = manual, others = synced)
+
+            * `internal` - Internal Calendar
+            * `google` - Google Calendar
+            * `microsoft` - Microsoft Outlook Calendar
+            * `apple` - Apple Calendar
+            * `ics` - ICS
+        - in: query
+          name: sync_enabled
+          schema:
+            type: boolean
+          description: Filter by whether provider sync is enabled
       tags:
         - calendar
       security:
@@ -5111,6 +5189,22 @@ paths:
             an organization the caller is not an active member of, the server returns
             **403**.
         - in: query
+          name: calendar_type
+          schema:
+            type: string
+            enum:
+              - bundle
+              - personal
+              - resource
+              - virtual
+          description: |-
+            Filter by calendar type (e.g. resource)
+
+            * `personal` - Personal Calendar
+            * `resource` - Resource Calendar
+            * `virtual` - Virtual Calendar
+            * `bundle` - Bundle Calendar
+        - in: query
           name: end_datetime
           schema:
             type: string
@@ -5122,11 +5216,34 @@ paths:
             type: string
           required: true
         - in: query
+          name: provider
+          schema:
+            type: string
+            enum:
+              - apple
+              - google
+              - ics
+              - internal
+              - microsoft
+          description: |-
+            Filter by provider (internal = manual, others = synced)
+
+            * `internal` - Internal Calendar
+            * `google` - Google Calendar
+            * `microsoft` - Microsoft Outlook Calendar
+            * `apple` - Apple Calendar
+            * `ics` - ICS
+        - in: query
           name: start_datetime
           schema:
             type: string
           description: Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
           required: true
+        - in: query
+          name: sync_enabled
+          schema:
+            type: boolean
+          description: Filter by whether provider sync is enabled
       tags:
         - calendar
       security:
@@ -5161,6 +5278,22 @@ paths:
             an organization the caller is not an active member of, the server returns
             **403**.
         - in: query
+          name: calendar_type
+          schema:
+            type: string
+            enum:
+              - bundle
+              - personal
+              - resource
+              - virtual
+          description: |-
+            Filter by calendar type (e.g. resource)
+
+            * `personal` - Personal Calendar
+            * `resource` - Resource Calendar
+            * `virtual` - Virtual Calendar
+            * `bundle` - Bundle Calendar
+        - in: query
           name: end_datetime
           schema:
             type: string
@@ -5179,11 +5312,34 @@ paths:
             type: string
           required: true
         - in: query
+          name: provider
+          schema:
+            type: string
+            enum:
+              - apple
+              - google
+              - ics
+              - internal
+              - microsoft
+          description: |-
+            Filter by provider (internal = manual, others = synced)
+
+            * `internal` - Internal Calendar
+            * `google` - Google Calendar
+            * `microsoft` - Microsoft Outlook Calendar
+            * `apple` - Apple Calendar
+            * `ics` - ICS
+        - in: query
           name: start_datetime
           schema:
             type: string
           description: Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
           required: true
+        - in: query
+          name: sync_enabled
+          schema:
+            type: boolean
+          description: Filter by whether provider sync is enabled
       tags:
         - calendar
       security:
@@ -5428,6 +5584,22 @@ paths:
             an organization the caller is not an active member of, the server returns
             **403**.
         - in: query
+          name: calendar_type
+          schema:
+            type: string
+            enum:
+              - bundle
+              - personal
+              - resource
+              - virtual
+          description: |-
+            Filter by calendar type (e.g. resource)
+
+            * `personal` - Personal Calendar
+            * `resource` - Resource Calendar
+            * `virtual` - Virtual Calendar
+            * `bundle` - Bundle Calendar
+        - in: query
           name: end_datetime
           schema:
             type: string
@@ -5439,11 +5611,34 @@ paths:
             type: string
           required: true
         - in: query
+          name: provider
+          schema:
+            type: string
+            enum:
+              - apple
+              - google
+              - ics
+              - internal
+              - microsoft
+          description: |-
+            Filter by provider (internal = manual, others = synced)
+
+            * `internal` - Internal Calendar
+            * `google` - Google Calendar
+            * `microsoft` - Microsoft Outlook Calendar
+            * `apple` - Apple Calendar
+            * `ics` - ICS
+        - in: query
           name: start_datetime
           schema:
             type: string
           description: Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
           required: true
+        - in: query
+          name: sync_enabled
+          schema:
+            type: boolean
+          description: Filter by whether provider sync is enabled
       tags:
         - calendar
       security:
@@ -5478,6 +5673,22 @@ paths:
             an organization the caller is not an active member of, the server returns
             **403**.
         - in: query
+          name: calendar_type
+          schema:
+            type: string
+            enum:
+              - bundle
+              - personal
+              - resource
+              - virtual
+          description: |-
+            Filter by calendar type (e.g. resource)
+
+            * `personal` - Personal Calendar
+            * `resource` - Resource Calendar
+            * `virtual` - Virtual Calendar
+            * `bundle` - Bundle Calendar
+        - in: query
           name: end_datetime
           schema:
             type: string
@@ -5496,11 +5707,34 @@ paths:
             type: string
           required: true
         - in: query
+          name: provider
+          schema:
+            type: string
+            enum:
+              - apple
+              - google
+              - ics
+              - internal
+              - microsoft
+          description: |-
+            Filter by provider (internal = manual, others = synced)
+
+            * `internal` - Internal Calendar
+            * `google` - Google Calendar
+            * `microsoft` - Microsoft Outlook Calendar
+            * `apple` - Apple Calendar
+            * `ics` - ICS
+        - in: query
           name: start_datetime
           schema:
             type: string
           description: Start datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
           required: true
+        - in: query
+          name: sync_enabled
+          schema:
+            type: boolean
+          description: Filter by whether provider sync is enabled
       tags:
         - calendar
       security:
@@ -5771,6 +6005,103 @@ paths:
                 properties:
                   detail:
                     type: string
+          description: ''
+  /calendar/resource/:
+    post:
+      operationId: calendar_resource_create
+      description:
+        Org admins create an internal (manual) resource calendar — a shared
+        bookable resource (room, equipment, etc.) owned by the organization rather
+        than synced from an external provider. Sets provider=internal and calendar_type=resource.
+        Admin only. Returns the created calendar.
+      summary: Create a manual resource calendar
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
+      tags:
+        - calendar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceCalendarCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResourceCalendarCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResourceCalendarCreate'
+        required: true
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
+          description: ''
+  /calendar/resource{format}:
+    post:
+      operationId: calendar_resource_formatted_create
+      description:
+        Org admins create an internal (manual) resource calendar — a shared
+        bookable resource (room, equipment, etc.) owned by the organization rather
+        than synced from an external provider. Sets provider=internal and calendar_type=resource.
+        Admin only. Returns the created calendar.
+      summary: Create a manual resource calendar
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+      tags:
+        - calendar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceCalendarCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResourceCalendarCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResourceCalendarCreate'
+        required: true
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
           description: ''
   /invitations/:
     get:
@@ -10857,7 +11188,8 @@ components:
             * `bundle` - Bundle Calendar
         capacity:
           type: integer
-          readOnly: true
+          maximum: 2147483647
+          minimum: 0
           nullable: true
           description:
             The maximum number of attendees that can be accommodated in
@@ -10888,7 +11220,6 @@ components:
             Default True keeps existing calendars syncing as before.
       required:
         - calendar_type
-        - capacity
         - email
         - external_id
         - id
@@ -11562,7 +11893,7 @@ components:
         Serializer for Organization instances.
 
         The ``google_service_account`` field supports both reading and writing:
-        - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
+        - **Write**: accepts ``email``, ``admin_email``,
           ``private_key_id`` (write-only), and ``private_key`` (write-only).
           Omitting the field on PATCH leaves existing credentials unchanged.
         - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
@@ -12229,7 +12560,8 @@ components:
             * `bundle` - Bundle Calendar
         capacity:
           type: integer
-          readOnly: true
+          maximum: 2147483647
+          minimum: 0
           nullable: true
           description:
             The maximum number of attendees that can be accommodated in
@@ -12388,7 +12720,7 @@ components:
         Serializer for Organization instances.
 
         The ``google_service_account`` field supports both reading and writing:
-        - **Write**: accepts ``email``, ``admin_email``, ``public_key``,
+        - **Write**: accepts ``email``, ``admin_email``,
           ``private_key_id`` (write-only), and ``private_key`` (write-only).
           Omitting the field on PATCH leaves existing credentials unchanged.
         - **Read**: returns ``email``, ``admin_email``, and ``configured: true/false``.
@@ -12455,8 +12787,6 @@ components:
             subject. The service account must have domain-wide delegation granted
             for the Admin SDK and Calendar API scopes in the Google Admin Console.
           maxLength: 255
-        public_key:
-          type: string
         private_key_id:
           type: string
           writeOnly: true
@@ -12701,6 +13031,33 @@ components:
         - created
         - modified
         - status
+    ResourceCalendarCreate:
+      type: object
+      description:
+        Create an internal (manual) resource calendar. Admin-gated at the
+        view layer.
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        capacity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          description:
+            The maximum number of attendees that can be accommodated in
+            this calendar's events. This is only applicable for resource calendars.
+        manage_available_windows:
+          type: boolean
+          description:
+            If true, this calendar can manage its own available time windows.
+            If not, it will use the available time windows of the external calendar
+            it's attached to.
+      required:
+        - name
     RoleEnum:
       enum:
         - member
@@ -12714,8 +13071,8 @@ components:
       description: |-
         Read serializer for the org-level Google Calendar service account (CRUD surface).
 
-        Exposes only non-secret fields plus a ``configured`` flag. ``public_key``,
-        ``private_key`` and ``private_key_id`` are never returned.
+        Exposes only non-secret fields plus a ``configured`` flag. ``private_key``
+        and ``private_key_id`` are never returned.
       properties:
         id:
           type: integer
@@ -12771,8 +13128,6 @@ components:
             subject. The service account must have domain-wide delegation granted
             for the Admin SDK and Calendar API scopes in the Google Admin Console.
           maxLength: 255
-        public_key:
-          type: string
         private_key_id:
           type: string
           writeOnly: true
@@ -12784,7 +13139,6 @@ components:
         - email
         - private_key
         - private_key_id
-        - public_key
     SystemUserToken:
       type: object
       description: |-
