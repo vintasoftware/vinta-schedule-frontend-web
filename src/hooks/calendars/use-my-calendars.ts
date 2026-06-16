@@ -35,8 +35,9 @@ export const MY_CALENDARS_QUERY_KEY = calendarListQueryKey();
 // useMyCalendars
 //
 // Wraps `calendarList` (GET /calendar/), which returns a paginated list of
-// calendars visible to the calling member. The list is automatically scoped
-// to the caller's calendars by the backend (no extra scoping param needed).
+// calendars visible to the calling member. Scoped to the caller's own
+// calendars by passing `owner: 'me'` — without it, org admins would see every
+// calendar in the organization.
 //
 // Maps the DataTableQuery `page`/`pageSize` to the API's `limit`/`offset`
 // style pagination.
@@ -51,7 +52,9 @@ export function useMyCalendars(query: DataTableQuery) {
   const offset = (query.page - 1) * query.pageSize;
 
   const calendarsQuery = useQuery(
-    calendarListOptions({ query: { limit, offset, include_unlisted: true } })
+    calendarListOptions({
+      query: { limit, offset, include_unlisted: true, owner: 'me' },
+    })
   );
 
   const raw = calendarsQuery.data?.results ?? [];

@@ -86,6 +86,7 @@ function TeamTableStory({
       createColumns(
         new Set(),
         async () => {},
+        async () => {},
         async () => {}
       ),
     []

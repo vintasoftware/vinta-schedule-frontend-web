@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { RotateCw, UserX } from 'lucide-react';
+import { RotateCw, ShieldCheck, ShieldMinus, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
@@ -24,6 +24,7 @@ import {
   useDisableUser,
   useReactivateUser,
 } from '@/hooks/team/use-disable-user';
+import { useUpdateMemberRole } from '@/hooks/team/use-update-member-role';
 
 // ---------------------------------------------------------------------------
 // Column definitions
@@ -51,7 +52,8 @@ export const STATUS_VARIANT: Record<
 export function createColumns(
   pendingRowIds: Set<number>,
   onDisable: (member: TeamMember) => Promise<void>,
-  onReactivate: (member: TeamMember) => Promise<void>
+  onReactivate: (member: TeamMember) => Promise<void>,
+  onChangeRole: (member: TeamMember, role: TeamMember['role']) => Promise<void>
 ): DataTableColumn<TeamMember>[] {
   return [
     {
@@ -99,6 +101,13 @@ export function createColumns(
       enableSorting: false,
       cell: ({ row }) => (
         <HStack gap={2}>
+          {row.original.status === 'active' && (
+            <ChangeRoleButton
+              member={row.original}
+              isLoading={pendingRowIds.has(row.original.id)}
+              onChangeRole={onChangeRole}
+            />
+          )}
           {row.original.status === 'active' ? (
             <DisableButton
               member={row.original}
@@ -121,6 +130,7 @@ export function createColumns(
 // Legacy export for backward compatibility (stories/tests that build columns statically).
 export const COLUMNS = createColumns(
   new Set(),
+  async () => {},
   async () => {},
   async () => {}
 );
@@ -183,6 +193,99 @@ function DisableButton({ member, isLoading, onDisable }: DisableButtonProps) {
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
             >
               Disable
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ChangeRoleButton — per-row action to promote/demote a member's role.
+// Roles are binary (member <-> admin) so the button toggles to the opposite of
+// the current role behind a confirmation dialog.
+// ---------------------------------------------------------------------------
+
+interface ChangeRoleButtonProps {
+  member: TeamMember;
+  isLoading: boolean;
+  onChangeRole: (member: TeamMember, role: TeamMember['role']) => Promise<void>;
+}
+
+function ChangeRoleButton({
+  member,
+  isLoading,
+  onChangeRole,
+}: ChangeRoleButtonProps) {
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+
+  const nextRole: TeamMember['role'] =
+    member.role === 'admin' ? 'member' : 'admin';
+  const promoting = nextRole === 'admin';
+
+  const handleConfirm = React.useCallback(async () => {
+    await onChangeRole(member, nextRole);
+    setDialogOpen(false);
+  }, [member, nextRole, onChangeRole]);
+
+  return (
+    <>
+      <Button
+        size='sm'
+        variant='outline'
+        onClick={() => setDialogOpen(true)}
+        disabled={isLoading}
+        aria-label={
+          promoting
+            ? `Make ${member.name} an admin`
+            : `Make ${member.name} a member`
+        }
+      >
+        {isLoading ? (
+          <>
+            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            Updating…
+          </>
+        ) : promoting ? (
+          <>
+            <ShieldCheck className='mr-1 size-4' aria-hidden />
+            Make admin
+          </>
+        ) : (
+          <>
+            <ShieldMinus className='mr-1 size-4' aria-hidden />
+            Make member
+          </>
+        )}
+      </Button>
+
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {promoting ? 'Promote to admin' : 'Demote to member'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {promoting ? (
+                <>
+                  Are you sure you want to make{' '}
+                  <span className='font-medium'>{member.name}</span> an admin?
+                  Admins can manage members, billing, and organization settings.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to change{' '}
+                  <span className='font-medium'>{member.name}</span> to a member?
+                  They will lose admin permissions.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirm} disabled={isLoading}>
+              {promoting ? 'Make admin' : 'Make member'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -296,6 +399,7 @@ function TeamTableInner() {
 
   const { disableUser } = useDisableUser();
   const { reactivateUser } = useReactivateUser();
+  const { updateMemberRole } = useUpdateMemberRole();
 
   // Handle disable action: track in-flight row, call hook, show toast, update state.
   const handleDisable = React.useCallback(
@@ -357,6 +461,34 @@ function TeamTableInner() {
     [reactivateUser]
   );
 
+  // Handle role change: track in-flight row, call hook, show toast.
+  const handleChangeRole = React.useCallback(
+    async (member: TeamMember, role: TeamMember['role']) => {
+      setPendingRowIds((prev) => new Set(prev).add(member.id));
+
+      try {
+        await updateMemberRole(member.id, role);
+        toast.success('Role updated', {
+          description: `${member.name} is now ${role === 'admin' ? 'an admin' : 'a member'}.`,
+        });
+      } catch (err) {
+        toast.error('Failed to update role', {
+          description:
+            err instanceof Error
+              ? err.message
+              : 'An unexpected error occurred.',
+        });
+      } finally {
+        setPendingRowIds((prev) => {
+          const next = new Set(prev);
+          next.delete(member.id);
+          return next;
+        });
+      }
+    },
+    [updateMemberRole]
+  );
+
   if (isError) {
     return (
       <VStack gap={2} py={6} align='center'>
@@ -372,7 +504,12 @@ function TeamTableInner() {
     );
   }
 
-  const columns = createColumns(pendingRowIds, handleDisable, handleReactivate);
+  const columns = createColumns(
+    pendingRowIds,
+    handleDisable,
+    handleReactivate,
+    handleChangeRole
+  );
 
   return (
     <DataTable<TeamMember>

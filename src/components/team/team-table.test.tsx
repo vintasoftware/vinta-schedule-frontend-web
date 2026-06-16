@@ -28,6 +28,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     organizationMembersList: vi.fn(),
     organizationMembersDeactivateCreate: vi.fn(),
     organizationMembersReactivateCreate: vi.fn(),
+    organizationMembersUpdateRoleCreate: vi.fn(),
   };
 });
 
@@ -36,6 +37,7 @@ import {
   organizationMembersList,
   organizationMembersDeactivateCreate,
   organizationMembersReactivateCreate,
+  organizationMembersUpdateRoleCreate,
 } from '@/client/sdk.gen';
 import { TeamTable } from './team-table';
 
@@ -461,6 +463,114 @@ describe('TeamTable disable/reactivate actions', () => {
     // Verify the operation was not called.
     expect(
       vi.mocked(organizationMembersDeactivateCreate).mock.calls
+    ).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Change role functionality
+// ---------------------------------------------------------------------------
+
+describe('TeamTable change-role action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows "Make member" for admins and "Make admin" for active members', async () => {
+    vi.mocked(organizationMembersList).mockResolvedValue(
+      makePagedResponse(MEMBER_FIXTURE)
+    );
+
+    renderTeamTable();
+
+    await waitFor(() => {
+      expect(screen.getByText('Alice Souza')).toBeInTheDocument();
+    });
+
+    // Alice is admin → demote action.
+    expect(
+      screen.getByRole('button', { name: /make alice souza a member/i })
+    ).toBeInTheDocument();
+    // Bob is an active member → promote action.
+    expect(
+      screen.getByRole('button', { name: /make bob lima an admin/i })
+    ).toBeInTheDocument();
+    // Carol is disabled → no role action.
+    expect(
+      screen.queryByRole('button', { name: /make carol maia/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('promotes a member to admin with the correct role payload after confirming', async () => {
+    vi.mocked(organizationMembersList).mockResolvedValue(
+      makePagedResponse(MEMBER_FIXTURE)
+    );
+    vi.mocked(organizationMembersUpdateRoleCreate).mockResolvedValue(
+      makePagedResponse([]) as never
+    );
+
+    renderTeamTable();
+
+    await waitFor(() => {
+      expect(screen.getByText('Bob Lima')).toBeInTheDocument();
+    });
+
+    const promoteButton = screen.getByRole('button', {
+      name: /make bob lima an admin/i,
+    });
+    await act(async () => {
+      promoteButton.click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Promote to admin')).toBeInTheDocument();
+    });
+
+    const confirmButton = screen.getByRole('button', { name: 'Make admin' });
+    await act(async () => {
+      confirmButton.click();
+    });
+
+    await waitFor(() => {
+      expect(
+        vi.mocked(organizationMembersUpdateRoleCreate).mock.calls.length
+      ).toBeGreaterThan(0);
+    });
+
+    const call = vi.mocked(organizationMembersUpdateRoleCreate).mock.calls[0][0];
+    expect(call?.path).toEqual({ id: '2' });
+    expect(call?.body).toEqual({ role: 'admin' });
+  });
+
+  it('cancels the change-role dialog without calling the API', async () => {
+    vi.mocked(organizationMembersList).mockResolvedValue(
+      makePagedResponse(MEMBER_FIXTURE)
+    );
+
+    renderTeamTable();
+
+    await waitFor(() => {
+      expect(screen.getByText('Alice Souza')).toBeInTheDocument();
+    });
+
+    const demoteButton = screen.getByRole('button', {
+      name: /make alice souza a member/i,
+    });
+    await act(async () => {
+      demoteButton.click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Demote to member')).toBeInTheDocument();
+    });
+
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+    await act(async () => {
+      cancelButton.click();
+    });
+
+    expect(
+      vi.mocked(organizationMembersUpdateRoleCreate).mock.calls
     ).toHaveLength(0);
   });
 });

@@ -314,9 +314,11 @@ describe('CalendarsTable', () => {
       const queryArgs = lastCall[0]?.query as {
         limit?: number;
         offset?: number;
+        owner?: string;
       };
       expect(queryArgs?.limit).toBe(PAGE_SIZE);
       expect(queryArgs?.offset).toBe(PAGE_SIZE); // page 2: offset = (2-1) * pageSize = 20
+      expect(queryArgs?.owner).toBe('me'); // scoped to caller's own calendars
     });
   });
 

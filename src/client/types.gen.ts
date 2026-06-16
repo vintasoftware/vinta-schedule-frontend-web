@@ -1329,6 +1329,13 @@ export type UnavailableTimeWindow = {
     readonly reason_description: string;
 };
 
+/**
+ * Request serializer for updating an organization member's role.
+ */
+export type UpdateMembershipRole = {
+    role: RoleEnum;
+};
+
 export type User = {
     readonly id: number;
     readonly email: string;
@@ -3355,6 +3362,10 @@ export type CalendarListData = {
          */
         offset?: number;
         /**
+         * Scope the listing to a calendar owner. Pass 'me' to return only the authenticated user's own calendars. Pass a numeric user id to return that user's calendars — allowed for organization admins only; non-admins receive 403. When omitted, admins see all organization calendars while non-admins are restricted to their own.
+         */
+        owner?: string;
+        /**
          * Filter by provider (internal = manual, others = synced)
          *
          * * `internal` - Internal Calendar
@@ -3434,6 +3445,10 @@ export type CalendarFormattedListData = {
          * The initial index from which to return the results.
          */
         offset?: number;
+        /**
+         * Scope the listing to a calendar owner. Pass 'me' to return only the authenticated user's own calendars. Pass a numeric user id to return that user's calendars — allowed for organization admins only; non-admins receive 403. When omitted, admins see all organization calendars while non-admins are restricted to their own.
+         */
+        owner?: string;
         /**
          * Filter by provider (internal = manual, others = synced)
          *
@@ -6232,6 +6247,79 @@ export type OrganizationMembersReactivateFormattedCreateResponses = {
 };
 
 export type OrganizationMembersReactivateFormattedCreateResponse = OrganizationMembersReactivateFormattedCreateResponses[keyof OrganizationMembersReactivateFormattedCreateResponses];
+
+export type OrganizationMembersUpdateRoleCreateData = {
+    body: UpdateMembershipRole;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/organization-members/{id}/update-role/';
+};
+
+export type OrganizationMembersUpdateRoleCreateErrors = {
+    /**
+     * Invalid role or would demote the last active admin
+     */
+    400: unknown;
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Member not found or cross-org
+     */
+    404: unknown;
+};
+
+export type OrganizationMembersUpdateRoleCreateResponses = {
+    200: OrganizationMembership;
+};
+
+export type OrganizationMembersUpdateRoleCreateResponse = OrganizationMembersUpdateRoleCreateResponses[keyof OrganizationMembersUpdateRoleCreateResponses];
+
+export type OrganizationMembersUpdateRoleFormattedCreateData = {
+    body: UpdateMembershipRole;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/organization-members/{id}/update-role{format}';
+};
+
+export type OrganizationMembersUpdateRoleFormattedCreateErrors = {
+    /**
+     * Invalid role or would demote the last active admin
+     */
+    400: unknown;
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Member not found or cross-org
+     */
+    404: unknown;
+};
+
+export type OrganizationMembersUpdateRoleFormattedCreateResponses = {
+    200: OrganizationMembership;
+};
+
+export type OrganizationMembersUpdateRoleFormattedCreateResponse = OrganizationMembersUpdateRoleFormattedCreateResponses[keyof OrganizationMembersUpdateRoleFormattedCreateResponses];
 
 export type OrganizationsCreateData = {
     body: OrganizationWritable;
