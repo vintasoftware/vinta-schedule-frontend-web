@@ -3,10 +3,25 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AuthLayout } from '@/components/layout/auth-layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
+import { fetchBrandingForTenant } from '@/lib/branding';
 
-export default function SocialLoginErrorPage() {
+export default async function SocialLoginErrorPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resolvedParams = await searchParams;
+
+  // Resolve tenant branding so the error page also carries reseller branding.
+  // Falls back to vinta default on any error.
+  const tenantId =
+    typeof resolvedParams.tenant_id === 'string'
+      ? resolvedParams.tenant_id
+      : undefined;
+  const branding = await fetchBrandingForTenant(tenantId);
+
   return (
-    <AuthLayout navbar={<AuthNavbar />} variant='single'>
+    <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>
       <Card className='flex w-full max-w-md flex-col items-center gap-6 p-8'>
         <Alert variant='destructive' className='w-full'>
           <AlertTitle className='text-xl font-bold'>

@@ -9,6 +9,8 @@ import { AuthLayout } from '@/components/layout/auth-layout';
 import { Text } from '@/components/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { setMemoryAccessToken } from '@/lib/token-storage-strategy.client';
+import type { TenantBranding } from '@/lib/branding';
+import { VINTA_DEFAULT_BRANDING } from '@/lib/branding';
 
 export interface SocialSuccessProps {
   /**
@@ -19,12 +21,15 @@ export interface SocialSuccessProps {
   hasPendingSession?: boolean;
   accessToken?: string;
   refreshToken?: string;
+  /** Resolved tenant branding. Defaults to vinta branding when absent. */
+  branding?: TenantBranding;
 }
 
 export function SocialSuccess({
   hasPendingSession,
   accessToken,
   refreshToken,
+  branding = VINTA_DEFAULT_BRANDING,
 }: SocialSuccessProps) {
   const router = useRouter();
   const isAuthenticated = Boolean(accessToken);
@@ -63,7 +68,7 @@ export function SocialSuccess({
   ]);
 
   return (
-    <AuthLayout navbar={<AuthNavbar />} variant='single'>
+    <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>
       <Card className='flex flex-col items-center gap-2 p-8 text-center'>
         <Text as='div' size='lg' weight='semibold'>
           Connecting…

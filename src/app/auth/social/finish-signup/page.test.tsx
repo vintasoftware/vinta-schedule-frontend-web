@@ -19,7 +19,9 @@ vi.mock('@/lib/auth-server-actions', () => ({
   clearAuthCookies: vi.fn(),
 }));
 
-import ProviderSignupPage from './page';
+// The page is now a Server Component (fetches branding then renders the form).
+// Test the form component directly — it contains all the interactive logic.
+import { FinishSignupForm } from '@/components/authentication/finish-signup-form';
 import {
   ClientTokenStorageStrategy,
   clearMemoryAccessToken,
@@ -92,7 +94,7 @@ function renderPage() {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return render(<ProviderSignupPage />, { wrapper });
+  return render(<FinishSignupForm />, { wrapper });
 }
 
 async function fillPhoneAndSubmit(phone: string) {

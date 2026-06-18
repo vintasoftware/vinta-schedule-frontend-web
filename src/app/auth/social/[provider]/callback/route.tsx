@@ -7,6 +7,7 @@ import {
 } from '@/lib/authentication-response-type-checks';
 import { cookies } from 'next/headers';
 import type { AuthenticationResponse, Flow } from '@/auth-client';
+import { validateReturnUrl } from '@/lib/branding';
 // Removed invalid import of CookieOptions
 
 export async function POST(
@@ -87,6 +88,59 @@ const PENDING_FLOW_ROUTES: Partial<Record<Flow['id'], string>> = {
 };
 
 /**
+ * Fetch the return-URL allowlist for a tenant from the backend.
+ *
+ * The public `brandingForTenant` GraphQL query intentionally does NOT expose
+ * the allowlist (it is a reseller-internal security config). We retrieve it
+ * via a separate server-side-only internal query that includes the allowlist.
+ * If the query fails or the field is missing, we return an empty array, which
+ * causes `validateReturnUrl` to reject all `next` params (safe default).
+ *
+ * This call is made only inside the route handler (server-side), never from
+ * the browser, so the allowlist is never exposed to client code.
+ */
+async function fetchReturnUrlAllowlist(
+  tenantId: string | null | undefined
+): Promise<string[]> {
+  if (!tenantId) {
+    return [];
+  }
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+
+  const query = `
+    query ReturnUrlAllowlistForTenant($tenantId: ID!) {
+      brandingForTenant(tenantId: $tenantId) {
+        returnUrlAllowlist
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(`${baseUrl}/graphql/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables: { tenantId } }),
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (!response.ok) return [];
+
+    const json = (await response.json()) as {
+      data?: { brandingForTenant?: { returnUrlAllowlist?: string[] } | null };
+      errors?: unknown[];
+    };
+
+    if (json.errors?.length) return [];
+
+    return json.data?.brandingForTenant?.returnUrlAllowlist ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * A 401 with `data.flows` is the intended allauth "more steps required"
  * contract — NOT an error. It happens both for a brand-new social account
  * (`provider_signup`, still needs e.g. a phone) and for a returning user whose
@@ -101,20 +155,24 @@ const PENDING_FLOW_ROUTES: Partial<Record<Flow['id'], string>> = {
  */
 function handlePendingAuthenticationResponse(
   response: AuthenticationResponse,
-  incomingSessionToken: string | undefined
+  incomingSessionToken: string | undefined,
+  tenantId?: string | null
 ): CallbackResult {
   // Prefer a rotated token; otherwise keep the one we authenticated with.
   const sessionToken = response.meta?.session_token ?? incomingSessionToken;
   const pendingFlow = response.data.flows.find((flow) => flow.is_pending);
-  const nextUrl = pendingFlow && PENDING_FLOW_ROUTES[pendingFlow.id];
+  const baseNextUrl = pendingFlow && PENDING_FLOW_ROUTES[pendingFlow.id];
 
-  if (!nextUrl) {
+  if (!baseNextUrl) {
     console.error(
       'Authentication response without a routable pending flow',
       JSON.stringify(response)
     );
+    const errorUrl = tenantId
+      ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+      : `/auth/social/error`;
     return {
-      url: `/auth/social/error`,
+      url: errorUrl,
       cookiesToUnset: [
         'accessToken',
         'refreshToken',
@@ -128,8 +186,11 @@ function handlePendingAuthenticationResponse(
     console.error(
       `Pending ${pendingFlow.id} flow but no session token (none stored from redirect-json, none rotated)`
     );
+    const errorUrl = tenantId
+      ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+      : `/auth/social/error`;
     return {
-      url: `/auth/social/error`,
+      url: errorUrl,
       cookiesToUnset: [
         'accessToken',
         'refreshToken',
@@ -138,6 +199,12 @@ function handlePendingAuthenticationResponse(
       ],
     };
   }
+
+  // Thread the tenant_id into the pending-flow URL so the interstitial page
+  // can resolve branding from the same tenant context.
+  const nextUrl = tenantId
+    ? `${baseNextUrl}?tenant_id=${encodeURIComponent(tenantId)}`
+    : baseNextUrl;
 
   return {
     url: nextUrl,
@@ -169,6 +236,17 @@ export async function handleProviderLoginCallback(
   // since the pending 401 won't re-issue it.
   const incomingSessionToken =
     cookieStorage.get('sessionToken')?.value || undefined;
+
+  // The tenant_id may be embedded in the OAuth state param (set by the
+  // initiating page) or passed as a direct query param. If present, we use it
+  // to fetch tenant branding for interstitials and to validate the `next` URL.
+  const tenantId = params.tenant_id || null;
+
+  // The `next` / return-URL the reseller's app wants to send the user back to
+  // after login. MUST be validated server-side against the tenant's allowlist
+  // before use. An absent or off-allowlist URL falls back to the default
+  // dashboard (no open-redirect risk).
+  const nextParam = params.next || null;
   const cookiesToSet: Array<{
     name: string;
     value: string;
@@ -192,7 +270,10 @@ export async function handleProviderLoginCallback(
         cookiesToUnset.push('sessionToken');
         cookiesToUnset.push('accessToken');
         cookiesToUnset.push('refreshToken');
-        return { url: `/auth/social/error`, cookiesToUnset };
+        const errorUrl = tenantId
+          ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+          : `/auth/social/error`;
+        return { url: errorUrl, cookiesToUnset };
       }
       // native headless `app` flow: meta carries three separate tokens.
       const accessToken = response.meta.access_token;
@@ -202,7 +283,10 @@ export async function handleProviderLoginCallback(
         console.error(
           'Authentication successful, but access or refresh token is missing'
         );
-        return { url: `/auth/social/error` };
+        const errorUrl = tenantId
+          ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+          : `/auth/social/error`;
+        return { url: errorUrl };
       }
 
       cookiesToSet.push({
@@ -242,8 +326,34 @@ export async function handleProviderLoginCallback(
         });
       }
 
+      // Determine the post-login redirect URL.
+      // If a `next` param was supplied, validate it server-side against the
+      // tenant's return-URL allowlist. An absent allowlist or a URL that does
+      // not match the allowlist falls back to the success interstitial (which
+      // then redirects to /dashboard). This is the open-redirect safety gate.
+      let successUrl: string;
+      if (nextParam && tenantId) {
+        const allowlist = await fetchReturnUrlAllowlist(tenantId);
+        const validatedNext = validateReturnUrl(nextParam, allowlist);
+        if (validatedNext) {
+          // The URL is on the allowlist — redirect the user directly there.
+          successUrl = validatedNext;
+        } else {
+          // Off-allowlist or empty allowlist — use the standard success page.
+          const base = `/auth/social/${provider}/success`;
+          successUrl = tenantId
+            ? `${base}?tenant_id=${encodeURIComponent(tenantId)}`
+            : base;
+        }
+      } else {
+        const base = `/auth/social/${provider}/success`;
+        successUrl = tenantId
+          ? `${base}?tenant_id=${encodeURIComponent(tenantId)}`
+          : base;
+      }
+
       return {
-        url: `/auth/social/${provider}/success`,
+        url: successUrl,
         cookiesToSet,
         cookiesToUnset,
       };
@@ -256,7 +366,8 @@ export async function handleProviderLoginCallback(
     if (isAuthenticationResponse(response)) {
       return handlePendingAuthenticationResponse(
         response,
-        incomingSessionToken
+        incomingSessionToken,
+        tenantId
       );
     }
 
@@ -268,18 +379,28 @@ export async function handleProviderLoginCallback(
     // Defensive: if some transport ever surfaces the 401 as a throw instead of
     // a response body, treat it the same way.
     if (isAuthenticationResponse(error)) {
-      return handlePendingAuthenticationResponse(error, incomingSessionToken);
+      return handlePendingAuthenticationResponse(
+        error,
+        incomingSessionToken,
+        tenantId
+      );
     } else {
       console.error('Error during provider login callback:', error);
       cookiesToUnset.push('accessToken');
       cookiesToUnset.push('refreshToken');
       cookiesToUnset.push('sessionToken');
-      return { url: `/auth/social/error`, cookiesToSet, cookiesToUnset };
+      const errorUrl = tenantId
+        ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+        : `/auth/social/error`;
+      return { url: errorUrl, cookiesToSet, cookiesToUnset };
     }
   }
 
   console.warn(
     'No valid authentication response received, redirecting to error'
   );
-  return { url: `/auth/social/error`, cookiesToSet, cookiesToUnset };
+  const errorUrl = tenantId
+    ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+    : `/auth/social/error`;
+  return { url: errorUrl, cookiesToSet, cookiesToUnset };
 }
