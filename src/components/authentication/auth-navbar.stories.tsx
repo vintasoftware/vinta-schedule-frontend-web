@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { AuthNavbar } from './auth-navbar';
-import { VINTA_DEFAULT_BRANDING } from '@/lib/branding';
+import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
 
 const meta = {
   title: 'Components/AuthNavbar',

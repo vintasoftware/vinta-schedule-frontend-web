@@ -27,8 +27,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
 import { syncSessionTokenFromCookie } from '@/lib/session-token';
 import { isAuthenticationResponse } from '@/lib/authentication-response-type-checks';
-import type { TenantBranding } from '@/lib/branding';
-import { VINTA_DEFAULT_BRANDING } from '@/lib/branding';
+import type { TenantBranding } from '@/lib/branding-shared';
+import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
 
 // Required signup fields that Google does not supply minus what it does.
 // `phone` must be E.164 (the field the provider never gives us).

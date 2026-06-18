@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  fetchBrandingForTenant,
-  validateReturnUrl,
-  VINTA_DEFAULT_BRANDING,
-} from './branding';
+import { fetchBrandingForTenant } from './branding-server';
+import { validateReturnUrl, VINTA_DEFAULT_BRANDING } from './branding-shared';
 
 // ---------------------------------------------------------------------------
 // fetchBrandingForTenant
@@ -210,5 +207,21 @@ describe('validateReturnUrl', () => {
         'https://second.example.com',
       ])
     ).toBe(url);
+  });
+
+  it('returns null for a javascript: URL — scheme guard', () => {
+    // new URL('javascript:alert(1)') parses without throwing, so the scheme
+    // guard must explicitly reject non-http(s) protocols before origin comparison.
+    expect(
+      validateReturnUrl('javascript:alert(1)', ['https://app.example.com'])
+    ).toBeNull();
+  });
+
+  it('returns null for a data: URL — scheme guard', () => {
+    expect(
+      validateReturnUrl('data:text/html,<script>alert(1)</script>', [
+        'https://app.example.com',
+      ])
+    ).toBeNull();
   });
 });

@@ -9,8 +9,8 @@ import { AuthLayout } from '@/components/layout/auth-layout';
 import { Text } from '@/components/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { setMemoryAccessToken } from '@/lib/token-storage-strategy.client';
-import type { TenantBranding } from '@/lib/branding';
-import { VINTA_DEFAULT_BRANDING } from '@/lib/branding';
+import type { TenantBranding } from '@/lib/branding-shared';
+import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
 
 export interface SocialSuccessProps {
   /**

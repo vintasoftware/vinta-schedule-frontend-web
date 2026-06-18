@@ -1,4 +1,4 @@
-import { fetchBrandingForTenant } from '@/lib/branding';
+import { fetchBrandingForTenant } from '@/lib/branding-server';
 import { FinishSignupForm } from '@/components/authentication/finish-signup-form';
 
 /**

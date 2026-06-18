@@ -7,7 +7,7 @@ import {
 } from '@/lib/authentication-response-type-checks';
 import { cookies } from 'next/headers';
 import type { AuthenticationResponse, Flow } from '@/auth-client';
-import { validateReturnUrl } from '@/lib/branding';
+import { validateReturnUrl } from '@/lib/branding-shared';
 // Removed invalid import of CookieOptions
 
 export async function POST(
@@ -23,7 +23,13 @@ export async function POST(
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
 
   const requestBaseUrl = `${protocol}://${host}`;
-  const response = NextResponse.redirect(`${requestBaseUrl}${url}`);
+  // Only prefix the base URL for relative (path) URLs; absolute external URLs
+  // (allowlisted reseller return URLs) are used as-is to avoid producing a
+  // garbage host like "https://vinta.comhttps://app.reseller.com/...".
+  const destination = /^https?:\/\//i.test(url)
+    ? url
+    : `${requestBaseUrl}${url}`;
+  const response = NextResponse.redirect(destination);
   cookiesToSet?.forEach(({ name, value, options }) => {
     response.cookies.set(name, value, options);
   });
@@ -49,8 +55,13 @@ export async function GET(
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
 
   const requestBaseUrl = `${protocol}://${host}`;
-
-  const response = NextResponse.redirect(`${requestBaseUrl}${url}`);
+  // Only prefix the base URL for relative (path) URLs; absolute external URLs
+  // (allowlisted reseller return URLs) are used as-is to avoid producing a
+  // garbage host like "https://vinta.comhttps://app.reseller.com/...".
+  const destination = /^https?:\/\//i.test(url)
+    ? url
+    : `${requestBaseUrl}${url}`;
+  const response = NextResponse.redirect(destination);
   cookiesToSet?.forEach(({ name, value, options }) => {
     response.cookies.set(name, value, options);
   });
@@ -90,14 +101,15 @@ const PENDING_FLOW_ROUTES: Partial<Record<Flow['id'], string>> = {
 /**
  * Fetch the return-URL allowlist for a tenant from the backend.
  *
- * The public `brandingForTenant` GraphQL query intentionally does NOT expose
- * the allowlist (it is a reseller-internal security config). We retrieve it
- * via a separate server-side-only internal query that includes the allowlist.
- * If the query fails or the field is missing, we return an empty array, which
- * causes `validateReturnUrl` to reject all `next` params (safe default).
- *
- * This call is made only inside the route handler (server-side), never from
- * the browser, so the allowlist is never exposed to client code.
+ * NOTE: The public `brandingForTenant` GraphQL query does NOT expose the
+ * `returnUrlAllowlist` field (plan §4.6 — it is a reseller-internal security
+ * config not surfaced on the public API). The query below requests that field,
+ * but the backend currently returns `null` for it, so this function will
+ * always return `[]` until a backend allowlist source is implemented
+ * (cross-repo follow-up). As a result, every `next` redirect currently falls
+ * back to the default success page — the logic is fail-closed by design.
+ * The validation logic is kept in place so it becomes active the moment the
+ * backend starts populating the field.
  */
 async function fetchReturnUrlAllowlist(
   tenantId: string | null | undefined

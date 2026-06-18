@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AuthLayout } from '@/components/layout/auth-layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
-import { fetchBrandingForTenant } from '@/lib/branding';
+import { fetchBrandingForTenant } from '@/lib/branding-server';
 
 export default async function SocialLoginErrorPage({
   searchParams,

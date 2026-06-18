@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { SocialSuccess } from '@/components/authentication/social-success';
-import { fetchBrandingForTenant } from '@/lib/branding';
+import { fetchBrandingForTenant } from '@/lib/branding-server';
 
 export default async function SocialSuccessPage({
   searchParams,
