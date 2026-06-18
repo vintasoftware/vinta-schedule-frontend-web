@@ -37,8 +37,12 @@ export type ActionEnum = 'create' | 'update' | 'delete';
  * * `organization` - Organization
  * * `calendar_group` - Calendar Group
  * * `system_user` - System User
+ * * `membership` - Membership
+ * * `invitation` - Invitation
+ * * `branding` - Branding
+ * * `child_org_analytics` - Child Organization Analytics
  */
-export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user';
+export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics';
 
 /**
  * Serializer for AvailableTime model with recurring support.
@@ -672,6 +676,44 @@ export type Organization = {
 };
 
 /**
+ * Serializer for OrganizationBranding (reseller-admin REST endpoints).
+ *
+ * Exposes app_name, logo_url, primary_color, secondary_color, support_email,
+ * and return_url_allowlist. NEVER exposes can_invite_organizations or makes
+ * organization writable (the org is set from the acting org in the view).
+ *
+ * Validates:
+ * - Color format: #RRGGBB or #RRGGBBAA (regex).
+ * - Each return_url_allowlist entry is a valid URL (URLValidator).
+ */
+export type OrganizationBranding = {
+    /**
+     * The display name of the white-labeled app (e.g., 'MyScheduler').
+     */
+    app_name: string;
+    /**
+     * URL to the reseller's logo image.
+     */
+    logo_url?: string;
+    /**
+     * Primary color as hex code: #RRGGBB or #RRGGBBAA.
+     */
+    primary_color?: string;
+    /**
+     * Secondary color as hex code: #RRGGBB or #RRGGBBAA.
+     */
+    secondary_color?: string;
+    /**
+     * Email address for the From/reply-to on branded transactional emails.
+     */
+    support_email?: string;
+    /**
+     * List of URLs that are allowed as return addresses after OAuth flows.
+     */
+    return_url_allowlist?: Array<string>;
+};
+
+/**
  * Lightweight read-only serializer for an Organization.
  *
  * Exposes only the fields needed for the org-switcher list: ``id`` and ``name``.
@@ -692,7 +734,7 @@ export type OrganizationInvitation = {
     first_name?: string;
     last_name?: string;
     readonly organization: number;
-    readonly invited_by: number;
+    readonly invited_by: number | null;
     readonly accepted_at: string | null;
     readonly expires_at: string;
     readonly created: string;
@@ -1021,6 +1063,44 @@ export type PatchedOrganization = {
     } | null;
     readonly created?: string;
     readonly modified?: string;
+};
+
+/**
+ * Serializer for OrganizationBranding (reseller-admin REST endpoints).
+ *
+ * Exposes app_name, logo_url, primary_color, secondary_color, support_email,
+ * and return_url_allowlist. NEVER exposes can_invite_organizations or makes
+ * organization writable (the org is set from the acting org in the view).
+ *
+ * Validates:
+ * - Color format: #RRGGBB or #RRGGBBAA (regex).
+ * - Each return_url_allowlist entry is a valid URL (URLValidator).
+ */
+export type PatchedOrganizationBranding = {
+    /**
+     * The display name of the white-labeled app (e.g., 'MyScheduler').
+     */
+    app_name?: string;
+    /**
+     * URL to the reseller's logo image.
+     */
+    logo_url?: string;
+    /**
+     * Primary color as hex code: #RRGGBB or #RRGGBBAA.
+     */
+    primary_color?: string;
+    /**
+     * Secondary color as hex code: #RRGGBB or #RRGGBBAA.
+     */
+    secondary_color?: string;
+    /**
+     * Email address for the From/reply-to on branded transactional emails.
+     */
+    support_email?: string;
+    /**
+     * List of URLs that are allowed as return addresses after OAuth flows.
+     */
+    return_url_allowlist?: Array<string>;
 };
 
 export type PatchedProfile = {
@@ -3325,6 +3405,101 @@ export type BlockedTimesExpandedFormattedListResponses = {
 };
 
 export type BlockedTimesExpandedFormattedListResponse = BlockedTimesExpandedFormattedListResponses[keyof BlockedTimesExpandedFormattedListResponses];
+
+export type BrandingRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/branding/';
+};
+
+export type BrandingRetrieveErrors = {
+    /**
+     * Not a reseller or not an admin
+     */
+    403: unknown;
+    /**
+     * Branding not yet configured
+     */
+    404: unknown;
+};
+
+export type BrandingRetrieveResponses = {
+    200: OrganizationBranding;
+};
+
+export type BrandingRetrieveResponse = BrandingRetrieveResponses[keyof BrandingRetrieveResponses];
+
+export type BrandingPartialUpdateData = {
+    body?: PatchedOrganizationBranding;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/branding/';
+};
+
+export type BrandingPartialUpdateErrors = {
+    /**
+     * Invalid input (color format, URL validation)
+     */
+    400: unknown;
+    /**
+     * Not a reseller or not an admin
+     */
+    403: unknown;
+    /**
+     * Branding not yet configured
+     */
+    404: unknown;
+};
+
+export type BrandingPartialUpdateResponses = {
+    200: OrganizationBranding;
+};
+
+export type BrandingPartialUpdateResponse = BrandingPartialUpdateResponses[keyof BrandingPartialUpdateResponses];
+
+export type BrandingUpdateData = {
+    body: OrganizationBranding;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/branding/';
+};
+
+export type BrandingUpdateErrors = {
+    /**
+     * Invalid input (color format, URL validation)
+     */
+    400: unknown;
+    /**
+     * Not a reseller or not an admin
+     */
+    403: unknown;
+};
+
+export type BrandingUpdateResponses = {
+    200: OrganizationBranding;
+    201: OrganizationBranding;
+};
+
+export type BrandingUpdateResponse = BrandingUpdateResponses[keyof BrandingUpdateResponses];
 
 export type CalendarListData = {
     body?: never;
