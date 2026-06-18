@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchBrandingForTenant } from './branding-server';
-import { validateReturnUrl, VINTA_DEFAULT_BRANDING } from './branding-shared';
+import {
+  fetchBrandingForTenant,
+  fetchValidatedReturnUrl,
+} from './branding-server';
+import { VINTA_DEFAULT_BRANDING } from './branding-shared';
 
 // ---------------------------------------------------------------------------
 // fetchBrandingForTenant
@@ -137,91 +140,168 @@ describe('fetchBrandingForTenant', () => {
 });
 
 // ---------------------------------------------------------------------------
-// validateReturnUrl
+// fetchValidatedReturnUrl
 // ---------------------------------------------------------------------------
 
-describe('validateReturnUrl', () => {
-  it('returns null when url is null', () => {
-    expect(validateReturnUrl(null, ['https://app.example.com'])).toBeNull();
+describe('fetchValidatedReturnUrl', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('returns null when url is undefined', () => {
-    expect(
-      validateReturnUrl(undefined, ['https://app.example.com'])
-    ).toBeNull();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('returns null when url is empty string', () => {
-    expect(validateReturnUrl('', ['https://app.example.com'])).toBeNull();
+  function mockFetch(response: Partial<Response & { ok: boolean }>) {
+    global.fetch = vi.fn().mockResolvedValue(response);
+  }
+
+  function jsonFetch(status: number, body: unknown) {
+    mockFetch({
+      ok: status >= 200 && status < 300,
+      json: async () => body,
+    } as Response);
+  }
+
+  it('returns null when tenantId is null — never calls fetch', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    const result = await fetchValidatedReturnUrl(
+      null,
+      'https://app.example.com/dashboard'
+    );
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('returns null when allowlist is empty', () => {
-    expect(
-      validateReturnUrl('https://app.example.com/dashboard', [])
-    ).toBeNull();
+  it('returns null when tenantId is undefined — never calls fetch', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    const result = await fetchValidatedReturnUrl(
+      undefined,
+      'https://app.example.com/dashboard'
+    );
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('returns the url when origin matches an allowlisted entry', () => {
-    const url = 'https://app.example.com/dashboard?foo=bar';
-    expect(validateReturnUrl(url, ['https://app.example.com'])).toBe(url);
+  it('returns null when tenantId is empty string — never calls fetch', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    const result = await fetchValidatedReturnUrl(
+      '',
+      'https://app.example.com/dashboard'
+    );
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('returns null when origin does NOT match any allowlisted entry', () => {
-    expect(
-      validateReturnUrl('https://evil.com/phish', ['https://app.example.com'])
-    ).toBeNull();
+  it('returns null when url is null — never calls fetch', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    const result = await fetchValidatedReturnUrl('org-123', null);
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('blocks open-redirect via subdomain confusion', () => {
-    // "app.example.com.evil.com" must not match allowlist "app.example.com"
-    expect(
-      validateReturnUrl('https://app.example.com.evil.com/steal', [
-        'https://app.example.com',
-      ])
-    ).toBeNull();
+  it('returns null when url is undefined — never calls fetch', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    const result = await fetchValidatedReturnUrl('org-123', undefined);
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('returns null for a relative URL (no origin)', () => {
-    expect(
-      validateReturnUrl('/relative/path', ['https://app.example.com'])
-    ).toBeNull();
+  it('returns null when url is empty string — never calls fetch', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    const result = await fetchValidatedReturnUrl('org-123', '');
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('returns null for a malformed URL', () => {
-    expect(
-      validateReturnUrl('not-a-url', ['https://app.example.com'])
-    ).toBeNull();
+  it('returns sanitizedUrl when backend returns allowed:true', async () => {
+    const sanitizedUrl = 'https://app.example.com/dashboard';
+    jsonFetch(200, {
+      data: {
+        validateReturnUrl: { allowed: true, sanitizedUrl },
+      },
+    });
+    const result = await fetchValidatedReturnUrl('org-123', sanitizedUrl);
+    expect(result).toBe(sanitizedUrl);
   });
 
-  it('matches exact origin including port', () => {
-    const url = 'http://localhost:3001/home';
-    expect(validateReturnUrl(url, ['http://localhost:3001'])).toBe(url);
-    expect(validateReturnUrl(url, ['http://localhost:3000'])).toBeNull();
+  it('returns null when backend returns allowed:false', async () => {
+    jsonFetch(200, {
+      data: {
+        validateReturnUrl: { allowed: false, sanitizedUrl: null },
+      },
+    });
+    const result = await fetchValidatedReturnUrl(
+      'org-123',
+      'https://evil.com/phish'
+    );
+    expect(result).toBeNull();
   });
 
-  it('accepts url matching any of multiple allowlisted origins', () => {
-    const url = 'https://second.example.com/page';
-    expect(
-      validateReturnUrl(url, [
-        'https://first.example.com',
-        'https://second.example.com',
-      ])
-    ).toBe(url);
+  it('returns null when response contains GraphQL errors', async () => {
+    jsonFetch(200, {
+      errors: [{ message: 'Something went wrong' }],
+      data: null,
+    });
+    const result = await fetchValidatedReturnUrl(
+      'org-123',
+      'https://app.example.com/dashboard'
+    );
+    expect(result).toBeNull();
   });
 
-  it('returns null for a javascript: URL — scheme guard', () => {
-    // new URL('javascript:alert(1)') parses without throwing, so the scheme
-    // guard must explicitly reject non-http(s) protocols before origin comparison.
-    expect(
-      validateReturnUrl('javascript:alert(1)', ['https://app.example.com'])
-    ).toBeNull();
+  it('returns null on a non-200 response', async () => {
+    mockFetch({ ok: false, json: async () => ({}) } as Response);
+    const result = await fetchValidatedReturnUrl(
+      'org-123',
+      'https://app.example.com/dashboard'
+    );
+    expect(result).toBeNull();
   });
 
-  it('returns null for a data: URL — scheme guard', () => {
-    expect(
-      validateReturnUrl('data:text/html,<script>alert(1)</script>', [
-        'https://app.example.com',
-      ])
-    ).toBeNull();
+  it('returns null on a network error — never throws', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+    const result = await fetchValidatedReturnUrl(
+      'org-123',
+      'https://app.example.com/dashboard'
+    );
+    expect(result).toBeNull();
+  });
+
+  it('returns null on a fetch timeout / abort — never throws', async () => {
+    global.fetch = vi
+      .fn()
+      .mockRejectedValue(
+        new DOMException('The operation was aborted.', 'AbortError')
+      );
+    const result = await fetchValidatedReturnUrl(
+      'org-123',
+      'https://app.example.com/dashboard'
+    );
+    expect(result).toBeNull();
+  });
+
+  it('returns null when validateReturnUrl data is null in the response', async () => {
+    jsonFetch(200, {
+      data: { validateReturnUrl: null },
+    });
+    const result = await fetchValidatedReturnUrl(
+      'org-123',
+      'https://app.example.com/dashboard'
+    );
+    expect(result).toBeNull();
+  });
+
+  it('returns null when allowed:true but sanitizedUrl is null', async () => {
+    jsonFetch(200, {
+      data: {
+        validateReturnUrl: { allowed: true, sanitizedUrl: null },
+      },
+    });
+    const result = await fetchValidatedReturnUrl(
+      'org-123',
+      'https://app.example.com/dashboard'
+    );
+    expect(result).toBeNull();
   });
 });

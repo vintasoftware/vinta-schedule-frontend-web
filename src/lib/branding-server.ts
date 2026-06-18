@@ -6,8 +6,8 @@
  * intentional: server fetch logic (process.env reads, GraphQL calls) must
  * never run in the browser bundle.
  *
- * Client-safe exports (TenantBranding type, VINTA_DEFAULT_BRANDING,
- * validateReturnUrl) live in `branding-shared.ts`.
+ * Client-safe exports (TenantBranding type, VINTA_DEFAULT_BRANDING) live in
+ * `branding-shared.ts`.
  */
 import 'server-only';
 
@@ -15,6 +15,15 @@ import {
   type TenantBranding,
   VINTA_DEFAULT_BRANDING,
 } from '@/lib/branding-shared';
+
+const VALIDATE_RETURN_URL_QUERY = `
+  query ValidateReturnUrl($tenantId: ID!, $url: String!) {
+    validateReturnUrl(tenantId: $tenantId, url: $url) {
+      allowed
+      sanitizedUrl
+    }
+  }
+`;
 
 const BRANDING_QUERY = `
   query BrandingForTenant($tenantId: ID!) {
@@ -91,5 +100,72 @@ export async function fetchBrandingForTenant(
   } catch {
     // Network error, abort, parse failure — return the safe default.
     return VINTA_DEFAULT_BRANDING;
+  }
+}
+
+/**
+ * Ask the backend whether a given return URL is allowed for a tenant.
+ *
+ * The backend performs ALL matching and scheme-guard logic server-side —
+ * the frontend just asks the yes/no question. The query is unauthenticated
+ * and rate-limited on the backend side.
+ *
+ * FAIL CLOSED: any network error, non-200, GraphQL `errors`, null payload,
+ * `allowed:false`, or thrown exception → null. Never throws.
+ *
+ * Returns the `sanitizedUrl` (an absolute URL) when the backend says allowed,
+ * or null for every not-allowed case.
+ */
+export async function fetchValidatedReturnUrl(
+  tenantId: string | null | undefined,
+  url: string | null | undefined
+): Promise<string | null> {
+  if (!tenantId || !url) {
+    return null;
+  }
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+
+  const endpoint = `${baseUrl}/graphql/`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: VALIDATE_RETURN_URL_QUERY,
+        variables: { tenantId, url },
+      }),
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const json = (await response.json()) as {
+      data?: {
+        validateReturnUrl?: {
+          allowed: boolean;
+          sanitizedUrl: string | null;
+        } | null;
+      };
+      errors?: unknown[];
+    };
+
+    if (json.errors?.length) {
+      return null;
+    }
+
+    const result = json.data?.validateReturnUrl;
+    if (!result || !result.allowed || !result.sanitizedUrl) {
+      return null;
+    }
+
+    return result.sanitizedUrl;
+  } catch {
+    // Network error, abort, parse failure — fail closed.
+    return null;
   }
 }

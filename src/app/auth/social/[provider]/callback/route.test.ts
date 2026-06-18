@@ -13,7 +13,13 @@ vi.mock('@/addicional-auth-client/provider-login-callback-json', () => ({
     postCallback(...args),
 }));
 
-import { handleProviderLoginCallback } from './route';
+const mockFetchValidatedReturnUrl = vi.fn();
+vi.mock('@/lib/branding-server', () => ({
+  fetchValidatedReturnUrl: (...args: unknown[]) =>
+    mockFetchValidatedReturnUrl(...args),
+}));
+
+import { handleProviderLoginCallback, GET, POST } from './route';
 
 // The exact 401 body the headless callback returns for a brand-new Google user
 // that still needs a phone number (intended allauth "pending signup" contract).
@@ -134,5 +140,161 @@ describe('handleProviderLoginCallback — returning user (200)', () => {
     expect(result.url).toBe('/auth/social/google/success');
     const access = result.cookiesToSet?.find((c) => c.name === 'accessToken');
     expect(access?.value).toBe('acc');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleProviderLoginCallback — `next` param + validateReturnUrl
+// ---------------------------------------------------------------------------
+
+const AUTHENTICATED_200 = {
+  status: 200,
+  data: { user: { id: 42 } },
+  meta: { access_token: 'acc-token', refresh_token: 'ref-token' },
+};
+
+describe('handleProviderLoginCallback — next param redirect', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getCookie.mockReturnValue({ value: 'incoming-session-token' });
+    mockFetchValidatedReturnUrl.mockResolvedValue(null);
+  });
+
+  it('redirects to the validated absolute URL when fetchValidatedReturnUrl resolves one', async () => {
+    mockCallbackJson(AUTHENTICATED_200);
+    mockFetchValidatedReturnUrl.mockResolvedValue(
+      'https://app.reseller.com/dashboard'
+    );
+
+    const result = await handleProviderLoginCallback('google', {
+      code: 'abc',
+      tenant_id: 'tenant-99',
+      next: 'https://app.reseller.com/dashboard',
+    });
+
+    expect(result.url).toBe('https://app.reseller.com/dashboard');
+  });
+
+  it('falls back to the success interstitial when fetchValidatedReturnUrl returns null', async () => {
+    mockCallbackJson(AUTHENTICATED_200);
+    mockFetchValidatedReturnUrl.mockResolvedValue(null);
+
+    const result = await handleProviderLoginCallback('google', {
+      code: 'abc',
+      tenant_id: 'tenant-99',
+      next: 'https://evil.com/phish',
+    });
+
+    expect(result.url).toBe('/auth/social/google/success?tenant_id=tenant-99');
+  });
+
+  it('threads tenant_id into the fallback success URL when next is off-allowlist', async () => {
+    mockCallbackJson(AUTHENTICATED_200);
+    mockFetchValidatedReturnUrl.mockResolvedValue(null);
+
+    const result = await handleProviderLoginCallback('google', {
+      code: 'abc',
+      tenant_id: 'tenant-99',
+      next: 'https://evil.com/phish',
+    });
+
+    expect(result.url).toContain('tenant_id=tenant-99');
+  });
+
+  it('falls back to success interstitial when no next param is present', async () => {
+    mockCallbackJson(AUTHENTICATED_200);
+    // fetchValidatedReturnUrl is not expected to be called (no next param)
+
+    const result = await handleProviderLoginCallback('google', {
+      code: 'abc',
+      tenant_id: 'tenant-99',
+    });
+
+    expect(result.url).toBe('/auth/social/google/success?tenant_id=tenant-99');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST / GET handlers — absolute URL must NOT be prefixed with request origin
+// ---------------------------------------------------------------------------
+
+// Guard against the open-redirect-concat bug class: an absolute sanitizedUrl
+// returned by the backend (e.g. "https://app.reseller.com/dashboard") must be
+// used as-is in the HTTP redirect — it must NOT be prepended with the request
+// origin to produce garbage like "https://localhost...https://app.reseller.com".
+
+const RESELLER_ABSOLUTE_URL = 'https://app.reseller.com/dashboard';
+
+// Minimal NextResponse mock: capture the destination URL passed to redirect().
+const mockRedirect = vi.fn((url: string) => ({
+  url,
+  cookies: { set: vi.fn(), delete: vi.fn() },
+}));
+vi.mock('next/server', () => ({
+  NextResponse: { redirect: (url: string) => mockRedirect(url) },
+}));
+
+describe('POST handler — absolute validated next URL is not origin-prefixed', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getCookie.mockReturnValue({ value: 'incoming-session-token' });
+    mockFetchValidatedReturnUrl.mockResolvedValue(RESELLER_ABSOLUTE_URL);
+    mockCallbackJson(AUTHENTICATED_200);
+  });
+
+  it('redirects to exactly the absolute URL — no localhost prefix', async () => {
+    const request = new Request(
+      'http://localhost:3000/auth/social/google/callback',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          host: 'localhost:3000',
+          'x-forwarded-proto': 'https',
+        },
+        body: JSON.stringify({
+          code: 'abc',
+          tenant_id: 'tenant-99',
+          next: RESELLER_ABSOLUTE_URL,
+        }),
+      }
+    );
+
+    await POST(request, { params: Promise.resolve({ provider: 'google' }) });
+
+    const destination: string = mockRedirect.mock.calls[0][0];
+    expect(destination).toBe(RESELLER_ABSOLUTE_URL);
+    expect(destination).not.toContain('localhost');
+    expect(destination).not.toMatch(/^https?:\/\/[^/]+https?:\/\//);
+  });
+});
+
+describe('GET handler — absolute validated next URL is not origin-prefixed', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getCookie.mockReturnValue({ value: 'incoming-session-token' });
+    mockFetchValidatedReturnUrl.mockResolvedValue(RESELLER_ABSOLUTE_URL);
+    mockCallbackJson(AUTHENTICATED_200);
+  });
+
+  it('redirects to exactly the absolute URL — no localhost prefix', async () => {
+    const encodedNext = encodeURIComponent(RESELLER_ABSOLUTE_URL);
+    const request = new Request(
+      `http://localhost:3000/auth/social/google/callback?code=abc&tenant_id=tenant-99&next=${encodedNext}`,
+      {
+        method: 'GET',
+        headers: {
+          host: 'localhost:3000',
+          'x-forwarded-proto': 'https',
+        },
+      }
+    );
+
+    await GET(request, { params: Promise.resolve({ provider: 'google' }) });
+
+    const destination: string = mockRedirect.mock.calls[0][0];
+    expect(destination).toBe(RESELLER_ABSOLUTE_URL);
+    expect(destination).not.toContain('localhost');
+    expect(destination).not.toMatch(/^https?:\/\/[^/]+https?:\/\//);
   });
 });

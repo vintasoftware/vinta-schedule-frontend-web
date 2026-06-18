@@ -7,7 +7,7 @@ import {
 } from '@/lib/authentication-response-type-checks';
 import { cookies } from 'next/headers';
 import type { AuthenticationResponse, Flow } from '@/auth-client';
-import { validateReturnUrl } from '@/lib/branding-shared';
+import { fetchValidatedReturnUrl } from '@/lib/branding-server';
 // Removed invalid import of CookieOptions
 
 export async function POST(
@@ -97,60 +97,6 @@ const PENDING_FLOW_ROUTES: Partial<Record<Flow['id'], string>> = {
   verify_email: '/auth/verify-email',
   mfa_authenticate: '/auth/mfa-authenticate',
 };
-
-/**
- * Fetch the return-URL allowlist for a tenant from the backend.
- *
- * NOTE: The public `brandingForTenant` GraphQL query does NOT expose the
- * `returnUrlAllowlist` field (plan §4.6 — it is a reseller-internal security
- * config not surfaced on the public API). The query below requests that field,
- * but the backend currently returns `null` for it, so this function will
- * always return `[]` until a backend allowlist source is implemented
- * (cross-repo follow-up). As a result, every `next` redirect currently falls
- * back to the default success page — the logic is fail-closed by design.
- * The validation logic is kept in place so it becomes active the moment the
- * backend starts populating the field.
- */
-async function fetchReturnUrlAllowlist(
-  tenantId: string | null | undefined
-): Promise<string[]> {
-  if (!tenantId) {
-    return [];
-  }
-
-  const baseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
-
-  const query = `
-    query ReturnUrlAllowlistForTenant($tenantId: ID!) {
-      brandingForTenant(tenantId: $tenantId) {
-        returnUrlAllowlist
-      }
-    }
-  `;
-
-  try {
-    const response = await fetch(`${baseUrl}/graphql/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, variables: { tenantId } }),
-      signal: AbortSignal.timeout(3000),
-    });
-
-    if (!response.ok) return [];
-
-    const json = (await response.json()) as {
-      data?: { brandingForTenant?: { returnUrlAllowlist?: string[] } | null };
-      errors?: unknown[];
-    };
-
-    if (json.errors?.length) return [];
-
-    return json.data?.brandingForTenant?.returnUrlAllowlist ?? [];
-  } catch {
-    return [];
-  }
-}
 
 /**
  * A 401 with `data.flows` is the intended allauth "more steps required"
@@ -339,25 +285,20 @@ export async function handleProviderLoginCallback(
       }
 
       // Determine the post-login redirect URL.
-      // If a `next` param was supplied, validate it server-side against the
-      // tenant's return-URL allowlist. An absent allowlist or a URL that does
-      // not match the allowlist falls back to the success interstitial (which
-      // then redirects to /dashboard). This is the open-redirect safety gate.
+      // If a `next` param was supplied, ask the backend to validate it against
+      // the tenant's return-URL allowlist. The backend performs ALL matching
+      // and scheme-guard logic and returns the sanitized URL only when allowed.
+      // An absent/invalid/off-allowlist URL falls back to the success
+      // interstitial (which then redirects to /dashboard). Fail closed.
+      const validatedNext = await fetchValidatedReturnUrl(tenantId, nextParam);
       let successUrl: string;
-      if (nextParam && tenantId) {
-        const allowlist = await fetchReturnUrlAllowlist(tenantId);
-        const validatedNext = validateReturnUrl(nextParam, allowlist);
-        if (validatedNext) {
-          // The URL is on the allowlist — redirect the user directly there.
-          successUrl = validatedNext;
-        } else {
-          // Off-allowlist or empty allowlist — use the standard success page.
-          const base = `/auth/social/${provider}/success`;
-          successUrl = tenantId
-            ? `${base}?tenant_id=${encodeURIComponent(tenantId)}`
-            : base;
-        }
+      if (validatedNext) {
+        // The backend confirmed the URL is allowed — redirect directly there.
+        // sanitizedUrl is an absolute URL so no origin prefix is needed.
+        successUrl = validatedNext;
       } else {
+        // Off-allowlist, failed validation, or no next param — use the
+        // standard success interstitial.
         const base = `/auth/social/${provider}/success`;
         successUrl = tenantId
           ? `${base}?tenant_id=${encodeURIComponent(tenantId)}`
