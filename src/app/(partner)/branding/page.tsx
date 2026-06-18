@@ -11,13 +11,16 @@ import { useBranding } from '@/hooks/branding/use-branding';
  *
  * Lives in the (partner) route group so it renders with a neutral chrome (no
  * tenant sidebar/shell). Auth/role gating is API-driven: the backend returns
- * 403 when the acting org is not a reseller or the user is not an admin.
+ * 403 when the acting org is not a reseller or the user is not an admin. The
+ * useBranding hook inspects the HTTP status directly (throwOnError:false) and
+ * returns a discriminated result so each state can be rendered correctly.
  *
  * States:
  *   • Loading — query in flight.
- *   • 403 — org is not a reseller or user is not an admin; neutral no-access.
- *   • 404 — no branding row yet (first-write); form renders with empty defaults.
- *   • 200 — form prefilled with the saved branding.
+ *   • forbidden — 403: org is not a reseller or user is not an admin; neutral no-access.
+ *   • not_configured — 404: no branding row yet (first-write); form renders with empty defaults.
+ *   • ok — 200: form prefilled with the saved branding.
+ *   • isError — network/server error; destructive alert.
  */
 export default function BrandingPage() {
   const { brandingQuery } = useBranding();
@@ -34,32 +37,10 @@ export default function BrandingPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // Error state — distinguish 403 (no access) from other errors.
+  // Genuine error state (network/server failure — not 403/404 which are
+  // handled as discriminated data states in useBranding).
   // ---------------------------------------------------------------------------
   if (brandingQuery.isError) {
-    const status = (
-      brandingQuery.error as { status?: number; response?: { status?: number } }
-    )?.status;
-
-    if (status === 403) {
-      return (
-        <Stack gap={6}>
-          <PageHeader
-            title='Branding'
-            description='Customize authentication pages and emails for your reseller organization.'
-          />
-          <Alert>
-            <AlertTitle>Access not available</AlertTitle>
-            <AlertDescription>
-              Branding customization is only available to reseller
-              organizations. Contact your Vinta administrator if you believe
-              this is an error.
-            </AlertDescription>
-          </Alert>
-        </Stack>
-      );
-    }
-
     return (
       <Stack gap={6}>
         <PageHeader
@@ -79,9 +60,32 @@ export default function BrandingPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // Success — data may be null (404 / "not yet configured") or an existing row.
+  // Discriminated data states — 403 / 404 / 200
   // ---------------------------------------------------------------------------
-  const branding = brandingQuery.data ?? null;
+  const result = brandingQuery.data;
+
+  if (result?.status === 'forbidden') {
+    return (
+      <Stack gap={6}>
+        <PageHeader
+          title='Branding'
+          description='Customize authentication pages and emails for your reseller organization.'
+        />
+        <Alert>
+          <AlertTitle>Access not available</AlertTitle>
+          <AlertDescription>
+            Branding customization is only available to reseller organizations.
+            Contact your Vinta administrator if you believe this is an error.
+          </AlertDescription>
+        </Alert>
+      </Stack>
+    );
+  }
+
+  // Both 'not_configured' (404 — first write) and 'ok' (200 — existing row)
+  // render the form. For 'not_configured', initialBranding is null and the
+  // form shows empty defaults. For 'ok', the form prefills with saved values.
+  const initialBranding = result?.status === 'ok' ? result.branding : null;
 
   return (
     <Stack gap={6}>
@@ -89,7 +93,7 @@ export default function BrandingPage() {
         title='Branding'
         description='Customize authentication pages and emails for your reseller organization.'
       />
-      <BrandingForm initialBranding={branding} />
+      <BrandingForm initialBranding={initialBranding} />
     </Stack>
   );
 }

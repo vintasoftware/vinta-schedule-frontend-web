@@ -1,11 +1,29 @@
+import * as React from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrandingForm } from './branding-form';
+
+// ---------------------------------------------------------------------------
+// Decorator — provides a QueryClient (required by useUpdateBranding → useMutation)
+// ---------------------------------------------------------------------------
+
+function withQueryClient(Story: React.ComponentType) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Story />
+    </QueryClientProvider>
+  );
+}
 
 const meta = {
   title: 'Components/BrandingForm',
   component: BrandingForm,
   tags: ['autodocs'],
   parameters: { layout: 'padded' },
+  decorators: [withQueryClient],
 } satisfies Meta<typeof BrandingForm>;
 
 export default meta;

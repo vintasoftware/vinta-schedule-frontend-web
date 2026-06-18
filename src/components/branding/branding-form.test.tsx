@@ -305,11 +305,52 @@ describe('BrandingForm', () => {
       });
 
       const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
-      // Optional fields with empty strings are stripped from the payload.
+      // Optional fields with empty strings are stripped from the payload (mapped
+      // to undefined in toPayload so JSON.stringify omits them entirely).
       expect(callArgs?.body?.logo_url).toBeUndefined();
       expect(callArgs?.body?.primary_color).toBeUndefined();
       expect(callArgs?.body?.secondary_color).toBeUndefined();
       expect(callArgs?.body?.support_email).toBeUndefined();
+      // An empty allowlist (no URLs added) sends an empty array, not undefined.
+      expect(callArgs?.body?.return_url_allowlist).toEqual([]);
+    });
+
+    it('transforms {value}-object array to string[] in the payload', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({
+          app_name: 'App',
+          return_url_allowlist: [
+            'https://example.com/cb1',
+            'https://example.com/cb2',
+          ],
+        })
+      );
+
+      renderForm();
+
+      await user.type(screen.getByLabelText(/app name/i), 'App');
+
+      // Add two URLs.
+      await user.click(screen.getByRole('button', { name: /add url/i }));
+      await user.click(screen.getByRole('button', { name: /add url/i }));
+
+      const urlInputs = screen.getAllByPlaceholderText(/callback/i);
+      await user.type(urlInputs[0], 'https://example.com/cb1');
+      await user.type(urlInputs[1], 'https://example.com/cb2');
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
+      // toPayload maps [{value:'...'}, {value:'...'}] → ['...', '...']
+      expect(callArgs?.body?.return_url_allowlist).toEqual([
+        'https://example.com/cb1',
+        'https://example.com/cb2',
+      ]);
     });
 
     it('prefills the form when initialBranding is provided', async () => {

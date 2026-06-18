@@ -7,9 +7,13 @@ import { BRANDING_QUERY_KEY } from './use-branding';
  * Wraps PUT /branding/ (create-or-replace) for the acting org's branding.
  *
  * Uses PUT rather than PATCH so that clearing optional fields works correctly:
- * a PUT with `logo_url: undefined` removes it server-side, while PATCH would
- * leave the old value. On success, invalidates the branding query so the form
- * prefills with the fresh saved values.
+ * optional fields omitted from the PUT body are cleared per DRF PUT
+ * (full-replace) semantics; empty form values are mapped to `undefined` in
+ * toPayload so they're omitted.
+ *
+ * On success, invalidates the branding query (using the generated query key so
+ * the invalidation actually matches the registered query) so the form prefills
+ * with the fresh saved values.
  */
 export function useUpdateBranding() {
   const queryClient = useQueryClient();

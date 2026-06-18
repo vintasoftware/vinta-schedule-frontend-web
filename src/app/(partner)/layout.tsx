@@ -1,3 +1,4 @@
+import { Box } from '@/components/layout/box';
 import { Flex } from '@/components/layout/flex';
 import { Navbar, BrandMark } from '@/components/layout/navbar';
 import { ThemeToggle } from '@/components/navigation/theme-toggle';
@@ -11,8 +12,11 @@ import Link from 'next/link';
  * in a separate, neutral surface. The layout is minimal: a top navbar with the
  * Vinta brand mark + theme toggle, then the page content below.
  *
- * Auth / org gating is NOT done in this layout — the individual pages own role
- * gating (useRequireRole). The API enforces the reseller check (403).
+ * Gating is API-driven: the /branding/ endpoint is admin+reseller-gated server-
+ * side and returns 403 for unauthorized callers. The branding page renders that
+ * as a neutral no-access state (useBranding discriminates the response status).
+ * The layout intentionally avoids the tenant org-context/role machinery to keep
+ * neutral chrome.
  */
 export default function PartnerLayout({
   children,
@@ -34,7 +38,9 @@ export default function PartnerLayout({
         }
         actions={<ThemeToggle />}
       />
-      <main className='flex flex-1 flex-col px-6 py-10'>{children}</main>
+      <Box as='main' className='flex-1 px-6 py-10'>
+        {children}
+      </Box>
     </Flex>
   );
 }
