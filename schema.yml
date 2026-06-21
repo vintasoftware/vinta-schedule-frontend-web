@@ -2312,6 +2312,134 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedBlockedTimeList'
           description: ''
+  /branding/:
+    get:
+      operationId: branding_retrieve
+      description: GET /branding/ — retrieve the acting org's branding.
+      summary: Retrieve the acting organization's branding
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
+      tags:
+        - Branding
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationBranding'
+          description: ''
+        '403':
+          description: Not a reseller or not an admin
+        '404':
+          description: Branding not yet configured
+    put:
+      operationId: branding_update
+      description: PUT /branding/ — create or replace the acting org's branding.
+      summary: Create or replace the acting organization's branding
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
+      tags:
+        - Branding
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationBranding'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrganizationBranding'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrganizationBranding'
+        required: true
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationBranding'
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationBranding'
+          description: ''
+        '400':
+          description: Invalid input (color format, URL validation)
+        '403':
+          description: Not a reseller or not an admin
+    patch:
+      operationId: branding_partial_update
+      description: PATCH /branding/ — update the acting org's branding (partial).
+      summary: Update the acting organization's branding (partial)
+      parameters:
+        - in: header
+          name: X-Organization-Id
+          schema:
+            type: string
+          description:
+            Selects the active organization for this request. Optional for
+            callers that belong to exactly one active organization — the single membership
+            is resolved implicitly. **Required** when the caller has two or more active
+            memberships; omitting it in that case returns **400**. If the header names
+            an organization the caller is not an active member of, the server returns
+            **403**.
+      tags:
+        - Branding
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganizationBranding'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganizationBranding'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganizationBranding'
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationBranding'
+          description: ''
+        '400':
+          description: Invalid input (color format, URL validation)
+        '403':
+          description: Not a reseller or not an admin
+        '404':
+          description: Branding not yet configured
   /calendar/:
     get:
       operationId: calendar_list
@@ -7096,7 +7224,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedOrganizationMembershipList'
           description: ''
-  /organization-members/{id}/:
+  /organization-members/{user_id}/:
     get:
       operationId: organization_members_retrieve
       description: |-
@@ -7123,7 +7251,7 @@ paths:
             an organization the caller is not an active member of, the server returns
             **403**.
         - in: path
-          name: id
+          name: user_id
           schema:
             type: string
           required: true
@@ -7139,7 +7267,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/OrganizationMembership'
           description: ''
-  /organization-members/{id}{format}:
+  /organization-members/{user_id}{format}:
     get:
       operationId: organization_members_formatted_retrieve
       description: |-
@@ -7173,7 +7301,7 @@ paths:
               - .json
           required: true
         - in: path
-          name: id
+          name: user_id
           schema:
             type: string
           required: true
@@ -7189,7 +7317,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/OrganizationMembership'
           description: ''
-  /organization-members/{id}/deactivate/:
+  /organization-members/{user_id}/deactivate/:
     post:
       operationId: organization_members_deactivate_create
       description: |-
@@ -7214,7 +7342,7 @@ paths:
             an organization the caller is not an active member of, the server returns
             **403**.
         - in: path
-          name: id
+          name: user_id
           schema:
             type: string
           required: true
@@ -7247,7 +7375,7 @@ paths:
           description: Not an admin
         '404':
           description: Member not found or cross-org
-  /organization-members/{id}/deactivate{format}:
+  /organization-members/{user_id}/deactivate{format}:
     post:
       operationId: organization_members_deactivate_formatted_create
       description: |-
@@ -7279,7 +7407,7 @@ paths:
               - .json
           required: true
         - in: path
-          name: id
+          name: user_id
           schema:
             type: string
           required: true
@@ -7312,7 +7440,7 @@ paths:
           description: Not an admin
         '404':
           description: Member not found or cross-org
-  /organization-members/{id}/reactivate/:
+  /organization-members/{user_id}/reactivate/:
     post:
       operationId: organization_members_reactivate_create
       description: |-
@@ -7335,7 +7463,7 @@ paths:
             an organization the caller is not an active member of, the server returns
             **403**.
         - in: path
-          name: id
+          name: user_id
           schema:
             type: string
           required: true
@@ -7366,7 +7494,7 @@ paths:
           description: Not an admin
         '404':
           description: Member not found or cross-org
-  /organization-members/{id}/reactivate{format}:
+  /organization-members/{user_id}/reactivate{format}:
     post:
       operationId: organization_members_reactivate_formatted_create
       description: |-
@@ -7396,7 +7524,7 @@ paths:
               - .json
           required: true
         - in: path
-          name: id
+          name: user_id
           schema:
             type: string
           required: true
@@ -7427,7 +7555,7 @@ paths:
           description: Not an admin
         '404':
           description: Member not found or cross-org
-  /organization-members/{id}/update-role/:
+  /organization-members/{user_id}/update-role/:
     post:
       operationId: organization_members_update_role_create
       description: |-
@@ -7451,7 +7579,7 @@ paths:
             an organization the caller is not an active member of, the server returns
             **403**.
         - in: path
-          name: id
+          name: user_id
           schema:
             type: string
           required: true
@@ -7485,7 +7613,7 @@ paths:
           description: Not an admin
         '404':
           description: Member not found or cross-org
-  /organization-members/{id}/update-role{format}:
+  /organization-members/{user_id}/update-role{format}:
     post:
       operationId: organization_members_update_role_formatted_create
       description: |-
@@ -7516,7 +7644,7 @@ paths:
               - .json
           required: true
         - in: path
-          name: id
+          name: user_id
           schema:
             type: string
           required: true
@@ -10861,6 +10989,28 @@ components:
         - organization
         - calendar_group
         - system_user
+        - membership
+        - invitation
+        - branding
+        - child_org_analytics
+        - calendar_booking_code
+        - create_resource_calendar
+        - disable_resource_calendar
+        - import_resource_calendars
+        - create_availability_window
+        - update_availability_window
+        - delete_availability_window
+        - batch_update_availability_windows
+        - create_blocked_time
+        - update_blocked_time
+        - delete_blocked_time
+        - calendar_bundle
+        - create_calendar
+        - update_calendar
+        - create_calendar_bundle
+        - update_calendar_bundle
+        - disable_calendar_bundle
+        - webhook_configuration
       type: string
       description: |-
         * `calendar_event` - Calendar Event
@@ -10881,6 +11031,28 @@ components:
         * `organization` - Organization
         * `calendar_group` - Calendar Group
         * `system_user` - System User
+        * `membership` - Membership
+        * `invitation` - Invitation
+        * `branding` - Branding
+        * `child_org_analytics` - Child Organization Analytics
+        * `calendar_booking_code` - Calendar Booking Code
+        * `create_resource_calendar` - Create Resource Calendar
+        * `disable_resource_calendar` - Disable Resource Calendar
+        * `import_resource_calendars` - Import Resource Calendars
+        * `create_availability_window` - Create Availability Window
+        * `update_availability_window` - Update Availability Window
+        * `delete_availability_window` - Delete Availability Window
+        * `batch_update_availability_windows` - Batch Update Availability Windows
+        * `create_blocked_time` - Create Blocked Time
+        * `update_blocked_time` - Update Blocked Time
+        * `delete_blocked_time` - Delete Blocked Time
+        * `calendar_bundle` - Calendar Bundle
+        * `create_calendar` - Create Calendar
+        * `update_calendar` - Update Calendar
+        * `create_calendar_bundle` - Create Calendar Bundle
+        * `update_calendar_bundle` - Update Calendar Bundle
+        * `disable_calendar_bundle` - Disable Calendar Bundle
+        * `webhook_configuration` - Webhook Configuration
     AvailableTime:
       type: object
       description: Serializer for AvailableTime model with recurring support.
@@ -11772,9 +11944,9 @@ components:
           type: integer
           nullable: true
           description: ID of the external attendee.
-        user:
+        membership:
           allOf:
-            - $ref: '#/components/schemas/User'
+            - $ref: '#/components/schemas/OwnershipMembership'
           readOnly: true
         user_id:
           type: integer
@@ -11793,9 +11965,9 @@ components:
           readOnly: true
       required:
         - created
+        - membership
         - modified
         - status
-        - user
         - user_id
     EventBulkModification:
       type: object
@@ -11899,6 +12071,7 @@ components:
         - calendar_event_attendee_added
         - calendar_event_attendee_removed
         - calendar_event_attendee_updated
+        - organization_member_created
       type: string
       description: |-
         * `calendar_event_created` - Calendar Event Created
@@ -11907,6 +12080,7 @@ components:
         * `calendar_event_attendee_added` - Calendar Event Attendee Added
         * `calendar_event_attendee_removed` - Calendar Event Attendee Removed
         * `calendar_event_attendee_updated` - Calendar Event Attendee Updated
+        * `organization_member_created` - Organization member created
     ExternalAttendee:
       type: object
       properties:
@@ -12077,6 +12251,54 @@ components:
         - id
         - modified
         - name
+    OrganizationBranding:
+      type: object
+      description: |-
+        Serializer for OrganizationBranding (reseller-admin REST endpoints).
+
+        Exposes app_name, logo_url, primary_color, secondary_color, support_email,
+        and return_url_allowlist. NEVER exposes can_invite_organizations or makes
+        organization writable (the org is set from the acting org in the view).
+
+        Validates:
+        - Color format: #RRGGBB or #RRGGBBAA (regex).
+        - Each return_url_allowlist entry is a valid URL (URLValidator).
+      properties:
+        app_name:
+          type: string
+          description: The display name of the white-labeled app (e.g., 'MyScheduler').
+          maxLength: 120
+        logo_url:
+          type: string
+          format: uri
+          description: URL to the reseller's logo image.
+          maxLength: 200
+        primary_color:
+          type: string
+          description: 'Primary color as hex code: #RRGGBB or #RRGGBBAA.'
+          maxLength: 9
+        secondary_color:
+          type: string
+          description: 'Secondary color as hex code: #RRGGBB or #RRGGBBAA.'
+          maxLength: 9
+        support_email:
+          type: string
+          format: email
+          description:
+            Email address for the From/reply-to on branded transactional
+            emails.
+          maxLength: 254
+        return_url_allowlist:
+          type: array
+          items:
+            type: string
+            format: uri
+            maxLength: 200
+          description:
+            List of URLs that are allowed as return addresses after OAuth
+            flows.
+      required:
+        - app_name
     OrganizationBrief:
       type: object
       description: |-
@@ -12118,6 +12340,7 @@ components:
         invited_by:
           type: integer
           readOnly: true
+          nullable: true
         accepted_at:
           type: string
           format: date-time
@@ -12152,7 +12375,10 @@ components:
         Exposes membership role, active status, and flattened user information
         (email, first_name, last_name) for the admin datatable.
       properties:
-        id:
+        user_id:
+          type: integer
+          readOnly: true
+        organization_id:
           type: integer
           readOnly: true
         role:
@@ -12184,12 +12410,35 @@ components:
           type: string
           readOnly: true
       required:
-        - id
         - is_active
+        - organization_id
         - role
         - user_email
         - user_first_name
+        - user_id
         - user_last_name
+    OwnershipMembership:
+      type: object
+      description: |-
+        Membership identity for a calendar owner.
+
+        A membership has no scalar id (it is identified by the ``(user_id,
+        organization_id)`` pair), so the representation exposes that pair plus the
+        membership ``role``.
+      properties:
+        user_id:
+          type: integer
+          readOnly: true
+        organization_id:
+          type: integer
+          readOnly: true
+        role:
+          type: string
+          readOnly: true
+      required:
+        - organization_id
+        - role
+        - user_id
     PaginatedAvailableTimeList:
       type: object
       required:
@@ -12898,6 +13147,52 @@ components:
           type: string
           format: date-time
           readOnly: true
+    PatchedOrganizationBranding:
+      type: object
+      description: |-
+        Serializer for OrganizationBranding (reseller-admin REST endpoints).
+
+        Exposes app_name, logo_url, primary_color, secondary_color, support_email,
+        and return_url_allowlist. NEVER exposes can_invite_organizations or makes
+        organization writable (the org is set from the acting org in the view).
+
+        Validates:
+        - Color format: #RRGGBB or #RRGGBBAA (regex).
+        - Each return_url_allowlist entry is a valid URL (URLValidator).
+      properties:
+        app_name:
+          type: string
+          description: The display name of the white-labeled app (e.g., 'MyScheduler').
+          maxLength: 120
+        logo_url:
+          type: string
+          format: uri
+          description: URL to the reseller's logo image.
+          maxLength: 200
+        primary_color:
+          type: string
+          description: 'Primary color as hex code: #RRGGBB or #RRGGBBAA.'
+          maxLength: 9
+        secondary_color:
+          type: string
+          description: 'Secondary color as hex code: #RRGGBB or #RRGGBBAA.'
+          maxLength: 9
+        support_email:
+          type: string
+          format: email
+          description:
+            Email address for the From/reply-to on branded transactional
+            emails.
+          maxLength: 254
+        return_url_allowlist:
+          type: array
+          items:
+            type: string
+            format: uri
+            maxLength: 200
+          description:
+            List of URLs that are allowed as return addresses after OAuth
+            flows.
     PatchedProfile:
       type: object
       properties:
@@ -13291,12 +13586,16 @@ components:
       description: |-
         Read-only serializer for listing and retrieving public-API tokens.
 
-        Exposes ``id``, ``integration_name``, ``is_active``, and ``available_resources``
-        (list of resource_name strings from the related ``ResourceAccess`` rows).
+        Exposes ``id``, ``integration_name``, ``is_active``, ``available_resources``
+        (list of resource_name strings from the related ``ResourceAccess`` rows), and
+        ``scoped_to_user`` (the owner's User id from the denormalized membership column, null
+        for org-wide tokens).  The REST field name ``scoped_to_user`` is kept for API stability;
+        the value is the denormalized ``scoped_to_membership_user_id``.
         Never exposes ``long_lived_token_hash`` or ``token``.
 
-        Optimized for list queries: uses prefetched ``available_resources`` from
-        the viewset's ``get_queryset`` to avoid N+1 queries.
+        Optimized for list queries: uses prefetched ``available_resources`` from the viewset's
+        ``get_queryset`` to avoid N+1 queries.  ``scoped_to_membership_user_id`` is a concrete
+        column on the row, so it needs no join.
       properties:
         id:
           type: integer
@@ -13316,21 +13615,37 @@ components:
             Return a list of resource_name values from the prefetched ResourceAccess
             rows.
           readOnly: true
+        scoped_to_user:
+          type: integer
+          nullable: true
+          description: |-
+            Return the owner's User id from the denormalized membership column, or None.
+
+            ``scoped_to_membership_user_id`` is a concrete column already storing the
+            membership's user_id, so the value is returned directly with no extra query.
+          readOnly: true
       required:
         - available_resources
         - id
         - integration_name
         - is_active
+        - scoped_to_user
     SystemUserTokenCreate:
       type: object
       description: |-
         Input serializer for creating a new public-API token (SystemUser + ResourceAccess rows).
 
-        Accepts ``integration_name`` and ``available_resources`` (a non-empty list of valid
-        ``PublicAPIResources`` values).  ``create()`` provisions the ``SystemUser`` via the
-        injected auth service and bulk-creates the ``ResourceAccess`` grants, attaching the
-        write-once plaintext ``token`` to the returned instance.  Never stores or exposes
-        ``long_lived_token_hash``.
+        Accepts ``integration_name``, ``available_resources`` (a non-empty list of valid
+        ``PublicAPIResources`` values), and an optional ``scoped_to_user`` (internal User id).
+        ``create()`` provisions the ``SystemUser`` via the injected auth service and
+        bulk-creates the ``ResourceAccess`` grants, attaching the write-once plaintext
+        ``token`` to the returned instance.  Never stores or exposes ``long_lived_token_hash``.
+
+        When ``scoped_to_user`` is supplied and non-null:
+        - The referenced user must be an active member of the caller's organisation.
+        - ``available_resources`` must be a subset of ``PROVIDER_SCOPED_RESOURCES``.
+        When ``scoped_to_user`` is absent or null, behaviour is exactly as before:
+        any valid ``PublicAPIResources`` value is accepted and the token is org-wide.
       properties:
         integration_name:
           type: string
@@ -13339,6 +13654,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AvailableResourcesEnum'
+        scoped_to_user:
+          type: integer
+          nullable: true
       required:
         - available_resources
         - integration_name
@@ -13349,6 +13667,9 @@ components:
 
         Includes the write-once ``token`` field (sourced from the view) and
         ``available_resources`` (derived from the related ``ResourceAccess`` rows).
+        Exposes ``scoped_to_user`` as the owner's User id derived from the stored membership
+        reference (null for org-wide tokens).  The REST field name ``scoped_to_user`` is kept
+        for API stability; the value is the denormalized ``scoped_to_membership_user_id``.
         Never exposes ``long_lived_token_hash``.
       properties:
         id:
@@ -13369,6 +13690,15 @@ components:
             Return a list of resource_name values from the related ResourceAccess
             rows.
           readOnly: true
+        scoped_to_user:
+          type: integer
+          nullable: true
+          description: |-
+            Return the owner's User id from the denormalized membership column, or None.
+
+            ``scoped_to_membership_user_id`` already stores the membership's user_id, so the
+            value is returned directly with no extra query.
+          readOnly: true
         token:
           type: string
           readOnly: true
@@ -13377,6 +13707,7 @@ components:
         - id
         - integration_name
         - is_active
+        - scoped_to_user
         - token
     SystemUserTokenUpdate:
       type: object
@@ -13436,62 +13767,6 @@ components:
           $ref: '#/components/schemas/RoleEnum'
       required:
         - role
-    User:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        email:
-          type: string
-          format: email
-          readOnly: true
-        phone_number:
-          type: string
-          readOnly: true
-        profile:
-          $ref: '#/components/schemas/Profile'
-        is_active:
-          type: boolean
-          readOnly: true
-          description:
-            Designates whether this user should be treated as active. Unselect
-            this instead of deleting accounts.
-        is_staff:
-          type: boolean
-          readOnly: true
-          description: Designates whether the user can log into this admin site.
-        is_superuser:
-          type: boolean
-          readOnly: true
-          title: Superuser status
-          description:
-            Designates that this user has all permissions without explicitly
-            assigning them.
-        created:
-          type: string
-          format: date-time
-          readOnly: true
-        modified:
-          type: string
-          format: date-time
-          readOnly: true
-        last_login:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-      required:
-        - created
-        - email
-        - id
-        - is_active
-        - is_staff
-        - is_superuser
-        - last_login
-        - modified
-        - phone_number
-        - profile
     VisibilityEnum:
       enum:
         - active

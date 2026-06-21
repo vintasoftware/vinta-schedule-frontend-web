@@ -41,6 +41,7 @@ function makeToken(
     integration_name: `Integration ${id}`,
     is_active: true,
     available_resources: ['calendar'],
+    scoped_to_user: null,
     ...overrides,
   };
 }

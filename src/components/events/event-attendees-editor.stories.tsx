@@ -30,23 +30,10 @@ function QueryWrapper({ children }: { children: React.ReactNode }) {
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const STUB_USER = {
-  id: 10,
-  email: 'alice@example.com',
-  phone_number: '',
-  profile: { id: 1, first_name: 'Alice', last_name: 'Smith' },
-  is_active: true,
-  is_staff: false,
-  is_superuser: false,
-  created: '2024-01-01T00:00:00Z',
-  modified: '2024-01-01T00:00:00Z',
-  last_login: null,
-};
-
 const SAMPLE_INTERNAL: EventAttendance[] = [
   {
     id: 1,
-    user: STUB_USER,
+    membership: { user_id: 10, organization_id: 1, role: 'member' },
     status: 'accepted',
     created: '2024-01-01T00:00:00Z',
     modified: '2024-01-01T00:00:00Z',

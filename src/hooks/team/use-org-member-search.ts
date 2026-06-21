@@ -2,9 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { organizationMembersList } from '@/client/sdk.gen';
 
 export interface OrgMemberOption {
-  /** OrganizationMembership.id — passed as user_id for EventAttendanceWritable.
-   *  NOTE: if the backend exposes a dedicated user_id on the membership serializer
-   *  in the future, switch to that field. */
+  /** OrganizationMembership.user_id — passed as user_id for EventAttendanceWritable. */
   id: number;
   name: string;
   email: string;
@@ -33,7 +31,7 @@ export function useOrgMemberSearch(search: string) {
   const members: OrgMemberOption[] = (data ?? [])
     .filter((m) => m.is_active)
     .map((m) => ({
-      id: m.id,
+      id: m.user_id,
       name:
         [m.user_first_name, m.user_last_name].filter(Boolean).join(' ') ||
         m.user_email,

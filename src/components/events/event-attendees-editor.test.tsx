@@ -84,22 +84,9 @@ import type {
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const STUB_USER = {
-  id: 10,
-  email: 'alice@example.com',
-  phone_number: '',
-  profile: { id: 1, first_name: 'Alice', last_name: 'Smith' },
-  is_active: true,
-  is_staff: false,
-  is_superuser: false,
-  created: '2024-01-01T00:00:00Z',
-  modified: '2024-01-01T00:00:00Z',
-  last_login: null,
-};
-
 const FIXTURE_INTERNAL_ATTENDANCE: EventAttendance = {
   id: 1,
-  user: STUB_USER,
+  membership: { user_id: 10, organization_id: 1, role: 'member' },
   status: 'accepted',
   created: '2024-01-01T00:00:00Z',
   modified: '2024-01-01T00:00:00Z',
@@ -156,7 +143,8 @@ const FIXTURE_RESOURCE_CALENDAR_2: Calendar = {
 /** Org members returned by the member-search combobox (internal attendees). */
 const MEMBER_SEARCH_FIXTURES: OrganizationMembership[] = [
   {
-    id: 99,
+    user_id: 99,
+    organization_id: 1,
     role: 'member',
     is_active: true,
     user_email: 'new@example.com',
@@ -164,7 +152,8 @@ const MEMBER_SEARCH_FIXTURES: OrganizationMembership[] = [
     user_last_name: 'Member',
   },
   {
-    id: 55,
+    user_id: 55,
+    organization_id: 1,
     role: 'member',
     is_active: true,
     user_email: 'dave@corp.com',
@@ -296,8 +285,9 @@ describe('EventAttendeesEditor', () => {
   describe('initial render', () => {
     it('renders existing internal attendee names', () => {
       renderEditor({ initialAttendances: [FIXTURE_INTERNAL_ATTENDANCE] });
-      // Label is derived from the user's profile first/last name.
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+      // The membership representation has no name/email, so the row is
+      // labelled by user id.
+      expect(screen.getByText('User 10')).toBeInTheDocument();
     });
 
     it('renders existing external attendees', () => {
@@ -334,7 +324,7 @@ describe('EventAttendeesEditor', () => {
       renderEditor({ initialAttendances: [FIXTURE_INTERNAL_ATTENDANCE] });
 
       // Existing attendee (user_id=10) already visible.
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+      expect(screen.getByText('User 10')).toBeInTheDocument();
 
       // Open the member-search combobox and search for the new member.
       await user.click(

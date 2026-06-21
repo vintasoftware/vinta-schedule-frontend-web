@@ -22,7 +22,16 @@ import {
 import { useProviderInfo } from '@/hooks/authentication/use-provider-info';
 import { useProviderSignup } from '@/hooks/authentication/use-provider-signup';
 import type { ErrorResponse, ProviderSignup } from '@/auth-client';
-import type { User } from '@/client/types.gen';
+
+/**
+ * Minimal shape of the pending social-login user as returned by
+ * GET /auth/provider/signup. Only the fields we prefill from are described;
+ * the response is loosely typed upstream, so we read these defensively.
+ */
+type PendingSignupUser = {
+  profile?: { first_name?: string; last_name?: string } | null;
+  phone_number?: string | null;
+};
 import { useRouter } from 'next/navigation';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
 import { syncSessionTokenFromCookie } from '@/lib/session-token';
@@ -87,7 +96,7 @@ export function FinishSignupForm({
   // Prefill from the pending social login (GET /auth/provider/signup).
   useEffect(() => {
     if (providerInfo && providerInfo.data) {
-      const user = (providerInfo.data.user || {}) as unknown as User;
+      const user = (providerInfo.data.user || {}) as unknown as PendingSignupUser;
       let email = '';
       if (Array.isArray(providerInfo.data.email)) {
         const primary = providerInfo.data.email.find(
