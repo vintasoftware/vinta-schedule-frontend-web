@@ -80,6 +80,7 @@ function makeToken(id: number): SystemUserToken {
     integration_name: `Integration ${id}`,
     is_active: true,
     available_resources: ['calendar'],
+    scoped_to_user: null,
   };
 }
 
@@ -251,6 +252,7 @@ describe('NewTokenDialog', () => {
       integration_name: 'Integration 3',
       is_active: true,
       available_resources: ['calendar'],
+      scoped_to_user: null,
       // Note: no 'token' field — this is intentional and matches the API
     };
     vi.mocked(publicApiTokensList).mockResolvedValue({

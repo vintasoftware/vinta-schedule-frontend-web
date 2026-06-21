@@ -5,7 +5,7 @@
  *
  * Sections:
  *  1. Internal attendees — add via org-member search combobox, remove by row.
- *     (Uses `useOrgMemberSearch`; the selected OrganizationMembership.id is
+ *     (Uses `useOrgMemberSearch`; the selected membership's `user_id` is
  *     sent as `user_id`.)
  *  2. External attendees — add by email + optional name, remove by row.
  *  3. Resource allocations — pick a resource-type calendar by id, remove by row.
@@ -135,12 +135,12 @@ export function EventAttendeesEditor({
   const [internalRows, setInternalRows] = React.useState<InternalRow[]>(() =>
     initialAttendances.map((a) => ({
       key: nextKey(),
-      user_id: a.user.id,
+      user_id: a.membership.user_id,
       id: a.id,
-      label:
-        [a.user.profile?.first_name, a.user.profile?.last_name]
-          .filter(Boolean)
-          .join(' ') || a.user.email,
+      // The membership representation only carries user_id/organization_id/role
+      // (no name or email), so the row is labelled by user id. The label is
+      // refreshed to a name/email if the member is later found via search.
+      label: `User ${a.membership.user_id}`,
     }))
   );
 

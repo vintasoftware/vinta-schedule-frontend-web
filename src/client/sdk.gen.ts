@@ -2414,7 +2414,7 @@ export const organizationMembersRetrieve = <ThrowOnError extends boolean = false
             name: 'sessionid',
             type: 'apiKey'
         }],
-    url: '/organization-members/{id}/',
+    url: '/organization-members/{user_id}/',
     ...options
 });
 
@@ -2436,7 +2436,7 @@ export const organizationMembersFormattedRetrieve = <ThrowOnError extends boolea
             name: 'sessionid',
             type: 'apiKey'
         }],
-    url: '/organization-members/{id}{format}',
+    url: '/organization-members/{user_id}{format}',
     ...options
 });
 
@@ -2457,7 +2457,7 @@ export const organizationMembersDeactivateCreate = <ThrowOnError extends boolean
             name: 'sessionid',
             type: 'apiKey'
         }],
-    url: '/organization-members/{id}/deactivate/',
+    url: '/organization-members/{user_id}/deactivate/',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -2482,7 +2482,7 @@ export const organizationMembersDeactivateFormattedCreate = <ThrowOnError extend
             name: 'sessionid',
             type: 'apiKey'
         }],
-    url: '/organization-members/{id}/deactivate{format}',
+    url: '/organization-members/{user_id}/deactivate{format}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -2505,7 +2505,7 @@ export const organizationMembersReactivateCreate = <ThrowOnError extends boolean
             name: 'sessionid',
             type: 'apiKey'
         }],
-    url: '/organization-members/{id}/reactivate/',
+    url: '/organization-members/{user_id}/reactivate/',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -2528,7 +2528,7 @@ export const organizationMembersReactivateFormattedCreate = <ThrowOnError extend
             name: 'sessionid',
             type: 'apiKey'
         }],
-    url: '/organization-members/{id}/reactivate{format}',
+    url: '/organization-members/{user_id}/reactivate{format}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -2552,7 +2552,7 @@ export const organizationMembersUpdateRoleCreate = <ThrowOnError extends boolean
             name: 'sessionid',
             type: 'apiKey'
         }],
-    url: '/organization-members/{id}/update-role/',
+    url: '/organization-members/{user_id}/update-role/',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -2576,7 +2576,7 @@ export const organizationMembersUpdateRoleFormattedCreate = <ThrowOnError extend
             name: 'sessionid',
             type: 'apiKey'
         }],
-    url: '/organization-members/{id}/update-role{format}',
+    url: '/organization-members/{user_id}/update-role{format}',
     ...options,
     headers: {
         'Content-Type': 'application/json',

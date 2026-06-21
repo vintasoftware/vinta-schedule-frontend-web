@@ -41,8 +41,26 @@ export type ActionEnum = 'create' | 'update' | 'delete';
  * * `invitation` - Invitation
  * * `branding` - Branding
  * * `child_org_analytics` - Child Organization Analytics
+ * * `calendar_booking_code` - Calendar Booking Code
+ * * `create_resource_calendar` - Create Resource Calendar
+ * * `disable_resource_calendar` - Disable Resource Calendar
+ * * `import_resource_calendars` - Import Resource Calendars
+ * * `create_availability_window` - Create Availability Window
+ * * `update_availability_window` - Update Availability Window
+ * * `delete_availability_window` - Delete Availability Window
+ * * `batch_update_availability_windows` - Batch Update Availability Windows
+ * * `create_blocked_time` - Create Blocked Time
+ * * `update_blocked_time` - Update Blocked Time
+ * * `delete_blocked_time` - Delete Blocked Time
+ * * `calendar_bundle` - Calendar Bundle
+ * * `create_calendar` - Create Calendar
+ * * `update_calendar` - Update Calendar
+ * * `create_calendar_bundle` - Create Calendar Bundle
+ * * `update_calendar_bundle` - Update Calendar Bundle
+ * * `disable_calendar_bundle` - Disable Calendar Bundle
+ * * `webhook_configuration` - Webhook Configuration
  */
-export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics';
+export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics' | 'calendar_booking_code' | 'create_resource_calendar' | 'disable_resource_calendar' | 'import_resource_calendars' | 'create_availability_window' | 'update_availability_window' | 'delete_availability_window' | 'batch_update_availability_windows' | 'create_blocked_time' | 'update_blocked_time' | 'delete_blocked_time' | 'calendar_bundle' | 'create_calendar' | 'update_calendar' | 'create_calendar_bundle' | 'update_calendar_bundle' | 'disable_calendar_bundle' | 'webhook_configuration';
 
 /**
  * Serializer for AvailableTime model with recurring support.
@@ -494,7 +512,7 @@ export type EventAttendance = {
      * ID of the external attendee.
      */
     id?: number | null;
-    user: User;
+    membership: OwnershipMembership;
     status: RsvpStatusEnum;
     readonly created: string;
     readonly modified: string;
@@ -564,8 +582,9 @@ export type EventRecurringException = {
  * * `calendar_event_attendee_added` - Calendar Event Attendee Added
  * * `calendar_event_attendee_removed` - Calendar Event Attendee Removed
  * * `calendar_event_attendee_updated` - Calendar Event Attendee Updated
+ * * `organization_member_created` - Organization member created
  */
-export type EventTypeEnum = 'calendar_event_created' | 'calendar_event_updated' | 'calendar_event_deleted' | 'calendar_event_attendee_added' | 'calendar_event_attendee_removed' | 'calendar_event_attendee_updated';
+export type EventTypeEnum = 'calendar_event_created' | 'calendar_event_updated' | 'calendar_event_deleted' | 'calendar_event_attendee_added' | 'calendar_event_attendee_removed' | 'calendar_event_attendee_updated' | 'organization_member_created';
 
 export type ExternalAttendee = {
     /**
@@ -748,7 +767,8 @@ export type OrganizationInvitation = {
  * (email, first_name, last_name) for the admin datatable.
  */
 export type OrganizationMembership = {
-    readonly id: number;
+    readonly user_id: number;
+    readonly organization_id: number;
     /**
      * Role the user holds in this organization. Admins can manage organization-scoped resources (e.g. CalendarGroups) regardless of direct ownership.
      *
@@ -763,6 +783,19 @@ export type OrganizationMembership = {
     readonly user_email: string;
     readonly user_first_name: string;
     readonly user_last_name: string;
+};
+
+/**
+ * Membership identity for a calendar owner.
+ *
+ * A membership has no scalar id (it is identified by the ``(user_id,
+ * organization_id)`` pair), so the representation exposes that pair plus the
+ * membership ``role``.
+ */
+export type OwnershipMembership = {
+    readonly user_id: number;
+    readonly organization_id: number;
+    readonly role: string;
 };
 
 export type PaginatedAvailableTimeList = {
@@ -1326,12 +1359,16 @@ export type ServiceAccountWrite = {
 /**
  * Read-only serializer for listing and retrieving public-API tokens.
  *
- * Exposes ``id``, ``integration_name``, ``is_active``, and ``available_resources``
- * (list of resource_name strings from the related ``ResourceAccess`` rows).
+ * Exposes ``id``, ``integration_name``, ``is_active``, ``available_resources``
+ * (list of resource_name strings from the related ``ResourceAccess`` rows), and
+ * ``scoped_to_user`` (the owner's User id from the denormalized membership column, null
+ * for org-wide tokens).  The REST field name ``scoped_to_user`` is kept for API stability;
+ * the value is the denormalized ``scoped_to_membership_user_id``.
  * Never exposes ``long_lived_token_hash`` or ``token``.
  *
- * Optimized for list queries: uses prefetched ``available_resources`` from
- * the viewset's ``get_queryset`` to avoid N+1 queries.
+ * Optimized for list queries: uses prefetched ``available_resources`` from the viewset's
+ * ``get_queryset`` to avoid N+1 queries.  ``scoped_to_membership_user_id`` is a concrete
+ * column on the row, so it needs no join.
  */
 export type SystemUserToken = {
     readonly id: number;
@@ -1344,20 +1381,34 @@ export type SystemUserToken = {
      * Return a list of resource_name values from the prefetched ResourceAccess rows.
      */
     readonly available_resources: Array<string>;
+    /**
+     * Return the owner's User id from the denormalized membership column, or None.
+     *
+     * ``scoped_to_membership_user_id`` is a concrete column already storing the
+     * membership's user_id, so the value is returned directly with no extra query.
+     */
+    readonly scoped_to_user: number | null;
 };
 
 /**
  * Input serializer for creating a new public-API token (SystemUser + ResourceAccess rows).
  *
- * Accepts ``integration_name`` and ``available_resources`` (a non-empty list of valid
- * ``PublicAPIResources`` values).  ``create()`` provisions the ``SystemUser`` via the
- * injected auth service and bulk-creates the ``ResourceAccess`` grants, attaching the
- * write-once plaintext ``token`` to the returned instance.  Never stores or exposes
- * ``long_lived_token_hash``.
+ * Accepts ``integration_name``, ``available_resources`` (a non-empty list of valid
+ * ``PublicAPIResources`` values), and an optional ``scoped_to_user`` (internal User id).
+ * ``create()`` provisions the ``SystemUser`` via the injected auth service and
+ * bulk-creates the ``ResourceAccess`` grants, attaching the write-once plaintext
+ * ``token`` to the returned instance.  Never stores or exposes ``long_lived_token_hash``.
+ *
+ * When ``scoped_to_user`` is supplied and non-null:
+ * - The referenced user must be an active member of the caller's organisation.
+ * - ``available_resources`` must be a subset of ``PROVIDER_SCOPED_RESOURCES``.
+ * When ``scoped_to_user`` is absent or null, behaviour is exactly as before:
+ * any valid ``PublicAPIResources`` value is accepted and the token is org-wide.
  */
 export type SystemUserTokenCreate = {
     integration_name: string;
     available_resources: Array<AvailableResourcesEnum>;
+    scoped_to_user?: number | null;
 };
 
 /**
@@ -1365,6 +1416,9 @@ export type SystemUserTokenCreate = {
  *
  * Includes the write-once ``token`` field (sourced from the view) and
  * ``available_resources`` (derived from the related ``ResourceAccess`` rows).
+ * Exposes ``scoped_to_user`` as the owner's User id derived from the stored membership
+ * reference (null for org-wide tokens).  The REST field name ``scoped_to_user`` is kept
+ * for API stability; the value is the denormalized ``scoped_to_membership_user_id``.
  * Never exposes ``long_lived_token_hash``.
  */
 export type SystemUserTokenResponse = {
@@ -1378,6 +1432,13 @@ export type SystemUserTokenResponse = {
      * Return a list of resource_name values from the related ResourceAccess rows.
      */
     readonly available_resources: Array<string>;
+    /**
+     * Return the owner's User id from the denormalized membership column, or None.
+     *
+     * ``scoped_to_membership_user_id`` already stores the membership's user_id, so the
+     * value is returned directly with no extra query.
+     */
+    readonly scoped_to_user: number | null;
     readonly token: string;
 };
 
@@ -1414,30 +1475,6 @@ export type UnavailableTimeWindow = {
  */
 export type UpdateMembershipRole = {
     role: RoleEnum;
-};
-
-export type User = {
-    readonly id: number;
-    readonly email: string;
-    readonly phone_number: string;
-    profile: Profile;
-    /**
-     * Designates whether this user should be treated as active. Unselect this instead of deleting accounts.
-     */
-    readonly is_active: boolean;
-    /**
-     * Designates whether the user can log into this admin site.
-     */
-    readonly is_staff: boolean;
-    /**
-     * Superuser status
-     *
-     * Designates that this user has all permissions without explicitly assigning them.
-     */
-    readonly is_superuser: boolean;
-    readonly created: string;
-    readonly modified: string;
-    readonly last_login: string | null;
 };
 
 /**
@@ -2119,10 +2156,6 @@ export type UnavailableTimeWindowWritable = {
     reason: string;
     start_time: string;
     end_time: string;
-};
-
-export type UserWritable = {
-    profile: ProfileWritable;
 };
 
 export type WebhookConfigurationWritable = {
@@ -6251,10 +6284,10 @@ export type OrganizationMembersRetrieveData = {
         'X-Organization-Id'?: string;
     };
     path: {
-        id: string;
+        user_id: string;
     };
     query?: never;
-    url: '/organization-members/{id}/';
+    url: '/organization-members/{user_id}/';
 };
 
 export type OrganizationMembersRetrieveResponses = {
@@ -6273,10 +6306,10 @@ export type OrganizationMembersFormattedRetrieveData = {
     };
     path: {
         format: '.json';
-        id: string;
+        user_id: string;
     };
     query?: never;
-    url: '/organization-members/{id}{format}';
+    url: '/organization-members/{user_id}{format}';
 };
 
 export type OrganizationMembersFormattedRetrieveResponses = {
@@ -6294,10 +6327,10 @@ export type OrganizationMembersDeactivateCreateData = {
         'X-Organization-Id'?: string;
     };
     path: {
-        id: string;
+        user_id: string;
     };
     query?: never;
-    url: '/organization-members/{id}/deactivate/';
+    url: '/organization-members/{user_id}/deactivate/';
 };
 
 export type OrganizationMembersDeactivateCreateErrors = {
@@ -6331,10 +6364,10 @@ export type OrganizationMembersDeactivateFormattedCreateData = {
     };
     path: {
         format: '.json';
-        id: string;
+        user_id: string;
     };
     query?: never;
-    url: '/organization-members/{id}/deactivate{format}';
+    url: '/organization-members/{user_id}/deactivate{format}';
 };
 
 export type OrganizationMembersDeactivateFormattedCreateErrors = {
@@ -6367,10 +6400,10 @@ export type OrganizationMembersReactivateCreateData = {
         'X-Organization-Id'?: string;
     };
     path: {
-        id: string;
+        user_id: string;
     };
     query?: never;
-    url: '/organization-members/{id}/reactivate/';
+    url: '/organization-members/{user_id}/reactivate/';
 };
 
 export type OrganizationMembersReactivateCreateErrors = {
@@ -6400,10 +6433,10 @@ export type OrganizationMembersReactivateFormattedCreateData = {
     };
     path: {
         format: '.json';
-        id: string;
+        user_id: string;
     };
     query?: never;
-    url: '/organization-members/{id}/reactivate{format}';
+    url: '/organization-members/{user_id}/reactivate{format}';
 };
 
 export type OrganizationMembersReactivateFormattedCreateErrors = {
@@ -6432,10 +6465,10 @@ export type OrganizationMembersUpdateRoleCreateData = {
         'X-Organization-Id'?: string;
     };
     path: {
-        id: string;
+        user_id: string;
     };
     query?: never;
-    url: '/organization-members/{id}/update-role/';
+    url: '/organization-members/{user_id}/update-role/';
 };
 
 export type OrganizationMembersUpdateRoleCreateErrors = {
@@ -6469,10 +6502,10 @@ export type OrganizationMembersUpdateRoleFormattedCreateData = {
     };
     path: {
         format: '.json';
-        id: string;
+        user_id: string;
     };
     query?: never;
-    url: '/organization-members/{id}/update-role{format}';
+    url: '/organization-members/{user_id}/update-role{format}';
 };
 
 export type OrganizationMembersUpdateRoleFormattedCreateErrors = {

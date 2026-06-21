@@ -7,6 +7,7 @@ import {
 } from '@/lib/authentication-response-type-checks';
 import { cookies } from 'next/headers';
 import type { AuthenticationResponse, Flow } from '@/auth-client';
+import { fetchValidatedReturnUrl } from '@/lib/branding-server';
 // Removed invalid import of CookieOptions
 
 export async function POST(
@@ -22,7 +23,13 @@ export async function POST(
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
 
   const requestBaseUrl = `${protocol}://${host}`;
-  const response = NextResponse.redirect(`${requestBaseUrl}${url}`);
+  // Only prefix the base URL for relative (path) URLs; absolute external URLs
+  // (allowlisted reseller return URLs) are used as-is to avoid producing a
+  // garbage host like "https://vinta.comhttps://app.reseller.com/...".
+  const destination = /^https?:\/\//i.test(url)
+    ? url
+    : `${requestBaseUrl}${url}`;
+  const response = NextResponse.redirect(destination);
   cookiesToSet?.forEach(({ name, value, options }) => {
     response.cookies.set(name, value, options);
   });
@@ -48,8 +55,13 @@ export async function GET(
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
 
   const requestBaseUrl = `${protocol}://${host}`;
-
-  const response = NextResponse.redirect(`${requestBaseUrl}${url}`);
+  // Only prefix the base URL for relative (path) URLs; absolute external URLs
+  // (allowlisted reseller return URLs) are used as-is to avoid producing a
+  // garbage host like "https://vinta.comhttps://app.reseller.com/...".
+  const destination = /^https?:\/\//i.test(url)
+    ? url
+    : `${requestBaseUrl}${url}`;
+  const response = NextResponse.redirect(destination);
   cookiesToSet?.forEach(({ name, value, options }) => {
     response.cookies.set(name, value, options);
   });
@@ -101,20 +113,24 @@ const PENDING_FLOW_ROUTES: Partial<Record<Flow['id'], string>> = {
  */
 function handlePendingAuthenticationResponse(
   response: AuthenticationResponse,
-  incomingSessionToken: string | undefined
+  incomingSessionToken: string | undefined,
+  tenantId?: string | null
 ): CallbackResult {
   // Prefer a rotated token; otherwise keep the one we authenticated with.
   const sessionToken = response.meta?.session_token ?? incomingSessionToken;
   const pendingFlow = response.data.flows.find((flow) => flow.is_pending);
-  const nextUrl = pendingFlow && PENDING_FLOW_ROUTES[pendingFlow.id];
+  const baseNextUrl = pendingFlow && PENDING_FLOW_ROUTES[pendingFlow.id];
 
-  if (!nextUrl) {
+  if (!baseNextUrl) {
     console.error(
       'Authentication response without a routable pending flow',
       JSON.stringify(response)
     );
+    const errorUrl = tenantId
+      ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+      : `/auth/social/error`;
     return {
-      url: `/auth/social/error`,
+      url: errorUrl,
       cookiesToUnset: [
         'accessToken',
         'refreshToken',
@@ -128,8 +144,11 @@ function handlePendingAuthenticationResponse(
     console.error(
       `Pending ${pendingFlow.id} flow but no session token (none stored from redirect-json, none rotated)`
     );
+    const errorUrl = tenantId
+      ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+      : `/auth/social/error`;
     return {
-      url: `/auth/social/error`,
+      url: errorUrl,
       cookiesToUnset: [
         'accessToken',
         'refreshToken',
@@ -138,6 +157,12 @@ function handlePendingAuthenticationResponse(
       ],
     };
   }
+
+  // Thread the tenant_id into the pending-flow URL so the interstitial page
+  // can resolve branding from the same tenant context.
+  const nextUrl = tenantId
+    ? `${baseNextUrl}?tenant_id=${encodeURIComponent(tenantId)}`
+    : baseNextUrl;
 
   return {
     url: nextUrl,
@@ -169,6 +194,17 @@ export async function handleProviderLoginCallback(
   // since the pending 401 won't re-issue it.
   const incomingSessionToken =
     cookieStorage.get('sessionToken')?.value || undefined;
+
+  // The tenant_id may be embedded in the OAuth state param (set by the
+  // initiating page) or passed as a direct query param. If present, we use it
+  // to fetch tenant branding for interstitials and to validate the `next` URL.
+  const tenantId = params.tenant_id || null;
+
+  // The `next` / return-URL the reseller's app wants to send the user back to
+  // after login. MUST be validated server-side against the tenant's allowlist
+  // before use. An absent or off-allowlist URL falls back to the default
+  // dashboard (no open-redirect risk).
+  const nextParam = params.next || null;
   const cookiesToSet: Array<{
     name: string;
     value: string;
@@ -192,7 +228,10 @@ export async function handleProviderLoginCallback(
         cookiesToUnset.push('sessionToken');
         cookiesToUnset.push('accessToken');
         cookiesToUnset.push('refreshToken');
-        return { url: `/auth/social/error`, cookiesToUnset };
+        const errorUrl = tenantId
+          ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+          : `/auth/social/error`;
+        return { url: errorUrl, cookiesToUnset };
       }
       // native headless `app` flow: meta carries three separate tokens.
       const accessToken = response.meta.access_token;
@@ -202,7 +241,10 @@ export async function handleProviderLoginCallback(
         console.error(
           'Authentication successful, but access or refresh token is missing'
         );
-        return { url: `/auth/social/error` };
+        const errorUrl = tenantId
+          ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+          : `/auth/social/error`;
+        return { url: errorUrl };
       }
 
       cookiesToSet.push({
@@ -242,8 +284,29 @@ export async function handleProviderLoginCallback(
         });
       }
 
+      // Determine the post-login redirect URL.
+      // If a `next` param was supplied, ask the backend to validate it against
+      // the tenant's return-URL allowlist. The backend performs ALL matching
+      // and scheme-guard logic and returns the sanitized URL only when allowed.
+      // An absent/invalid/off-allowlist URL falls back to the success
+      // interstitial (which then redirects to /dashboard). Fail closed.
+      const validatedNext = await fetchValidatedReturnUrl(tenantId, nextParam);
+      let successUrl: string;
+      if (validatedNext) {
+        // The backend confirmed the URL is allowed — redirect directly there.
+        // sanitizedUrl is an absolute URL so no origin prefix is needed.
+        successUrl = validatedNext;
+      } else {
+        // Off-allowlist, failed validation, or no next param — use the
+        // standard success interstitial.
+        const base = `/auth/social/${provider}/success`;
+        successUrl = tenantId
+          ? `${base}?tenant_id=${encodeURIComponent(tenantId)}`
+          : base;
+      }
+
       return {
-        url: `/auth/social/${provider}/success`,
+        url: successUrl,
         cookiesToSet,
         cookiesToUnset,
       };
@@ -256,7 +319,8 @@ export async function handleProviderLoginCallback(
     if (isAuthenticationResponse(response)) {
       return handlePendingAuthenticationResponse(
         response,
-        incomingSessionToken
+        incomingSessionToken,
+        tenantId
       );
     }
 
@@ -268,18 +332,28 @@ export async function handleProviderLoginCallback(
     // Defensive: if some transport ever surfaces the 401 as a throw instead of
     // a response body, treat it the same way.
     if (isAuthenticationResponse(error)) {
-      return handlePendingAuthenticationResponse(error, incomingSessionToken);
+      return handlePendingAuthenticationResponse(
+        error,
+        incomingSessionToken,
+        tenantId
+      );
     } else {
       console.error('Error during provider login callback:', error);
       cookiesToUnset.push('accessToken');
       cookiesToUnset.push('refreshToken');
       cookiesToUnset.push('sessionToken');
-      return { url: `/auth/social/error`, cookiesToSet, cookiesToUnset };
+      const errorUrl = tenantId
+        ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+        : `/auth/social/error`;
+      return { url: errorUrl, cookiesToSet, cookiesToUnset };
     }
   }
 
   console.warn(
     'No valid authentication response received, redirecting to error'
   );
-  return { url: `/auth/social/error`, cookiesToSet, cookiesToUnset };
+  const errorUrl = tenantId
+    ? `/auth/social/error?tenant_id=${encodeURIComponent(tenantId)}`
+    : `/auth/social/error`;
+  return { url: errorUrl, cookiesToSet, cookiesToUnset };
 }

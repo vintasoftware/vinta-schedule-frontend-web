@@ -19,7 +19,9 @@ vi.mock('@/lib/auth-server-actions', () => ({
   clearAuthCookies: vi.fn(),
 }));
 
-import ProviderSignupPage from './page';
+// The page is now a Server Component (fetches branding then renders the form).
+// Test the form component directly — it contains all the interactive logic.
+import { FinishSignupForm } from '@/components/authentication/finish-signup-form';
 import {
   ClientTokenStorageStrategy,
   clearMemoryAccessToken,
@@ -92,7 +94,7 @@ function renderPage() {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return render(<ProviderSignupPage />, { wrapper });
+  return render(<FinishSignupForm />, { wrapper });
 }
 
 async function fillPhoneAndSubmit(phone: string) {
@@ -232,5 +234,34 @@ describe('finish-signup page (pending social signup)', () => {
       await screen.findByText('Enter a valid phone number.')
     ).toBeInTheDocument();
     expect(push).not.toHaveBeenCalledWith('/');
+  });
+
+  it('threads reseller branding to the navbar when given custom branding', async () => {
+    installFetch(() => jsonResponse(200, AUTHENTICATED));
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    render(
+      <FinishSignupForm
+        branding={{
+          appName: 'Acme Corp',
+          logoUrl: 'https://acme.example.com/logo.svg',
+          primaryColor: '#4f46e5',
+          secondaryColor: '#7c3aed',
+        }}
+      />,
+      { wrapper }
+    );
+
+    // The AuthNavbar should show the reseller logo in the navbar.
+    const logo = await screen.findByRole('img', { name: 'Acme Corp' });
+    expect(logo).toBeInTheDocument();
+    expect(logo).toHaveAttribute('src', 'https://acme.example.com/logo.svg');
   });
 });

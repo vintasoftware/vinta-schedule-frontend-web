@@ -19,18 +19,21 @@ const ALL_TOKENS: SystemUserToken[] = [
     integration_name: 'CI Pipeline',
     is_active: true,
     available_resources: ['calendar_event', 'calendar'],
+    scoped_to_user: null,
   },
   {
     id: 2,
     integration_name: 'Analytics Dashboard',
     is_active: true,
     available_resources: ['calendar_event', 'attendance', 'user'],
+    scoped_to_user: null,
   },
   {
     id: 3,
     integration_name: 'Legacy Integration',
     is_active: false,
     available_resources: ['calendar'],
+    scoped_to_user: null,
   },
 ];
 
