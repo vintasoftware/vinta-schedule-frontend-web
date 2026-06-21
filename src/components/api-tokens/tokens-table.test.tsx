@@ -72,12 +72,14 @@ describe('TokensTable', () => {
       integration_name: 'My Integration',
       is_active: true,
       available_resources: ['calendar', 'calendar_event'],
+      scoped_to_user: null,
     },
     {
       id: 2,
       integration_name: 'Other Integration',
       is_active: false,
       available_resources: ['user'],
+      scoped_to_user: null,
     },
   ];
 

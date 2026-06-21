@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 // useUpdateMemberRole
 //
 // Wraps `organizationMembersUpdateRoleCreate`
-// (POST /organization-members/{id}/update-role/) which changes a member's role
+// (POST /organization-members/{user_id}/update-role/) which changes a member's role
 // between 'member' and 'admin'. On success, invalidates the team members query
 // using the predicate pattern so the member's role badge updates.
 //
@@ -31,7 +31,7 @@ export function useUpdateMemberRole() {
 
   const updateMemberRole = async (id: number, role: RoleEnum) =>
     updateMemberRoleMutation.mutateAsync({
-      path: { id: String(id) },
+      path: { user_id: String(id) },
       body: { role },
     } as Parameters<typeof updateMemberRoleMutation.mutateAsync>[0]);
 

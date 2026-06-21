@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 // ---------------------------------------------------------------------------
 // useDisableUser
 //
-// Wraps `organizationMembersDeactivateCreate` (POST /organization-members/{id}/deactivate/)
+// Wraps `organizationMembersDeactivateCreate` (POST /organization-members/{user_id}/deactivate/)
 // which disables a member. On success, invalidates the team members query using the
 // predicate pattern so the member's status updates to 'disabled'.
 //
@@ -35,7 +35,7 @@ export function useDisableUser() {
 
   const disableUser = async (id: number) =>
     disableUserMutation.mutateAsync({
-      path: { id: String(id) },
+      path: { user_id: String(id) },
     } as Parameters<typeof disableUserMutation.mutateAsync>[0]);
 
   return { disableUser, disableUserMutation };
@@ -44,7 +44,7 @@ export function useDisableUser() {
 // ---------------------------------------------------------------------------
 // useReactivateUser
 //
-// Wraps `organizationMembersReactivateCreate` (POST /organization-members/{id}/reactivate/)
+// Wraps `organizationMembersReactivateCreate` (POST /organization-members/{user_id}/reactivate/)
 // which re-enables a disabled member. On success, invalidates the team members query
 // so the member's status updates back to 'active'.
 // ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ export function useReactivateUser() {
 
   const reactivateUser = async (id: number) =>
     reactivateUserMutation.mutateAsync({
-      path: { id: String(id) },
+      path: { user_id: String(id) },
     } as Parameters<typeof reactivateUserMutation.mutateAsync>[0]);
 
   return { reactivateUser, reactivateUserMutation };

@@ -85,7 +85,8 @@ function makePagedResponse(
 
 const MEMBER_FIXTURE: PaginatedOrganizationMembershipList['results'] = [
   {
-    id: 1,
+    user_id: 1,
+    organization_id: 1,
     role: 'admin',
     is_active: true,
     user_email: 'alice@acme.com',
@@ -93,7 +94,8 @@ const MEMBER_FIXTURE: PaginatedOrganizationMembershipList['results'] = [
     user_last_name: 'Souza',
   },
   {
-    id: 2,
+    user_id: 2,
+    organization_id: 1,
     role: 'member',
     is_active: true,
     user_email: 'bob@acme.com',
@@ -101,7 +103,8 @@ const MEMBER_FIXTURE: PaginatedOrganizationMembershipList['results'] = [
     user_last_name: 'Lima',
   },
   {
-    id: 3,
+    user_id: 3,
+    organization_id: 1,
     role: 'member',
     is_active: false,
     user_email: 'carol@acme.com',
@@ -188,7 +191,8 @@ describe('TeamTable', () => {
     it('falls back to email as name when first/last name are empty', async () => {
       const noNameFixture: PaginatedOrganizationMembershipList['results'] = [
         {
-          id: 9,
+          user_id: 9,
+          organization_id: 1,
           role: 'member',
           is_active: true,
           user_email: 'noname@acme.com',
@@ -538,7 +542,7 @@ describe('TeamTable change-role action', () => {
     });
 
     const call = vi.mocked(organizationMembersUpdateRoleCreate).mock.calls[0][0];
-    expect(call?.path).toEqual({ id: '2' });
+    expect(call?.path).toEqual({ user_id: '2' });
     expect(call?.body).toEqual({ role: 'admin' });
   });
 

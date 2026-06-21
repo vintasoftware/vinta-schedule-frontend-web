@@ -74,7 +74,7 @@ export function useTeamMembers(query: DataTableQuery) {
 
   // Map API shape → TeamMember view model.
   const members: TeamMember[] = raw.map((m) => ({
-    id: m.id,
+    id: m.user_id,
     name:
       [m.user_first_name, m.user_last_name].filter(Boolean).join(' ') ||
       m.user_email,
