@@ -638,6 +638,13 @@ export type ExternalEventChangeRequest = {
 export type ExternalEventChangeRequestStatusEnum = 'pending' | 'approved' | 'rejected' | 'stale' | 'auto_undone';
 
 /**
+ * * `allow` - Allow direct updates
+ * * `change_request` - Updates create change requests
+ * * `forbidden` - Updates are forbidden
+ */
+export type ExternalEventUpdatePolicyEnum = 'allow' | 'change_request' | 'forbidden';
+
+/**
  * * `DAILY` - Daily
  * * `WEEKLY` - Weekly
  * * `MONTHLY` - Monthly
@@ -730,6 +737,14 @@ export type Organization = {
      * Whether to sync rooms for this organization.
      */
     should_sync_rooms?: boolean;
+    /**
+     * Policy for handling inbound external provider edits and deletions to synced events. ALLOW: apply directly. CHANGE_REQUEST: route to approval. FORBIDDEN: auto-undo.
+     *
+     * * `allow` - Allow direct updates
+     * * `change_request` - Updates create change requests
+     * * `forbidden` - Updates are forbidden
+     */
+    external_event_update_policy?: ExternalEventUpdatePolicyEnum;
     /**
      * Return read-only service account info (no secrets), or None if unconfigured.
      */
@@ -1141,6 +1156,14 @@ export type PatchedOrganization = {
      * Whether to sync rooms for this organization.
      */
     should_sync_rooms?: boolean;
+    /**
+     * Policy for handling inbound external provider edits and deletions to synced events. ALLOW: apply directly. CHANGE_REQUEST: route to approval. FORBIDDEN: auto-undo.
+     *
+     * * `allow` - Allow direct updates
+     * * `change_request` - Updates create change requests
+     * * `forbidden` - Updates are forbidden
+     */
+    external_event_update_policy?: ExternalEventUpdatePolicyEnum;
     /**
      * Return read-only service account info (no secrets), or None if unconfigured.
      */
@@ -1850,6 +1873,14 @@ export type OrganizationWritable = {
      * Whether to sync rooms for this organization.
      */
     should_sync_rooms?: boolean;
+    /**
+     * Policy for handling inbound external provider edits and deletions to synced events. ALLOW: apply directly. CHANGE_REQUEST: route to approval. FORBIDDEN: auto-undo.
+     *
+     * * `allow` - Allow direct updates
+     * * `change_request` - Updates create change requests
+     * * `forbidden` - Updates are forbidden
+     */
+    external_event_update_policy?: ExternalEventUpdatePolicyEnum;
 };
 
 /**
@@ -2083,6 +2114,14 @@ export type PatchedOrganizationWritable = {
      * Whether to sync rooms for this organization.
      */
     should_sync_rooms?: boolean;
+    /**
+     * Policy for handling inbound external provider edits and deletions to synced events. ALLOW: apply directly. CHANGE_REQUEST: route to approval. FORBIDDEN: auto-undo.
+     *
+     * * `allow` - Allow direct updates
+     * * `change_request` - Updates create change requests
+     * * `forbidden` - Updates are forbidden
+     */
+    external_event_update_policy?: ExternalEventUpdatePolicyEnum;
 };
 
 export type PatchedProfileWritable = {

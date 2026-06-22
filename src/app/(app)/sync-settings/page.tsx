@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Stack } from '@/components/layout/stack';
 import { PageHeader } from '@/components/layout/page-header';
 import { RoomsSyncSettingsForm } from '@/components/sync/rooms-sync-settings-form';
+import { ExternalEventUpdatePolicyForm } from '@/components/sync/external-event-update-policy-form';
 import { TriggerRoomsSyncButton } from '@/components/sync/trigger-rooms-sync-button';
 import { TriggerOrgCalendarSyncButton } from '@/components/sync/trigger-org-calendar-sync-button';
 import { ServiceAccountCard } from '@/components/sync/service-account-card';
@@ -24,6 +25,9 @@ import { HStack, Text } from '@/components/layout';
  *    (fire-and-toast, Phase 34).
  *  - Service Account CRUD card for the org-level Google Calendar service account.
  *  - The Sync All Calendars button to trigger an org-wide calendar sync.
+ *  - The external-event update policy, controlling how inbound provider edits
+ *    and deletions to synced events are handled (allow / change request /
+ *    forbidden).
  */
 export default function SyncSettingsPage() {
   // Gate: redirect non-admins out. The redirect fires in a useEffect, so
@@ -40,6 +44,18 @@ export default function SyncSettingsPage() {
         description='Configure synchronization for your organization.'
       />
       <RoomsSyncSettingsForm />
+
+      {/* External event update policy — how inbound provider edits are handled */}
+      <Box className='border-border border-t pt-6'>
+        <Stack gap={3}>
+          <Text weight='semibold'>External event updates</Text>
+          <Text size='sm' color='muted-foreground'>
+            Choose how edits and deletions made directly in a connected calendar
+            provider are applied to your synced events.
+          </Text>
+          <ExternalEventUpdatePolicyForm />
+        </Stack>
+      </Box>
 
       {/* Service Account — configure Google Calendar service account for rooms sync */}
       <Box className='border-border border-t pt-6'>
