@@ -12,6 +12,7 @@ import {
   Ticket,
   Settings,
   Webhook,
+  GitPullRequestArrow,
 } from 'lucide-react';
 
 import { CreateOrganizationDialog } from '@/components/organizations/create-organization-dialog';
@@ -51,6 +52,12 @@ const MEMBER_NAV_ITEMS: SidebarNavItem[] = [
     href: '/calendars',
   },
   { id: 'events', label: 'Events', icon: Ticket, href: '/events' },
+  {
+    id: 'change-requests',
+    label: 'Change requests',
+    icon: GitPullRequestArrow,
+    href: '/change-requests',
+  },
   {
     id: 'availability',
     label: 'Availability',
