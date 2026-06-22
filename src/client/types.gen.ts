@@ -59,8 +59,9 @@ export type ActionEnum = 'create' | 'update' | 'delete';
  * * `update_calendar_bundle` - Update Calendar Bundle
  * * `disable_calendar_bundle` - Disable Calendar Bundle
  * * `webhook_configuration` - Webhook Configuration
+ * * `external_event_change_request` - External Event Change Request
  */
-export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics' | 'calendar_booking_code' | 'create_resource_calendar' | 'disable_resource_calendar' | 'import_resource_calendars' | 'create_availability_window' | 'update_availability_window' | 'delete_availability_window' | 'batch_update_availability_windows' | 'create_blocked_time' | 'update_blocked_time' | 'delete_blocked_time' | 'calendar_bundle' | 'create_calendar' | 'update_calendar' | 'create_calendar_bundle' | 'update_calendar_bundle' | 'disable_calendar_bundle' | 'webhook_configuration';
+export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics' | 'calendar_booking_code' | 'create_resource_calendar' | 'disable_resource_calendar' | 'import_resource_calendars' | 'create_availability_window' | 'update_availability_window' | 'delete_availability_window' | 'batch_update_availability_windows' | 'create_blocked_time' | 'update_blocked_time' | 'delete_blocked_time' | 'calendar_bundle' | 'create_calendar' | 'update_calendar' | 'create_calendar_bundle' | 'update_calendar_bundle' | 'disable_calendar_bundle' | 'webhook_configuration' | 'external_event_change_request';
 
 /**
  * Serializer for AvailableTime model with recurring support.
@@ -598,12 +599,57 @@ export type ExternalAttendee = {
 };
 
 /**
+ * Read-only serializer for ``ExternalEventChangeRequest``.
+ *
+ * Exposes the fields needed by the first-party frontend to list, approve,
+ * and reject change requests.  The ``resolved_by`` field surfaces only the
+ * user id and display name — never raw membership / organization ids — to
+ * avoid leaking cross-tenant identity data.
+ */
+export type ExternalEventChangeRequest = {
+    readonly id: number;
+    readonly event_id: number;
+    kind: KindEnum;
+    status: ExternalEventChangeRequestStatusEnum;
+    provider: ProviderEnum;
+    /**
+     * Proposed field values: title, description, start_time, end_time.
+     */
+    readonly proposed_values: unknown;
+    /**
+     * Snapshot of local field values before the change, used to undo on rejection.
+     */
+    readonly retained_values: unknown;
+    /**
+     * Return the resolver's user id, or ``None`` when unresolved.
+     */
+    readonly resolved_by_user_id: number | null;
+    readonly resolved_at: string | null;
+    readonly created: string;
+};
+
+/**
+ * * `pending` - Pending
+ * * `approved` - Approved
+ * * `rejected` - Rejected
+ * * `stale` - Stale
+ * * `auto_undone` - Auto-undone
+ */
+export type ExternalEventChangeRequestStatusEnum = 'pending' | 'approved' | 'rejected' | 'stale' | 'auto_undone';
+
+/**
  * * `DAILY` - Daily
  * * `WEEKLY` - Weekly
  * * `MONTHLY` - Monthly
  * * `YEARLY` - Yearly
  */
 export type FrequencyEnum = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+/**
+ * * `update` - Update
+ * * `delete` - Delete
+ */
+export type KindEnum = 'update' | 'delete';
 
 /**
  * Read-only serializer for the caller's active organization memberships.
@@ -845,6 +891,13 @@ export type PaginatedCalendarList = {
     next?: string | null;
     previous?: string | null;
     results: Array<Calendar>;
+};
+
+export type PaginatedExternalEventChangeRequestList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<ExternalEventChangeRequest>;
 };
 
 export type PaginatedOrganizationInvitationList = {
@@ -1848,6 +1901,13 @@ export type PaginatedCalendarListWritable = {
     next?: string | null;
     previous?: string | null;
     results: Array<CalendarWritable>;
+};
+
+export type PaginatedExternalEventChangeRequestListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<unknown>;
 };
 
 export type PaginatedOrganizationInvitationListWritable = {
@@ -4144,6 +4204,49 @@ export type CalendarEventsCreateExceptionFormattedCreateResponses = {
 
 export type CalendarEventsCreateExceptionFormattedCreateResponse = CalendarEventsCreateExceptionFormattedCreateResponses[keyof CalendarEventsCreateExceptionFormattedCreateResponses];
 
+export type CalendarEventsIcsRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/calendar-events/{id}/ics/';
+};
+
+export type CalendarEventsIcsRetrieveResponses = {
+    200: Blob | File;
+};
+
+export type CalendarEventsIcsRetrieveResponse = CalendarEventsIcsRetrieveResponses[keyof CalendarEventsIcsRetrieveResponses];
+
+export type CalendarEventsIcsFormattedRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/calendar-events/{id}/ics{format}';
+};
+
+export type CalendarEventsIcsFormattedRetrieveResponses = {
+    200: Blob | File;
+};
+
+export type CalendarEventsIcsFormattedRetrieveResponse = CalendarEventsIcsFormattedRetrieveResponses[keyof CalendarEventsIcsFormattedRetrieveResponses];
+
 export type CalendarEventsTransferCreateData = {
     body: CalendarEventTransfer;
     headers?: {
@@ -5625,6 +5728,273 @@ export type CalendarResourceFormattedCreateResponses = {
 };
 
 export type CalendarResourceFormattedCreateResponse = CalendarResourceFormattedCreateResponses[keyof CalendarResourceFormattedCreateResponses];
+
+export type ChangeRequestsListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Filter by CalendarEvent ID
+         */
+        event?: number;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * Filter by request status (default: pending)
+         *
+         * * `pending` - Pending
+         * * `approved` - Approved
+         * * `rejected` - Rejected
+         * * `stale` - Stale
+         * * `auto_undone` - Auto-undone
+         */
+        status?: 'approved' | 'auto_undone' | 'pending' | 'rejected' | 'stale';
+    };
+    url: '/change-requests/';
+};
+
+export type ChangeRequestsListResponses = {
+    200: PaginatedExternalEventChangeRequestList;
+};
+
+export type ChangeRequestsListResponse = ChangeRequestsListResponses[keyof ChangeRequestsListResponses];
+
+export type ChangeRequestsFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Filter by CalendarEvent ID
+         */
+        event?: number;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * Filter by request status (default: pending)
+         *
+         * * `pending` - Pending
+         * * `approved` - Approved
+         * * `rejected` - Rejected
+         * * `stale` - Stale
+         * * `auto_undone` - Auto-undone
+         */
+        status?: 'approved' | 'auto_undone' | 'pending' | 'rejected' | 'stale';
+    };
+    url: '/change-requests{format}';
+};
+
+export type ChangeRequestsFormattedListResponses = {
+    200: PaginatedExternalEventChangeRequestList;
+};
+
+export type ChangeRequestsFormattedListResponse = ChangeRequestsFormattedListResponses[keyof ChangeRequestsFormattedListResponses];
+
+export type ChangeRequestsRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/change-requests/{id}/';
+};
+
+export type ChangeRequestsRetrieveResponses = {
+    200: ExternalEventChangeRequest;
+};
+
+export type ChangeRequestsRetrieveResponse = ChangeRequestsRetrieveResponses[keyof ChangeRequestsRetrieveResponses];
+
+export type ChangeRequestsFormattedRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/change-requests/{id}{format}';
+};
+
+export type ChangeRequestsFormattedRetrieveResponses = {
+    200: ExternalEventChangeRequest;
+};
+
+export type ChangeRequestsFormattedRetrieveResponse = ChangeRequestsFormattedRetrieveResponses[keyof ChangeRequestsFormattedRetrieveResponses];
+
+export type ChangeRequestsApproveCreateData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/change-requests/{id}/approve/';
+};
+
+export type ChangeRequestsApproveCreateErrors = {
+    /**
+     * Caller is not eligible to resolve this request.
+     */
+    403: unknown;
+    /**
+     * Request is no longer PENDING.
+     */
+    409: unknown;
+};
+
+export type ChangeRequestsApproveCreateResponses = {
+    200: ExternalEventChangeRequest;
+};
+
+export type ChangeRequestsApproveCreateResponse = ChangeRequestsApproveCreateResponses[keyof ChangeRequestsApproveCreateResponses];
+
+export type ChangeRequestsApproveFormattedCreateData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/change-requests/{id}/approve{format}';
+};
+
+export type ChangeRequestsApproveFormattedCreateErrors = {
+    /**
+     * Caller is not eligible to resolve this request.
+     */
+    403: unknown;
+    /**
+     * Request is no longer PENDING.
+     */
+    409: unknown;
+};
+
+export type ChangeRequestsApproveFormattedCreateResponses = {
+    200: ExternalEventChangeRequest;
+};
+
+export type ChangeRequestsApproveFormattedCreateResponse = ChangeRequestsApproveFormattedCreateResponses[keyof ChangeRequestsApproveFormattedCreateResponses];
+
+export type ChangeRequestsRejectCreateData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/change-requests/{id}/reject/';
+};
+
+export type ChangeRequestsRejectCreateErrors = {
+    /**
+     * No social account for the calendar's provider or no calendar owner.
+     */
+    400: unknown;
+    /**
+     * Caller is not eligible to resolve this request.
+     */
+    403: unknown;
+    /**
+     * Request is no longer PENDING.
+     */
+    409: unknown;
+};
+
+export type ChangeRequestsRejectCreateResponses = {
+    200: ExternalEventChangeRequest;
+};
+
+export type ChangeRequestsRejectCreateResponse = ChangeRequestsRejectCreateResponses[keyof ChangeRequestsRejectCreateResponses];
+
+export type ChangeRequestsRejectFormattedCreateData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/change-requests/{id}/reject{format}';
+};
+
+export type ChangeRequestsRejectFormattedCreateErrors = {
+    /**
+     * No social account for the calendar's provider or no calendar owner.
+     */
+    400: unknown;
+    /**
+     * Caller is not eligible to resolve this request.
+     */
+    403: unknown;
+    /**
+     * Request is no longer PENDING.
+     */
+    409: unknown;
+};
+
+export type ChangeRequestsRejectFormattedCreateResponses = {
+    200: ExternalEventChangeRequest;
+};
+
+export type ChangeRequestsRejectFormattedCreateResponse = ChangeRequestsRejectFormattedCreateResponses[keyof ChangeRequestsRejectFormattedCreateResponses];
 
 export type InvitationsListData = {
     body?: never;
