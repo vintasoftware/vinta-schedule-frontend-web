@@ -470,9 +470,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Download } from 'lucide-react';
 import { ScopePromptDialog } from '@/components/bookings/scope-prompt-dialog';
 import type { RecurringScope } from '@/components/bookings/scope-prompt-dialog';
 import { useCancelBooking } from '@/hooks/bookings/use-cancel-booking';
+import { useDownloadEventIcs } from '@/hooks/events/use-download-event-ics';
 import { RescheduleDialog } from '@/components/bookings/reschedule-dialog';
 import { EditEventDialog } from '@/components/bookings/edit-event-dialog';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
@@ -517,10 +519,23 @@ export function EventAttendeesSheet({
   const [editOpen, setEditOpen] = React.useState(false);
   const [transferOpen, setTransferOpen] = React.useState(false);
   const { cancelBooking } = useCancelBooking();
+  const { downloadEventIcs, downloadEventIcsMutation } = useDownloadEventIcs();
+  const isDownloading = downloadEventIcsMutation.isPending;
 
   if (!event) return null;
 
   const raw = event._raw;
+
+  const handleDownloadIcs = async () => {
+    try {
+      await downloadEventIcs(raw.id, event.title);
+    } catch (err) {
+      toast.error('Failed to download .ics', {
+        description:
+          err instanceof Error ? err.message : 'An unexpected error occurred.',
+      });
+    }
+  };
 
   const handleCancelClick = () => {
     if (event.isRecurring) {
@@ -612,6 +627,18 @@ export function EventAttendeesSheet({
               data-testid='reschedule-event-btn'
             >
               Reschedule event
+            </Button>
+
+            {/* Download .ics action */}
+            <Button
+              variant='outline'
+              className='w-full'
+              onClick={handleDownloadIcs}
+              disabled={isCancelling || isDownloading}
+              data-testid='download-ics-btn'
+            >
+              <Download className='h-4 w-4' />
+              {isDownloading ? 'Downloading…' : 'Download .ics'}
             </Button>
 
             {/* Cancel action */}
