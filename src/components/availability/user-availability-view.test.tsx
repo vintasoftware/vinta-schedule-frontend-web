@@ -2,8 +2,9 @@
  * Tests for UserAvailabilityView component.
  *
  * Covers:
- * - Renders input fields for calendar ID and date range
- * - Shows the resolution gap notice
+ * - Renders the colleague picker and date range inputs
+ * - Shows the resolution notice
+ * - Selecting a colleague resolves their calendar and enables the check
  * - Submitting renders free/busy windows
  * - Free windows are labelled "Free", busy windows "Busy"
  * - No private event titles are shown
@@ -19,13 +20,21 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { UserAvailabilityView } from './user-availability-view';
 import { useUserAvailability } from '@/hooks/availability/use-user-availability';
-import type { AvailableTimeWindow, UnavailableTimeWindow } from '@/client';
+import { useColleagueCalendars } from '@/hooks/availability/use-colleague-calendars';
+import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
+import type {
+  AvailableTimeWindow,
+  UnavailableTimeWindow,
+  Calendar,
+} from '@/client';
 
 // ---------------------------------------------------------------------------
-// Mock the hook
+// Mock the hooks
 // ---------------------------------------------------------------------------
 
 vi.mock('@/hooks/availability/use-user-availability');
+vi.mock('@/hooks/availability/use-colleague-calendars');
+vi.mock('@/hooks/team/use-org-member-search');
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -45,6 +54,18 @@ const FIXTURE_BUSY: UnavailableTimeWindow = {
   end_time: '2025-06-01T14:00:00',
   reason_description: 'Blocked time',
 };
+
+const FIXTURE_MEMBER = {
+  id: 42,
+  name: 'Casey Colleague',
+  email: 'casey@example.com',
+};
+
+const FIXTURE_CALENDAR = {
+  id: 7,
+  name: "Casey's Calendar",
+  calendar_type: 'personal',
+} as unknown as Calendar;
 
 type UseUserAvailabilityReturn = ReturnType<typeof useUserAvailability>;
 
@@ -77,6 +98,16 @@ function makeWrapper() {
   return Wrapper;
 }
 
+/** Selects the colleague and fills the date range so "Check availability" enables. */
+async function selectColleagueAndDates(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    screen.getByRole('combobox', { name: /^colleague$/i })
+  );
+  await user.click(await screen.findByText('Casey Colleague'));
+  await user.type(screen.getByLabelText(/start date/i), '2025-06-01');
+  await user.type(screen.getByLabelText(/end date/i), '2025-06-07');
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -84,16 +115,26 @@ function makeWrapper() {
 describe('UserAvailabilityView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: no results, not loading
     vi.mocked(useUserAvailability).mockReturnValue(makeHookResult());
+    vi.mocked(useOrgMemberSearch).mockReturnValue({
+      members: [FIXTURE_MEMBER],
+      isLoading: false,
+      isError: false,
+    });
+    vi.mocked(useColleagueCalendars).mockReturnValue({
+      calendars: [FIXTURE_CALENDAR],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
   });
 
-  it('renders the calendar ID input and date inputs', () => {
+  it('renders the colleague picker and date inputs', () => {
     const Wrapper = makeWrapper();
     render(<UserAvailabilityView />, { wrapper: Wrapper });
 
     expect(
-      screen.getByLabelText(/colleague.*calendar id/i)
+      screen.getByRole('combobox', { name: /^colleague$/i })
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/start date/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/end date/i)).toBeInTheDocument();
@@ -102,12 +143,12 @@ describe('UserAvailabilityView', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the resolution gap notice', () => {
+  it('renders the resolution notice', () => {
     const Wrapper = makeWrapper();
     render(<UserAvailabilityView />, { wrapper: Wrapper });
 
     expect(
-      screen.getByText(/calendar IDs are not yet exposed/i)
+      screen.getByText(/search for a colleague to check their availability/i)
     ).toBeInTheDocument();
   });
 
@@ -122,7 +163,6 @@ describe('UserAvailabilityView', () => {
   it('renders free windows as "Free" after submitting', async () => {
     const user = userEvent.setup();
 
-    // Initially empty, then after "click" the hook will have data
     vi.mocked(useUserAvailability).mockReturnValue(
       makeHookResult({ freeWindows: [FIXTURE_FREE] })
     );
@@ -130,9 +170,7 @@ describe('UserAvailabilityView', () => {
     const Wrapper = makeWrapper();
     render(<UserAvailabilityView />, { wrapper: Wrapper });
 
-    await user.type(screen.getByLabelText(/colleague.*calendar id/i), '42');
-    await user.type(screen.getByLabelText(/start date/i), '2025-06-01');
-    await user.type(screen.getByLabelText(/end date/i), '2025-06-07');
+    await selectColleagueAndDates(user);
     await user.click(
       screen.getByRole('button', { name: /check availability/i })
     );
@@ -152,9 +190,7 @@ describe('UserAvailabilityView', () => {
     const Wrapper = makeWrapper();
     render(<UserAvailabilityView />, { wrapper: Wrapper });
 
-    await user.type(screen.getByLabelText(/colleague.*calendar id/i), '42');
-    await user.type(screen.getByLabelText(/start date/i), '2025-06-01');
-    await user.type(screen.getByLabelText(/end date/i), '2025-06-07');
+    await selectColleagueAndDates(user);
     await user.click(
       screen.getByRole('button', { name: /check availability/i })
     );
@@ -167,7 +203,6 @@ describe('UserAvailabilityView', () => {
   it('does not render any private event title for free windows', async () => {
     const user = userEvent.setup();
 
-    // Even if the fixture somehow had extra fields, they should not appear
     vi.mocked(useUserAvailability).mockReturnValue(
       makeHookResult({ freeWindows: [FIXTURE_FREE] })
     );
@@ -175,9 +210,7 @@ describe('UserAvailabilityView', () => {
     const Wrapper = makeWrapper();
     render(<UserAvailabilityView />, { wrapper: Wrapper });
 
-    await user.type(screen.getByLabelText(/colleague.*calendar id/i), '42');
-    await user.type(screen.getByLabelText(/start date/i), '2025-06-01');
-    await user.type(screen.getByLabelText(/end date/i), '2025-06-07');
+    await selectColleagueAndDates(user);
     await user.click(
       screen.getByRole('button', { name: /check availability/i })
     );
@@ -186,12 +219,8 @@ describe('UserAvailabilityView', () => {
       expect(screen.getByText('Free')).toBeInTheDocument();
     });
 
-    // The rendered content should not contain any "title" text that could be
-    // a private event detail — the fixture has no title field and the component
-    // must not render one.
     const container = document.body;
     expect(container.textContent).not.toMatch(/private event/i);
-    // No "title" attribute shown as text
     expect(container.textContent).not.toMatch(/^title:/i);
   });
 
@@ -205,9 +234,7 @@ describe('UserAvailabilityView', () => {
     const Wrapper = makeWrapper();
     render(<UserAvailabilityView />, { wrapper: Wrapper });
 
-    await user.type(screen.getByLabelText(/colleague.*calendar id/i), '42');
-    await user.type(screen.getByLabelText(/start date/i), '2025-06-01');
-    await user.type(screen.getByLabelText(/end date/i), '2025-06-07');
+    await selectColleagueAndDates(user);
     await user.click(
       screen.getByRole('button', { name: /check availability/i })
     );
@@ -215,6 +242,32 @@ describe('UserAvailabilityView', () => {
     await waitFor(() => {
       expect(screen.getByText(/blocked time/i)).toBeInTheDocument();
     });
+  });
+
+  it('shows a calendar picker when the colleague has multiple calendars', async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(useColleagueCalendars).mockReturnValue({
+      calendars: [
+        FIXTURE_CALENDAR,
+        { id: 8, name: 'Secondary', calendar_type: 'personal' } as unknown as Calendar,
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    const Wrapper = makeWrapper();
+    render(<UserAvailabilityView />, { wrapper: Wrapper });
+
+    await user.click(
+      screen.getByRole('combobox', { name: /^colleague$/i })
+    );
+    await user.click(await screen.findByText('Casey Colleague'));
+
+    expect(
+      screen.getByRole('combobox', { name: /colleague calendar/i })
+    ).toBeInTheDocument();
   });
 
   it('shows loading state with skeleton when isLoading is true', () => {
@@ -247,9 +300,7 @@ describe('UserAvailabilityView', () => {
     const Wrapper = makeWrapper();
     render(<UserAvailabilityView />, { wrapper: Wrapper });
 
-    await user.type(screen.getByLabelText(/colleague.*calendar id/i), '42');
-    await user.type(screen.getByLabelText(/start date/i), '2025-06-01');
-    await user.type(screen.getByLabelText(/end date/i), '2025-06-07');
+    await selectColleagueAndDates(user);
     await user.click(
       screen.getByRole('button', { name: /check availability/i })
     );
@@ -271,9 +322,7 @@ describe('UserAvailabilityView', () => {
     const Wrapper = makeWrapper();
     render(<UserAvailabilityView />, { wrapper: Wrapper });
 
-    await user.type(screen.getByLabelText(/colleague.*calendar id/i), '42');
-    await user.type(screen.getByLabelText(/start date/i), '2025-06-01');
-    await user.type(screen.getByLabelText(/end date/i), '2025-06-07');
+    await selectColleagueAndDates(user);
     await user.click(
       screen.getByRole('button', { name: /check availability/i })
     );

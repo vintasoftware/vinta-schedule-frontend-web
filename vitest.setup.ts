@@ -20,6 +20,14 @@ if (!document.elementFromPoint) {
   document.elementFromPoint = () => null;
 }
 
+// Polyfill Element.scrollIntoView for tests — jsdom doesn't implement it, and
+// cmdk (the combobox/command list) calls it to reveal the active item.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function scrollIntoView() {
+    // no-op: layout/scrolling isn't simulated in jsdom
+  };
+}
+
 afterEach(() => {
   cleanup();
   localStorage.clear();
