@@ -1,7 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Trash2, RotateCw, Cloud, EyeOff, Eye } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  RotateCw,
+  Cloud,
+  EyeOff,
+  Eye,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
@@ -28,6 +36,7 @@ import { useToggleCalendarSync } from '@/hooks/calendars/use-toggle-calendar-syn
 import { useToggleCalendarManageWindows } from '@/hooks/calendars/use-toggle-calendar-manage-windows';
 import { useSetCalendarVisibility } from '@/hooks/calendars/use-set-calendar-visibility';
 import { CreateCalendarDialog } from './create-calendar-dialog';
+import { CalendarBookingRulesDialog } from '@/components/booking-policies/calendar-booking-rules-dialog';
 
 // ---------------------------------------------------------------------------
 // Badge variant maps for calendar properties
@@ -76,7 +85,8 @@ export function createColumns(
   onSync: (row: Calendar) => Promise<void>,
   onToggleSync: (row: Calendar, next: boolean) => Promise<void>,
   onToggleManageWindows: (row: Calendar, next: boolean) => Promise<void>,
-  onToggleUnlisted: (row: Calendar) => Promise<void>
+  onToggleUnlisted: (row: Calendar) => Promise<void>,
+  onEditRules: (row: Calendar) => void
 ): DataTableColumn<Calendar>[] {
   return [
     {
@@ -149,6 +159,11 @@ export function createColumns(
       enableSorting: false,
       cell: ({ row }) => (
         <HStack gap={2}>
+          <BookingRulesButton
+            calendar={row.original}
+            isLoading={pendingRowIds.has(row.original.id)}
+            onEditRules={onEditRules}
+          />
           <SyncButton
             calendar={row.original}
             isLoading={pendingRowIds.has(row.original.id)}
@@ -177,7 +192,8 @@ export const COLUMNS = createColumns(
   async () => {},
   async () => {},
   async () => {},
-  async () => {}
+  async () => {},
+  () => {}
 );
 
 // ---------------------------------------------------------------------------
@@ -233,6 +249,36 @@ function ManageWindowsToggle({
 }
 
 // ---------------------------------------------------------------------------
+// BookingRulesButton — per-row action to open the self-service booking-rules
+// editor for a calendar the member owns (lead time, horizon, buffers).
+// ---------------------------------------------------------------------------
+
+interface BookingRulesButtonProps {
+  calendar: Calendar;
+  isLoading: boolean;
+  onEditRules: (calendar: Calendar) => void;
+}
+
+function BookingRulesButton({
+  calendar,
+  isLoading,
+  onEditRules,
+}: BookingRulesButtonProps) {
+  return (
+    <Button
+      size='sm'
+      variant='outline'
+      onClick={() => onEditRules(calendar)}
+      disabled={isLoading}
+      aria-label={`Edit booking rules for ${calendar.name}`}
+    >
+      <SlidersHorizontal className='mr-1 size-4' aria-hidden />
+      Booking rules
+    </Button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // SyncButton — per-row action to request a calendar sync (fire-and-toast)
 // ---------------------------------------------------------------------------
 
@@ -277,7 +323,11 @@ interface UnlistButtonProps {
   onToggleUnlisted: (calendar: Calendar) => Promise<void>;
 }
 
-function UnlistButton({ calendar, isLoading, onToggleUnlisted }: UnlistButtonProps) {
+function UnlistButton({
+  calendar,
+  isLoading,
+  onToggleUnlisted,
+}: UnlistButtonProps) {
   const isUnlisted = calendar.visibility === 'unlisted';
   return (
     <Button
@@ -392,6 +442,9 @@ function CalendarsTableEmpty() {
 
 function CalendarsTableInner() {
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [rulesCalendar, setRulesCalendar] = React.useState<Calendar | null>(
+    null
+  );
   const [pendingRowIds, setPendingRowIds] = React.useState<Set<number>>(
     new Set()
   );
@@ -606,7 +659,8 @@ function CalendarsTableInner() {
     handleSync,
     handleToggleSync,
     handleToggleManageWindows,
-    handleToggleUnlisted
+    handleToggleUnlisted,
+    setRulesCalendar
   );
 
   return (
@@ -623,6 +677,16 @@ function CalendarsTableInner() {
         toolbarActions={toolbarActions}
       />
       <CreateCalendarDialog open={createOpen} onOpenChange={setCreateOpen} />
+      {rulesCalendar && (
+        <CalendarBookingRulesDialog
+          open={rulesCalendar !== null}
+          onOpenChange={(open) => {
+            if (!open) setRulesCalendar(null);
+          }}
+          calendarId={rulesCalendar.id}
+          calendarName={rulesCalendar.name}
+        />
+      )}
     </>
   );
 }

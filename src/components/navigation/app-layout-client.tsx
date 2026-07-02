@@ -13,6 +13,7 @@ import {
   Settings,
   Webhook,
   GitPullRequestArrow,
+  ShieldCheck,
 } from 'lucide-react';
 
 import { CreateOrganizationDialog } from '@/components/organizations/create-organization-dialog';
@@ -87,6 +88,12 @@ const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
     href: '/groups',
   },
   { id: 'bundles', label: 'Bundles', icon: Calendar, href: '/bundles' },
+  {
+    id: 'booking-policies',
+    label: 'Booking policies',
+    icon: ShieldCheck,
+    href: '/booking-policies',
+  },
   {
     id: 'sync-settings',
     label: 'Sync settings',

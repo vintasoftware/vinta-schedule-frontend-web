@@ -44,6 +44,7 @@ export type ActionEnum = 'create' | 'update' | 'delete';
  * * `calendar_booking_code` - Calendar Booking Code
  * * `create_resource_calendar` - Create Resource Calendar
  * * `disable_resource_calendar` - Disable Resource Calendar
+ * * `update_resource_calendar` - Update Resource Calendar
  * * `import_resource_calendars` - Import Resource Calendars
  * * `create_availability_window` - Create Availability Window
  * * `update_availability_window` - Update Availability Window
@@ -60,8 +61,9 @@ export type ActionEnum = 'create' | 'update' | 'delete';
  * * `disable_calendar_bundle` - Disable Calendar Bundle
  * * `webhook_configuration` - Webhook Configuration
  * * `external_event_change_request` - External Event Change Request
+ * * `booking_policy` - Booking Policy
  */
-export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics' | 'calendar_booking_code' | 'create_resource_calendar' | 'disable_resource_calendar' | 'import_resource_calendars' | 'create_availability_window' | 'update_availability_window' | 'delete_availability_window' | 'batch_update_availability_windows' | 'create_blocked_time' | 'update_blocked_time' | 'delete_blocked_time' | 'calendar_bundle' | 'create_calendar' | 'update_calendar' | 'create_calendar_bundle' | 'update_calendar_bundle' | 'disable_calendar_bundle' | 'webhook_configuration' | 'external_event_change_request';
+export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics' | 'calendar_booking_code' | 'create_resource_calendar' | 'disable_resource_calendar' | 'update_resource_calendar' | 'import_resource_calendars' | 'create_availability_window' | 'update_availability_window' | 'delete_availability_window' | 'batch_update_availability_windows' | 'create_blocked_time' | 'update_blocked_time' | 'delete_blocked_time' | 'calendar_bundle' | 'create_calendar' | 'update_calendar' | 'create_calendar_bundle' | 'update_calendar_bundle' | 'disable_calendar_bundle' | 'webhook_configuration' | 'external_event_change_request' | 'booking_policy';
 
 /**
  * Serializer for AvailableTime model with recurring support.
@@ -272,6 +274,40 @@ export type BlockedTimeRecurringException = {
 export type BookableSlotProposal = {
     start_time: string;
     end_time: string;
+};
+
+/**
+ * Serializer for ``BookingPolicy`` CRUD.
+ *
+ * Exactly one of ``calendar``, ``membership_user_id``, ``calendar_group``, or
+ * ``is_organization_default`` must be set on create.  Targets are immutable
+ * after creation — only the four rule-field seconds are writable on update.
+ *
+ * Validation:
+ * - ``validate()`` enforces the exactly-one-target invariant on create.
+ * - ``validate_membership_user_id()`` checks that the supplied user id belongs
+ * to the caller's organization (on create only; targets are immutable on update).
+ * - ``DuplicateBookingPolicyError`` from the service is caught and surfaced as
+ * a 400 validation error so the client gets a named conflict message.
+ * - The four rule fields use ``min_value=0`` so DRF rejects negatives with a
+ * clear field-level 400 before the value reaches the model's
+ * ``PositiveIntegerField`` constraint.
+ *
+ * Write paths (create / update) delegate to ``BookingPolicyService`` stored on
+ * the serializer context as ``"booking_policy_service"`` (the viewset sets it).
+ */
+export type BookingPolicy = {
+    readonly id: number;
+    calendar?: number | null;
+    calendar_group?: number | null;
+    membership_user_id?: number | null;
+    is_organization_default?: boolean;
+    lead_time_seconds?: number;
+    max_horizon_seconds?: number;
+    buffer_before_seconds?: number;
+    buffer_after_seconds?: number;
+    readonly created: string;
+    readonly modified: string;
 };
 
 /**
@@ -880,6 +916,13 @@ export type PaginatedBookableSlotProposalList = {
     results: Array<BookableSlotProposal>;
 };
 
+export type PaginatedBookingPolicyList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<BookingPolicy>;
+};
+
 export type PaginatedCalendarEventList = {
     count: number;
     next?: string | null;
@@ -1046,6 +1089,40 @@ export type PatchedBlockedTime = {
     readonly created?: string;
     readonly modified?: string;
     calendar?: number | null;
+};
+
+/**
+ * Serializer for ``BookingPolicy`` CRUD.
+ *
+ * Exactly one of ``calendar``, ``membership_user_id``, ``calendar_group``, or
+ * ``is_organization_default`` must be set on create.  Targets are immutable
+ * after creation — only the four rule-field seconds are writable on update.
+ *
+ * Validation:
+ * - ``validate()`` enforces the exactly-one-target invariant on create.
+ * - ``validate_membership_user_id()`` checks that the supplied user id belongs
+ * to the caller's organization (on create only; targets are immutable on update).
+ * - ``DuplicateBookingPolicyError`` from the service is caught and surfaced as
+ * a 400 validation error so the client gets a named conflict message.
+ * - The four rule fields use ``min_value=0`` so DRF rejects negatives with a
+ * clear field-level 400 before the value reaches the model's
+ * ``PositiveIntegerField`` constraint.
+ *
+ * Write paths (create / update) delegate to ``BookingPolicyService`` stored on
+ * the serializer context as ``"booking_policy_service"`` (the viewset sets it).
+ */
+export type PatchedBookingPolicy = {
+    readonly id?: number;
+    calendar?: number | null;
+    calendar_group?: number | null;
+    membership_user_id?: number | null;
+    is_organization_default?: boolean;
+    lead_time_seconds?: number;
+    max_horizon_seconds?: number;
+    buffer_before_seconds?: number;
+    buffer_after_seconds?: number;
+    readonly created?: string;
+    readonly modified?: string;
 };
 
 export type PatchedCalendar = {
@@ -1704,6 +1781,37 @@ export type BlockedTimeBulkModificationWritable = {
 };
 
 /**
+ * Serializer for ``BookingPolicy`` CRUD.
+ *
+ * Exactly one of ``calendar``, ``membership_user_id``, ``calendar_group``, or
+ * ``is_organization_default`` must be set on create.  Targets are immutable
+ * after creation — only the four rule-field seconds are writable on update.
+ *
+ * Validation:
+ * - ``validate()`` enforces the exactly-one-target invariant on create.
+ * - ``validate_membership_user_id()`` checks that the supplied user id belongs
+ * to the caller's organization (on create only; targets are immutable on update).
+ * - ``DuplicateBookingPolicyError`` from the service is caught and surfaced as
+ * a 400 validation error so the client gets a named conflict message.
+ * - The four rule fields use ``min_value=0`` so DRF rejects negatives with a
+ * clear field-level 400 before the value reaches the model's
+ * ``PositiveIntegerField`` constraint.
+ *
+ * Write paths (create / update) delegate to ``BookingPolicyService`` stored on
+ * the serializer context as ``"booking_policy_service"`` (the viewset sets it).
+ */
+export type BookingPolicyWritable = {
+    calendar?: number | null;
+    calendar_group?: number | null;
+    membership_user_id?: number | null;
+    is_organization_default?: boolean;
+    lead_time_seconds?: number;
+    max_horizon_seconds?: number;
+    buffer_before_seconds?: number;
+    buffer_after_seconds?: number;
+};
+
+/**
  * Serializer for creating multiple blocked times.
  */
 export type BulkBlockedTimeWritable = {
@@ -1906,6 +2014,13 @@ export type PaginatedBlockedTimeListWritable = {
     results: Array<BlockedTimeWritable>;
 };
 
+export type PaginatedBookingPolicyListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<BookingPolicyWritable>;
+};
+
 export type PaginatedCalendarEventListWritable = {
     count: number;
     next?: string | null;
@@ -2031,6 +2146,37 @@ export type PatchedBlockedTimeWritable = {
      */
     rrule_string?: string;
     calendar?: number | null;
+};
+
+/**
+ * Serializer for ``BookingPolicy`` CRUD.
+ *
+ * Exactly one of ``calendar``, ``membership_user_id``, ``calendar_group``, or
+ * ``is_organization_default`` must be set on create.  Targets are immutable
+ * after creation — only the four rule-field seconds are writable on update.
+ *
+ * Validation:
+ * - ``validate()`` enforces the exactly-one-target invariant on create.
+ * - ``validate_membership_user_id()`` checks that the supplied user id belongs
+ * to the caller's organization (on create only; targets are immutable on update).
+ * - ``DuplicateBookingPolicyError`` from the service is caught and surfaced as
+ * a 400 validation error so the client gets a named conflict message.
+ * - The four rule fields use ``min_value=0`` so DRF rejects negatives with a
+ * clear field-level 400 before the value reaches the model's
+ * ``PositiveIntegerField`` constraint.
+ *
+ * Write paths (create / update) delegate to ``BookingPolicyService`` stored on
+ * the serializer context as ``"booking_policy_service"`` (the viewset sets it).
+ */
+export type PatchedBookingPolicyWritable = {
+    calendar?: number | null;
+    calendar_group?: number | null;
+    membership_user_id?: number | null;
+    is_organization_default?: boolean;
+    lead_time_seconds?: number;
+    max_horizon_seconds?: number;
+    buffer_before_seconds?: number;
+    buffer_after_seconds?: number;
 };
 
 export type PatchedCalendarWritable = {
@@ -3537,6 +3683,282 @@ export type BlockedTimesExpandedFormattedListResponses = {
 };
 
 export type BlockedTimesExpandedFormattedListResponse = BlockedTimesExpandedFormattedListResponses[keyof BlockedTimesExpandedFormattedListResponses];
+
+export type BookingPoliciesListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/booking-policies/';
+};
+
+export type BookingPoliciesListResponses = {
+    200: PaginatedBookingPolicyList;
+};
+
+export type BookingPoliciesListResponse = BookingPoliciesListResponses[keyof BookingPoliciesListResponses];
+
+export type BookingPoliciesCreateData = {
+    body?: BookingPolicyWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/booking-policies/';
+};
+
+export type BookingPoliciesCreateResponses = {
+    201: BookingPolicy;
+};
+
+export type BookingPoliciesCreateResponse = BookingPoliciesCreateResponses[keyof BookingPoliciesCreateResponses];
+
+export type BookingPoliciesFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/booking-policies{format}';
+};
+
+export type BookingPoliciesFormattedListResponses = {
+    200: PaginatedBookingPolicyList;
+};
+
+export type BookingPoliciesFormattedListResponse = BookingPoliciesFormattedListResponses[keyof BookingPoliciesFormattedListResponses];
+
+export type BookingPoliciesFormattedCreateData = {
+    body?: BookingPolicyWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/booking-policies{format}';
+};
+
+export type BookingPoliciesFormattedCreateResponses = {
+    201: BookingPolicy;
+};
+
+export type BookingPoliciesFormattedCreateResponse = BookingPoliciesFormattedCreateResponses[keyof BookingPoliciesFormattedCreateResponses];
+
+export type BookingPoliciesDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/booking-policies/{id}/';
+};
+
+export type BookingPoliciesDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type BookingPoliciesDestroyResponse = BookingPoliciesDestroyResponses[keyof BookingPoliciesDestroyResponses];
+
+export type BookingPoliciesRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/booking-policies/{id}/';
+};
+
+export type BookingPoliciesRetrieveResponses = {
+    200: BookingPolicy;
+};
+
+export type BookingPoliciesRetrieveResponse = BookingPoliciesRetrieveResponses[keyof BookingPoliciesRetrieveResponses];
+
+export type BookingPoliciesPartialUpdateData = {
+    body?: PatchedBookingPolicyWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/booking-policies/{id}/';
+};
+
+export type BookingPoliciesPartialUpdateResponses = {
+    200: BookingPolicy;
+};
+
+export type BookingPoliciesPartialUpdateResponse = BookingPoliciesPartialUpdateResponses[keyof BookingPoliciesPartialUpdateResponses];
+
+export type BookingPoliciesUpdateData = {
+    body?: BookingPolicyWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/booking-policies/{id}/';
+};
+
+export type BookingPoliciesUpdateResponses = {
+    200: BookingPolicy;
+};
+
+export type BookingPoliciesUpdateResponse = BookingPoliciesUpdateResponses[keyof BookingPoliciesUpdateResponses];
+
+export type BookingPoliciesFormattedDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/booking-policies/{id}{format}';
+};
+
+export type BookingPoliciesFormattedDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type BookingPoliciesFormattedDestroyResponse = BookingPoliciesFormattedDestroyResponses[keyof BookingPoliciesFormattedDestroyResponses];
+
+export type BookingPoliciesFormattedRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/booking-policies/{id}{format}';
+};
+
+export type BookingPoliciesFormattedRetrieveResponses = {
+    200: BookingPolicy;
+};
+
+export type BookingPoliciesFormattedRetrieveResponse = BookingPoliciesFormattedRetrieveResponses[keyof BookingPoliciesFormattedRetrieveResponses];
+
+export type BookingPoliciesFormattedPartialUpdateData = {
+    body?: PatchedBookingPolicyWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/booking-policies/{id}{format}';
+};
+
+export type BookingPoliciesFormattedPartialUpdateResponses = {
+    200: BookingPolicy;
+};
+
+export type BookingPoliciesFormattedPartialUpdateResponse = BookingPoliciesFormattedPartialUpdateResponses[keyof BookingPoliciesFormattedPartialUpdateResponses];
+
+export type BookingPoliciesFormattedUpdateData = {
+    body?: BookingPolicyWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/booking-policies/{id}{format}';
+};
+
+export type BookingPoliciesFormattedUpdateResponses = {
+    200: BookingPolicy;
+};
+
+export type BookingPoliciesFormattedUpdateResponse = BookingPoliciesFormattedUpdateResponses[keyof BookingPoliciesFormattedUpdateResponses];
 
 export type BrandingRetrieveData = {
     body?: never;
