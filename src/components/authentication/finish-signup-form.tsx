@@ -3,11 +3,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AuthLayout } from '@/components/layout/auth-layout';
-import { Heading, Text } from '@/components/layout';
+import { Heading, Text, HStack } from '@/components/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -48,15 +50,29 @@ const providerSignupSchema = z.object({
   phone: z.string().regex(/^\+[1-9]\d{1,14}$/, {
     message: 'Enter a phone number in international format, e.g. +14155552671',
   }),
+  // Two distinct, always-unchecked opt-ins (Twilio/TCPA require SMS consent
+  // to be its own explicit checkbox — never merged, never pre-checked).
+  accepted_terms: z.boolean().refine((v) => v === true, {
+    message: 'You must agree to the Privacy Policy and Terms of Use.',
+  }),
+  accepted_sms_consent: z.boolean().refine((v) => v === true, {
+    message: 'You must agree to receive SMS messages.',
+  }),
 });
 
 type ProviderSignupSchema = z.infer<typeof providerSignupSchema>;
 
+// Used to map backend 400 field errors (`fieldError.param`) onto the right
+// form field via `form.setError`. Not used for pre-filling — consent fields
+// are never pre-filled from the provider, but they can still receive a
+// field-level 400 error from the backend, so they belong here too.
 const FIELD_NAMES: Array<keyof ProviderSignupSchema> = [
   'first_name',
   'last_name',
   'email',
   'phone',
+  'accepted_terms',
+  'accepted_sms_consent',
 ];
 
 function isFieldName(param: string): param is keyof ProviderSignupSchema {
@@ -90,13 +106,16 @@ export function FinishSignupForm({
       last_name: '',
       email: '',
       phone: '',
+      accepted_terms: false,
+      accepted_sms_consent: false,
     },
   });
 
   // Prefill from the pending social login (GET /auth/provider/signup).
   useEffect(() => {
     if (providerInfo && providerInfo.data) {
-      const user = (providerInfo.data.user || {}) as unknown as PendingSignupUser;
+      const user = (providerInfo.data.user ||
+        {}) as unknown as PendingSignupUser;
       let email = '';
       if (Array.isArray(providerInfo.data.email)) {
         const primary = providerInfo.data.email.find(
@@ -109,6 +128,9 @@ export function FinishSignupForm({
         last_name: user?.profile?.last_name || '',
         email,
         phone: user?.phone_number || '',
+        // Consent is never pre-filled from the provider — always unchecked.
+        accepted_terms: false,
+        accepted_sms_consent: false,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -283,6 +305,68 @@ export function FinishSignupForm({
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='accepted_terms'
+              render={({ field }) => (
+                <FormItem>
+                  <HStack gap={2} align='start'>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid='accepted-terms-checkbox'
+                      />
+                    </FormControl>
+                    <FormLabel className='mb-0 leading-snug font-normal'>
+                      I agree to the{' '}
+                      <Link
+                        href='/privacy'
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='text-primary hover:underline'
+                      >
+                        Privacy Policy
+                      </Link>{' '}
+                      and{' '}
+                      <Link
+                        href='/terms'
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='text-primary hover:underline'
+                      >
+                        Terms of Use
+                      </Link>
+                      .
+                    </FormLabel>
+                  </HStack>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='accepted_sms_consent'
+              render={({ field }) => (
+                <FormItem>
+                  <HStack gap={2} align='start'>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid='accepted-sms-consent-checkbox'
+                      />
+                    </FormControl>
+                    <FormLabel className='mb-0 leading-snug font-normal'>
+                      I agree to receive SMS text messages (e.g. verification
+                      codes) at the phone number I provide. Msg &amp; data rates
+                      may apply.
+                    </FormLabel>
+                  </HStack>
                   <FormMessage />
                 </FormItem>
               )}
