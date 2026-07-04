@@ -159,12 +159,20 @@ path when shipped.
 
 ---
 
+## Change-Phone Consent (SMS MFA Consent Frontend — Phase 7)
+
+| ID    | Role   | Happy-path description                                                                                                                                                                                                                                     | Spec path                                                                                              |
+| ----- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| PR043 | member | Signed-in member changes/adds their account phone number; the app records `sms_consent` for the new number before requesting a verification code, and a `400` on the consent call blocks the code request with a clear message instead of silently failing | N/A — unit test only (`src/components/account-security/phone-section.test.tsx`), no e2e spec by design |
+
+---
+
 ## Counts
 
 | Category      | Count  |
 | ------------- | ------ |
-| Member (`PR`) | 28     |
+| Member (`PR`) | 29     |
 | Admin (`PA`)  | 14     |
-| **Total**     | **42** |
+| **Total**     | **43** |
 
-_Foundation smoke (PR000) is not counted in the 42 use-cases — it is harness scaffolding. PR039–PR042 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–5._
+_Foundation smoke (PR000) is not counted in the 43 use-cases — it is harness scaffolding. PR039–PR043 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–7._
