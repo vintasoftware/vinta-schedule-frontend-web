@@ -16,6 +16,7 @@
 - └ `plan/sms-mfa-consent-frontend/base` — PR #57 (regenerated client + plan docs)
 -   └ `plan/sms-mfa-consent-frontend/phase-1` — PR #58
 -     └ `plan/sms-mfa-consent-frontend/phase-2` — PR #59
+-       └ `plan/sms-mfa-consent-frontend/phase-3` — PR #60
 
 ## Known interim condition
 `npm run typecheck`/`build` fail on ONE file, `src/app/auth/signup/page.tsx`, because the base branch regenerated the client (accepted_terms/accepted_sms_consent now required on Signup) but the signup form isn't updated until **Phase 4**. Anticipated by the plan's Risk & Rollout Notes. Full `npm run test` is green throughout. Green typecheck/build restored at Phase 4.
@@ -34,11 +35,15 @@
 - **Summary**: public async server route, no auth wrapper, `metadata.title`, Section+Container(prose), consumes `fetchLatestPolicyDocument('privacy_policy')` + `PolicyDocumentView`. Fix from review: idiomatic direct `<PolicyDocumentView .../>` JSX (was await-and-embed); page test mocks the child and asserts wiring only. 989 tests green.
 - **Follow-up (confirmed, backend content)**: duplicate title/two-h1 if backend `body_markdown` leads with the title — plan/handoff both specify rendering title separately; raise with backend content authors.
 
+### Phase 3 — Terms of Use page (/terms) ✅
+- **Status**: done. Model: haiku (Tier 1 suggested). Branch `.../phase-3` (base: `.../phase-2`). PR #60.
+- **Files**: `src/app/terms/page.tsx` (+test), `QA_USE_CASES.md` (added PR040).
+- **Summary**: line-for-line mirror of Phase 2 for `terms_of_use` + "Terms of Use" title; direct-JSX PolicyDocumentView; test mocks child+fetch, asserts wiring. Verified as faithful mirror of reviewed Phase 2 (Layer 3 satisfied by diff comparison). 991 tests green.
+
 ## Current phase
-Phase 3 — Terms of Use page (/terms)
+Phase 4 — Email/password signup consent checkboxes (restores green typecheck/build)
 
 ## Remaining phases
-- Phase 3 — Terms of Use page (/terms)
 - Phase 4 — Email/password signup consent checkboxes (restores green typecheck/build)
 - Phase 5 — Social finish-signup consent checkboxes
 - Phase 6 — Consent hook + consent_required detector
