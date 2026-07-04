@@ -7426,6 +7426,88 @@ paths:
           description: Caller is not eligible to resolve this request.
         '409':
           description: Request is no longer PENDING.
+  /consents/:
+    post:
+      operationId: consents_create
+      description: |-
+        POST /consents/ — record acceptance of `document_type` for the current user.
+
+        Authenticated only. Captures client IP + User-Agent for audit-grade
+        proof; delegates version resolution + persistence to `ConsentService`.
+      summary: Record the authenticated user's consent to a policy document type
+      tags:
+        - Legal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConsentCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConsentCreate'
+        required: true
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserConsent'
+          description: ''
+        '400':
+          description:
+            Invalid document_type, or no published document of that type
+            yet
+  /consents{format}:
+    post:
+      operationId: consents_formatted_create
+      description: |-
+        POST /consents/ — record acceptance of `document_type` for the current user.
+
+        Authenticated only. Captures client IP + User-Agent for audit-grade
+        proof; delegates version resolution + persistence to `ConsentService`.
+      summary: Record the authenticated user's consent to a policy document type
+      parameters:
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+      tags:
+        - Legal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConsentCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConsentCreate'
+        required: true
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserConsent'
+          description: ''
+        '400':
+          description:
+            Invalid document_type, or no published document of that type
+            yet
   /invitations/:
     get:
       operationId: invitations_list
@@ -9816,6 +9898,382 @@ paths:
               schema:
                 description: Subscription payment update received.
           description: ''
+  /policy-documents/:
+    get:
+      operationId: policy_documents_list
+      description: |-
+        Read-only REST surface for policy documents.
+
+        ``PolicyDocument`` is a global, non-tenant-scoped model (privacy policy,
+        terms of use, SMS-messaging consent). This viewset intentionally does not
+        build on the ``*VintaScheduleModelViewSet`` family: those bases mix in
+        ``TenantScopedViewMixin`` (irrelevant — no organization here) and
+        ``GenericVirtualModelViewMixin`` (requires a ``VirtualModelSerializer``
+        with a ``virtual_model``, which this flat, no-N+1 serializer doesn't need).
+        A plain DRF ``ReadOnlyModelViewSet`` mirrors the existing precedent in
+        ``organizations.views.ServiceAccountViewSet`` for this shape.
+
+        Auth split (per the plan's Open Questions):
+        - ``latest`` / ``latest_by_type`` are **public** (``AllowAny``) — the
+          frontend must be able to render policy text before a session exists
+          (mid-signup, pre-OAuth-completion).
+        - ``list`` (full history) / ``retrieve`` (by id) require authentication —
+          these expose the full version history rather than just the
+          currently-relevant text, so they stay behind the default auth gate.
+
+        No write surface is exposed anywhere on this viewset.
+      parameters:
+        - in: query
+          name: document_type
+          schema:
+            type: string
+            enum:
+              - privacy_policy
+              - sms_consent
+              - terms_of_use
+          description: |-
+            Filter by document type
+
+            * `privacy_policy` - Privacy Policy
+            * `terms_of_use` - Terms of Use
+            * `sms_consent` - SMS Messaging Consent
+        - name: limit
+          required: false
+          in: query
+          description: Number of results to return per page.
+          schema:
+            type: integer
+        - name: offset
+          required: false
+          in: query
+          description: The initial index from which to return the results.
+          schema:
+            type: integer
+      tags:
+        - Legal
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPolicyDocumentList'
+          description: ''
+  /policy-documents{format}:
+    get:
+      operationId: policy_documents_formatted_list
+      description: |-
+        Read-only REST surface for policy documents.
+
+        ``PolicyDocument`` is a global, non-tenant-scoped model (privacy policy,
+        terms of use, SMS-messaging consent). This viewset intentionally does not
+        build on the ``*VintaScheduleModelViewSet`` family: those bases mix in
+        ``TenantScopedViewMixin`` (irrelevant — no organization here) and
+        ``GenericVirtualModelViewMixin`` (requires a ``VirtualModelSerializer``
+        with a ``virtual_model``, which this flat, no-N+1 serializer doesn't need).
+        A plain DRF ``ReadOnlyModelViewSet`` mirrors the existing precedent in
+        ``organizations.views.ServiceAccountViewSet`` for this shape.
+
+        Auth split (per the plan's Open Questions):
+        - ``latest`` / ``latest_by_type`` are **public** (``AllowAny``) — the
+          frontend must be able to render policy text before a session exists
+          (mid-signup, pre-OAuth-completion).
+        - ``list`` (full history) / ``retrieve`` (by id) require authentication —
+          these expose the full version history rather than just the
+          currently-relevant text, so they stay behind the default auth gate.
+
+        No write surface is exposed anywhere on this viewset.
+      parameters:
+        - in: query
+          name: document_type
+          schema:
+            type: string
+            enum:
+              - privacy_policy
+              - sms_consent
+              - terms_of_use
+          description: |-
+            Filter by document type
+
+            * `privacy_policy` - Privacy Policy
+            * `terms_of_use` - Terms of Use
+            * `sms_consent` - SMS Messaging Consent
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+        - name: limit
+          required: false
+          in: query
+          description: Number of results to return per page.
+          schema:
+            type: integer
+        - name: offset
+          required: false
+          in: query
+          description: The initial index from which to return the results.
+          schema:
+            type: integer
+      tags:
+        - Legal
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPolicyDocumentList'
+          description: ''
+  /policy-documents/{id}/:
+    get:
+      operationId: policy_documents_retrieve
+      description: |-
+        Read-only REST surface for policy documents.
+
+        ``PolicyDocument`` is a global, non-tenant-scoped model (privacy policy,
+        terms of use, SMS-messaging consent). This viewset intentionally does not
+        build on the ``*VintaScheduleModelViewSet`` family: those bases mix in
+        ``TenantScopedViewMixin`` (irrelevant — no organization here) and
+        ``GenericVirtualModelViewMixin`` (requires a ``VirtualModelSerializer``
+        with a ``virtual_model``, which this flat, no-N+1 serializer doesn't need).
+        A plain DRF ``ReadOnlyModelViewSet`` mirrors the existing precedent in
+        ``organizations.views.ServiceAccountViewSet`` for this shape.
+
+        Auth split (per the plan's Open Questions):
+        - ``latest`` / ``latest_by_type`` are **public** (``AllowAny``) — the
+          frontend must be able to render policy text before a session exists
+          (mid-signup, pre-OAuth-completion).
+        - ``list`` (full history) / ``retrieve`` (by id) require authentication —
+          these expose the full version history rather than just the
+          currently-relevant text, so they stay behind the default auth gate.
+
+        No write surface is exposed anywhere on this viewset.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      tags:
+        - Legal
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyDocument'
+          description: ''
+  /policy-documents/{id}{format}:
+    get:
+      operationId: policy_documents_formatted_retrieve
+      description: |-
+        Read-only REST surface for policy documents.
+
+        ``PolicyDocument`` is a global, non-tenant-scoped model (privacy policy,
+        terms of use, SMS-messaging consent). This viewset intentionally does not
+        build on the ``*VintaScheduleModelViewSet`` family: those bases mix in
+        ``TenantScopedViewMixin`` (irrelevant — no organization here) and
+        ``GenericVirtualModelViewMixin`` (requires a ``VirtualModelSerializer``
+        with a ``virtual_model``, which this flat, no-N+1 serializer doesn't need).
+        A plain DRF ``ReadOnlyModelViewSet`` mirrors the existing precedent in
+        ``organizations.views.ServiceAccountViewSet`` for this shape.
+
+        Auth split (per the plan's Open Questions):
+        - ``latest`` / ``latest_by_type`` are **public** (``AllowAny``) — the
+          frontend must be able to render policy text before a session exists
+          (mid-signup, pre-OAuth-completion).
+        - ``list`` (full history) / ``retrieve`` (by id) require authentication —
+          these expose the full version history rather than just the
+          currently-relevant text, so they stay behind the default auth gate.
+
+        No write surface is exposed anywhere on this viewset.
+      parameters:
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      tags:
+        - Legal
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyDocument'
+          description: ''
+  /policy-documents/latest/:
+    get:
+      operationId: policy_documents_latest_list
+      description: |-
+        GET /policy-documents/latest/ — one row per document_type (highest version).
+
+        Public — no authentication required.
+      summary: List the latest published version of each policy document type
+      parameters:
+        - in: query
+          name: document_type
+          schema:
+            type: string
+            enum:
+              - privacy_policy
+              - sms_consent
+              - terms_of_use
+          description: |-
+            Filter by document type
+
+            * `privacy_policy` - Privacy Policy
+            * `terms_of_use` - Terms of Use
+            * `sms_consent` - SMS Messaging Consent
+      tags:
+        - Legal
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+        - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PolicyDocument'
+          description: ''
+  /policy-documents/latest{format}:
+    get:
+      operationId: policy_documents_latest_formatted_list
+      description: |-
+        GET /policy-documents/latest/ — one row per document_type (highest version).
+
+        Public — no authentication required.
+      summary: List the latest published version of each policy document type
+      parameters:
+        - in: query
+          name: document_type
+          schema:
+            type: string
+            enum:
+              - privacy_policy
+              - sms_consent
+              - terms_of_use
+          description: |-
+            Filter by document type
+
+            * `privacy_policy` - Privacy Policy
+            * `terms_of_use` - Terms of Use
+            * `sms_consent` - SMS Messaging Consent
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+      tags:
+        - Legal
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+        - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PolicyDocument'
+          description: ''
+  /policy-documents/latest/{document_type}/:
+    get:
+      operationId: policy_documents_latest_retrieve
+      description: |-
+        GET /policy-documents/latest/{document_type}/ — highest version of one type.
+
+        Public — no authentication required. 404s on an unknown enum value or a
+        type with no published rows yet.
+      summary: Retrieve the latest published version of a single document type
+      parameters:
+        - in: path
+          name: document_type
+          schema:
+            type: string
+          description: One of PolicyDocumentType's values (e.g. sms_consent).
+          required: true
+      tags:
+        - Legal
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+        - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyDocument'
+          description: ''
+        '404':
+          description: Unknown document_type, or no published version yet
+  /policy-documents/latest/{document_type}{format}:
+    get:
+      operationId: policy_documents_latest_formatted_retrieve
+      description: |-
+        GET /policy-documents/latest/{document_type}/ — highest version of one type.
+
+        Public — no authentication required. 404s on an unknown enum value or a
+        type with no published rows yet.
+      summary: Retrieve the latest published version of a single document type
+      parameters:
+        - in: path
+          name: document_type
+          schema:
+            type: string
+          description: One of PolicyDocumentType's values (e.g. sms_consent).
+          required: true
+        - in: path
+          name: format
+          schema:
+            type: string
+            enum:
+              - .json
+          required: true
+      tags:
+        - Legal
+      security:
+        - jwtAuth: []
+        - cookieAuth: []
+        - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyDocument'
+          description: ''
+        '404':
+          description: Unknown document_type, or no published version yet
   /profile/{user}/:
     get:
       operationId: profile_retrieve
@@ -12189,6 +12647,7 @@ components:
         - webhook_configuration
         - external_event_change_request
         - booking_policy
+        - bookable_slots
       type: string
       description: |-
         * `calendar_event` - Calendar Event
@@ -12234,6 +12693,7 @@ components:
         * `webhook_configuration` - Webhook Configuration
         * `external_event_change_request` - External Event Change Request
         * `booking_policy` - Booking Policy
+        * `bookable_slots` - Bookable Slots
     AvailableTime:
       type: object
       description: Serializer for AvailableTime model with recurring support.
@@ -13158,6 +13618,25 @@ components:
         * `resource` - Resource Calendar
         * `virtual` - Virtual Calendar
         * `bundle` - Bundle Calendar
+    ConsentCreate:
+      type: object
+      description: |-
+        Validates the input for the authenticated consent-record endpoint (OAuth step).
+
+        ``document_type`` is required — the consenting user comes from the
+        authenticated request, and audit metadata (IP, user-agent, source) is
+        captured server-side in the view. ``phone_number`` is optional (Phase 8 —
+        phone-keyed consent): an OAuth user can consent a phone number here,
+        before phone verification, so the SMS gate can later be satisfied for
+        that phone.
+      properties:
+        document_type:
+          $ref: '#/components/schemas/DocumentTypeEnum'
+        phone_number:
+          type: string
+          maxLength: 20
+      required:
+        - document_type
     CurrentMembership:
       type: object
       description: |-
@@ -13183,6 +13662,16 @@ components:
       required:
         - organization
         - role
+    DocumentTypeEnum:
+      enum:
+        - privacy_policy
+        - terms_of_use
+        - sms_consent
+      type: string
+      description: |-
+        * `privacy_policy` - Privacy Policy
+        * `terms_of_use` - Terms of Use
+        * `sms_consent` - SMS Messaging Consent
     EventAttendance:
       type: object
       properties:
@@ -14040,6 +14529,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OrganizationMembership'
+    PaginatedPolicyDocumentList:
+      type: object
+      required:
+        - count
+        - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyDocument'
     PaginatedServiceAccountReadList:
       type: object
       required:
@@ -14727,6 +15239,43 @@ components:
           format: uri
           maxLength: 2000
         headers: {}
+    PolicyDocument:
+      type: object
+      description: |-
+        Read-only representation of a published :class:`PolicyDocument` version.
+
+        Every field is read-only — this app exposes no write surface for policy
+        documents over the REST API; documents are authored in Django admin.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        document_type:
+          allOf:
+            - $ref: '#/components/schemas/DocumentTypeEnum'
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+          description: Monotonically increasing per document_type.
+        title:
+          type: string
+          readOnly: true
+        body_markdown:
+          type: string
+          readOnly: true
+          description: Raw markdown body, rendered client-side.
+        published_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - body_markdown
+        - document_type
+        - id
+        - published_at
+        - title
+        - version
     Profile:
       type: object
       properties:
@@ -15045,6 +15594,16 @@ components:
         - email
         - private_key
         - private_key_id
+    SourceEnum:
+      enum:
+        - signup_form
+        - oauth_step
+        - api
+      type: string
+      description: |-
+        * `signup_form` - Signup Form
+        * `oauth_step` - OAuth Consent Step
+        * `api` - API
     SystemUserToken:
       type: object
       description: |-
@@ -15231,6 +15790,54 @@ components:
           $ref: '#/components/schemas/RoleEnum'
       required:
         - role
+    UserConsent:
+      type: object
+      description: |-
+        Read-only representation of a recorded :class:`UserConsent`.
+
+        Returned by ``ConsentViewSet.create`` after ``ConsentService.record_consent``
+        persists the acceptance; every field is read-only here too.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        document_type:
+          type: string
+          readOnly: true
+        policy_document:
+          type: integer
+          readOnly: true
+        policy_document_version:
+          type: integer
+          readOnly: true
+        source:
+          allOf:
+            - $ref: '#/components/schemas/SourceEnum'
+          readOnly: true
+        accepted_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ip_address:
+          type: string
+          readOnly: true
+          nullable: true
+        user_agent:
+          type: string
+          readOnly: true
+        phone_number:
+          type: string
+          readOnly: true
+      required:
+        - accepted_at
+        - document_type
+        - id
+        - ip_address
+        - phone_number
+        - policy_document
+        - policy_document_version
+        - source
+        - user_agent
     VisibilityEnum:
       enum:
         - active

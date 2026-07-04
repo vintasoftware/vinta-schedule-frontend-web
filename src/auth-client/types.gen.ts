@@ -134,6 +134,8 @@ export type BaseAuthenticator = {
 };
 
 export type BaseSignup = {
+    accepted_sms_consent: boolean;
+    accepted_terms: boolean;
     email: Email;
     first_name: string;
     last_name: string;

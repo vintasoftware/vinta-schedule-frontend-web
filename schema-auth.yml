@@ -1400,6 +1400,10 @@ components:
       type: object
     BaseSignup:
       properties:
+        accepted_sms_consent:
+          type: boolean
+        accepted_terms:
+          type: boolean
         email:
           $ref: '#/components/schemas/Email'
         first_name:
@@ -1418,6 +1422,8 @@ components:
         - phone
         - first_name
         - last_name
+        - accepted_terms
+        - accepted_sms_consent
       type: object
     ClientID:
       description:
