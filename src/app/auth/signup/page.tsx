@@ -1,10 +1,12 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useSignUp } from '@/hooks/authentication/use-sign-up';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AuthLayout } from '@/components/layout/auth-layout';
 import { Box, Stack, HStack, VStack, Heading, Text } from '@/components/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
@@ -63,6 +65,15 @@ const makeSignupSchema = (isInvited: boolean) =>
             'Password must contain uppercase, lowercase, number, and special character',
         }),
       confirm_password: z.string(),
+      // Two distinct, always-unchecked opt-ins (Twilio/TCPA require SMS
+      // consent to be its own explicit checkbox — never merged, never
+      // pre-checked).
+      accepted_terms: z.boolean().refine((v) => v === true, {
+        message: 'You must agree to the Privacy Policy and Terms of Use.',
+      }),
+      accepted_sms_consent: z.boolean().refine((v) => v === true, {
+        message: 'You must agree to receive SMS messages.',
+      }),
     })
     .refine((data) => data.password === data.confirm_password, {
       message: 'Passwords do not match',
@@ -117,6 +128,8 @@ function SignupPageContent() {
       phone: '',
       password: '',
       confirm_password: '',
+      accepted_terms: false,
+      accepted_sms_consent: false,
     },
   });
 
@@ -365,6 +378,68 @@ function SignupPageContent() {
                   )}
                 />
               </Box>
+              <FormField
+                control={form.control}
+                name='accepted_terms'
+                render={({ field }) => (
+                  <FormItem>
+                    <HStack gap={2} align='start'>
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid='accepted-terms-checkbox'
+                        />
+                      </FormControl>
+                      <FormLabel className='mb-0 leading-snug font-normal'>
+                        I agree to the{' '}
+                        <Link
+                          href='/privacy'
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='text-primary hover:underline'
+                        >
+                          Privacy Policy
+                        </Link>{' '}
+                        and{' '}
+                        <Link
+                          href='/terms'
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='text-primary hover:underline'
+                        >
+                          Terms of Use
+                        </Link>
+                        .
+                      </FormLabel>
+                    </HStack>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='accepted_sms_consent'
+                render={({ field }) => (
+                  <FormItem>
+                    <HStack gap={2} align='start'>
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid='accepted-sms-consent-checkbox'
+                        />
+                      </FormControl>
+                      <FormLabel className='mb-0 leading-snug font-normal'>
+                        I agree to receive SMS text messages (e.g. verification
+                        codes) at the phone number I provide. Msg &amp; data
+                        rates may apply.
+                      </FormLabel>
+                    </HStack>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               {error && (
                 <Alert variant='destructive'>
                   <AlertTitle>Signup failed</AlertTitle>
