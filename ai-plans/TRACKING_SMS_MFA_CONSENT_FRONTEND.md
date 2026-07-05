@@ -19,6 +19,7 @@
 -       └ `plan/sms-mfa-consent-frontend/phase-3` — PR #60
 -         └ `plan/sms-mfa-consent-frontend/phase-4` — PR #61 (restores green typecheck/build)
 -           └ `plan/sms-mfa-consent-frontend/phase-5` — PR #62
+-             └ `plan/sms-mfa-consent-frontend/phase-6` — PR #63
 
 ## Known interim condition — RESOLVED at Phase 4
 `npm run typecheck`/`build` failed on ONE file, `src/app/auth/signup/page.tsx` (base regenerated the client → accepted_terms/accepted_sms_consent required on Signup, form didn't send them), on the base + phases 1–3 branches. **Phase 4 restores green typecheck/build.** Full `npm run test` was green throughout.
@@ -52,8 +53,14 @@
 - **Files**: `src/components/authentication/finish-signup-form.tsx`, `.../finish-signup-form.test.tsx` (new), `src/app/auth/social/finish-signup/page.test.tsx` (integration test updated), `QA_USE_CASES.md` (PR042).
 - **Summary**: mirrors Phase 4 into the OAuth finish-signup form; consent reset to false in both defaultValues + provider-prefill reset; both booleans in ProviderSignup body; verify_phone handoff preserved. Reviewer: no BLOCKER/SHOULD-FIX. 1002 tests green.
 
+### Phase 6 — Consent hook + consent_required detector ✅
+- **Status**: done. Model: haiku (Tier 2 suggested). Branch `.../phase-6` (base: `.../phase-5`). PR #63.
+- **Files**: `src/hooks/consents/use-create-consent.ts` (+test), `src/lib/consent-errors.ts` (+test).
+- **Summary**: `useCreateConsent` wraps consentsCreateMutation (body-only); `isConsentRequiredError` matches top-level `errors[].code === 'consent_required'` (status-agnostic). Reviewer verified with evidence the clients throw the parsed JSON body at top level, so the detector fires on the real Phase 8 403. Fixes: accurate JSDoc, canonical §4.4 fixture test, less brittle assertions. 1025 tests green.
+- **Phase 8 dependency confirmed**: verify-phone/resend 403 errors carry top-level `.errors`/`.status` (see phone-verify-dialog.tsx, use-verify-phone.ts).
+
 ## Current phase
-Phase 6 — Consent hook + consent_required detector
+Phase 7 — Change-phone consent recording
 
 ## Remaining phases
 - Phase 6 — Consent hook + consent_required detector
