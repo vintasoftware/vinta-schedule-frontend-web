@@ -151,12 +151,20 @@ path when shipped.
 
 ---
 
+## Social Finish-Signup Consent (SMS MFA Consent Frontend — Phase 5)
+
+| ID    | Role   | Happy-path description                                                                                                                                                                                                                                                                                                        | Spec path                                                                                                 |
+| ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| PR042 | member | Visitor finishing social (OAuth) signup must check the same two distinct consent boxes (Privacy Policy/Terms of Use, SMS consent); unchecking either blocks submission with an inline error, and a checked submission POSTs both booleans and still completes the provider-signup flow (including the `verify_phone` handoff) | N/A — unit test only (`src/components/authentication/finish-signup-form.test.tsx`), no e2e spec by design |
+
+---
+
 ## Counts
 
 | Category      | Count  |
 | ------------- | ------ |
-| Member (`PR`) | 27     |
+| Member (`PR`) | 28     |
 | Admin (`PA`)  | 14     |
-| **Total**     | **41** |
+| **Total**     | **42** |
 
-_Foundation smoke (PR000) is not counted in the 41 use-cases — it is harness scaffolding. PR039–PR041 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–4._
+_Foundation smoke (PR000) is not counted in the 42 use-cases — it is harness scaffolding. PR039–PR042 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–5._

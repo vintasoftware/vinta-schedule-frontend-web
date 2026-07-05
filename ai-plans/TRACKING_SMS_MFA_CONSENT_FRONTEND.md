@@ -18,6 +18,7 @@
 -     └ `plan/sms-mfa-consent-frontend/phase-2` — PR #59
 -       └ `plan/sms-mfa-consent-frontend/phase-3` — PR #60
 -         └ `plan/sms-mfa-consent-frontend/phase-4` — PR #61 (restores green typecheck/build)
+-           └ `plan/sms-mfa-consent-frontend/phase-5` — PR #62
 
 ## Known interim condition — RESOLVED at Phase 4
 `npm run typecheck`/`build` failed on ONE file, `src/app/auth/signup/page.tsx` (base regenerated the client → accepted_terms/accepted_sms_consent required on Signup, form didn't send them), on the base + phases 1–3 branches. **Phase 4 restores green typecheck/build.** Full `npm run test` was green throughout.
@@ -46,11 +47,15 @@
 - **Files**: `src/app/auth/signup/page.tsx`, `src/app/auth/signup/page.test.tsx` (new), `QA_USE_CASES.md` (PR041).
 - **Summary**: two separate required unchecked checkboxes (accepted_terms w/ links to /privacy,/terms opening new tab; accepted_sms_consent w/ handoff copy), each z.boolean().refine(true); both flow into Signup POST body. **Restores green typecheck+build.** Review fixes: new-tab links, test hardening (confirm_password stripped, other checkbox error absent). 996 tests green.
 
+### Phase 5 — Social finish-signup consent checkboxes ✅
+- **Status**: done. Model: sonnet (Tier 2 suggested). Branch `.../phase-5` (base: `.../phase-4`). PR #62 (2/3 inline comments — 3rd target line unchanged).
+- **Files**: `src/components/authentication/finish-signup-form.tsx`, `.../finish-signup-form.test.tsx` (new), `src/app/auth/social/finish-signup/page.test.tsx` (integration test updated), `QA_USE_CASES.md` (PR042).
+- **Summary**: mirrors Phase 4 into the OAuth finish-signup form; consent reset to false in both defaultValues + provider-prefill reset; both booleans in ProviderSignup body; verify_phone handoff preserved. Reviewer: no BLOCKER/SHOULD-FIX. 1002 tests green.
+
 ## Current phase
-Phase 5 — Social finish-signup consent checkboxes
+Phase 6 — Consent hook + consent_required detector
 
 ## Remaining phases
-- Phase 5 — Social finish-signup consent checkboxes
 - Phase 6 — Consent hook + consent_required detector
 - Phase 7 — Change-phone consent recording
 - Phase 8 — consent_required gate handling on verification

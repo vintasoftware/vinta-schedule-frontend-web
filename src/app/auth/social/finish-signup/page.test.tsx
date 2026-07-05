@@ -100,6 +100,9 @@ function renderPage() {
 async function fillPhoneAndSubmit(phone: string) {
   const phoneInput = await screen.findByPlaceholderText('+14155552671');
   fireEvent.change(phoneInput, { target: { value: phone } });
+  // Phase 5: both consent checkboxes are required (unchecked by default).
+  fireEvent.click(screen.getByTestId('accepted-terms-checkbox'));
+  fireEvent.click(screen.getByTestId('accepted-sms-consent-checkbox'));
   fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
 }
 
@@ -153,6 +156,8 @@ describe('finish-signup page (pending social signup)', () => {
       first_name: 'Ada',
       last_name: 'Lovelace',
       phone: '+14155552671',
+      accepted_terms: true,
+      accepted_sms_consent: true,
     });
   });
 
