@@ -143,12 +143,20 @@ path when shipped.
 
 ---
 
+## Signup Consent (SMS MFA Consent Frontend — Phase 4)
+
+| ID    | Role   | Happy-path description                                                                                                                                                                                                          | Spec path                                                                         |
+| ----- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| PR041 | member | Visitor signing up with email/password must check two distinct consent boxes (Privacy Policy/Terms of Use, SMS consent); unchecking either blocks submission with an inline error, and a checked submission POSTs both booleans | N/A — unit test only (`src/app/auth/signup/page.test.tsx`), no e2e spec by design |
+
+---
+
 ## Counts
 
 | Category      | Count  |
 | ------------- | ------ |
-| Member (`PR`) | 26     |
+| Member (`PR`) | 27     |
 | Admin (`PA`)  | 14     |
-| **Total**     | **40** |
+| **Total**     | **41** |
 
-_Foundation smoke (PR000) is not counted in the 40 use-cases — it is harness scaffolding. PR039–PR040 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–3._
+_Foundation smoke (PR000) is not counted in the 41 use-cases — it is harness scaffolding. PR039–PR041 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–4._
