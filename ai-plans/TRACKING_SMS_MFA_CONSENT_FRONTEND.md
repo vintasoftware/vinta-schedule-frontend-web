@@ -20,6 +20,7 @@
 -         └ `plan/sms-mfa-consent-frontend/phase-4` — PR #61 (restores green typecheck/build)
 -           └ `plan/sms-mfa-consent-frontend/phase-5` — PR #62
 -             └ `plan/sms-mfa-consent-frontend/phase-6` — PR #63
+-               └ `plan/sms-mfa-consent-frontend/phase-7` — PR #64
 
 ## Known interim condition — RESOLVED at Phase 4
 `npm run typecheck`/`build` failed on ONE file, `src/app/auth/signup/page.tsx` (base regenerated the client → accepted_terms/accepted_sms_consent required on Signup, form didn't send them), on the base + phases 1–3 branches. **Phase 4 restores green typecheck/build.** Full `npm run test` was green throughout.
@@ -59,8 +60,14 @@
 - **Summary**: `useCreateConsent` wraps consentsCreateMutation (body-only); `isConsentRequiredError` matches top-level `errors[].code === 'consent_required'` (status-agnostic). Reviewer verified with evidence the clients throw the parsed JSON body at top level, so the detector fires on the real Phase 8 403. Fixes: accurate JSDoc, canonical §4.4 fixture test, less brittle assertions. 1025 tests green.
 - **Phase 8 dependency confirmed**: verify-phone/resend 403 errors carry top-level `.errors`/`.status` (see phone-verify-dialog.tsx, use-verify-phone.ts).
 
+### Phase 7 — Change-phone consent recording ✅
+- **Status**: done. Model: sonnet (Tier 3 suggested). Branch `.../phase-7` (base: `.../phase-6`). PR #64.
+- **Files**: `src/components/account-security/phone-section.tsx` (+test new), `QA_USE_CASES.md` (PR043 — member per file's PR/PA key).
+- **Summary**: onSubmit records sms_consent for the new phone before updatePhone (code request); consent failure → toast + early return, blocks code request; inline acknowledgement notice (not checkbox); button disabled includes formState.isSubmitting. Review fixes: change-path test (Change+Cancel), double-submit guard, "adding or changing" copy. 1031 tests green.
+- **Deviation accepted**: use-update-phone.ts left untouched (sequencing lives in component; no hook change needed).
+
 ## Current phase
-Phase 7 — Change-phone consent recording
+Phase 8 — consent_required gate handling on verification
 
 ## Remaining phases
 - Phase 6 — Consent hook + consent_required detector

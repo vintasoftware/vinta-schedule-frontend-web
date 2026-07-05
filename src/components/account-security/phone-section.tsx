@@ -30,9 +30,13 @@ import { VStack, HStack, Text } from '@/components/layout';
 import { useAccountPhone } from '@/hooks/authentication/use-account-phone';
 import { useUpdatePhone } from '@/hooks/authentication/use-update-phone';
 import { useSensitiveAction } from '@/hooks/authentication/use-sensitive-action';
+import { useCreateConsent } from '@/hooks/consents/use-create-consent';
 import { applyAllauthFormErrors } from '@/lib/allauth-form-errors';
 import { ReauthenticateDialog } from './reauthenticate-dialog';
 import { PhoneVerifyDialog } from './phone-verify-dialog';
+
+const CONSENT_FAILURE_MESSAGE =
+  "We couldn't record your SMS consent, so a verification code can't be sent right now. Please try again later.";
 
 const phoneSchema = z.object({
   phone: z
@@ -48,6 +52,7 @@ export function PhoneSection() {
   const { phone, isLoading, isError } = useAccountPhone();
   const { updatePhone, updatePhoneMutation } = useUpdatePhone();
   const { runSensitive, reauthenticationRequest } = useSensitiveAction();
+  const { createConsent, createConsentMutation } = useCreateConsent();
 
   const [phoneToVerify, setPhoneToVerify] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -58,6 +63,24 @@ export function PhoneSection() {
   });
 
   const onSubmit = async (values: PhoneFormValues) => {
+    // Consent is phone-keyed: record `sms_consent` for the new phone before
+    // requesting a verification code for it (anti-enumeration — the backend
+    // silently drops SMS to numbers without recorded consent).
+    //
+    // This happens before the sensitive-action/reauth step below, so the
+    // consent may be recorded even if the user then cancels reauth — that's
+    // harmless, since it's just an acknowledgement, and a reauth retry only
+    // re-runs updatePhone, not createConsent.
+    try {
+      await createConsent({
+        document_type: 'sms_consent',
+        phone_number: values.phone,
+      });
+    } catch {
+      toast.error(CONSENT_FAILURE_MESSAGE);
+      return;
+    }
+
     try {
       const result = await runSensitive(() => updatePhone(values.phone));
       if (result === undefined) return;
@@ -72,6 +95,9 @@ export function PhoneSection() {
       });
     }
   };
+
+  const isSubmitPending =
+    createConsentMutation.isPending || updatePhoneMutation.isPending;
 
   const showForm = isEditing || (!isLoading && !isError && !phone);
 
@@ -126,50 +152,59 @@ export function PhoneSection() {
             {showForm && (
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
-                  <HStack gap={2} align='start' className='max-w-md'>
-                    <FormField
-                      control={form.control}
-                      name='phone'
-                      render={({ field }) => (
-                        <FormItem className='flex-1'>
-                          <FormLabel className='sr-only'>
-                            Phone number
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type='tel'
-                              placeholder='+1 555 555 5555'
-                              autoComplete='tel'
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type='submit'
-                      disabled={updatePhoneMutation.isPending}
-                    >
-                      {updatePhoneMutation.isPending
-                        ? 'Sending code…'
-                        : phone
-                          ? 'Change'
-                          : 'Add phone'}
-                    </Button>
-                    {phone && (
+                  <VStack gap={2} className='max-w-md'>
+                    <Text size='xs' color='muted-foreground'>
+                      By adding or changing your phone number you agree to
+                      receive SMS verification codes at that number. Msg &amp;
+                      data rates may apply.
+                    </Text>
+                    <HStack gap={2} align='start'>
+                      <FormField
+                        control={form.control}
+                        name='phone'
+                        render={({ field }) => (
+                          <FormItem className='flex-1'>
+                            <FormLabel className='sr-only'>
+                              Phone number
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type='tel'
+                                placeholder='+1 555 555 5555'
+                                autoComplete='tel'
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <Button
-                        type='button'
-                        variant='ghost'
-                        onClick={() => {
-                          setIsEditing(false);
-                          form.reset();
-                        }}
+                        type='submit'
+                        disabled={
+                          isSubmitPending || form.formState.isSubmitting
+                        }
                       >
-                        Cancel
+                        {isSubmitPending
+                          ? 'Sending code…'
+                          : phone
+                            ? 'Change'
+                            : 'Add phone'}
                       </Button>
-                    )}
-                  </HStack>
+                      {phone && (
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          onClick={() => {
+                            setIsEditing(false);
+                            form.reset();
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </HStack>
+                  </VStack>
                 </form>
               </Form>
             )}
