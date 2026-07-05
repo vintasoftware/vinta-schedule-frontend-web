@@ -134,11 +134,12 @@ path when shipped.
 
 ---
 
-## Policy Pages (SMS MFA Consent Frontend — Phase 2)
+## Policy Pages (SMS MFA Consent Frontend — Phases 2–3)
 
 | ID    | Role   | Happy-path description                                                                                                      | Spec path                                                                                  |
 | ----- | ------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | PR039 | member | Visitor (no session) opens `/privacy` and sees the latest published Privacy Policy, or a placeholder when none is published | N/A — public server-rendered page, no e2e spec (`src/app/privacy/page.test.tsx` unit test) |
+| PR040 | member | Visitor (no session) opens `/terms` and sees the latest published Terms of Use, or a placeholder when none is published     | N/A — public server-rendered page, no e2e spec (`src/app/terms/page.test.tsx` unit test)   |
 
 ---
 
@@ -146,8 +147,8 @@ path when shipped.
 
 | Category      | Count  |
 | ------------- | ------ |
-| Member (`PR`) | 25     |
+| Member (`PR`) | 26     |
 | Admin (`PA`)  | 14     |
-| **Total**     | **39** |
+| **Total**     | **40** |
 
-_Foundation smoke (PR000) is not counted in the 39 use-cases — it is harness scaffolding. PR039 has no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phase 2._
+_Foundation smoke (PR000) is not counted in the 40 use-cases — it is harness scaffolding. PR039–PR040 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–3._
