@@ -62,8 +62,9 @@ export type ActionEnum = 'create' | 'update' | 'delete';
  * * `webhook_configuration` - Webhook Configuration
  * * `external_event_change_request` - External Event Change Request
  * * `booking_policy` - Booking Policy
+ * * `bookable_slots` - Bookable Slots
  */
-export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics' | 'calendar_booking_code' | 'create_resource_calendar' | 'disable_resource_calendar' | 'update_resource_calendar' | 'import_resource_calendars' | 'create_availability_window' | 'update_availability_window' | 'delete_availability_window' | 'batch_update_availability_windows' | 'create_blocked_time' | 'update_blocked_time' | 'delete_blocked_time' | 'calendar_bundle' | 'create_calendar' | 'update_calendar' | 'create_calendar_bundle' | 'update_calendar_bundle' | 'disable_calendar_bundle' | 'webhook_configuration' | 'external_event_change_request' | 'booking_policy';
+export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics' | 'calendar_booking_code' | 'create_resource_calendar' | 'disable_resource_calendar' | 'update_resource_calendar' | 'import_resource_calendars' | 'create_availability_window' | 'update_availability_window' | 'delete_availability_window' | 'batch_update_availability_windows' | 'create_blocked_time' | 'update_blocked_time' | 'delete_blocked_time' | 'calendar_bundle' | 'create_calendar' | 'update_calendar' | 'create_calendar_bundle' | 'update_calendar_bundle' | 'disable_calendar_bundle' | 'webhook_configuration' | 'external_event_change_request' | 'booking_policy' | 'bookable_slots';
 
 /**
  * Serializer for AvailableTime model with recurring support.
@@ -523,6 +524,21 @@ export type CalendarSyncStatusEnum = 'success' | 'failed' | 'in_progress' | 'not
 export type CalendarTypeEnum = 'personal' | 'resource' | 'virtual' | 'bundle';
 
 /**
+ * Validates the input for the authenticated consent-record endpoint (OAuth step).
+ *
+ * ``document_type`` is required — the consenting user comes from the
+ * authenticated request, and audit metadata (IP, user-agent, source) is
+ * captured server-side in the view. ``phone_number`` is optional (Phase 8 —
+ * phone-keyed consent): an OAuth user can consent a phone number here,
+ * before phone verification, so the SMS gate can later be satisfied for
+ * that phone.
+ */
+export type ConsentCreate = {
+    document_type: DocumentTypeEnum;
+    phone_number?: string;
+};
+
+/**
  * Read-only serializer for the caller's current organization membership.
  *
  * Returns the membership role and the nested organization so the frontend
@@ -543,6 +559,13 @@ export type CurrentMembership = {
         [key: string]: unknown;
     };
 };
+
+/**
+ * * `privacy_policy` - Privacy Policy
+ * * `terms_of_use` - Terms of Use
+ * * `sms_consent` - SMS Messaging Consent
+ */
+export type DocumentTypeEnum = 'privacy_policy' | 'terms_of_use' | 'sms_consent';
 
 export type EventAttendance = {
     /**
@@ -972,6 +995,13 @@ export type PaginatedOrganizationMembershipList = {
     results: Array<OrganizationMembership>;
 };
 
+export type PaginatedPolicyDocumentList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<PolicyDocument>;
+};
+
 export type PaginatedServiceAccountReadList = {
     count: number;
     next?: string | null;
@@ -1329,6 +1359,27 @@ export type PatchedWebhookConfiguration = {
     headers?: unknown;
 };
 
+/**
+ * Read-only representation of a published :class:`PolicyDocument` version.
+ *
+ * Every field is read-only — this app exposes no write surface for policy
+ * documents over the REST API; documents are authored in Django admin.
+ */
+export type PolicyDocument = {
+    readonly id: number;
+    document_type: DocumentTypeEnum;
+    /**
+     * Monotonically increasing per document_type.
+     */
+    readonly version: number;
+    readonly title: string;
+    /**
+     * Raw markdown body, rendered client-side.
+     */
+    readonly body_markdown: string;
+    readonly published_at: string;
+};
+
 export type Profile = {
     readonly id: number;
     first_name?: string;
@@ -1510,6 +1561,13 @@ export type ServiceAccountWrite = {
 };
 
 /**
+ * * `signup_form` - Signup Form
+ * * `oauth_step` - OAuth Consent Step
+ * * `api` - API
+ */
+export type SourceEnum = 'signup_form' | 'oauth_step' | 'api';
+
+/**
  * Read-only serializer for listing and retrieving public-API tokens.
  *
  * Exposes ``id``, ``integration_name``, ``is_active``, ``available_resources``
@@ -1628,6 +1686,24 @@ export type UnavailableTimeWindow = {
  */
 export type UpdateMembershipRole = {
     role: RoleEnum;
+};
+
+/**
+ * Read-only representation of a recorded :class:`UserConsent`.
+ *
+ * Returned by ``ConsentViewSet.create`` after ``ConsentService.record_consent``
+ * persists the acceptance; every field is read-only here too.
+ */
+export type UserConsent = {
+    readonly id: number;
+    readonly document_type: string;
+    readonly policy_document: number;
+    readonly policy_document_version: number;
+    source: SourceEnum;
+    readonly accepted_at: string;
+    readonly ip_address: string | null;
+    readonly user_agent: string;
+    readonly phone_number: string;
 };
 
 /**
@@ -2064,6 +2140,13 @@ export type PaginatedOrganizationInvitationListWritable = {
 };
 
 export type PaginatedOrganizationMembershipListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<unknown>;
+};
+
+export type PaginatedPolicyDocumentListWritable = {
     count: number;
     next?: string | null;
     previous?: string | null;
@@ -6457,6 +6540,48 @@ export type ChangeRequestsRejectFormattedCreateResponses = {
 
 export type ChangeRequestsRejectFormattedCreateResponse = ChangeRequestsRejectFormattedCreateResponses[keyof ChangeRequestsRejectFormattedCreateResponses];
 
+export type ConsentsCreateData = {
+    body: ConsentCreate;
+    path?: never;
+    query?: never;
+    url: '/consents/';
+};
+
+export type ConsentsCreateErrors = {
+    /**
+     * Invalid document_type, or no published document of that type yet
+     */
+    400: unknown;
+};
+
+export type ConsentsCreateResponses = {
+    201: UserConsent;
+};
+
+export type ConsentsCreateResponse = ConsentsCreateResponses[keyof ConsentsCreateResponses];
+
+export type ConsentsFormattedCreateData = {
+    body: ConsentCreate;
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/consents{format}';
+};
+
+export type ConsentsFormattedCreateErrors = {
+    /**
+     * Invalid document_type, or no published document of that type yet
+     */
+    400: unknown;
+};
+
+export type ConsentsFormattedCreateResponses = {
+    201: UserConsent;
+};
+
+export type ConsentsFormattedCreateResponse = ConsentsFormattedCreateResponses[keyof ConsentsFormattedCreateResponses];
+
 export type InvitationsListData = {
     body?: never;
     headers?: {
@@ -7865,6 +7990,196 @@ export type PaymentsSubscriptionPaymentUpdateFormattedCreateResponses = {
      */
     200: unknown;
 };
+
+export type PolicyDocumentsListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Filter by document type
+         *
+         * * `privacy_policy` - Privacy Policy
+         * * `terms_of_use` - Terms of Use
+         * * `sms_consent` - SMS Messaging Consent
+         */
+        document_type?: 'privacy_policy' | 'sms_consent' | 'terms_of_use';
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/policy-documents/';
+};
+
+export type PolicyDocumentsListResponses = {
+    200: PaginatedPolicyDocumentList;
+};
+
+export type PolicyDocumentsListResponse = PolicyDocumentsListResponses[keyof PolicyDocumentsListResponses];
+
+export type PolicyDocumentsFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Filter by document type
+         *
+         * * `privacy_policy` - Privacy Policy
+         * * `terms_of_use` - Terms of Use
+         * * `sms_consent` - SMS Messaging Consent
+         */
+        document_type?: 'privacy_policy' | 'sms_consent' | 'terms_of_use';
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/policy-documents{format}';
+};
+
+export type PolicyDocumentsFormattedListResponses = {
+    200: PaginatedPolicyDocumentList;
+};
+
+export type PolicyDocumentsFormattedListResponse = PolicyDocumentsFormattedListResponses[keyof PolicyDocumentsFormattedListResponses];
+
+export type PolicyDocumentsRetrieveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/policy-documents/{id}/';
+};
+
+export type PolicyDocumentsRetrieveResponses = {
+    200: PolicyDocument;
+};
+
+export type PolicyDocumentsRetrieveResponse = PolicyDocumentsRetrieveResponses[keyof PolicyDocumentsRetrieveResponses];
+
+export type PolicyDocumentsFormattedRetrieveData = {
+    body?: never;
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/policy-documents/{id}{format}';
+};
+
+export type PolicyDocumentsFormattedRetrieveResponses = {
+    200: PolicyDocument;
+};
+
+export type PolicyDocumentsFormattedRetrieveResponse = PolicyDocumentsFormattedRetrieveResponses[keyof PolicyDocumentsFormattedRetrieveResponses];
+
+export type PolicyDocumentsLatestListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Filter by document type
+         *
+         * * `privacy_policy` - Privacy Policy
+         * * `terms_of_use` - Terms of Use
+         * * `sms_consent` - SMS Messaging Consent
+         */
+        document_type?: 'privacy_policy' | 'sms_consent' | 'terms_of_use';
+    };
+    url: '/policy-documents/latest/';
+};
+
+export type PolicyDocumentsLatestListResponses = {
+    200: Array<PolicyDocument>;
+};
+
+export type PolicyDocumentsLatestListResponse = PolicyDocumentsLatestListResponses[keyof PolicyDocumentsLatestListResponses];
+
+export type PolicyDocumentsLatestFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Filter by document type
+         *
+         * * `privacy_policy` - Privacy Policy
+         * * `terms_of_use` - Terms of Use
+         * * `sms_consent` - SMS Messaging Consent
+         */
+        document_type?: 'privacy_policy' | 'sms_consent' | 'terms_of_use';
+    };
+    url: '/policy-documents/latest{format}';
+};
+
+export type PolicyDocumentsLatestFormattedListResponses = {
+    200: Array<PolicyDocument>;
+};
+
+export type PolicyDocumentsLatestFormattedListResponse = PolicyDocumentsLatestFormattedListResponses[keyof PolicyDocumentsLatestFormattedListResponses];
+
+export type PolicyDocumentsLatestRetrieveData = {
+    body?: never;
+    path: {
+        /**
+         * One of PolicyDocumentType's values (e.g. sms_consent).
+         */
+        document_type: string;
+    };
+    query?: never;
+    url: '/policy-documents/latest/{document_type}/';
+};
+
+export type PolicyDocumentsLatestRetrieveErrors = {
+    /**
+     * Unknown document_type, or no published version yet
+     */
+    404: unknown;
+};
+
+export type PolicyDocumentsLatestRetrieveResponses = {
+    200: PolicyDocument;
+};
+
+export type PolicyDocumentsLatestRetrieveResponse = PolicyDocumentsLatestRetrieveResponses[keyof PolicyDocumentsLatestRetrieveResponses];
+
+export type PolicyDocumentsLatestFormattedRetrieveData = {
+    body?: never;
+    path: {
+        /**
+         * One of PolicyDocumentType's values (e.g. sms_consent).
+         */
+        document_type: string;
+        format: '.json';
+    };
+    query?: never;
+    url: '/policy-documents/latest/{document_type}{format}';
+};
+
+export type PolicyDocumentsLatestFormattedRetrieveErrors = {
+    /**
+     * Unknown document_type, or no published version yet
+     */
+    404: unknown;
+};
+
+export type PolicyDocumentsLatestFormattedRetrieveResponses = {
+    200: PolicyDocument;
+};
+
+export type PolicyDocumentsLatestFormattedRetrieveResponse = PolicyDocumentsLatestFormattedRetrieveResponses[keyof PolicyDocumentsLatestFormattedRetrieveResponses];
 
 export type ProfileRetrieveData = {
     body?: never;
