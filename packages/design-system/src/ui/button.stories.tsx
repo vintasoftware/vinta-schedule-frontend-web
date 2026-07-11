@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 import { CalendarPlus, Loader2 } from 'lucide-react';
 
 import { Button } from './button';
@@ -8,6 +8,9 @@ const meta = {
   component: Button,
   tags: ['autodocs'],
   argTypes: {
+    // `children` is the button label — a plain editable string here (a leaf,
+    // not a slot). `className`/`style` are deliberately NOT exposed (§6).
+    children: { control: 'text', description: 'Button label' },
     variant: {
       control: 'select',
       options: [
@@ -23,6 +26,7 @@ const meta = {
       control: 'select',
       options: ['xs', 'sm', 'default', 'lg', 'xl', 'icon'],
     },
+    disabled: { control: 'boolean' },
   },
   args: { children: 'Book appointment', variant: 'default', size: 'default' },
 } satisfies Meta<typeof Button>;

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import { Flex, HStack, VStack } from './flex';
 import { Box } from './box';
@@ -11,10 +11,13 @@ const meta = {
   title: 'Layout/Flex',
   component: Flex,
   tags: ['autodocs'],
+  // FlexProps = flex vocabulary (direction/align/justify/wrap/gap) + the shared
+  // BoxStyleProps. A useful subset is curated; `children` is the composed
+  // content slot (§3) and `className`/`style` stay unexposed (§6).
   argTypes: {
     direction: {
       control: 'inline-radio',
-      options: ['row', 'column'],
+      options: ['row', 'column', 'row-reverse', 'column-reverse'],
     },
     align: {
       control: 'select',
@@ -25,8 +28,20 @@ const meta = {
       options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
     },
     gap: { control: 'select', options: [0, 2, 4, 6, 8] },
+    wrap: { control: 'boolean' },
+    inline: { control: 'boolean' },
+    p: { control: 'select', options: [0, 2, 4, 6, 8] },
+    bg: {
+      control: 'select',
+      options: ['background', 'card', 'muted', 'accent'],
+    },
+    radius: {
+      control: 'select',
+      options: ['none', 'sm', 'md', 'lg', 'xl', '2xl', 'full'],
+    },
   },
   args: { gap: 4, align: 'center', justify: 'start' },
+  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Flex>;
 
 export default meta;

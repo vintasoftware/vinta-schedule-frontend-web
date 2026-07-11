@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import {
   Sheet,
@@ -14,16 +14,33 @@ import { Button } from './button';
 
 const meta = {
   title: 'Components/Sheet',
-  component: Sheet,
+  // `component:` is deliberately omitted: Sheet re-exports Radix's Dialog Root,
+  // whose displayName is 'Dialog' and would not match the title leaf 'Sheet'
+  // (§7). The leaf still resolves through the named `Sheet` import.
   tags: ['autodocs'],
+  // Radix DialogProps: `open`/`defaultOpen`/`modal`/`onOpenChange`. `side` is a
+  // SheetContent prop, not a root prop, so it is not curated here. `children`
+  // (trigger + content) is the composed slot (§4).
+  argTypes: {
+    defaultOpen: {
+      control: 'boolean',
+      description: 'Open the sheet on mount (uncontrolled)',
+    },
+    modal: {
+      control: 'boolean',
+      description: 'Trap focus and block outside interaction',
+    },
+  },
+  args: { defaultOpen: false, modal: true },
+  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Sheet>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => (
-    <Sheet>
+  render: (args) => (
+    <Sheet {...args}>
       <SheetTrigger asChild>
         <Button variant='outline'>Open details</Button>
       </SheetTrigger>

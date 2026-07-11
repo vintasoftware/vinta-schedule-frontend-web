@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import {
   Drawer,
@@ -16,14 +16,48 @@ const meta = {
   title: 'Components/Drawer',
   component: Drawer,
   tags: ['autodocs'],
+  // vaul Drawer.Root scalars (drawer.tsx forwards every prop to it, and owns
+  // `shouldScaleBackground`). `children` (trigger + content) is composed → slot.
+  argTypes: {
+    direction: {
+      control: 'select',
+      options: ['bottom', 'top', 'left', 'right'],
+      description:
+        'Edge the drawer slides from. DrawerContent is styled for `bottom`; other directions need content classes to match.',
+    },
+    modal: {
+      control: 'boolean',
+      description: 'Block interaction with the page behind the drawer',
+    },
+    dismissible: {
+      control: 'boolean',
+      description: 'Allow closing by dragging or clicking the overlay',
+    },
+    defaultOpen: {
+      control: 'boolean',
+      description: 'Open on first render (uncontrolled)',
+    },
+    shouldScaleBackground: {
+      control: 'boolean',
+      description: 'Scale the page behind the drawer while it is open',
+    },
+  },
+  args: {
+    direction: 'bottom',
+    modal: true,
+    dismissible: true,
+    defaultOpen: false,
+    shouldScaleBackground: true,
+  },
+  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Drawer>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => (
-    <Drawer>
+  render: (args) => (
+    <Drawer {...args}>
       <DrawerTrigger asChild>
         <Button variant='outline'>Open drawer</Button>
       </DrawerTrigger>

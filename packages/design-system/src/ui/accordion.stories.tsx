@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import {
   Accordion,
@@ -11,15 +11,39 @@ const meta = {
   title: 'Components/Accordion',
   component: Accordion,
   tags: ['autodocs'],
+  // Radix Accordion.Root scalars. `children` (the AccordionItem list) is
+  // composed content → a slot, so it must NOT also be an argTypes key.
+  argTypes: {
+    type: {
+      control: 'inline-radio',
+      options: ['single', 'multiple'],
+      description: 'One item open at a time, or many',
+    },
+    collapsible: {
+      control: 'boolean',
+      description: 'Allow closing the open item (type="single" only)',
+    },
+    defaultValue: {
+      control: 'text',
+      description: 'Value of the item expanded on first render',
+    },
+    disabled: { control: 'boolean' },
+    orientation: {
+      control: 'inline-radio',
+      options: ['vertical', 'horizontal'],
+    },
+    dir: { control: 'inline-radio', options: ['ltr', 'rtl'] },
+  },
+  args: { type: 'single', collapsible: true },
+  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Accordion>;
 
 export default meta;
-// Accordion requires `type` on its root, so type stories loosely (render-only).
-type Story = StoryObj;
+type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => (
-    <Accordion type='single' collapsible className='w-96'>
+  render: (args) => (
+    <Accordion {...args} className='w-96'>
       <AccordionItem value='1'>
         <AccordionTrigger>How does calendar sync work?</AccordionTrigger>
         <AccordionContent>
@@ -38,6 +62,22 @@ export const Default: Story = {
         <AccordionContent>
           Yes — no contracts, cancel whenever.
         </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  ),
+};
+
+export const Multiple: Story = {
+  args: { type: 'multiple' },
+  render: (args) => (
+    <Accordion {...args} className='w-96'>
+      <AccordionItem value='1'>
+        <AccordionTrigger>Working hours</AccordionTrigger>
+        <AccordionContent>Mon–Fri, 9:00 AM – 5:00 PM.</AccordionContent>
+      </AccordionItem>
+      <AccordionItem value='2'>
+        <AccordionTrigger>Buffer time</AccordionTrigger>
+        <AccordionContent>10 minutes between appointments.</AccordionContent>
       </AccordionItem>
     </Accordion>
   ),

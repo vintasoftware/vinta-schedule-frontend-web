@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import {
   InputOTP,
@@ -11,15 +11,31 @@ const meta = {
   title: 'Components/InputOTP',
   component: InputOTP,
   tags: ['autodocs'],
+  // Container: InputOTP renders composed children (the groups/slots/separator),
+  // so `children` is a slot and must not also be an argType (§5). argTypes are
+  // real `OTPInput` props (§6: containerClassName/className stay unexposed).
+  argTypes: {
+    maxLength: {
+      control: 'number',
+      description: 'Number of characters in the code',
+    },
+    textAlign: {
+      control: 'inline-radio',
+      options: ['left', 'center', 'right'],
+    },
+    disabled: { control: 'boolean' },
+    autoFocus: { control: 'boolean' },
+  },
+  args: { maxLength: 6 },
+  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof InputOTP>;
 
 export default meta;
-// InputOTP requires maxLength/render, so type stories loosely (render-only).
-type Story = StoryObj;
+type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => (
-    <InputOTP maxLength={6}>
+  render: (args) => (
+    <InputOTP maxLength={6} {...args}>
       <InputOTPGroup>
         <InputOTPSlot index={0} />
         <InputOTPSlot index={1} />

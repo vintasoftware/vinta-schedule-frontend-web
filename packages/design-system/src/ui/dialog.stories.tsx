@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import {
   Dialog,
@@ -18,14 +18,28 @@ const meta = {
   title: 'Components/Dialog',
   component: Dialog,
   tags: ['autodocs'],
+  // Radix Dialog.Root scalars (`open` / `onOpenChange` are controlled-mode only,
+  // so they stay out). `children` (trigger + content) is composed → a slot.
+  argTypes: {
+    defaultOpen: {
+      control: 'boolean',
+      description: 'Open on first render (uncontrolled)',
+    },
+    modal: {
+      control: 'boolean',
+      description: 'Trap focus and block interaction outside the dialog',
+    },
+  },
+  args: { defaultOpen: false, modal: true },
+  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Dialog>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => (
-    <Dialog>
+  render: (args) => (
+    <Dialog {...args}>
       <DialogTrigger asChild>
         <Button>New booking</Button>
       </DialogTrigger>

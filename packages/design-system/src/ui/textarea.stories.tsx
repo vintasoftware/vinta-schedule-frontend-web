@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import { Textarea } from './textarea';
 import { Label } from './label';
@@ -7,7 +7,20 @@ const meta = {
   title: 'Components/Textarea',
   component: Textarea,
   tags: ['autodocs'],
-  args: { placeholder: 'Notes for the visit…' },
+  // Leaf form control — self-closing, so NO slot. Real
+  // `React.ComponentProps<'textarea'>` members only (§6: no className/style).
+  argTypes: {
+    placeholder: { control: 'text' },
+    rows: { control: 'number', description: 'Visible number of text lines' },
+    defaultValue: {
+      control: 'text',
+      description: 'Initial (uncontrolled) value',
+    },
+    disabled: { control: 'boolean' },
+    required: { control: 'boolean' },
+    readOnly: { control: 'boolean' },
+  },
+  args: { placeholder: 'Notes for the visit…', rows: 3 },
 } satisfies Meta<typeof Textarea>;
 
 export default meta;
@@ -27,5 +40,6 @@ export const WithLabel: Story = {
 };
 
 export const Disabled: Story = {
-  render: (args) => <Textarea className='w-80' disabled {...args} />,
+  args: { disabled: true },
+  render: (args) => <Textarea className='w-80' {...args} />,
 };

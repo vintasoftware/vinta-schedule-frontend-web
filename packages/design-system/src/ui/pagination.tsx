@@ -4,11 +4,31 @@ import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ButtonProps, buttonVariants } from './button';
 
-const Pagination = ({ className, ...props }: React.ComponentProps<'nav'>) => (
+export interface PaginationProps extends React.ComponentProps<'nav'> {
+  /**
+   * Horizontal alignment of the page list inside the nav. Defaults to centered.
+   */
+  align?: 'start' | 'center' | 'end';
+}
+
+const PAGINATION_ALIGN: Record<
+  NonNullable<PaginationProps['align']>,
+  string
+> = {
+  start: 'justify-start',
+  center: 'justify-center',
+  end: 'justify-end',
+};
+
+const Pagination = ({
+  className,
+  align = 'center',
+  ...props
+}: PaginationProps) => (
   <nav
     role='navigation'
     aria-label='pagination'
-    className={cn('mx-auto flex w-full justify-center', className)}
+    className={cn('mx-auto flex w-full', PAGINATION_ALIGN[align], className)}
     {...props}
   />
 );

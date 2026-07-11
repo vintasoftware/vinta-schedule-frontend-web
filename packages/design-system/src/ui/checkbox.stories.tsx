@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import { Checkbox } from './checkbox';
 import { Label } from './label';
@@ -7,15 +7,26 @@ const meta = {
   title: 'Components/Checkbox',
   component: Checkbox,
   tags: ['autodocs'],
+  // Leaf control: the Radix `Checkbox.Root` renders its own Indicator, so it
+  // takes no composed content — NO slot. These are real Radix Root props
+  // (§6: className/style stay unexposed).
+  argTypes: {
+    defaultChecked: { control: 'boolean' },
+    disabled: { control: 'boolean' },
+    required: { control: 'boolean' },
+    name: { control: 'text', description: 'Name submitted with the form' },
+    value: { control: 'text', description: 'Value submitted when checked' },
+  },
+  args: { defaultChecked: true },
 } satisfies Meta<typeof Checkbox>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => (
+  render: (args) => (
     <div className='flex items-center gap-2'>
-      <Checkbox id='sync' defaultChecked />
+      <Checkbox id='sync' {...args} />
       <Label htmlFor='sync'>Sync to Google Calendar</Label>
     </div>
   ),

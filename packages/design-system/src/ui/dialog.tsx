@@ -12,6 +12,11 @@ function Dialog({
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot='dialog' {...props} />;
 }
+// Pinned: bundlers rename this function (it collides with radix-ui's own
+// `Dialog` export once inlined), and tooling that resolves the component by
+// name — Storybook docgen, the composer's contract extractor — would see the
+// mangled name instead.
+Dialog.displayName = 'Dialog';
 
 function DialogTrigger({
   ...props

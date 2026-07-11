@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 import { Check, Clock, TriangleAlert, Video } from 'lucide-react';
 
 import { Badge, BadgeDot } from './badge';
@@ -7,7 +7,11 @@ const meta = {
   title: 'Components/Badge',
   component: Badge,
   tags: ['autodocs'],
+  // Leaf label component. `variant` options are read straight off badgeVariants'
+  // cva config; `children` is the label — an editable string here, NOT a slot
+  // (§5: a name may never be both an argType and a slot).
   argTypes: {
+    children: { control: 'text', description: 'Badge label' },
     variant: {
       control: 'select',
       options: [
@@ -23,7 +27,7 @@ const meta = {
       ],
     },
   },
-  args: { children: 'Confirmed' },
+  args: { children: 'Confirmed', variant: 'default' },
 } satisfies Meta<typeof Badge>;
 
 export default meta;

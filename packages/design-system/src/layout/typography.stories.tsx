@@ -1,17 +1,74 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import { Text } from './text';
 import { Heading } from './heading';
 import { VStack } from './flex';
 
 const meta = {
-  title: 'Layout/Typography',
+  // Title leaf must resolve to the named export in scope (§7): `Text`.
+  title: 'Layout/Text',
   component: Text,
   tags: ['autodocs'],
+  // Text is a typography leaf: `children` is the editable label (a plain string
+  // control, not a slot — same as Button). `className`/`style` stay unexposed.
+  argTypes: {
+    children: { control: 'text', description: 'Text content' },
+    size: {
+      control: 'select',
+      options: [
+        'xs',
+        'sm',
+        'base',
+        'lg',
+        'xl',
+        '2xl',
+        '3xl',
+        '4xl',
+        '5xl',
+        '6xl',
+      ],
+    },
+    weight: {
+      control: 'select',
+      options: ['light', 'normal', 'medium', 'semibold', 'bold', 'extrabold'],
+    },
+    family: { control: 'inline-radio', options: ['sans', 'mono', 'display'] },
+    leading: {
+      control: 'select',
+      options: ['none', 'tight', 'snug', 'normal', 'relaxed'],
+    },
+    tracking: {
+      control: 'select',
+      options: ['tighter', 'tight', 'normal', 'wide', 'wider'],
+    },
+    align: {
+      control: 'select',
+      options: ['left', 'center', 'right', 'justify'],
+    },
+    color: {
+      control: 'select',
+      options: [
+        'foreground',
+        'muted-foreground',
+        'primary',
+        'destructive',
+        'success',
+      ],
+    },
+    truncate: { control: 'boolean' },
+    italic: { control: 'boolean' },
+    uppercase: { control: 'boolean' },
+  },
+  args: {
+    children: 'The quick brown fox books an appointment at 9:00 AM.',
+    size: 'base',
+  },
 } satisfies Meta<typeof Text>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {};
 
 export const Headings: Story = {
   render: () => (

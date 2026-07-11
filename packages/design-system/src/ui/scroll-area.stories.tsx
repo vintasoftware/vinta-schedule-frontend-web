@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import { ScrollArea } from './scroll-area';
 
@@ -6,23 +6,39 @@ const meta = {
   title: 'Components/ScrollArea',
   component: ScrollArea,
   tags: ['autodocs'],
+  // Radix ScrollAreaProps: `type`, `dir`, `scrollHideDelay`. Container — the
+  // scrollable content is `children` → slot (§4), so it is not an argType (§5).
+  argTypes: {
+    type: {
+      control: 'select',
+      options: ['auto', 'always', 'scroll', 'hover'],
+      description: 'When the scrollbars are visible',
+    },
+    dir: { control: 'inline-radio', options: ['ltr', 'rtl'] },
+    scrollHideDelay: {
+      control: 'number',
+      description: 'ms before scrollbars hide (type="scroll"/"hover")',
+    },
+  },
+  args: { type: 'hover' },
+  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof ScrollArea>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const slots = Array.from({ length: 24 }, (_, i) => {
+const timeSlots = Array.from({ length: 24 }, (_, i) => {
   const h = 8 + Math.floor(i / 2);
   const m = i % 2 === 0 ? '00' : '30';
   return `${String(h).padStart(2, '0')}:${m}`;
 });
 
 export const Default: Story = {
-  render: () => (
-    <ScrollArea className='h-64 w-56 rounded-md border'>
+  render: (args) => (
+    <ScrollArea className='h-64 w-56 rounded-md border' {...args}>
       <div className='p-3'>
         <p className='mb-2 text-sm font-medium'>Available slots</p>
-        {slots.map((s) => (
+        {timeSlots.map((s) => (
           <div
             key={s}
             className='hover:bg-accent rounded px-2 py-1.5 font-mono text-sm'

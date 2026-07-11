@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import { Input } from './input';
 import { Label } from './label';
@@ -7,7 +7,34 @@ const meta = {
   title: 'Components/Input',
   component: Input,
   tags: ['autodocs'],
-  args: { placeholder: 'you@clinic.com' },
+  // Leaf form control — self-closing, so NO slot. Props below are the real
+  // `React.ComponentProps<'input'>` members worth exposing to a designer.
+  // `className`/`style` are deliberately not exposed (§6).
+  argTypes: {
+    type: {
+      control: 'select',
+      options: [
+        'text',
+        'email',
+        'password',
+        'number',
+        'tel',
+        'url',
+        'search',
+        'date',
+        'time',
+      ],
+    },
+    placeholder: { control: 'text' },
+    defaultValue: {
+      control: 'text',
+      description: 'Initial (uncontrolled) value',
+    },
+    disabled: { control: 'boolean' },
+    required: { control: 'boolean' },
+    readOnly: { control: 'boolean' },
+  },
+  args: { type: 'email', placeholder: 'you@clinic.com' },
 } satisfies Meta<typeof Input>;
 
 export default meta;
@@ -24,7 +51,9 @@ export const WithLabel: Story = {
   ),
 };
 
-export const Disabled: Story = { args: { disabled: true, value: 'Locked' } };
+export const Disabled: Story = {
+  args: { disabled: true, defaultValue: 'Locked' },
+};
 
 export const Types: Story = {
   render: () => (

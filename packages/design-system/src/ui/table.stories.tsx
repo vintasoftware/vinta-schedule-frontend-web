@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import {
   Table,
@@ -12,18 +12,32 @@ import {
 } from './table';
 
 const meta = {
-  title: 'UI/Table',
+  // Leaf normalised to the exported component name and to the 'Components/*'
+  // namespace the rest of the package uses (was 'UI/Table').
+  title: 'Components/Table',
   component: Table,
   tags: ['autodocs'],
+  // Table is a plain <table> (`React.HTMLAttributes<HTMLTableElement>`) — it has
+  // no design-system prop of its own. Nothing was invented: the curated keys are
+  // real, forwarded HTML attributes. The rows/headers are `children` → slot (§4).
+  argTypes: {
+    'aria-label': {
+      control: 'text',
+      description: 'Accessible name for the table',
+    },
+    id: { control: 'text', description: 'DOM id on the <table> element' },
+  },
+  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Table>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => (
+  args: { 'aria-label': 'Recent invoices' },
+  render: (args) => (
     <div className='p-6'>
-      <Table>
+      <Table {...args}>
         <TableCaption>A list of recent invoices.</TableCaption>
         <TableHeader>
           <TableRow>

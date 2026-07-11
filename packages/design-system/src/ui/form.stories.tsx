@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 import { useForm } from 'react-hook-form';
 
 import {
@@ -15,8 +15,21 @@ import { Button } from './button';
 
 const meta = {
   title: 'Components/Form',
-  component: Form,
+  // `Form` is react-hook-form's `FormProvider`: every one of its props is a
+  // `useForm()` return value (control, register, formState, handleSubmit, …)
+  // plus `children`. It has NO designer-editable scalar prop and cannot be
+  // driven by Puck controls, so the single argTypes key below is declared with
+  // a disabled control — it satisfies the emptiness check without fabricating a
+  // prop that doesn't exist. `component` is intentionally omitted: FormProvider's
+  // function name is `FormProvider`, which would not match the title leaf (§7).
   tags: ['autodocs'],
+  argTypes: {
+    children: {
+      control: { type: 'text', disable: true },
+      description:
+        'Fields rendered inside the react-hook-form context. Supplied in code, not editable.',
+    },
+  },
 } satisfies Meta<typeof Form>;
 
 export default meta;

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import {
   NavigationMenu,
@@ -13,14 +13,38 @@ const meta = {
   title: 'Components/NavigationMenu',
   component: NavigationMenu,
   tags: ['autodocs'],
+  // Radix NavigationMenu.Root scalars (`value` / `onValueChange` are
+  // controlled-mode only). `children` (the NavigationMenuList) is composed
+  // content → a slot; the root also renders its own viewport after it.
+  argTypes: {
+    orientation: {
+      control: 'inline-radio',
+      options: ['horizontal', 'vertical'],
+    },
+    dir: { control: 'inline-radio', options: ['ltr', 'rtl'] },
+    defaultValue: {
+      control: 'text',
+      description: 'Value of the item open on first render',
+    },
+    delayDuration: {
+      control: 'number',
+      description: 'Ms from pointer-enter until the menu opens',
+    },
+    skipDelayDuration: {
+      control: 'number',
+      description: 'Ms the user has to move between items without a delay',
+    },
+  },
+  args: { orientation: 'horizontal', delayDuration: 200 },
+  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof NavigationMenu>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => (
-    <NavigationMenu>
+  render: (args) => (
+    <NavigationMenu {...args}>
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuTrigger>Product</NavigationMenuTrigger>

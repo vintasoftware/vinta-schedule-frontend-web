@@ -1,4 +1,4 @@
-import type { Meta } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 import * as React from 'react';
 import { Combobox } from './combobox';
 
@@ -14,13 +14,39 @@ const FRAMEWORKS: Array<{
   { value: 'astro', label: 'Astro', description: 'Static site builder' },
 ];
 
-const meta: Meta = {
+const meta = {
   title: 'Components/Combobox',
+  component: Combobox,
   tags: ['autodocs'],
+  // Leaf: Combobox renders its own trigger/popover/list — it takes no composed
+  // ReactNode children, so NO slot. `options` is data (an array of
+  // {value,label,description}), edited with the `object` control. `className`
+  // is deliberately not exposed (§6).
+  argTypes: {
+    options: {
+      control: 'object',
+      description: 'Selectable options: { value, label, description? }[]',
+    },
+    placeholder: { control: 'text' },
+    searchPlaceholder: { control: 'text' },
+    emptyText: { control: 'text', description: 'Shown when nothing matches' },
+    multiple: {
+      control: 'boolean',
+      description: 'Allow selecting more than one option',
+    },
+    isLoading: { control: 'boolean' },
+    disabled: { control: 'boolean' },
+  },
+  args: {
+    options: FRAMEWORKS,
+    placeholder: 'Select a framework…',
+    searchPlaceholder: 'Search frameworks…',
+  },
   parameters: { layout: 'centered' },
-};
+} satisfies Meta<typeof Combobox>;
 
 export default meta;
+type Story = StoryObj<typeof meta>;
 
 // Hooks must live in components, not in story `render` functions
 // (react-hooks/rules-of-hooks) — hence the named wrappers.
@@ -69,19 +95,19 @@ function WithDescriptionsStory() {
   );
 }
 
-export const SingleSelect = {
+export const SingleSelect: Story = {
   render: () => <SingleSelectStory />,
 };
 
-export const MultiSelect = {
+export const MultiSelect: Story = {
   render: () => <MultiSelectStory />,
 };
 
-export const WithDescriptions = {
+export const WithDescriptions: Story = {
   render: () => <WithDescriptionsStory />,
 };
 
-export const Loading = {
+export const Loading: Story = {
   render: () => (
     <div className='w-64'>
       <Combobox
@@ -97,7 +123,7 @@ export const Loading = {
   ),
 };
 
-export const Disabled = {
+export const Disabled: Story = {
   render: () => (
     <div className='w-64'>
       <Combobox

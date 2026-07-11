@@ -4,12 +4,33 @@ import { ChevronRight, MoreHorizontal } from 'lucide-react';
 
 import { cn } from '../lib/utils';
 
-const Breadcrumb = React.forwardRef<
-  HTMLElement,
-  React.ComponentPropsWithoutRef<'nav'> & {
-    separator?: React.ReactNode;
-  }
->(({ ...props }, ref) => <nav ref={ref} aria-label='breadcrumb' {...props} />);
+/** Glyph rendered between crumbs by a childless `BreadcrumbSeparator`. */
+export type BreadcrumbSeparatorVariant = 'chevron' | 'slash' | 'dot';
+
+const SeparatorContext =
+  React.createContext<BreadcrumbSeparatorVariant>('chevron');
+
+const SEPARATOR_GLYPH: Record<BreadcrumbSeparatorVariant, React.ReactNode> = {
+  chevron: <ChevronRight />,
+  slash: <span>/</span>,
+  dot: <span>·</span>,
+};
+
+export interface BreadcrumbProps extends React.ComponentPropsWithoutRef<'nav'> {
+  /**
+   * Separator glyph used by every `BreadcrumbSeparator` in the trail that does
+   * not pass its own children. Defaults to a chevron.
+   */
+  separator?: BreadcrumbSeparatorVariant;
+}
+
+const Breadcrumb = React.forwardRef<HTMLElement, BreadcrumbProps>(
+  ({ separator = 'chevron', ...props }, ref) => (
+    <SeparatorContext.Provider value={separator}>
+      <nav ref={ref} aria-label='breadcrumb' {...props} />
+    </SeparatorContext.Provider>
+  )
+);
 Breadcrumb.displayName = 'Breadcrumb';
 
 const BreadcrumbList = React.forwardRef<
@@ -76,16 +97,20 @@ const BreadcrumbSeparator = ({
   children,
   className,
   ...props
-}: React.ComponentProps<'li'>) => (
-  <li
-    role='presentation'
-    aria-hidden='true'
-    className={cn('[&>svg]:h-3.5 [&>svg]:w-3.5', className)}
-    {...props}
-  >
-    {children ?? <ChevronRight />}
-  </li>
-);
+}: React.ComponentProps<'li'>) => {
+  const variant = React.useContext(SeparatorContext);
+
+  return (
+    <li
+      role='presentation'
+      aria-hidden='true'
+      className={cn('[&>svg]:h-3.5 [&>svg]:w-3.5', className)}
+      {...props}
+    >
+      {children ?? SEPARATOR_GLYPH[variant]}
+    </li>
+  );
+};
 BreadcrumbSeparator.displayName = 'BreadcrumbSeparator';
 
 const BreadcrumbEllipsis = ({

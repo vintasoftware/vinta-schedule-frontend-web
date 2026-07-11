@@ -27,5 +27,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
     />
   );
 };
+// Explicit: bundlers rename this binding (it collides with sonner's own
+// `Toaster`), so the inferred function name cannot be relied on for resolution.
+Toaster.displayName = 'Toaster';
 
 export { Toaster };

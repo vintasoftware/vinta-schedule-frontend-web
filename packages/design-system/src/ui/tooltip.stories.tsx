@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '../story-types';
 
 import {
   Tooltip,
@@ -12,15 +12,32 @@ const meta = {
   title: 'Components/Tooltip',
   component: Tooltip,
   tags: ['autodocs'],
+  // Radix TooltipProps (the Root): `open`/`defaultOpen`/`delayDuration`/
+  // `disableHoverableContent`. `side`/`sideOffset` live on TooltipContent, not
+  // the root, so they are not curated here. Trigger + content are `children` →
+  // slot (§4), never also an argType (§5).
+  argTypes: {
+    defaultOpen: {
+      control: 'boolean',
+      description: 'Open on mount (uncontrolled)',
+    },
+    delayDuration: {
+      control: 'number',
+      description: 'ms from pointer enter until the tooltip opens',
+    },
+    disableHoverableContent: { control: 'boolean' },
+  },
+  args: { defaultOpen: false, delayDuration: 700 },
+  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Tooltip>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => (
+  render: (args) => (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip {...args}>
         <TooltipTrigger asChild>
           <Button variant='outline'>Hover me</Button>
         </TooltipTrigger>
