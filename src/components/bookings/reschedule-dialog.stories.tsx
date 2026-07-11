@@ -86,7 +86,10 @@ const meta = {
   decorators: [
     (Story) => {
       const queryClient = new QueryClient({
-        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
       });
       return (
         <QueryClientProvider client={queryClient}>

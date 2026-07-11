@@ -77,7 +77,10 @@ const meta = {
     (Story) => {
       global.fetch = stubFetch as typeof global.fetch;
       const queryClient = new QueryClient({
-        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
       });
       return (
         <QueryClientProvider client={queryClient}>

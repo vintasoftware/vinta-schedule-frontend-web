@@ -32,10 +32,7 @@ import type { Calendar, PaginatedCalendarList } from '@/client';
 // Fixtures
 // ---------------------------------------------------------------------------
 
-function resource(
-  id: number,
-  visibility: Calendar['visibility']
-): Calendar {
+function resource(id: number, visibility: Calendar['visibility']): Calendar {
   return {
     id,
     name: `Resource ${id}`,

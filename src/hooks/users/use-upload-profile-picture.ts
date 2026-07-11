@@ -2,7 +2,12 @@ import { useMutation } from '@tanstack/react-query';
 import { profileProfilePictureUploadParamsCreateMutation } from '@/client/@tanstack/react-query.gen';
 import type { ProfilePictureUploadParams } from '@/client';
 
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ACCEPTED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export class UploadValidationError extends Error {}
@@ -44,7 +49,9 @@ function uploadToS3(
 }
 
 export function useUploadProfilePicture() {
-  const getUploadParams = useMutation(profileProfilePictureUploadParamsCreateMutation());
+  const getUploadParams = useMutation(
+    profileProfilePictureUploadParamsCreateMutation()
+  );
 
   /** Validates, uploads to S3, and returns the public picture URL. Does NOT patch the profile. */
   const uploadProfilePicture = async (
@@ -52,7 +59,9 @@ export function useUploadProfilePicture() {
     onProgress?: (pct: number) => void
   ): Promise<string> => {
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      throw new UploadValidationError('Only JPEG, PNG, WebP, and GIF images are allowed');
+      throw new UploadValidationError(
+        'Only JPEG, PNG, WebP, and GIF images are allowed'
+      );
     }
     if (file.size > MAX_FILE_SIZE) {
       throw new UploadValidationError('Image must be smaller than 5 MB');
@@ -60,7 +69,11 @@ export function useUploadProfilePicture() {
 
     const params = await getUploadParams.mutateAsync({
       path: { user: 'me' },
-      body: { file_name: file.name, file_type: file.type, file_size: file.size },
+      body: {
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+      },
     });
 
     await uploadToS3(params, file, onProgress ?? (() => {}));

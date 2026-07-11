@@ -56,7 +56,11 @@ class ServerTokenStorageStrategy implements TokenStorageStrategy {
 
     await this.setAccessToken(newAccessToken);
     if (newRefreshToken) {
-      cookieManager.set('refreshToken', newRefreshToken, HTTPONLY_COOKIE_OPTIONS);
+      cookieManager.set(
+        'refreshToken',
+        newRefreshToken,
+        HTTPONLY_COOKIE_OPTIONS
+      );
       await cookieManager.apply();
     }
 
@@ -65,8 +69,14 @@ class ServerTokenStorageStrategy implements TokenStorageStrategy {
 
   async removeTokens() {
     const cookieStorage = getCookieManager();
-    cookieStorage.set('accessToken', '', { ...HTTPONLY_COOKIE_OPTIONS, maxAge: 0 });
-    cookieStorage.set('refreshToken', '', { ...HTTPONLY_COOKIE_OPTIONS, maxAge: 0 });
+    cookieStorage.set('accessToken', '', {
+      ...HTTPONLY_COOKIE_OPTIONS,
+      maxAge: 0,
+    });
+    cookieStorage.set('refreshToken', '', {
+      ...HTTPONLY_COOKIE_OPTIONS,
+      maxAge: 0,
+    });
     await cookieStorage.apply();
   }
 }

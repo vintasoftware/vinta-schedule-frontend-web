@@ -21,7 +21,9 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    setIsAuthenticated(document.cookie.split('; ').some((c) => c.startsWith('sessionActive=')));
+    setIsAuthenticated(
+      document.cookie.split('; ').some((c) => c.startsWith('sessionActive='))
+    );
     setAuthChecked(true);
   }, []);
 
