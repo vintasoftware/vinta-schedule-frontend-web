@@ -1,12 +1,7 @@
 import { DateTime } from 'luxon';
 
 import type { PolicyDocument } from '@/client';
-import {
-  Box,
-  Heading,
-  Stack,
-  Text,
-} from '@vinta-schedule/design-system/layout';
+import { Box, Heading, Stack, Text } from 'vinta-schedule-design-system/layout';
 import { renderMarkdownToSafeHtml } from '@/lib/render-markdown';
 
 export interface PolicyDocumentViewProps {

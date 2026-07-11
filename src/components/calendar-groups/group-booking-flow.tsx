@@ -31,18 +31,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Label } from '@vinta-schedule/design-system/ui/label';
-import { Checkbox } from '@vinta-schedule/design-system/ui/checkbox';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import { Checkbox } from 'vinta-schedule-design-system/ui/checkbox';
 import {
   Alert,
   AlertTitle,
   AlertDescription,
-} from '@vinta-schedule/design-system/ui/alert';
-import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
-import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/alert';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
+import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
 import { useCalendarGroups } from '@/hooks/calendar-groups/use-calendar-groups';
 import {
   useGroupBooking,

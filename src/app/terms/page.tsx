@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { Container, Section } from '@vinta-schedule/design-system/layout';
+import { Container, Section } from 'vinta-schedule-design-system/layout';
 import { PolicyDocumentView } from '@/components/policy/policy-document-view';
 import { fetchLatestPolicyDocument } from '@/lib/policy-documents-server';
 

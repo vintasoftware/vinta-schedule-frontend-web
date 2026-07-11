@@ -29,16 +29,16 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@vinta-schedule/design-system/ui/select';
+} from 'vinta-schedule-design-system/ui/select';
 import {
   Form,
   FormField,
@@ -47,8 +47,8 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
-import { Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { Text } from 'vinta-schedule-design-system/layout';
 import {
   useCreateBookingPolicy,
   useUpdateBookingPolicy,

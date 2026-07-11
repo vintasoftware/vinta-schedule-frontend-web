@@ -29,20 +29,17 @@
 
 import * as React from 'react';
 import { Calendar, Info } from 'lucide-react';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Label } from '@vinta-schedule/design-system/ui/label';
-import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
-import {
-  Alert,
-  AlertDescription,
-} from '@vinta-schedule/design-system/ui/alert';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
+import { Alert, AlertDescription } from 'vinta-schedule-design-system/ui/alert';
 import {
   HStack,
   VStack,
   Stack,
   Text,
-} from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/layout';
 import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
 import { useColleagueCalendars } from '@/hooks/availability/use-colleague-calendars';
 import {

@@ -17,8 +17,8 @@ import { CalendarScopePicker } from './calendar-scope-picker';
 import type { CalendarEventVM } from './event-vm';
 import { toCalendarEventVM } from './event-vm';
 import type { CalendarEvent } from '@/client';
-import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
-import { Badge } from '@vinta-schedule/design-system/ui/badge';
+import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
 
 // ---------------------------------------------------------------------------
 // Fixture events — two events in different IANA timezones

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { Stack } from '@vinta-schedule/design-system/layout/stack';
-import { PageHeader } from '@vinta-schedule/design-system/layout/page-header';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
+import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 import { AvailabilityTabs } from '@/components/availability/availability-tabs';
 
 /**

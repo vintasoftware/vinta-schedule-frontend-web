@@ -36,11 +36,11 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Textarea } from '@vinta-schedule/design-system/ui/textarea';
-import { Progress } from '@vinta-schedule/design-system/ui/progress';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Textarea } from 'vinta-schedule-design-system/ui/textarea';
+import { Progress } from 'vinta-schedule-design-system/ui/progress';
 import {
   Form,
   FormField,
@@ -49,13 +49,8 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
-import {
-  VStack,
-  HStack,
-  Text,
-  Box,
-} from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { VStack, HStack, Text, Box } from 'vinta-schedule-design-system/layout';
 import { useUpsertServiceAccount } from '@/hooks/service-accounts/use-service-account';
 
 // ---------------------------------------------------------------------------

@@ -1,23 +1,23 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { CalendarPlus } from 'lucide-react';
 
-import { AppShell } from '@vinta-schedule/design-system/layout/app-shell';
+import { AppShell } from 'vinta-schedule-design-system/layout/app-shell';
 import { AppSidebar } from '@/components/navigation/app-sidebar';
-import { AppTopbar } from '@vinta-schedule/design-system/layout/app-topbar';
-import { AuthLayout } from '@vinta-schedule/design-system/layout/auth-layout';
-import { Navbar } from '@vinta-schedule/design-system/layout/navbar';
-import { PageHeader } from '@vinta-schedule/design-system/layout/page-header';
-import { Button } from '@vinta-schedule/design-system/ui/button';
+import { AppTopbar } from 'vinta-schedule-design-system/layout/app-topbar';
+import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
+import { Navbar } from 'vinta-schedule-design-system/layout/navbar';
+import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@vinta-schedule/design-system/ui/card';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Label } from '@vinta-schedule/design-system/ui/label';
-import { SchedulingChip } from '@vinta-schedule/design-system/ui/scheduling-chip';
+} from 'vinta-schedule-design-system/ui/card';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import { SchedulingChip } from 'vinta-schedule-design-system/ui/scheduling-chip';
 
 const meta: Meta = {
   title: 'Page Layouts',

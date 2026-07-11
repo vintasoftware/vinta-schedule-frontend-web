@@ -29,9 +29,9 @@ import {
   Alert,
   AlertTitle,
   AlertDescription,
-} from '@vinta-schedule/design-system/ui/alert';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/alert';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
 import type { AvailableTimeWindow, UnavailableTimeWindow } from '@/client';
 import { zonedFormat } from '@/lib/datetime/index';
 

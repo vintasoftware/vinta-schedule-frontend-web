@@ -32,13 +32,13 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
+} from 'vinta-schedule-design-system/ui/dialog';
 import {
   RadioGroup,
   RadioGroupItem,
-} from '@vinta-schedule/design-system/ui/radio-group';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Label } from '@vinta-schedule/design-system/ui/label';
+} from 'vinta-schedule-design-system/ui/radio-group';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Label } from 'vinta-schedule-design-system/ui/label';
 
 // ---------------------------------------------------------------------------
 // Types

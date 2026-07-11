@@ -13,15 +13,15 @@ import {
   VStack,
   Heading,
   Text,
-} from '@vinta-schedule/design-system/layout';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
+} from 'vinta-schedule-design-system/layout';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
 import {
   Alert,
   AlertDescription,
   AlertTitle,
-} from '@vinta-schedule/design-system/ui/alert';
-import { Card } from '@vinta-schedule/design-system/ui/card';
+} from 'vinta-schedule-design-system/ui/alert';
+import { Card } from 'vinta-schedule-design-system/ui/card';
 import {
   Form,
   FormField,
@@ -30,7 +30,7 @@ import {
   FormControl,
   FormMessage,
   FormDescription,
-} from '@vinta-schedule/design-system/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
 import { useUpdateBranding } from '@/hooks/branding/use-update-branding';
 import type { OrganizationBranding } from '@/client';
 import { BrandingPreview } from './branding-preview';

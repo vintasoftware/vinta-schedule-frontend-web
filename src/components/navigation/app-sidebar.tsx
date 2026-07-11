@@ -25,16 +25,16 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from '@vinta-schedule/design-system/ui/avatar';
+} from 'vinta-schedule-design-system/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@vinta-schedule/design-system/ui/dropdown-menu';
+} from 'vinta-schedule-design-system/ui/dropdown-menu';
 import type { MyMembership } from '@/client';
 import { OrgSwitcher } from '@/components/organizations/org-switcher';
-import { Box, VStack, Text } from '@vinta-schedule/design-system/layout';
+import { Box, VStack, Text } from 'vinta-schedule-design-system/layout';
 
 export interface SidebarNavItem {
   id: string;

@@ -11,9 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
 import {
   Form,
   FormField,
@@ -21,7 +21,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
 import { useCreateCalendar } from '@/hooks/calendars/use-create-calendar';
 
 // ---------------------------------------------------------------------------

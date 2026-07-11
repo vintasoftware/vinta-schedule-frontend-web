@@ -2,7 +2,7 @@
 
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {

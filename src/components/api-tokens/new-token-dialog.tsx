@@ -12,10 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Checkbox } from '@vinta-schedule/design-system/ui/checkbox';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Checkbox } from 'vinta-schedule-design-system/ui/checkbox';
 import {
   Form,
   FormField,
@@ -23,8 +23,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
-import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
 import type { AvailableResourcesEnum } from '@/client';
 import { useCreatePublicApiToken } from '@/hooks/api-tokens/use-public-api-tokens';
 

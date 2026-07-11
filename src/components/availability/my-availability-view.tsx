@@ -20,15 +20,15 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { CalendarOff, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
 import {
   VStack,
   HStack,
   Stack,
   Text,
   Heading,
-} from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/layout';
 import { useMyAvailability } from '@/hooks/availability/use-my-availability';
 import { useUrlState } from '@/hooks/use-url-state';
 import { FreeBusyList } from './free-busy-list';

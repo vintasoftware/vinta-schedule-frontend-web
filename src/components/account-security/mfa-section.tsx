@@ -9,10 +9,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@vinta-schedule/design-system/ui/card';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Badge } from '@vinta-schedule/design-system/ui/badge';
-import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
+} from 'vinta-schedule-design-system/ui/card';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +22,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@vinta-schedule/design-system/ui/alert-dialog';
-import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
 
 import { useAuthConfig } from '@/hooks/authentication/use-auth-config';
 import { useTotpConfig } from '@/hooks/authentication/use-totp-config';

@@ -11,11 +11,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Label } from '@vinta-schedule/design-system/ui/label';
-import { VStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import { VStack, Text } from 'vinta-schedule-design-system/layout';
 
 import { useVerifyEmail } from '@/hooks/authentication/use-verify-email';
 import { ACCOUNT_EMAILS_QUERY_KEY } from '@/hooks/authentication/use-account-emails';

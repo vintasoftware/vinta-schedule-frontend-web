@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import { useTriggerRoomsSync } from '@/hooks/sync/use-trigger-rooms-sync';
 
 const DEBOUNCE_MS = 500;

@@ -9,8 +9,8 @@ import {
   PaginationNext,
   PaginationPrevious,
   PaginationEllipsis,
-} from '@vinta-schedule/design-system/ui/pagination';
-import { Flex } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/pagination';
+import { Flex } from 'vinta-schedule-design-system/layout';
 import { cn } from '@/lib/utils/index';
 
 // ---------------------------------------------------------------------------

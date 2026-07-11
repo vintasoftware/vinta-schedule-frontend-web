@@ -9,7 +9,7 @@ non-visual conventions: stack, commands, structure, and code patterns.
 - **Next.js 16** (App Router, RSC) + **React 19** + **TypeScript** (strict).
 - **Tailwind CSS v4** (tokens in
   `packages/design-system/src/styles/tokens.css`, no separate config).
-- **Design system**: workspace package `@vinta-schedule/design-system`
+- **Design system**: workspace package `vinta-schedule-design-system`
   (`packages/design-system/`) — shadcn/ui atoms (new-york style), layout
   primitives, tokens, and its own Storybook. Icons: `lucide-react`.
 - **TanStack Query v5** for server state.
@@ -45,7 +45,7 @@ visual components and a test for logic.
 ## Structure
 
 ```
-packages/design-system/ # @vinta-schedule/design-system workspace package
+packages/design-system/ # vinta-schedule-design-system workspace package
   src/
     ui/                 # shadcn/ui atoms (cva variants) + colocated stories
     layout/             # layout primitives (Box, Flex, Stack, Grid…) + index.ts
@@ -70,8 +70,8 @@ src/
 ```
 
 Path alias: **`@/` → `src/`** (e.g. `@/lib/utils/index`). Design-system imports
-use the package specifier: `@vinta-schedule/design-system/ui/button`,
-`@vinta-schedule/design-system/layout`. Inside the package, imports are
+use the package specifier: `vinta-schedule-design-system/ui/button`,
+`vinta-schedule-design-system/layout`. Inside the package, imports are
 relative.
 
 ## Patterns

@@ -9,7 +9,7 @@
 
 import * as React from 'react';
 import { Plus } from 'lucide-react';
-import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import { BookingFormDialog } from '@/components/bookings/booking-form';
 
 export function NewBookingButton() {

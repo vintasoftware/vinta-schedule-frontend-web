@@ -39,10 +39,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Textarea } from '@vinta-schedule/design-system/ui/textarea';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Textarea } from 'vinta-schedule-design-system/ui/textarea';
 import {
   Form,
   FormField,
@@ -50,8 +50,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
-import { VStack } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { VStack } from 'vinta-schedule-design-system/layout';
 import { ScopePromptDialog } from '@/components/bookings/scope-prompt-dialog';
 import type { RecurringScope } from '@/components/bookings/scope-prompt-dialog';
 import { useEditOccurrence } from '@/hooks/bookings/use-edit-occurrence';

@@ -5,17 +5,17 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Card } from '@vinta-schedule/design-system/ui/card';
-import { AuthLayout } from '@vinta-schedule/design-system/layout/auth-layout';
-import { Stack, Heading, Text } from '@vinta-schedule/design-system/layout';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
+import { Stack, Heading, Text } from 'vinta-schedule-design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import {
   Alert,
   AlertTitle,
   AlertDescription,
-} from '@vinta-schedule/design-system/ui/alert';
+} from 'vinta-schedule-design-system/ui/alert';
 import {
   Form,
   FormField,
@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
 import { useCreateOrganization } from '@/hooks/organizations/use-create-organization';
 import { useActiveOrganization } from '@/hooks/organizations/use-active-organization';
 

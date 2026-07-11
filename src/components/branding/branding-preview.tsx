@@ -4,7 +4,7 @@ import {
   VStack,
   Heading,
   Text,
-} from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/layout';
 
 // ---------------------------------------------------------------------------
 // BrandingPreview — a self-contained mock of the auth interstitial card,

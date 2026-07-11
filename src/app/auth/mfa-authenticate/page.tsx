@@ -3,21 +3,21 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Card } from '@vinta-schedule/design-system/ui/card';
-import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { Input } from 'vinta-schedule-design-system/ui/input';
 import {
   Alert,
   AlertTitle,
   AlertDescription,
-} from '@vinta-schedule/design-system/ui/alert';
+} from 'vinta-schedule-design-system/ui/alert';
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from '@vinta-schedule/design-system/ui/input-otp';
-import { AuthLayout } from '@vinta-schedule/design-system/layout/auth-layout';
-import { VStack, Text, Heading } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/input-otp';
+import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
+import { VStack, Text, Heading } from 'vinta-schedule-design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
 

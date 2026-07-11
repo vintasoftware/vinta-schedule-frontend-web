@@ -8,9 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@vinta-schedule/design-system/ui/dropdown-menu';
-import { Box } from '@vinta-schedule/design-system/layout/box';
-import { Text } from '@vinta-schedule/design-system/layout/text';
+} from 'vinta-schedule-design-system/ui/dropdown-menu';
+import { Box } from 'vinta-schedule-design-system/layout/box';
+import { Text } from 'vinta-schedule-design-system/layout/text';
 
 // ---------------------------------------------------------------------------
 // OrgSwitcher

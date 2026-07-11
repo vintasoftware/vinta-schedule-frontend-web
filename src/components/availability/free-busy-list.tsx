@@ -13,19 +13,16 @@
  */
 
 import { Clock, AlertCircle } from 'lucide-react';
-import {
-  Alert,
-  AlertDescription,
-} from '@vinta-schedule/design-system/ui/alert';
-import { Badge } from '@vinta-schedule/design-system/ui/badge';
-import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
+import { Alert, AlertDescription } from 'vinta-schedule-design-system/ui/alert';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
 import {
   HStack,
   VStack,
   Stack,
   Text,
   Heading,
-} from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/layout';
 import type { AvailableTimeWindow } from '@/client';
 
 // ---------------------------------------------------------------------------

@@ -5,9 +5,9 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { DataTable } from './data-table';
 import type { DataTableColumn, DataTableQuery } from './types';
 import { DEFAULT_DATA_TABLE_QUERY } from './types';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Badge } from '@vinta-schedule/design-system/ui/badge';
-import { VStack, HStack } from '@vinta-schedule/design-system/layout';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { VStack, HStack } from 'vinta-schedule-design-system/layout';
 import { UserPlus } from 'lucide-react';
 
 // ---------------------------------------------------------------------------

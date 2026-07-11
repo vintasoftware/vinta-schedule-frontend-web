@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { Card } from '@vinta-schedule/design-system/ui/card';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { VStack, Text, Heading } from '@vinta-schedule/design-system/layout';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { VStack, Text, Heading } from 'vinta-schedule-design-system/layout';
 
 import { useVerifyEmail } from '@/hooks/authentication/use-verify-email';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';

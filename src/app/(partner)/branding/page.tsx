@@ -6,12 +6,12 @@ import {
   PageHeader,
   Text,
   Center,
-} from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/layout';
 import {
   Alert,
   AlertDescription,
   AlertTitle,
-} from '@vinta-schedule/design-system/ui/alert';
+} from 'vinta-schedule-design-system/ui/alert';
 import { BrandingForm } from '@/components/branding/branding-form';
 import { useBranding } from '@/hooks/branding/use-branding';
 

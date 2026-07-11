@@ -7,25 +7,25 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Loader2, Upload } from 'lucide-react';
 
-import { PageHeader } from '@vinta-schedule/design-system/layout/page-header';
-import { Stack } from '@vinta-schedule/design-system/layout/stack';
-import { HStack } from '@vinta-schedule/design-system/layout/flex';
-import { Text } from '@vinta-schedule/design-system/layout/text';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
+import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
+import { HStack } from 'vinta-schedule-design-system/layout/flex';
+import { Text } from 'vinta-schedule-design-system/layout/text';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '@vinta-schedule/design-system/ui/card';
-import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
+} from 'vinta-schedule-design-system/ui/card';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from '@vinta-schedule/design-system/ui/avatar';
-import { Progress } from '@vinta-schedule/design-system/ui/progress';
+} from 'vinta-schedule-design-system/ui/avatar';
+import { Progress } from 'vinta-schedule-design-system/ui/progress';
 import {
   Form,
   FormField,
@@ -33,7 +33,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
 
 import { useProfile } from '@/hooks/users/use-profile';
 import { useUpdateProfile } from '@/hooks/users/use-update-profile';

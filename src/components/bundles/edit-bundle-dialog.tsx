@@ -32,15 +32,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Checkbox } from '@vinta-schedule/design-system/ui/checkbox';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Checkbox } from 'vinta-schedule-design-system/ui/checkbox';
 import {
   RadioGroup,
   RadioGroupItem,
-} from '@vinta-schedule/design-system/ui/radio-group';
-import { Form } from '@vinta-schedule/design-system/ui/form';
-import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/radio-group';
+import { Form } from 'vinta-schedule-design-system/ui/form';
+import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useUpdateBundle } from '@/hooks/bundles/use-update-bundle';
 

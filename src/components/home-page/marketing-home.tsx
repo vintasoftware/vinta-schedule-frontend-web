@@ -19,9 +19,9 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils/index';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Box, Container, Text } from '@vinta-schedule/design-system/layout';
-import { Navbar, BrandMark } from '@vinta-schedule/design-system/layout/navbar';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Box, Container, Text } from 'vinta-schedule-design-system/layout';
+import { Navbar, BrandMark } from 'vinta-schedule-design-system/layout/navbar';
 import { ThemeToggle } from '@/components/navigation/theme-toggle';
 
 function Eyebrow({ children }: { children: React.ReactNode }) {

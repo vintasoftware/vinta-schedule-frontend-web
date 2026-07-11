@@ -12,17 +12,17 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Textarea } from '@vinta-schedule/design-system/ui/textarea';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Textarea } from 'vinta-schedule-design-system/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@vinta-schedule/design-system/ui/select';
+} from 'vinta-schedule-design-system/ui/select';
 import {
   Form,
   FormField,
@@ -31,7 +31,7 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
 import type { EventTypeEnum } from '@/client';
 import {
   useCreateWebhookConfiguration,

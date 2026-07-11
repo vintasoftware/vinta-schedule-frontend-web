@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Stack } from '@vinta-schedule/design-system/layout/stack';
-import { PageHeader } from '@vinta-schedule/design-system/layout/page-header';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
+import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { TeamTable } from '@/components/team/team-table';
 import { InvitationsTable } from '@/components/invitations/invitations-table';
@@ -11,7 +11,7 @@ import {
   TabsList,
   TabsTrigger,
   TabsContent,
-} from '@vinta-schedule/design-system/ui/tabs';
+} from 'vinta-schedule-design-system/ui/tabs';
 import { useRequireRole } from '@/components/navigation/role-gate';
 
 /**

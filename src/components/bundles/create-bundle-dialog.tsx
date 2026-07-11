@@ -28,14 +28,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
 import {
   RadioGroup,
   RadioGroupItem,
-} from '@vinta-schedule/design-system/ui/radio-group';
+} from 'vinta-schedule-design-system/ui/radio-group';
 import {
   Form,
   FormField,
@@ -43,8 +43,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
-import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useCreateBundle } from '@/hooks/bundles/use-create-bundle';
 

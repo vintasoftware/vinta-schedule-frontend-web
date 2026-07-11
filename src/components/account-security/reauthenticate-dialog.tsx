@@ -10,11 +10,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import { Label } from '@vinta-schedule/design-system/ui/label';
-import { VStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import { VStack, Text } from 'vinta-schedule-design-system/layout';
 
 import { ReauthenticationRequest } from '@/hooks/authentication/use-sensitive-action';
 import { useReauthenticate } from '@/hooks/authentication/use-reauthenticate';

@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Stack } from '@vinta-schedule/design-system/layout/stack';
-import { PageHeader } from '@vinta-schedule/design-system/layout/page-header';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
+import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { GroupsTable } from '@/components/calendar-groups/groups-table';
 import { useRequireRole } from '@/components/navigation/role-gate';

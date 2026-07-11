@@ -11,13 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
-import {
-  Alert,
-  AlertDescription,
-} from '@vinta-schedule/design-system/ui/alert';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Alert, AlertDescription } from 'vinta-schedule-design-system/ui/alert';
 import {
   Form,
   FormField,
@@ -25,8 +22,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
-import { VStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { VStack, Text } from 'vinta-schedule-design-system/layout';
 import { useCreateInvitation } from '@/hooks/invitations/use-create-invitation';
 import { useResendInvitation } from '@/hooks/invitations/use-resend-invitation';
 import { invitationsList } from '@/client/sdk.gen';

@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Badge } from '@vinta-schedule/design-system/ui/badge';
-import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +17,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@vinta-schedule/design-system/ui/alert-dialog';
-import { Flex, VStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { Flex, VStack, Text } from 'vinta-schedule-design-system/layout';
 import { usePublicApiTokens } from '@/hooks/api-tokens/use-public-api-tokens';
 import type { SystemUserToken } from '@/hooks/api-tokens/use-public-api-tokens';
 import { useRevokePublicApiToken } from '@/hooks/api-tokens/use-revoke-public-api-token';

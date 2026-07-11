@@ -20,8 +20,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Switch } from '@vinta-schedule/design-system/ui/switch';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Switch } from 'vinta-schedule-design-system/ui/switch';
 import {
   Form,
   FormField,
@@ -29,8 +29,8 @@ import {
   FormLabel,
   FormControl,
   FormDescription,
-} from '@vinta-schedule/design-system/ui/form';
-import { VStack } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { VStack } from 'vinta-schedule-design-system/layout';
 import { useRoomsSyncConfig } from '@/hooks/sync/use-rooms-sync-config';
 
 // ---------------------------------------------------------------------------

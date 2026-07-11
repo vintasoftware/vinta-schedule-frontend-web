@@ -27,15 +27,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@vinta-schedule/design-system/ui/alert-dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Badge } from '@vinta-schedule/design-system/ui/badge';
-import {
-  VStack,
-  HStack,
-  Text,
-  Box,
-} from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { VStack, HStack, Text, Box } from 'vinta-schedule-design-system/layout';
 import {
   useServiceAccount,
   useDeleteServiceAccount,

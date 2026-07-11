@@ -5,15 +5,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@vinta-schedule/design-system/ui/card';
+} from 'vinta-schedule-design-system/ui/card';
 import {
   Form,
   FormControl,
@@ -21,8 +21,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@vinta-schedule/design-system/ui/form';
-import { VStack } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { VStack } from 'vinta-schedule-design-system/layout';
 
 import { useAuthUser } from '@/hooks/authentication/use-auth-user';
 import { useChangePassword } from '@/hooks/authentication/use-change-password';

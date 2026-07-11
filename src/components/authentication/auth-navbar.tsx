@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 
-import { Navbar, BrandMark } from '@vinta-schedule/design-system/layout/navbar';
-import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Navbar, BrandMark } from 'vinta-schedule-design-system/layout/navbar';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import { ThemeToggle } from '@/components/navigation/theme-toggle';
 import type { TenantBranding } from '@/lib/branding-shared';
 import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';

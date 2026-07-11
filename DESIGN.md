@@ -1,7 +1,7 @@
 # Vinta Schedule — Design & Layout Guide
 
 Rules for building UI in this app. Source of truth for the design system is the
-**Vinta Schedule Design System** — the `@vinta-schedule/design-system` workspace
+**Vinta Schedule Design System** — the `vinta-schedule-design-system` workspace
 package (tokens mirrored into `packages/design-system/src/styles/tokens.css`).
 Follow these conventions for every component, page, and Storybook story.
 
@@ -26,7 +26,7 @@ Follow these conventions for every component, page, and Storybook story.
 
 Layout primitives live in
 [`packages/design-system/src/layout/`](packages/design-system/src/layout/)
-(imported as `@vinta-schedule/design-system/layout`) and are driven by **props
+(imported as `vinta-schedule-design-system/layout`) and are driven by **props
 that resolve to tokens** — the goal is composing UI "like legos" without
 writing layout classes.
 
@@ -100,7 +100,7 @@ Tailwind v4 container sizes (built-in, no plugin):
 
 - UI components are shadcn/ui (new-york) under
   [`packages/design-system/src/ui/`](packages/design-system/src/ui/)
-  (imported as `@vinta-schedule/design-system/ui/<name>`). Icons are
+  (imported as `vinta-schedule-design-system/ui/<name>`). Icons are
   `lucide-react`.
 - `Button` sizes: `xs | sm | default | lg | xl | icon`. Use `size='icon'` for
   square icon buttons; pass `aria-label` when icon-only.

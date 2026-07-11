@@ -9,10 +9,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@vinta-schedule/design-system/ui/dialog';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
-import { VStack, Text } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
+import { VStack, Text } from 'vinta-schedule-design-system/layout';
 
 import { useRecoveryCodes } from '@/hooks/authentication/use-recovery-codes';
 import { useRegenerateRecoveryCodes } from '@/hooks/authentication/use-regenerate-recovery-codes';

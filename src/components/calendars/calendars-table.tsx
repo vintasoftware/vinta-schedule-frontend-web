@@ -14,9 +14,9 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Badge } from '@vinta-schedule/design-system/ui/badge';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Switch } from '@vinta-schedule/design-system/ui/switch';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Switch } from 'vinta-schedule-design-system/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,8 +26,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@vinta-schedule/design-system/ui/alert-dialog';
-import { VStack, Text, HStack } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { VStack, Text, HStack } from 'vinta-schedule-design-system/layout';
 import type { Calendar } from '@/client';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
 import { useDeleteCalendar } from '@/hooks/calendars/use-delete-calendar';

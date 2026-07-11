@@ -26,16 +26,16 @@ import { useActiveOrganization } from '@/hooks/organizations/use-active-organiza
 import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
 import { useProfile } from '@/hooks/users/use-profile';
 import { useLogout } from '@/hooks/authentication/use-logout';
-import { AppShell } from '@vinta-schedule/design-system/layout/app-shell';
+import { AppShell } from 'vinta-schedule-design-system/layout/app-shell';
 import {
   AppSidebar,
   type SidebarNavGroup,
   type SidebarNavItem,
 } from '@/components/navigation/app-sidebar';
-import { AppTopbar } from '@vinta-schedule/design-system/layout/app-topbar';
+import { AppTopbar } from 'vinta-schedule-design-system/layout/app-topbar';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
-import { Center } from '@vinta-schedule/design-system/layout/center';
-import { Text } from '@vinta-schedule/design-system/layout/text';
+import { Center } from 'vinta-schedule-design-system/layout/center';
+import { Text } from 'vinta-schedule-design-system/layout/text';
 import { RoleProvider } from '@/components/navigation/role-gate';
 import type { RoleEnum } from '@/client';
 

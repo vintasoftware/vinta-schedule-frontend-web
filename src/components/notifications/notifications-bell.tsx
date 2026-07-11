@@ -4,14 +4,14 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Bell } from 'lucide-react';
 
-import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@vinta-schedule/design-system/ui/popover';
-import { ScrollArea } from '@vinta-schedule/design-system/ui/scroll-area';
-import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
+} from 'vinta-schedule-design-system/ui/popover';
+import { ScrollArea } from 'vinta-schedule-design-system/ui/scroll-area';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
 import { useUnreadNotifications } from '@/hooks/notifications/use-unread-notifications';
 import { useMarkNotificationRead } from '@/hooks/notifications/use-mark-notification-read';
 import { NotificationListItem } from './notification-list-item';

@@ -4,7 +4,7 @@
 /* Design tokens (colors, type, radius, shadows, dark theme, @theme mapping)
    live in the design-system package — single source of truth shared with its
    Storybook. */
-@import '@vinta-schedule/design-system/styles/tokens.css';
+@import 'vinta-schedule-design-system/styles/tokens.css';
 
 /* The design-system components ship as source; scan them so the utilities
    they use are generated in the app bundle. */

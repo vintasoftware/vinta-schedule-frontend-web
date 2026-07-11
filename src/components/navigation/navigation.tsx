@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import {
   NavigationMenu,
   NavigationMenuList,
   NavigationMenuItem,
   NavigationMenuLink,
-} from '@vinta-schedule/design-system/ui/navigation-menu';
+} from 'vinta-schedule-design-system/ui/navigation-menu';
 import { ThemeToggle } from '@/components/navigation/theme-toggle';
 import { Menu } from 'lucide-react';
 import {
@@ -16,7 +16,7 @@ import {
   SheetContent,
   SheetTrigger,
   SheetTitle,
-} from '@vinta-schedule/design-system/ui/sheet';
+} from 'vinta-schedule-design-system/ui/sheet';
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);

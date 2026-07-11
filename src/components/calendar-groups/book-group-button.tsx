@@ -9,7 +9,7 @@
 
 import * as React from 'react';
 import { Users } from 'lucide-react';
-import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import { GroupBookingFlow } from '@/components/calendar-groups/group-booking-flow';
 
 export function BookGroupButton() {

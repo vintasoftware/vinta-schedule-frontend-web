@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { Stack } from '@vinta-schedule/design-system/layout/stack';
-import { Heading } from '@vinta-schedule/design-system/layout/heading';
-import { Text } from '@vinta-schedule/design-system/layout/text';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Center } from '@vinta-schedule/design-system/layout/center';
-import { Flex } from '@vinta-schedule/design-system/layout/flex';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
+import { Heading } from 'vinta-schedule-design-system/layout/heading';
+import { Text } from 'vinta-schedule-design-system/layout/text';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Center } from 'vinta-schedule-design-system/layout/center';
+import { Flex } from 'vinta-schedule-design-system/layout/flex';
 
 /**
  * No-access page — shown when a disabled user tries to reach any (app) route.

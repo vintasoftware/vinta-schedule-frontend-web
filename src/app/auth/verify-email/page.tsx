@@ -7,18 +7,18 @@ import {
   InputOTPGroup,
   InputOTPSlot,
   InputOTPSeparator,
-} from '@vinta-schedule/design-system/ui/input-otp';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { Card } from '@vinta-schedule/design-system/ui/card';
-import { AuthLayout } from '@vinta-schedule/design-system/layout/auth-layout';
-import { VStack, Text, Heading } from '@vinta-schedule/design-system/layout';
+} from 'vinta-schedule-design-system/ui/input-otp';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
+import { VStack, Text, Heading } from 'vinta-schedule-design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
 import {
   Alert,
   AlertTitle,
   AlertDescription,
-} from '@vinta-schedule/design-system/ui/alert';
+} from 'vinta-schedule-design-system/ui/alert';
 import { useState } from 'react';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
 import { useResendEmailVerificationCode } from '@/hooks/authentication/use-resend-email-verification-code';

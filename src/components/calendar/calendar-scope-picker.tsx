@@ -13,8 +13,8 @@
  */
 
 import * as React from 'react';
-import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
-import { HStack, Text } from '@vinta-schedule/design-system/layout';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
+import { HStack, Text } from 'vinta-schedule-design-system/layout';
 import { CalendarDays } from 'lucide-react';
 
 // ---------------------------------------------------------------------------

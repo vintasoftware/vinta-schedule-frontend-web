@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
-import { Card } from '@vinta-schedule/design-system/ui/card';
-import { Button } from '@vinta-schedule/design-system/ui/button';
-import { VStack, Text, Heading } from '@vinta-schedule/design-system/layout';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { VStack, Text, Heading } from 'vinta-schedule-design-system/layout';
 
 import { useConnectProviderCallback } from '@/hooks/authentication/use-connect-provider-callback';
 
