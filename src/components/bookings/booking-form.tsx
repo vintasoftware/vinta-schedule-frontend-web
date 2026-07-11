@@ -51,18 +51,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
+} from '@vinta-schedule/design-system/ui/dialog';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Checkbox } from '@vinta-schedule/design-system/ui/checkbox';
+import { Switch } from '@vinta-schedule/design-system/ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@vinta-schedule/design-system/ui/select';
 import {
   Form,
   FormField,
@@ -70,8 +70,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack, HStack, Text } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/form';
+import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
 import { useResourceCalendars } from '@/hooks/calendars/use-resource-calendars';
 import { useAvailabilityCheck } from '@/hooks/bookings/use-availability-check';
@@ -87,7 +87,7 @@ import {
   weekdayMatrix,
   type RecurrenceRule,
 } from '@/lib/datetime/index';
-import { Combobox } from '@/components/ui/combobox';
+import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
 import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
 
 // ---------------------------------------------------------------------------

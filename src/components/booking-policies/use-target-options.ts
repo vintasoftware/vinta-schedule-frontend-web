@@ -14,7 +14,7 @@
  */
 
 import * as React from 'react';
-import type { ComboboxOption } from '@/components/ui/combobox';
+import type { ComboboxOption } from '@vinta-schedule/design-system/ui/combobox';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useCalendarGroups } from '@/hooks/calendar-groups/use-calendar-groups';
 import { useTeamMembers } from '@/hooks/team/use-team-members';

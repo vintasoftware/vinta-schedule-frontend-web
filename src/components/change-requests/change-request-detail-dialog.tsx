@@ -9,10 +9,16 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { VStack, HStack, Box, Text, Divider } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/dialog';
+import { Badge } from '@vinta-schedule/design-system/ui/badge';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import {
+  VStack,
+  HStack,
+  Box,
+  Text,
+  Divider,
+} from '@vinta-schedule/design-system/layout';
 import { formatDateTime } from '@/lib/utils/date-utils';
 import {
   STATUS_LABELS,

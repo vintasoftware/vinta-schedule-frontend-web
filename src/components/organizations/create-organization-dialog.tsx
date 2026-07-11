@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import type { Organization } from '@/client';
 import { useCreateOrganization } from '@/hooks/organizations/use-create-organization';
-import { VStack } from '@/components/layout';
+import { VStack } from '@vinta-schedule/design-system/layout';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
+} from '@vinta-schedule/design-system/ui/dialog';
 import {
   Form,
   FormField,
@@ -23,10 +23,14 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+} from '@vinta-schedule/design-system/ui/form';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '@vinta-schedule/design-system/ui/alert';
 
 // ---------------------------------------------------------------------------
 // Schema — mirrors the onboarding form (non-empty, max 255 chars)

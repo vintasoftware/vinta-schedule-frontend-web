@@ -9,8 +9,13 @@
  */
 
 import * as React from 'react';
-import { Stack } from '@/components/layout/stack';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Stack } from '@vinta-schedule/design-system/layout/stack';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@vinta-schedule/design-system/ui/tabs';
 import { useUrlState } from '@/hooks/use-url-state';
 import { AvailabilityEditor } from './availability-editor';
 import { BlockedTimeForm } from './blocked-time-form';

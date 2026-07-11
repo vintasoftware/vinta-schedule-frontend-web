@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { RoleProvider, RoleGate } from './role-gate';
-import { Badge } from '@/components/ui/badge';
-import { Stack } from '@/components/layout/stack';
-import { Text } from '@/components/layout/text';
-import { Heading } from '@/components/layout/heading';
+import { Badge } from '@vinta-schedule/design-system/ui/badge';
+import { Stack } from '@vinta-schedule/design-system/layout/stack';
+import { Text } from '@vinta-schedule/design-system/layout/text';
+import { Heading } from '@vinta-schedule/design-system/layout/heading';
 
 const meta: Meta = {
   title: 'Navigation/RoleGate',

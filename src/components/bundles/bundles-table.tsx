@@ -17,8 +17,8 @@ import type { DataTableColumn } from '@/components/data-table/types';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useDeleteBundle } from '@/hooks/bundles/use-delete-bundle';
-import { VStack, Text, HStack } from '@/components/layout';
-import { Button } from '@/components/ui/button';
+import { VStack, Text, HStack } from '@vinta-schedule/design-system/layout';
+import { Button } from '@vinta-schedule/design-system/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +28,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@vinta-schedule/design-system/ui/alert-dialog';
 import { CreateBundleDialog } from './create-bundle-dialog';
 import { EditBundleDialog } from './edit-bundle-dialog';
 

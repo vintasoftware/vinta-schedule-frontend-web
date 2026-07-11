@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Stack, PageHeader } from '@/components/layout';
-import { Button } from '@/components/ui/button';
+import { Stack, PageHeader } from '@vinta-schedule/design-system/layout';
+import { Button } from '@vinta-schedule/design-system/ui/button';
 import { Plus } from 'lucide-react';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { WebhooksTable } from '@/components/webhooks/webhooks-table';

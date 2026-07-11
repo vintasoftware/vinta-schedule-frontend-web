@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import type { DataTableQuery } from '@/components/data-table/types';
 import { DEFAULT_DATA_TABLE_QUERY } from '@/components/data-table/types';
-import { VStack, Text } from '@/components/layout';
+import { VStack, Text } from '@vinta-schedule/design-system/layout';
 import type { Invitation } from '@/hooks/invitations/use-invitations';
 // Import canonical column factory from the component so they can't drift.
 import { createColumns } from './invitations-table';

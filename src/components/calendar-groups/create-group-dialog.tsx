@@ -33,10 +33,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Combobox } from '@/components/ui/combobox';
+} from '@vinta-schedule/design-system/ui/dialog';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
 import {
   Form,
   FormField,
@@ -44,8 +44,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack, HStack, Text } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/form';
+import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useCreateCalendarGroup } from '@/hooks/calendar-groups/use-create-calendar-group';
 

@@ -1,8 +1,17 @@
 'use client';
 
 import * as React from 'react';
-import { Stack, PageHeader, Text, Center } from '@/components/layout';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Stack,
+  PageHeader,
+  Text,
+  Center,
+} from '@vinta-schedule/design-system/layout';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@vinta-schedule/design-system/ui/alert';
 import { BrandingForm } from '@/components/branding/branding-form';
 import { useBranding } from '@/hooks/branding/use-branding';
 

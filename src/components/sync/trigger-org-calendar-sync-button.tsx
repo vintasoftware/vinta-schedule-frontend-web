@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { Button } from '@vinta-schedule/design-system/ui/button';
 import { useTriggerOrgCalendarSync } from '@/hooks/sync/use-trigger-org-calendar-sync';
 
 const DEBOUNCE_MS = 500;

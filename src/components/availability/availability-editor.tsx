@@ -37,9 +37,9 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
 import {
   Form,
   FormField,
@@ -47,8 +47,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { HStack, Stack, Text } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/form';
+import { HStack, Stack, Text } from '@vinta-schedule/design-system/layout';
 import { weekdayMatrix, type WeekdayEntry } from '@/lib/datetime/index';
 import { useAvailableTimes } from '@/hooks/availability/use-available-times';
 import type {

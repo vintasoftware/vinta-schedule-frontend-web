@@ -25,11 +25,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
-import { Label } from '@/components/ui/label';
-import { VStack } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/dialog';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
+import { Label } from '@vinta-schedule/design-system/ui/label';
+import { VStack } from '@vinta-schedule/design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useTransferEvent } from '@/hooks/events/use-transfer-event';
 

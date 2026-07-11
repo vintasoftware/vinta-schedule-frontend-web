@@ -27,10 +27,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Form, FormField } from '@/components/ui/form';
-import { Spacer, Text } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/dialog';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Form, FormField } from '@vinta-schedule/design-system/ui/form';
+import { Spacer, Text } from '@vinta-schedule/design-system/layout';
 import {
   useCreateBookingPolicy,
   useUpdateBookingPolicy,

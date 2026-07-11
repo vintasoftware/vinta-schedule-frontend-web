@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 
-import { PageHeader } from '@/components/layout/page-header';
-import { Stack } from '@/components/layout/stack';
+import { PageHeader } from '@vinta-schedule/design-system/layout/page-header';
+import { Stack } from '@vinta-schedule/design-system/layout/stack';
 import { NotificationsView } from '@/components/notifications/notifications-view';
 
 /**

@@ -4,9 +4,9 @@ import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authent
 import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { AuthLayout } from '@/components/layout/auth-layout';
-import { Text } from '@/components/layout';
+import { Card } from '@vinta-schedule/design-system/ui/card';
+import { AuthLayout } from '@vinta-schedule/design-system/layout/auth-layout';
+import { Text } from '@vinta-schedule/design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { setMemoryAccessToken } from '@/lib/token-storage-strategy.client';
 import type { TenantBranding } from '@/lib/branding-shared';

@@ -11,15 +11,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+} from '@vinta-schedule/design-system/ui/dialog';
+import { Button } from '@vinta-schedule/design-system/ui/button';
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSeparator,
   InputOTPSlot,
-} from '@/components/ui/input-otp';
-import { VStack, Text } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/input-otp';
+import { VStack, Text } from '@vinta-schedule/design-system/layout';
 
 import { useVerifyPhone } from '@/hooks/authentication/use-verify-phone';
 import { useResendPhoneVerificationCode } from '@/hooks/authentication/use-resend-phone-verification-code';

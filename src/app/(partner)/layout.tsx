@@ -1,6 +1,6 @@
-import { Box } from '@/components/layout/box';
-import { Flex } from '@/components/layout/flex';
-import { Navbar, BrandMark } from '@/components/layout/navbar';
+import { Box } from '@vinta-schedule/design-system/layout/box';
+import { Flex } from '@vinta-schedule/design-system/layout/flex';
+import { Navbar, BrandMark } from '@vinta-schedule/design-system/layout/navbar';
 import { ThemeToggle } from '@/components/navigation/theme-toggle';
 import Link from 'next/link';
 

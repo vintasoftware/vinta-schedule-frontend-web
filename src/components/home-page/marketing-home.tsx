@@ -19,9 +19,9 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils/index';
-import { Button } from '@/components/ui/button';
-import { Box, Container, Text } from '@/components/layout';
-import { Navbar, BrandMark } from '@/components/layout/navbar';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Box, Container, Text } from '@vinta-schedule/design-system/layout';
+import { Navbar, BrandMark } from '@vinta-schedule/design-system/layout/navbar';
 import { ThemeToggle } from '@/components/navigation/theme-toggle';
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -44,7 +44,9 @@ function MarketingNav() {
   // is client-only); defaults to the signed-out actions until then.
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   React.useEffect(() => {
-    setIsAuthenticated(document.cookie.split('; ').some((c) => c.startsWith('sessionActive=')));
+    setIsAuthenticated(
+      document.cookie.split('; ').some((c) => c.startsWith('sessionActive='))
+    );
   }, []);
 
   return (

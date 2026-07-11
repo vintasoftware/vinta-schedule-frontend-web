@@ -6,15 +6,15 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@vinta-schedule/design-system/ui/badge';
+import { Button } from '@vinta-schedule/design-system/ui/button';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from '@/components/ui/select';
+} from '@vinta-schedule/design-system/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,8 +24,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { HStack, VStack, Text } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/alert-dialog';
+import { HStack, VStack, Text } from '@vinta-schedule/design-system/layout';
 import { formatDateTime } from '@/lib/utils/date-utils';
 import {
   useChangeRequests,

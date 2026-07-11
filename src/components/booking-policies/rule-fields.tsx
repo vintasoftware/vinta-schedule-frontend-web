@@ -11,22 +11,22 @@
 
 import * as React from 'react';
 import { z } from 'zod';
-import { Input } from '@/components/ui/input';
+import { Input } from '@vinta-schedule/design-system/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@vinta-schedule/design-system/ui/select';
 import {
   FormItem,
   FormLabel,
   FormControl,
   FormDescription,
   FormMessage,
-} from '@/components/ui/form';
-import { HStack } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/form';
+import { HStack } from '@vinta-schedule/design-system/layout';
 import {
   DURATION_UNIT_OPTIONS,
   secondsToDuration,

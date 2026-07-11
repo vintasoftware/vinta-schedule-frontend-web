@@ -36,11 +36,11 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
+} from '@vinta-schedule/design-system/ui/dialog';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Textarea } from '@vinta-schedule/design-system/ui/textarea';
+import { Progress } from '@vinta-schedule/design-system/ui/progress';
 import {
   Form,
   FormField,
@@ -49,8 +49,13 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack, HStack, Text, Box } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/form';
+import {
+  VStack,
+  HStack,
+  Text,
+  Box,
+} from '@vinta-schedule/design-system/layout';
 import { useUpsertServiceAccount } from '@/hooks/service-accounts/use-service-account';
 
 // ---------------------------------------------------------------------------
@@ -185,7 +190,8 @@ const INSTRUCTION_STEPS: StepDef[] = [
   },
   {
     title: 'Grant domain-wide delegation',
-    description: 'Authorize the service account to read rooms across the domain.',
+    description:
+      'Authorize the service account to read rooms across the domain.',
     content: (
       <VStack gap={3}>
         <OrderedSteps>
@@ -206,7 +212,11 @@ const INSTRUCTION_STEPS: StepDef[] = [
           </li>
         </OrderedSteps>
         <Box p={3} radius='md' border borderColor='border' bg='muted'>
-          <Text size='xs' family='mono' className='break-all whitespace-pre-wrap'>
+          <Text
+            size='xs'
+            family='mono'
+            className='break-all whitespace-pre-wrap'
+          >
             {SCOPES_CSV}
           </Text>
         </Box>
@@ -232,8 +242,8 @@ const INSTRUCTION_STEPS: StepDef[] = [
         </li>
         <li>
           Click <strong>Add key → Create new key</strong>, choose{' '}
-          <strong>JSON</strong>, and click <strong>Create</strong>. The key
-          file downloads automatically.
+          <strong>JSON</strong>, and click <strong>Create</strong>. The key file
+          downloads automatically.
         </li>
         <li>
           Keep the file handy — you&apos;ll paste its contents in the next step.
@@ -340,7 +350,9 @@ export function ServiceAccountWizard({
           : 'Failed to configure service account',
         {
           description:
-            err instanceof Error ? err.message : 'An unexpected error occurred.',
+            err instanceof Error
+              ? err.message
+              : 'An unexpected error occurred.',
         }
       );
     }

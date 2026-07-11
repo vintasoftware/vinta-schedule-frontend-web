@@ -29,12 +29,20 @@
 
 import * as React from 'react';
 import { Calendar, Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Combobox } from '@/components/ui/combobox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { HStack, VStack, Stack, Text } from '@/components/layout';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Label } from '@vinta-schedule/design-system/ui/label';
+import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
+import {
+  Alert,
+  AlertDescription,
+} from '@vinta-schedule/design-system/ui/alert';
+import {
+  HStack,
+  VStack,
+  Stack,
+  Text,
+} from '@vinta-schedule/design-system/layout';
 import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
 import { useColleagueCalendars } from '@/hooks/availability/use-colleague-calendars';
 import {
@@ -83,9 +91,7 @@ export function UserAvailabilityView() {
     debouncedMemberSearch
   );
 
-  const selectedMember = members.find(
-    (m) => String(m.id) === selectedUserId
-  );
+  const selectedMember = members.find((m) => String(m.id) === selectedUserId);
 
   // ---- Colleague → calendar resolution -------------------------------------
 

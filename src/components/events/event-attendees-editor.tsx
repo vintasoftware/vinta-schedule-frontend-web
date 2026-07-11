@@ -21,10 +21,10 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 import { Trash2, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Combobox } from '@/components/ui/combobox';
-import { VStack, HStack, Text } from '@/components/layout';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
+import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
 import { useResourceCalendars } from '@/hooks/calendars/use-resource-calendars';
 import { useUpdateAttendees } from '@/hooks/events/use-update-attendees';
 import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
@@ -459,7 +459,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from '@/components/ui/sheet';
+} from '@vinta-schedule/design-system/ui/sheet';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -469,7 +469,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@vinta-schedule/design-system/ui/alert-dialog';
 import { Download } from 'lucide-react';
 import { ScopePromptDialog } from '@/components/bookings/scope-prompt-dialog';
 import type { RecurringScope } from '@/components/bookings/scope-prompt-dialog';

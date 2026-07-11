@@ -1,7 +1,11 @@
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AuthLayout } from '@/components/layout/auth-layout';
+import { Card } from '@vinta-schedule/design-system/ui/card';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '@vinta-schedule/design-system/ui/alert';
+import { AuthLayout } from '@vinta-schedule/design-system/layout/auth-layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { fetchBrandingForTenant } from '@/lib/branding-server';
 

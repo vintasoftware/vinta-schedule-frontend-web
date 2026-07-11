@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Button } from '@/components/ui/button';
+import { Button } from '@vinta-schedule/design-system/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,8 +29,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { HStack, VStack, Text } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/alert-dialog';
+import { HStack, VStack, Text } from '@vinta-schedule/design-system/layout';
 import {
   useBookingPolicies,
   useDeleteBookingPolicy,

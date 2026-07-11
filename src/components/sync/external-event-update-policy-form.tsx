@@ -24,11 +24,19 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Form, FormField, FormItem, FormControl } from '@/components/ui/form';
-import { VStack } from '@/components/layout';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from '@vinta-schedule/design-system/ui/radio-group';
+import { Label } from '@vinta-schedule/design-system/ui/label';
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormControl,
+} from '@vinta-schedule/design-system/ui/form';
+import { VStack } from '@vinta-schedule/design-system/layout';
 import { useExternalEventUpdatePolicy } from '@/hooks/sync/use-external-event-update-policy';
 import type { ExternalEventUpdatePolicyEnum } from '@/client';
 

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 
-import { Center } from '@/components/layout/center';
+import { Center } from '@vinta-schedule/design-system/layout/center';
 import { ProviderConnectCallback } from '@/components/account-security/provider-connect-callback';
 
 /**

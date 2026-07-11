@@ -15,11 +15,11 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@vinta-schedule/design-system/ui/table';
+import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
 import { DataTableToolbar } from './data-table-toolbar';
 import { DataTablePagination } from './data-table-pagination';
-import { VStack, Box, Flex } from '@/components/layout';
+import { VStack, Box, Flex } from '@vinta-schedule/design-system/layout';
 import { cn } from '@/lib/utils/index';
 import type { DataTableColumn, DataTableQuery } from './types';
 

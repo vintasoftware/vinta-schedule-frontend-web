@@ -7,55 +7,72 @@ non-visual conventions: stack, commands, structure, and code patterns.
 ## Stack
 
 - **Next.js 16** (App Router, RSC) + **React 19** + **TypeScript** (strict).
-- **Tailwind CSS v4** (tokens in `src/app/globals.css`, no separate config).
-- **shadcn/ui** (new-york style) under `src/components/ui/`. Icons: `lucide-react`.
+- **Tailwind CSS v4** (tokens in
+  `packages/design-system/src/styles/tokens.css`, no separate config).
+- **Design system**: workspace package `@vinta-schedule/design-system`
+  (`packages/design-system/`) — shadcn/ui atoms (new-york style), layout
+  primitives, tokens, and its own Storybook. Icons: `lucide-react`.
 - **TanStack Query v5** for server state.
 - **hey-api** generated OpenAPI clients: `src/client/` (app API) and
   `src/auth-client/` (allauth). **Generated — never hand-edit.**
 - **react-hook-form** + **zod** (`@hookform/resolvers/zod`) for forms.
-- **Vitest** + **Testing Library** for tests. **Storybook** (`@storybook/nextjs-vite`).
-- Package manager: **npm** (`package-lock.json`).
+- **Vitest** + **Testing Library** for tests. Two **Storybooks**: app feature
+  stories (`@storybook/nextjs-vite`, root `.storybook/`) and design-system
+  stories (`@storybook/react-vite`, `packages/design-system/.storybook/`).
+- Package manager: **pnpm workspaces** (`pnpm-lock.yaml`, root app +
+  `packages/*`).
 
 ## Commands
 
-| Task               | Command                                                       |
-| ------------------ | ------------------------------------------------------------- |
-| Dev server         | `npm run dev`                                                 |
-| Build              | `npm run build`                                               |
-| Lint               | `npm run lint`                                                |
-| Format check / fix | `npm run format` / `npm run format:fix`                       |
-| Typecheck          | `npm run typecheck`                                           |
-| Test (all)         | `npm run test`                                                |
-| Test (scoped)      | `npm run test -- <path-or-pattern>`                           |
-| Test (watch)       | `npm run test:watch`                                          |
-| Storybook          | `npm run storybook`                                           |
-| Regen API client   | `npm run openapi-ts` (app) / `npm run openapi-ts-auth` (auth) |
+| Task               | Command                                                         |
+| ------------------ | --------------------------------------------------------------- |
+| Dev server         | `pnpm run dev`                                                  |
+| Build              | `pnpm run build`                                                |
+| Lint               | `pnpm run lint`                                                 |
+| Format check / fix | `pnpm run format` / `pnpm run format:fix`                       |
+| Typecheck          | `pnpm run typecheck`                                            |
+| Test (all)         | `pnpm run test`                                                 |
+| Test (scoped)      | `pnpm vitest run <path-or-pattern>`                             |
+| Test (watch)       | `pnpm run test:watch`                                           |
+| Storybook (app)    | `pnpm run storybook`                                            |
+| Storybook (DS)     | `pnpm run storybook:ds`                                         |
+| Regen API client   | `pnpm run openapi-ts` (app) / `pnpm run openapi-ts-auth` (auth) |
 
-**Definition of done for any change:** `npm run typecheck`, `npm run lint`,
-`npm run test`, and `npm run format` all clean. Add/update a Storybook story for
+**Definition of done for any change:** `pnpm run typecheck`, `pnpm run lint`,
+`pnpm run test`, and `pnpm run format` all clean. Add/update a Storybook story for
 visual components and a test for logic.
 
 ## Structure
 
 ```
+packages/design-system/ # @vinta-schedule/design-system workspace package
+  src/
+    ui/                 # shadcn/ui atoms (cva variants) + colocated stories
+    layout/             # layout primitives (Box, Flex, Stack, Grid…) + index.ts
+    lib/utils.ts        # `cn()`
+    styles/tokens.css   # design tokens (oklch) + Tailwind theme mapping
+    stories/            # foundations story
+  .storybook/           # design-system Storybook (react-vite)
 src/
   app/                  # Next.js App Router — routes, layouts, route handlers
     auth/…              # auth flow pages (login, signup, onboarding, social…)
     layout.tsx          # root layout: fonts, providers, auth bootstrap
-    globals.css         # design tokens (oklch) + Tailwind theme
+    globals.css         # thin: tailwind + imports package tokens + @source
   components/
-    ui/                 # shadcn/ui atoms (cva variants) + colocated stories
-    layout/             # layout primitives (Box, Flex, Stack, Grid…) + index.ts
     <feature>/          # feature compositions (authentication, home-page, navigation)
   hooks/<domain>/       # data hooks wrapping the generated query client
   lib/                  # auth token storage, fetch interceptors, utils
-    utils/index.ts      # `cn()` and shared helpers
+    utils/index.ts      # shared helpers; re-exports `cn()` from the package
   providers/            # app-level React providers
   client/ auth-client/  # GENERATED OpenAPI clients — do not edit
-  stories/              # standalone Storybook docs/foundation stories
+  stories/              # app-level Storybook stories (page layouts)
+.storybook/             # app Storybook (nextjs-vite) — feature stories
 ```
 
-Path alias: **`@/` → `src/`** (e.g. `@/components/ui/button`, `@/lib/utils/index`).
+Path alias: **`@/` → `src/`** (e.g. `@/lib/utils/index`). Design-system imports
+use the package specifier: `@vinta-schedule/design-system/ui/button`,
+`@vinta-schedule/design-system/layout`. Inside the package, imports are
+relative.
 
 ## Patterns
 
@@ -105,11 +122,13 @@ export function useCreateOrganization() {
 
 ### Components
 
-- **Layout primitives** (`src/components/layout/`): token-prop driven, built on
-  `Box`, `forwardRef`, re-exported from `index.ts`. No raw utility classes for
-  layout — that's the whole point.
-- **UI atoms** (`src/components/ui/`): shadcn/ui, variants via `cva`, merge
-  classes with `cn()`. Prefer `npx shadcn@latest add <name>` for stock components.
+- **Layout primitives** (`packages/design-system/src/layout/`): token-prop
+  driven, built on `Box`, `forwardRef`, re-exported from `index.ts`. No raw
+  utility classes for layout — that's the whole point.
+- **UI atoms** (`packages/design-system/src/ui/`): shadcn/ui, variants via
+  `cva`, merge classes with `cn()`. Prefer `npx shadcn@latest add <name>` (run
+  inside `packages/design-system/`) for stock components, then convert the
+  generated `@/…` imports to relative ones.
 - **Compositions** (`src/components/<feature>/`): assemble primitives + ui into a
   feature. `'use client'` when interactive; forms use rhf + zod.
 - All visual components get a colocated `*.stories.tsx`.

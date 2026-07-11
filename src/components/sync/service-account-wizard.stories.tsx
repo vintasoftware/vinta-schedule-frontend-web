@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
+import { Button } from '@vinta-schedule/design-system/ui/button';
 import { ServiceAccountWizard } from './service-account-wizard';
 
 const meta = {

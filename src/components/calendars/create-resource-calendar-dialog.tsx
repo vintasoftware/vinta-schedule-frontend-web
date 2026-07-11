@@ -12,10 +12,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
+} from '@vinta-schedule/design-system/ui/dialog';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Switch } from '@vinta-schedule/design-system/ui/switch';
 import {
   Form,
   FormField,
@@ -24,8 +24,8 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from '@/components/ui/form';
-import { HStack } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/form';
+import { HStack } from '@vinta-schedule/design-system/layout';
 import { useCreateResourceCalendar } from '@/hooks/calendars/use-create-resource-calendar';
 
 // ---------------------------------------------------------------------------

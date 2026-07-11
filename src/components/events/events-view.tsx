@@ -41,10 +41,14 @@ import type { CalendarOption } from '@/components/calendar/calendar-scope-picker
 import { useCalendarEvents } from '@/hooks/events/use-calendar-events';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
 import { eventRange } from '@/lib/datetime/index';
-import { Stack } from '@/components/layout/stack';
-import { Text } from '@/components/layout/text';
-import { HStack } from '@/components/layout';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Stack } from '@vinta-schedule/design-system/layout/stack';
+import { Text } from '@vinta-schedule/design-system/layout/text';
+import { HStack } from '@vinta-schedule/design-system/layout';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '@vinta-schedule/design-system/ui/tabs';
 import { EventAttendeesSheet } from './event-attendees-editor';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
 

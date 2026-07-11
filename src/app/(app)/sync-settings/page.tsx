@@ -1,16 +1,16 @@
 'use client';
 
 import * as React from 'react';
-import { Stack } from '@/components/layout/stack';
-import { PageHeader } from '@/components/layout/page-header';
+import { Stack } from '@vinta-schedule/design-system/layout/stack';
+import { PageHeader } from '@vinta-schedule/design-system/layout/page-header';
 import { RoomsSyncSettingsForm } from '@/components/sync/rooms-sync-settings-form';
 import { ExternalEventUpdatePolicyForm } from '@/components/sync/external-event-update-policy-form';
 import { TriggerRoomsSyncButton } from '@/components/sync/trigger-rooms-sync-button';
 import { TriggerOrgCalendarSyncButton } from '@/components/sync/trigger-org-calendar-sync-button';
 import { ServiceAccountCard } from '@/components/sync/service-account-card';
 import { useRequireRole } from '@/components/navigation/role-gate';
-import { Box } from '@/components/layout/box';
-import { HStack, Text } from '@/components/layout';
+import { Box } from '@vinta-schedule/design-system/layout/box';
+import { HStack, Text } from '@vinta-schedule/design-system/layout';
 
 /**
  * SyncSettingsPage — admin-only view for configuring sync settings.

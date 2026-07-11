@@ -4,10 +4,10 @@ import * as React from 'react';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@vinta-schedule/design-system/ui/badge';
+import { Button } from '@vinta-schedule/design-system/ui/button';
 import { Plus } from 'lucide-react';
-import { VStack, Text } from '@/components/layout';
+import { VStack, Text } from '@vinta-schedule/design-system/layout';
 import {
   useCalendarGroups,
   type CalendarGroup,

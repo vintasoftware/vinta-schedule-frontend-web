@@ -1,4 +1,4 @@
-import { Center } from '@/components/layout/center';
+import { Center } from '@vinta-schedule/design-system/layout/center';
 import { VerifyEmailByKey } from '@/components/account-security/verify-email-by-key';
 
 /**

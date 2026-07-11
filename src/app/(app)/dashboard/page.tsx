@@ -14,19 +14,19 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { CalendarDays, CalendarCheck, Clock, Zap } from 'lucide-react';
 
-import { PageHeader } from '@/components/layout/page-header';
-import { Stack } from '@/components/layout/stack';
-import { VStack, HStack } from '@/components/layout/flex';
-import { Text } from '@/components/layout/text';
+import { PageHeader } from '@vinta-schedule/design-system/layout/page-header';
+import { Stack } from '@vinta-schedule/design-system/layout/stack';
+import { VStack, HStack } from '@vinta-schedule/design-system/layout/flex';
+import { Text } from '@vinta-schedule/design-system/layout/text';
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@vinta-schedule/design-system/ui/card';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
 
 import { useProfile } from '@/hooks/users/use-profile';
 import { useCalendarEvents } from '@/hooks/events/use-calendar-events';

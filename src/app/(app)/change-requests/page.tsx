@@ -1,6 +1,6 @@
 'use client';
 
-import { Stack, PageHeader } from '@/components/layout';
+import { Stack, PageHeader } from '@vinta-schedule/design-system/layout';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { ChangeRequestsTable } from '@/components/change-requests/change-requests-table';
 

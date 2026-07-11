@@ -32,16 +32,20 @@ import {
 import { DateTime } from 'luxon';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import './calendar-theme.css';
-import { Flex, HStack } from '@/components/layout';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SchedulingChip } from '@/components/ui/scheduling-chip';
+import { Flex, HStack } from '@vinta-schedule/design-system/layout';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '@vinta-schedule/design-system/ui/tabs';
+import { SchedulingChip } from '@vinta-schedule/design-system/ui/scheduling-chip';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@vinta-schedule/design-system/ui/dialog';
 import { cn } from '@/lib/utils/index';
 import {
   schedulingChipStatus,

@@ -4,12 +4,16 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { CheckCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { HStack } from '@/components/layout/flex';
-import { Stack } from '@/components/layout/stack';
-import { Text } from '@/components/layout/text';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { HStack } from '@vinta-schedule/design-system/layout/flex';
+import { Stack } from '@vinta-schedule/design-system/layout/stack';
+import { Text } from '@vinta-schedule/design-system/layout/text';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '@vinta-schedule/design-system/ui/tabs';
 import { useUrlState } from '@/hooks/use-url-state';
 import { useNotifications } from '@/hooks/notifications/use-notifications';
 import { useMarkNotificationRead } from '@/hooks/notifications/use-mark-notification-read';

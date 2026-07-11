@@ -32,12 +32,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Form } from '@/components/ui/form';
-import { VStack, HStack, Text } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/dialog';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Checkbox } from '@vinta-schedule/design-system/ui/checkbox';
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from '@vinta-schedule/design-system/ui/radio-group';
+import { Form } from '@vinta-schedule/design-system/ui/form';
+import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useUpdateBundle } from '@/hooks/bundles/use-update-bundle';
 

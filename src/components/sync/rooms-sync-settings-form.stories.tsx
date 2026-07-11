@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { StoryObj } from '@storybook/react';
+import type { StoryObj } from '@storybook/nextjs-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RoomsSyncSettingsForm } from './rooms-sync-settings-form';
 

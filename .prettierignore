@@ -4,3 +4,6 @@ src/auth-client
 
 # Built Storybook output.
 storybook-static
+
+# Lockfile — machine-generated.
+pnpm-lock.yaml

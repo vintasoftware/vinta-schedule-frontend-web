@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import { Plus } from 'lucide-react';
-import { Stack } from '@/components/layout/stack';
-import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
+import { Stack } from '@vinta-schedule/design-system/layout/stack';
+import { PageHeader } from '@vinta-schedule/design-system/layout/page-header';
+import { Button } from '@vinta-schedule/design-system/ui/button';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { AllCalendarsTable } from '@/components/calendars/all-calendars-table';
 import { CreateResourceCalendarDialog } from '@/components/calendars/create-resource-calendar-dialog';

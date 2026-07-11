@@ -12,11 +12,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@vinta-schedule/design-system/ui/card';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Badge } from '@vinta-schedule/design-system/ui/badge';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@vinta-schedule/design-system/ui/alert-dialog';
 import {
   Form,
   FormControl,
@@ -34,8 +34,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack, HStack, Text } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/form';
+import { VStack, HStack, Text } from '@vinta-schedule/design-system/layout';
 
 import { useAccountEmails } from '@/hooks/authentication/use-account-emails';
 import { useAddEmail } from '@/hooks/authentication/use-add-email';

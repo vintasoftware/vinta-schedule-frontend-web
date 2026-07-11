@@ -31,17 +31,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { DateTime } from 'luxon';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Checkbox } from '@vinta-schedule/design-system/ui/checkbox';
+import { Switch } from '@vinta-schedule/design-system/ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@vinta-schedule/design-system/ui/select';
 import {
   Form,
   FormField,
@@ -49,8 +49,13 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack, HStack, Stack, Text } from '@/components/layout';
+} from '@vinta-schedule/design-system/ui/form';
+import {
+  VStack,
+  HStack,
+  Stack,
+  Text,
+} from '@vinta-schedule/design-system/layout';
 import { useBlockedTimes } from '@/hooks/availability/use-blocked-times';
 import {
   serializeRRule,

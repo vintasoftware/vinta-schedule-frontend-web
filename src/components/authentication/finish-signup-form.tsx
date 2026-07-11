@@ -4,15 +4,19 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { AuthLayout } from '@/components/layout/auth-layout';
-import { Heading, Text, HStack } from '@/components/layout';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Card } from '@vinta-schedule/design-system/ui/card';
+import { Checkbox } from '@vinta-schedule/design-system/ui/checkbox';
+import { AuthLayout } from '@vinta-schedule/design-system/layout/auth-layout';
+import { Heading, Text, HStack } from '@vinta-schedule/design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '@vinta-schedule/design-system/ui/alert';
 import {
   Form,
   FormField,
@@ -20,7 +24,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
+} from '@vinta-schedule/design-system/ui/form';
 import { useProviderInfo } from '@/hooks/authentication/use-provider-info';
 import { useProviderSignup } from '@/hooks/authentication/use-provider-signup';
 import type { ErrorResponse, ProviderSignup } from '@/auth-client';

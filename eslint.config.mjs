@@ -10,7 +10,7 @@ const eslintConfig = [
     // Generated API clients, built Storybook output, and e2e specs — not
     // subject to React-specific lint rules (e2e runs in Node/Playwright context,
     // not in React).
-    ignores: ['src/client', 'src/auth-client', 'storybook-static', 'e2e/**'],
+    ignores: ['src/client', 'src/auth-client', '**/storybook-static', 'e2e/**'],
   },
   {
     // The React Compiler lint rules (react-hooks v6) shipped with

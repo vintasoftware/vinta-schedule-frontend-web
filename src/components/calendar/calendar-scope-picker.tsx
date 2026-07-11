@@ -13,8 +13,8 @@
  */
 
 import * as React from 'react';
-import { Combobox } from '@/components/ui/combobox';
-import { HStack, Text } from '@/components/layout';
+import { Combobox } from '@vinta-schedule/design-system/ui/combobox';
+import { HStack, Text } from '@vinta-schedule/design-system/layout';
 import { CalendarDays } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -94,7 +94,10 @@ export function CalendarScopePicker({
       <Combobox
         options={[
           { value: ALL_CALENDARS_VALUE, label: 'All calendars' },
-          ...calendars.map((cal) => ({ value: String(cal.id), label: cal.name })),
+          ...calendars.map((cal) => ({
+            value: String(cal.id),
+            label: cal.name,
+          })),
         ]}
         value={selectValue}
         onValueChange={handleChange}

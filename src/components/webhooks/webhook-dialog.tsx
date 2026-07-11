@@ -12,17 +12,17 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from '@vinta-schedule/design-system/ui/dialog';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import { Textarea } from '@vinta-schedule/design-system/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@vinta-schedule/design-system/ui/select';
 import {
   Form,
   FormField,
@@ -31,7 +31,7 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from '@/components/ui/form';
+} from '@vinta-schedule/design-system/ui/form';
 import type { EventTypeEnum } from '@/client';
 import {
   useCreateWebhookConfiguration,
@@ -167,10 +167,15 @@ export function WebhookDialog({
       }
       onOpenChange(false);
     } catch (err) {
-      toast.error(isEdit ? 'Failed to update webhook' : 'Failed to create webhook', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      toast.error(
+        isEdit ? 'Failed to update webhook' : 'Failed to create webhook',
+        {
+          description:
+            err instanceof Error
+              ? err.message
+              : 'An unexpected error occurred.',
+        }
+      );
     }
   };
 
@@ -197,10 +202,7 @@ export function WebhookDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Event type</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
+                  <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger data-testid='webhook-event-type'>
                         <SelectValue placeholder='Select an event' />

@@ -1,5 +1,10 @@
 import * as React from 'react';
-import { Stack, VStack, Heading, Text } from '@/components/layout';
+import {
+  Stack,
+  VStack,
+  Heading,
+  Text,
+} from '@vinta-schedule/design-system/layout';
 
 // ---------------------------------------------------------------------------
 // BrandingPreview — a self-contained mock of the auth interstitial card,

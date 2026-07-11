@@ -7,16 +7,25 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Loader2, Upload } from 'lucide-react';
 
-import { PageHeader } from '@/components/layout/page-header';
-import { Stack } from '@/components/layout/stack';
-import { HStack } from '@/components/layout/flex';
-import { Text } from '@/components/layout/text';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
+import { PageHeader } from '@vinta-schedule/design-system/layout/page-header';
+import { Stack } from '@vinta-schedule/design-system/layout/stack';
+import { HStack } from '@vinta-schedule/design-system/layout/flex';
+import { Text } from '@vinta-schedule/design-system/layout/text';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@vinta-schedule/design-system/ui/card';
+import { Skeleton } from '@vinta-schedule/design-system/ui/skeleton';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@vinta-schedule/design-system/ui/avatar';
+import { Progress } from '@vinta-schedule/design-system/ui/progress';
 import {
   Form,
   FormField,
@@ -24,7 +33,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
+} from '@vinta-schedule/design-system/ui/form';
 
 import { useProfile } from '@/hooks/users/use-profile';
 import { useUpdateProfile } from '@/hooks/users/use-update-profile';
@@ -64,9 +73,13 @@ export default function ProfilePage() {
   const { uploadProfilePicture } = useUploadProfilePicture();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = React.useState<number | null>(
+    null
+  );
   const [isUploading, setIsUploading] = React.useState(false);
-  const [pendingPictureUrl, setPendingPictureUrl] = React.useState<string | null>(null);
+  const [pendingPictureUrl, setPendingPictureUrl] = React.useState<
+    string | null
+  >(null);
 
   const form = useForm<ProfileSchema>({
     resolver: zodResolver(profileSchema),
@@ -108,7 +121,9 @@ export default function ProfilePage() {
     setIsUploading(true);
 
     try {
-      const s3Url = await uploadProfilePicture(file, (pct) => setUploadProgress(pct));
+      const s3Url = await uploadProfilePicture(file, (pct) =>
+        setUploadProgress(pct)
+      );
       setPendingPictureUrl(s3Url);
     } catch (err) {
       if (err instanceof UploadValidationError) {
@@ -152,7 +167,7 @@ export default function ProfilePage() {
                   src={previewUrl ?? profile?.profile_picture ?? undefined}
                   alt='Profile picture'
                 />
-                <AvatarFallback className='bg-teal-100 text-teal-700 text-lg'>
+                <AvatarFallback className='bg-teal-100 text-lg text-teal-700'>
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
@@ -242,7 +257,9 @@ export default function ProfilePage() {
                     disabled={updateProfileMutation.isPending || isUploading}
                     className='self-start'
                   >
-                    {updateProfileMutation.isPending ? 'Saving…' : 'Save changes'}
+                    {updateProfileMutation.isPending
+                      ? 'Saving…'
+                      : 'Save changes'}
                   </Button>
                 </Stack>
               </form>

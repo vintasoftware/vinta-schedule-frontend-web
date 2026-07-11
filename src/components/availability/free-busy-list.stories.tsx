@@ -2,7 +2,7 @@
  * Storybook stories for FreeBusyList.
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { FreeBusyList } from './free-busy-list';
 
 const meta = {

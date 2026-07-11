@@ -6,9 +6,9 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { VStack, Text, HStack } from '@/components/layout';
+import { Badge } from '@vinta-schedule/design-system/ui/badge';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { VStack, Text, HStack } from '@vinta-schedule/design-system/layout';
 import type { Calendar, CalendarTypeEnum } from '@/client';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useTriggerUserCalendarSync } from '@/hooks/sync/use-trigger-user-calendar-sync';
@@ -267,6 +267,8 @@ export interface AllCalendarsTableProps {
   calendarType?: CalendarTypeEnum;
 }
 
-export function AllCalendarsTable({ calendarType }: AllCalendarsTableProps = {}) {
+export function AllCalendarsTable({
+  calendarType,
+}: AllCalendarsTableProps = {}) {
   return <AllCalendarsTableInner calendarType={calendarType} />;
 }

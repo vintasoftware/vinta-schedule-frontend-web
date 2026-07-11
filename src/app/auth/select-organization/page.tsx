@@ -3,11 +3,11 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { AuthLayout } from '@/components/layout/auth-layout';
-import { Stack, Heading, Text } from '@/components/layout';
+import { Card } from '@vinta-schedule/design-system/ui/card';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Badge } from '@vinta-schedule/design-system/ui/badge';
+import { AuthLayout } from '@vinta-schedule/design-system/layout/auth-layout';
+import { Stack, Heading, Text } from '@vinta-schedule/design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { useActiveOrganization } from '@/hooks/organizations/use-active-organization';
 

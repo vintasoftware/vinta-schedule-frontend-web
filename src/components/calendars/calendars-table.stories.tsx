@@ -5,7 +5,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { DataTable } from '@/components/data-table/data-table';
 import type { DataTableQuery } from '@/components/data-table/types';
 import { DEFAULT_DATA_TABLE_QUERY } from '@/components/data-table/types';
-import { VStack, Text } from '@/components/layout';
+import { VStack, Text } from '@vinta-schedule/design-system/layout';
 import type { Calendar } from '@/client';
 import { createColumns } from './calendars-table';
 

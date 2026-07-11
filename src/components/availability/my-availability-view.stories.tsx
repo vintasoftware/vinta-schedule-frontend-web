@@ -2,7 +2,7 @@
  * Storybook stories for MyAvailabilityView.
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MyAvailabilityView } from './my-availability-view';
 

@@ -7,11 +7,21 @@ import { z } from 'zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Stack, HStack, VStack, Heading, Text } from '@/components/layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Card } from '@/components/ui/card';
+import {
+  Stack,
+  HStack,
+  VStack,
+  Heading,
+  Text,
+} from '@vinta-schedule/design-system/layout';
+import { Button } from '@vinta-schedule/design-system/ui/button';
+import { Input } from '@vinta-schedule/design-system/ui/input';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@vinta-schedule/design-system/ui/alert';
+import { Card } from '@vinta-schedule/design-system/ui/card';
 import {
   Form,
   FormField,
@@ -20,7 +30,7 @@ import {
   FormControl,
   FormMessage,
   FormDescription,
-} from '@/components/ui/form';
+} from '@vinta-schedule/design-system/ui/form';
 import { useUpdateBranding } from '@/hooks/branding/use-update-branding';
 import type { OrganizationBranding } from '@/client';
 import { BrandingPreview } from './branding-preview';

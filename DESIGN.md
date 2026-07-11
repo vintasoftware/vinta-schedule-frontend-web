@@ -1,7 +1,8 @@
 # Vinta Schedule — Design & Layout Guide
 
 Rules for building UI in this app. Source of truth for the design system is the
-**Vinta Schedule Design System** (tokens mirrored into `src/app/globals.css`).
+**Vinta Schedule Design System** — the `@vinta-schedule/design-system` workspace
+package (tokens mirrored into `packages/design-system/src/styles/tokens.css`).
 Follow these conventions for every component, page, and Storybook story.
 
 ---
@@ -9,7 +10,8 @@ Follow these conventions for every component, page, and Storybook story.
 ## 1. Tokens, not magic values
 
 - Colors, radius, shadow, spacing, and type live as CSS variables in
-  [`src/app/globals.css`](src/app/globals.css): three layers — primitive scales
+  [`packages/design-system/src/styles/tokens.css`](packages/design-system/src/styles/tokens.css):
+  three layers — primitive scales
   (`--vinta-*`, `--slate-*`, `--teal-*`), semantic shadcn tokens
   (`--background`, `--primary`, `--border`, …), and type/radius/shadow.
 - Colors are `oklch`. Light/dark handled by the `.dark` class overrides.
@@ -22,14 +24,16 @@ Follow these conventions for every component, page, and Storybook story.
 
 ## 2. Compose layout with primitives, not raw divs + classes
 
-Layout primitives live in [`src/components/layout/`](src/components/layout/) and
-are driven by **props that resolve to tokens** — the goal is composing UI "like
-legos" without writing layout classes.
+Layout primitives live in
+[`packages/design-system/src/layout/`](packages/design-system/src/layout/)
+(imported as `@vinta-schedule/design-system/layout`) and are driven by **props
+that resolve to tokens** — the goal is composing UI "like legos" without
+writing layout classes.
 
 - Primitives: `Box`, `Flex`, `HStack`, `VStack`, `Stack`, `Grid`, `GridItem`,
   `Center`, `Container`, `Section`, `Divider`, `Spacer`, `Text`, `Heading`.
 - Spacing props use the 4px scale `Space = 0|1|2|3|4|5|6|8|10|12|16|20|24`
-  (see [`layout-style.ts`](src/components/layout/layout-style.ts)). E.g.
+  (see [`layout-style.ts`](packages/design-system/src/layout/layout-style.ts)). E.g.
   `<HStack gap={4} px={6} py={3}>`, `<Box radius='lg' shadow='md' bg='card'>`.
 - Prefer `<VStack gap={4}>` over `<div className="flex flex-col gap-4">`.
 - `className` is an escape hatch for things the props don't cover (one-off
@@ -95,7 +99,9 @@ Tailwind v4 container sizes (built-in, no plugin):
 ## 7. Components & icons
 
 - UI components are shadcn/ui (new-york) under
-  [`src/components/ui/`](src/components/ui/). Icons are `lucide-react`.
+  [`packages/design-system/src/ui/`](packages/design-system/src/ui/)
+  (imported as `@vinta-schedule/design-system/ui/<name>`). Icons are
+  `lucide-react`.
 - `Button` sizes: `xs | sm | default | lg | xl | icon`. Use `size='icon'` for
   square icon buttons; pass `aria-label` when icon-only.
 - `Badge` variants include soft `info | success | warning | danger | teal` and a
