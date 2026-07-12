@@ -1,7 +1,12 @@
 import * as React from 'react';
 
 import { cn } from '../lib/utils';
-import { boxStyle, splitBoxProps, type BoxStyleProps } from './layout-style';
+import {
+  boxStyle,
+  splitBoxProps,
+  splitResponsiveBoxProps,
+  type BoxStyleProps,
+} from './layout-style';
 
 export interface BoxProps
   extends BoxStyleProps, Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
@@ -20,11 +25,14 @@ const Box = React.forwardRef<HTMLElement, BoxProps>(function Box(
   { as: Comp = 'div', className, style, ...props },
   ref
 ) {
-  const { style: resolved, rest } = splitBoxProps(props);
+  // Responsive props become breakpoint classes and are removed from the props
+  // that reach the inline-style path.
+  const { classes, rest: plain } = splitResponsiveBoxProps(props);
+  const { style: resolved, rest } = splitBoxProps(plain);
   return (
     <Comp
       ref={ref}
-      className={cn(className)}
+      className={cn(classes, className)}
       style={{ ...resolved, ...style }}
       {...rest}
     />

@@ -2,7 +2,7 @@
  * Layout kit — compose UIs from props, not classes.
  *
  * Primitives:   Box · Flex · HStack · VStack · Stack · Grid · GridItem ·
- *               Center · Spacer · Section · Divider · Container
+ *               Center · Spacer · Section · Divider · Container · FormLayout
  * Typography:   Text · Heading
  * Composition:  Navbar · AppTopbar · PageHeader
  * Shells:       AppShell · AuthLayout
@@ -18,6 +18,7 @@ export { Spacer } from './spacer';
 export { Section, type SectionProps } from './section';
 export { Divider, type DividerProps } from './divider';
 export { Container, type ContainerProps } from './container';
+export { FormLayout, type FormLayoutProps } from './form-layout';
 
 // Typography
 export {
@@ -38,6 +39,11 @@ export type {
   Size,
   BoxStyleProps,
 } from './layout-style';
+
+// Responsive props — padding/display/textAlign on every primitive, plus Flex's
+// direction/align/justify/gap and Grid's columns/gap, accept a per-breakpoint
+// object: `<Grid columns={{ base: 1, md: 2, lg: 3 }} />`.
+export type { Breakpoint, Responsive } from './responsive';
 
 // Composition + shells
 export { Navbar, BrandMark, type NavbarProps } from './navbar';

@@ -1,5 +1,17 @@
 import type { CSSProperties } from 'react';
 
+import {
+  isResponsive,
+  plainValue,
+  responsiveClasses,
+  spaceClass,
+  displayClass,
+  textAlignClass,
+  type Responsive,
+  type Display,
+  type TextAlign,
+} from './responsive';
+
 /**
  * Shared style-prop vocabulary for the layout primitives. Values resolve to the
  * design-system tokens (spacing scale, radius, shadow, color CSS vars) so the
@@ -120,16 +132,23 @@ export function color(c: ColorToken | undefined): string | undefined {
   return `var(--${c})`;
 }
 
-/** Box style props supported by every primitive. */
+/**
+ * Box style props supported by every primitive.
+ *
+ * Padding, `display` and `textAlign` additionally accept a per-breakpoint
+ * object (`p={{ base: 4, md: 6 }}`, `display={{ base: 'hidden', md: 'flex' }}`).
+ * Those resolve to Tailwind breakpoint classes rather than inline styles — see
+ * splitResponsiveBoxProps below and ./responsive.
+ */
 export interface BoxStyleProps {
   // padding
-  p?: Space;
-  px?: Space;
-  py?: Space;
-  pt?: Space;
-  pr?: Space;
-  pb?: Space;
-  pl?: Space;
+  p?: Responsive<Space>;
+  px?: Responsive<Space>;
+  py?: Responsive<Space>;
+  pt?: Responsive<Space>;
+  pr?: Responsive<Space>;
+  pb?: Responsive<Space>;
+  pl?: Responsive<Space>;
   // margin
   m?: Space | 'auto';
   mx?: Space | 'auto';
@@ -153,7 +172,7 @@ export interface BoxStyleProps {
   minHeight?: Size;
   maxHeight?: Size;
   // box behavior
-  display?: CSSProperties['display'];
+  display?: Responsive<Display> | CSSProperties['display'];
   overflow?: CSSProperties['overflow'];
   position?: CSSProperties['position'];
   // flex item
@@ -162,7 +181,56 @@ export interface BoxStyleProps {
   basis?: Size;
   alignSelf?: CSSProperties['alignSelf'];
   // escape hatch
-  textAlign?: CSSProperties['textAlign'];
+  textAlign?: Responsive<TextAlign> | CSSProperties['textAlign'];
+}
+
+/** Box props that accept a per-breakpoint object. */
+const RESPONSIVE_KEYS = [
+  'p',
+  'px',
+  'py',
+  'pt',
+  'pr',
+  'pb',
+  'pl',
+  'display',
+  'textAlign',
+] as const;
+
+/**
+ * Pull the responsive (per-breakpoint) box props out of a props object and
+ * turn them into Tailwind breakpoint classes.
+ *
+ * The consumed keys are DELETED from `rest` so they can never also reach the
+ * inline-style path — an inline style would beat the breakpoint class and the
+ * responsive value would silently do nothing. Plain values are left untouched
+ * for boxStyle() to handle.
+ */
+export function splitResponsiveBoxProps<T extends BoxStyleProps>(
+  props: T
+): { classes: string | undefined; rest: T } {
+  const classes: string[] = [];
+  const rest = { ...props } as Record<string, unknown>;
+
+  for (const key of RESPONSIVE_KEYS) {
+    const value = rest[key];
+    if (!isResponsive(value)) continue;
+
+    const cls =
+      key === 'display'
+        ? responsiveClasses(value as Responsive<Display>, displayClass)
+        : key === 'textAlign'
+          ? responsiveClasses(value as Responsive<TextAlign>, textAlignClass)
+          : responsiveClasses(value as Responsive<Space>, spaceClass(key));
+
+    if (cls) classes.push(cls);
+    delete rest[key];
+  }
+
+  return {
+    classes: classes.length ? classes.join(' ') : undefined,
+    rest: rest as T,
+  };
 }
 
 const BOX_KEYS: (keyof BoxStyleProps)[] = [
@@ -211,20 +279,31 @@ function flexNum(v: boolean | number | undefined): number | undefined {
 export function boxStyle(props: BoxStyleProps): CSSProperties {
   const s: CSSProperties = {};
 
+  // Responsive values are consumed as classes by splitResponsiveBoxProps and
+  // never reach here; plainValue() drops any that slip through so a
+  // per-breakpoint object can't be stringified into an inline style.
+  const p = plainValue(props.p);
+  const px = plainValue(props.px);
+  const py = plainValue(props.py);
+  const pt = plainValue(props.pt);
+  const pr = plainValue(props.pr);
+  const pb = plainValue(props.pb);
+  const pl = plainValue(props.pl);
+
   // padding
-  if (props.p != null) s.padding = spacing(props.p);
-  if (props.px != null) {
-    s.paddingLeft = spacing(props.px);
-    s.paddingRight = spacing(props.px);
+  if (p != null) s.padding = spacing(p);
+  if (px != null) {
+    s.paddingLeft = spacing(px);
+    s.paddingRight = spacing(px);
   }
-  if (props.py != null) {
-    s.paddingTop = spacing(props.py);
-    s.paddingBottom = spacing(props.py);
+  if (py != null) {
+    s.paddingTop = spacing(py);
+    s.paddingBottom = spacing(py);
   }
-  if (props.pt != null) s.paddingTop = spacing(props.pt);
-  if (props.pr != null) s.paddingRight = spacing(props.pr);
-  if (props.pb != null) s.paddingBottom = spacing(props.pb);
-  if (props.pl != null) s.paddingLeft = spacing(props.pl);
+  if (pt != null) s.paddingTop = spacing(pt);
+  if (pr != null) s.paddingRight = spacing(pr);
+  if (pb != null) s.paddingBottom = spacing(pb);
+  if (pl != null) s.paddingLeft = spacing(pl);
 
   // margin
   if (props.m != null) s.margin = spacing(props.m);
@@ -264,10 +343,12 @@ export function boxStyle(props: BoxStyleProps): CSSProperties {
   if (props.maxHeight != null) s.maxHeight = heightSize(props.maxHeight);
 
   // behavior
-  if (props.display != null) s.display = props.display;
+  const display = plainValue(props.display) as CSSProperties['display'];
+  const textAlign = plainValue(props.textAlign) as CSSProperties['textAlign'];
+  if (display != null) s.display = display;
   if (props.overflow != null) s.overflow = props.overflow;
   if (props.position != null) s.position = props.position;
-  if (props.textAlign != null) s.textAlign = props.textAlign;
+  if (textAlign != null) s.textAlign = textAlign;
 
   // flex item
   if (props.grow != null) s.flexGrow = flexNum(props.grow);

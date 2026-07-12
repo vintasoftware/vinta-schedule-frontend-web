@@ -5,10 +5,20 @@ import { cn } from '../lib/utils';
 import {
   boxStyle,
   splitBoxProps,
+  splitResponsiveBoxProps,
   resolveSpace,
   type BoxStyleProps,
   type Space,
 } from './layout-style';
+import {
+  responsiveClasses,
+  plainValue,
+  directionClass,
+  alignClass,
+  justifyClass,
+  spaceClass,
+  type Responsive,
+} from './responsive';
 
 type Align = 'start' | 'center' | 'end' | 'stretch' | 'baseline';
 type Justify = 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
@@ -33,11 +43,15 @@ const JUSTIFY: Record<Justify, CSSProperties['justifyContent']> = {
 export interface FlexProps
   extends BoxStyleProps, Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
   as?: React.ElementType;
-  direction?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
-  align?: Align;
-  justify?: Justify;
+  /** Accepts a per-breakpoint object: `direction={{ base: 'column', md: 'row' }}`. */
+  direction?: Responsive<'row' | 'column' | 'row-reverse' | 'column-reverse'>;
+  /** Accepts a per-breakpoint object. */
+  align?: Responsive<Align>;
+  /** Accepts a per-breakpoint object. */
+  justify?: Responsive<Justify>;
   wrap?: boolean | 'reverse';
-  gap?: Space;
+  /** Accepts a per-breakpoint object: `gap={{ base: 2, md: 4 }}`. */
+  gap?: Responsive<Space>;
   rowGap?: Space;
   columnGap?: Space;
   inline?: boolean;
@@ -66,12 +80,27 @@ const Flex = React.forwardRef<HTMLElement, FlexProps>(function Flex(
   },
   ref
 ) {
-  const { style: resolved, rest } = splitBoxProps(boxProps);
+  const { classes: boxClasses, rest: plainBox } =
+    splitResponsiveBoxProps(boxProps);
+  const { style: resolved, rest } = splitBoxProps(plainBox);
+
+  // A responsive prop resolves to breakpoint CLASSES; a plain one to an inline
+  // style. Never both for the same prop — an inline style always beats a class.
+  const directionCls = responsiveClasses(direction, directionClass);
+  const alignCls = responsiveClasses(align, alignClass);
+  const justifyCls = responsiveClasses(justify, justifyClass);
+  const gapCls = responsiveClasses(gap, spaceClass('gap'));
+
+  const plainDirection = plainValue(direction);
+  const plainAlign = plainValue(align);
+  const plainJustify = plainValue(justify);
+  const plainGap = plainValue(gap);
+
   const flexStyle: CSSProperties = {
     display: inline ? 'inline-flex' : 'flex',
-    flexDirection: direction,
-    alignItems: align ? ALIGN[align] : undefined,
-    justifyContent: justify ? JUSTIFY[justify] : undefined,
+    flexDirection: directionCls ? undefined : plainDirection,
+    alignItems: plainAlign ? ALIGN[plainAlign] : undefined,
+    justifyContent: plainJustify ? JUSTIFY[plainJustify] : undefined,
     flexWrap:
       wrap === true ? 'wrap' : wrap === 'reverse' ? 'wrap-reverse' : undefined,
   };
@@ -79,13 +108,20 @@ const Flex = React.forwardRef<HTMLElement, FlexProps>(function Flex(
   // shorthand alongside `undefined` `rowGap`/`columnGap` longhands makes React
   // warn about mixing shorthand + longhand and DROP the shorthand on rerender —
   // which silently zeroed the gap (glued labels next to switches/checkboxes).
-  if (gap != null) flexStyle.gap = resolveSpace(gap);
+  if (!gapCls && plainGap != null) flexStyle.gap = resolveSpace(plainGap);
   if (rowGap != null) flexStyle.rowGap = resolveSpace(rowGap);
   if (columnGap != null) flexStyle.columnGap = resolveSpace(columnGap);
   return (
     <Comp
       ref={ref}
-      className={cn(className)}
+      className={cn(
+        boxClasses,
+        directionCls,
+        alignCls,
+        justifyCls,
+        gapCls,
+        className
+      )}
       style={{ ...resolved, ...flexStyle, ...style }}
       {...rest}
     />

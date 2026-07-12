@@ -6,34 +6,57 @@ const meta = {
   title: 'Components/Skeleton',
   component: Skeleton,
   tags: ['autodocs'],
-  // Skeleton is a bare styled div (`React.HTMLAttributes<HTMLDivElement>`) — it
-  // has NO domain prop of its own: size/shape are driven purely by className,
-  // which must never be exposed (§6). Nothing was fabricated; the only real,
-  // forwarded scalar worth editing is the accessible loading label. It renders
-  // no composed content → no slot (§4).
+  // Leaf component — renders no composed content, so NO slot (§4). The curated
+  // controls are the real, forwarded sizing props: `width`/`height` resolve
+  // through layout-style's `resolveSize` (number → px, or any CSS length),
+  // `radius` is the DS token scale, `shape` drives circle/text presets.
+  // `className`/`style` stay unexposed (§6).
   argTypes: {
-    'aria-label': {
-      control: 'text',
-      description: 'Accessible label announced while content loads',
+    width: { control: 'text' },
+    height: { control: 'text' },
+    radius: {
+      control: 'select',
+      options: ['none', 'sm', 'md', 'lg', 'xl', '2xl', 'full'],
     },
+    shape: { control: 'inline-radio', options: ['rect', 'circle', 'text'] },
   },
-  args: { 'aria-label': 'Loading' },
+  args: { width: 192, height: 24, shape: 'rect' },
 } satisfies Meta<typeof Skeleton>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: (args) => <Skeleton className='h-6 w-48' {...args} />,
+  render: (args) => <Skeleton {...args} />,
 };
 
+/** `shape='circle'` forces a full radius and a 1:1 aspect ratio. */
+export const Circle: Story = {
+  args: { width: 48, height: undefined, shape: 'circle' },
+  render: (args) => <Skeleton {...args} />,
+};
+
+/** `shape='text'` defaults the height to one line of text. */
+export const TextLines: Story = {
+  args: { shape: 'text', width: '100%', height: undefined },
+  render: (args) => (
+    <div className='w-80 space-y-2'>
+      <Skeleton {...args} />
+      <Skeleton {...args} width='75%' />
+      <Skeleton {...args} width='50%' />
+    </div>
+  ),
+};
+
+/** A card placeholder composed purely from props — no size classes. */
 export const Card: Story = {
-  render: () => (
+  args: { radius: 'lg' },
+  render: (args) => (
     <div className='flex w-80 items-center gap-4'>
-      <Skeleton className='h-12 w-12 rounded-full' />
+      <Skeleton shape='circle' width={48} />
       <div className='flex-1 space-y-2'>
-        <Skeleton className='h-4 w-3/4' />
-        <Skeleton className='h-4 w-1/2' />
+        <Skeleton {...args} shape='text' width='75%' />
+        <Skeleton {...args} shape='text' width='50%' />
       </div>
     </div>
   ),

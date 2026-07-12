@@ -3,6 +3,7 @@ import type { Preview } from '@storybook/nextjs-vite';
 import { withThemeByClassName } from '@storybook/addon-themes';
 import { DM_Sans, Geist_Mono } from 'next/font/google';
 
+import { patchFocus } from './patch-focus';
 import '../src/app/globals.css';
 
 // Device frames for the built-in viewport toolbar (Storybook 9/10 core).
@@ -41,6 +42,9 @@ const geistMono = Geist_Mono({
 });
 
 const preview: Preview = {
+  // Runs after the core annotations' loaders, i.e. after `storybook/test` has
+  // installed the focus accessor this guards against. See ./patch-focus.ts.
+  loaders: [() => patchFocus()],
   parameters: {
     controls: {
       matchers: {

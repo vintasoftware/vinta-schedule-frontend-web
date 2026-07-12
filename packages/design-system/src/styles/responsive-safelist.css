@@ -1,0 +1,35 @@
+/* Safelist for the layout primitives' responsive props.
+ *
+ * The primitives build breakpoint class names at runtime (`md:grid-cols-2`),
+ * so Tailwind's source scanner can never see them as literals. `@source inline`
+ * generates them explicitly instead — which keeps the TypeScript honest (no
+ * 400-line literal class maps) at the cost of this one declarative list.
+ *
+ * Imported by BOTH the package's own stylesheet (styles/build.css) and any
+ * consuming app's Tailwind entry (the schedule app's src/app/globals.css).
+ * A consumer that scans the package source but skips this file will render
+ * responsive props as no-ops.
+ *
+ * Breakpoints are Tailwind's defaults: sm 640 · md 768 · lg 1024 · xl 1280.
+ */
+
+/* Spacing + gaps — the 4px Space scale (layout-style.ts). */
+@source inline(
+  '{,sm:,md:,lg:,xl:}{p,px,py,pt,pr,pb,pl,gap,gap-x,gap-y}-{0,1,2,3,4,5,6,8,10,12,16,20,24}'
+);
+
+/* Grid columns. */
+@source inline('{,sm:,md:,lg:,xl:}grid-cols-{1,2,3,4,5,6,7,8,9,10,11,12}');
+
+/* Flex direction. */
+@source inline('{,sm:,md:,lg:,xl:}flex-{row,col,row-reverse,col-reverse}');
+
+/* Display — covers the `hidden md:flex` show/hide idiom. */
+@source inline('{,sm:,md:,lg:,xl:}{hidden,block,flex,inline-flex,grid}');
+
+/* Alignment. */
+@source inline('{,sm:,md:,lg:,xl:}items-{start,center,end,stretch,baseline}');
+@source inline(
+  '{,sm:,md:,lg:,xl:}justify-{start,center,end,between,around,evenly}'
+);
+@source inline('{,sm:,md:,lg:,xl:}text-{left,center,right}');

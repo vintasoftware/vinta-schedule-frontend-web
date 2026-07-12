@@ -4,10 +4,18 @@ import type { CSSProperties } from 'react';
 import { cn } from '../lib/utils';
 import {
   splitBoxProps,
+  splitResponsiveBoxProps,
   resolveSpace,
   type BoxStyleProps,
   type Space,
 } from './layout-style';
+import {
+  responsiveClasses,
+  plainValue,
+  columnsClass,
+  spaceClass,
+  type Responsive,
+} from './responsive';
 
 type Align = 'start' | 'center' | 'end' | 'stretch';
 type Justify = 'start' | 'center' | 'end' | 'stretch';
@@ -22,10 +30,14 @@ const ALIGN: Record<Align, CSSProperties['alignItems']> = {
 export interface GridProps
   extends BoxStyleProps, Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
   as?: React.ElementType;
-  /** Number of equal columns, or a raw grid-template-columns string. */
-  columns?: number | string;
+  /**
+   * Number of equal columns, or a raw grid-template-columns string. Accepts a
+   * per-breakpoint object: `columns={{ base: 1, md: 2, lg: 3 }}`.
+   */
+  columns?: Responsive<number> | string;
   rows?: number | string;
-  gap?: Space;
+  /** Accepts a per-breakpoint object: `gap={{ base: 4, md: 6 }}`. */
+  gap?: Responsive<Space>;
   rowGap?: Space;
   columnGap?: Space;
   align?: Align;
@@ -62,23 +74,38 @@ const Grid = React.forwardRef<HTMLElement, GridProps>(function Grid(
   },
   ref
 ) {
-  const { style: resolved, rest } = splitBoxProps(boxProps);
+  const { classes: boxClasses, rest: plainBox } =
+    splitResponsiveBoxProps(boxProps);
+  const { style: resolved, rest } = splitBoxProps(plainBox);
+
+  // A responsive prop resolves to breakpoint CLASSES; a plain one to an inline
+  // style. Never both for the same prop — an inline style always beats a class.
+  const columnsCls =
+    typeof columns === 'string'
+      ? undefined
+      : responsiveClasses(columns, columnsClass);
+  const gapCls = responsiveClasses(gap, spaceClass('gap'));
+
+  const plainColumns =
+    typeof columns === 'string' ? columns : plainValue(columns);
+  const plainGap = plainValue(gap);
+
   const gridStyle: CSSProperties = {
     display: inline ? 'inline-grid' : 'grid',
-    gridTemplateColumns: template(columns),
+    gridTemplateColumns: columnsCls ? undefined : template(plainColumns),
     gridTemplateRows: template(rows),
     alignItems: align ? ALIGN[align] : undefined,
     justifyItems: justify ? ALIGN[justify] : undefined,
   };
   // Never emit the `gap` shorthand together with `undefined` `rowGap`/`columnGap`
   // longhands — React drops the shorthand on rerender, zeroing the gap.
-  if (gap != null) gridStyle.gap = resolveSpace(gap);
+  if (!gapCls && plainGap != null) gridStyle.gap = resolveSpace(plainGap);
   if (rowGap != null) gridStyle.rowGap = resolveSpace(rowGap);
   if (columnGap != null) gridStyle.columnGap = resolveSpace(columnGap);
   return (
     <Comp
       ref={ref}
-      className={cn(className)}
+      className={cn(boxClasses, columnsCls, gapCls, className)}
       style={{ ...resolved, ...gridStyle, ...style }}
       {...rest}
     />
@@ -109,7 +136,9 @@ const GridItem = React.forwardRef<HTMLElement, GridItemProps>(function GridItem(
   },
   ref
 ) {
-  const { style: resolved, rest } = splitBoxProps(boxProps);
+  const { classes: itemClasses, rest: plainItem } =
+    splitResponsiveBoxProps(boxProps);
+  const { style: resolved, rest } = splitBoxProps(plainItem);
   const itemStyle: CSSProperties = {
     gridColumn:
       colStart != null || colEnd != null
@@ -122,7 +151,7 @@ const GridItem = React.forwardRef<HTMLElement, GridItemProps>(function GridItem(
   return (
     <Comp
       ref={ref}
-      className={cn(className)}
+      className={cn(itemClasses, className)}
       style={{ ...resolved, ...itemStyle, ...style }}
       {...rest}
     />

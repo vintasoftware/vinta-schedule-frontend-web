@@ -1,16 +1,26 @@
 import * as React from 'react';
 import {
+  Box,
+  Flex,
+  HStack,
   Stack,
   VStack,
   Heading,
   Text,
 } from 'vinta-schedule-design-system/layout';
+import { Image } from 'vinta-schedule-design-system/ui/image';
 
 // ---------------------------------------------------------------------------
 // BrandingPreview — a self-contained mock of the auth interstitial card,
 // driven purely by form values. Intentionally avoids importing branding-server
 // or branding-shared (those live on a separate branch). Inlines the preview
 // logic so this feature is fully self-contained.
+//
+// Composed entirely from design-system primitives: no raw elements, no utility
+// classes. The brand colors are arbitrary runtime values from the form, which
+// the token props accept directly — `color()` passes any raw CSS color through
+// untouched, so `bg={primaryColor ?? 'primary'}` falls back to the token when
+// the field is empty.
 // ---------------------------------------------------------------------------
 
 export interface BrandingPreviewProps {
@@ -18,6 +28,55 @@ export interface BrandingPreviewProps {
   logoUrl?: string;
   primaryColor?: string;
   secondaryColor?: string;
+}
+
+// A mock control — presentational only, so it is exposed to assistive tech as
+// an image with a descriptive name rather than as an interactive button.
+// Defined at module scope: a component created during render is remounted on
+// every parent render (and the React Compiler rejects it).
+function MockButton({
+  label,
+  surface,
+  onSurface,
+}: {
+  label: string;
+  surface: string;
+  onSurface: string;
+}) {
+  return (
+    <Flex
+      width='full'
+      align='center'
+      justify='center'
+      px={4}
+      py={2}
+      radius='md'
+      bg={surface}
+      role='img'
+      aria-label={`Sample ${label.toLowerCase()} button`}
+    >
+      <Text size='sm' weight='medium' color={onSurface}>
+        {label}
+      </Text>
+    </Flex>
+  );
+}
+
+/** A mock form row: a label bar above an input bar. */
+function MockField() {
+  return (
+    <VStack gap={2}>
+      <Box width={64} height={16} radius='md' bg='muted' />
+      <Box
+        width='full'
+        height={32}
+        radius='md'
+        bg='background'
+        border
+        borderColor='border'
+      />
+    </VStack>
+  );
 }
 
 /**
@@ -34,43 +93,30 @@ export function BrandingPreview({
   primaryColor,
   secondaryColor,
 }: BrandingPreviewProps) {
-  // Use the provided color or fall back to a CSS variable (rendered as a string
-  // so Tailwind doesn't need to know the value at build time).
-  const bgStyle: React.CSSProperties = primaryColor
-    ? { backgroundColor: primaryColor }
-    : {};
-  const btnStyle: React.CSSProperties = {
-    ...(primaryColor ? { backgroundColor: primaryColor } : {}),
-    ...(secondaryColor ? { color: secondaryColor } : {}),
-  };
+  const surface = primaryColor ?? 'primary';
+  const onSurface = secondaryColor ?? 'primary-foreground';
 
   return (
-    <Stack gap={0} className='w-full overflow-hidden rounded-md'>
+    <Stack gap={0} width='full' overflow='hidden' radius='md'>
       {/* Header strip */}
-      <div
-        className='flex items-center gap-2 px-4 py-3'
-        style={primaryColor ? bgStyle : { backgroundColor: 'var(--primary)' }}
-      >
+      <HStack gap={2} px={4} py={3} align='center' bg={surface}>
         {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={logoUrl}
             alt={`${appName} logo`}
-            className='h-6 w-auto object-contain'
+            height={24}
+            fit='contain'
           />
         ) : (
-          <div className='h-6 w-6 rounded bg-white/30' />
+          <Box width={24} height={24} radius='sm' bg='rgb(255 255 255 / 0.3)' />
         )}
-        <span
-          className='text-sm font-semibold text-white'
-          style={secondaryColor ? { color: secondaryColor } : {}}
-        >
+        <Text size='sm' weight='semibold' color={onSurface}>
           {appName}
-        </span>
-      </div>
+        </Text>
+      </HStack>
 
       {/* Card body mock */}
-      <VStack gap={4} className='bg-card px-6 py-6'>
+      <VStack gap={4} px={6} py={6} bg='card'>
         <Heading level={3} size='lg'>
           Welcome back
         </Heading>
@@ -78,49 +124,16 @@ export function BrandingPreview({
           Sign in to your {appName} account.
         </Text>
 
-        {/* Mock social button */}
-        <div
-          className='flex w-full items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-white'
-          style={
-            primaryColor
-              ? btnStyle
-              : {
-                  backgroundColor: 'var(--primary)',
-                  color: 'var(--primary-foreground)',
-                }
-          }
-          role='img'
-          aria-label='Sample sign-in button'
-        >
-          Sign in with Google
-        </div>
+        <MockButton
+          label='Sign in with Google'
+          surface={surface}
+          onSurface={onSurface}
+        />
 
-        {/* Mock form fields */}
-        <div className='space-y-2'>
-          <div className='bg-muted h-4 w-16 rounded' />
-          <div className='border-border bg-background h-8 w-full rounded border' />
-        </div>
-        <div className='space-y-2'>
-          <div className='bg-muted h-4 w-16 rounded' />
-          <div className='border-border bg-background h-8 w-full rounded border' />
-        </div>
+        <MockField />
+        <MockField />
 
-        {/* Mock submit button */}
-        <div
-          className='flex w-full items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-white'
-          style={
-            primaryColor
-              ? btnStyle
-              : {
-                  backgroundColor: 'var(--primary)',
-                  color: 'var(--primary-foreground)',
-                }
-          }
-          role='img'
-          aria-label='Sample submit button'
-        >
-          Log in
-        </div>
+        <MockButton label='Log in' surface={surface} onSurface={onSurface} />
       </VStack>
     </Stack>
   );

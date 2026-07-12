@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { Preview } from '@storybook/react-vite';
 import { withThemeByClassName } from '@storybook/addon-themes';
 
+import { patchFocus } from './patch-focus';
 import './fonts.css';
 import '../src/styles/globals.css';
 
@@ -28,6 +29,9 @@ const VIEWPORTS = {
 };
 
 const preview: Preview = {
+  // Runs after the core annotations' loaders, i.e. after `storybook/test` has
+  // installed the focus accessor this guards against. See ./patch-focus.ts.
+  loaders: [() => patchFocus()],
   parameters: {
     controls: {
       matchers: {

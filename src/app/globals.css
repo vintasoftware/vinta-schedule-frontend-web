@@ -6,6 +6,11 @@
    Storybook. */
 @import 'vinta-schedule-design-system/styles/tokens.css';
 
+/* The layout primitives build responsive classes (`md:grid-cols-2`) at runtime,
+   so Tailwind's scanner can never see them as literals. This safelist generates
+   them explicitly — without it, responsive props silently render as no-ops. */
+@import 'vinta-schedule-design-system/styles/responsive-safelist.css';
+
 /* The design-system components ship as source; scan them so the utilities
    they use are generated in the app bundle. */
 @source '../../packages/design-system/src';
