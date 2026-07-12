@@ -19,10 +19,45 @@ import type { Space } from './layout-style';
  * styles/responsive-safelist.css.
  */
 
-/** Tailwind's default breakpoints. `base` is the unprefixed, mobile-first value. */
-export type Breakpoint = 'base' | 'sm' | 'md' | 'lg' | 'xl';
+/** Tailwind's default viewport breakpoints. `base` is the unprefixed value. */
+export type ViewportBreakpoint = 'sm' | 'md' | 'lg' | 'xl';
 
-const BREAKPOINTS: Breakpoint[] = ['base', 'sm', 'md', 'lg', 'xl'];
+/**
+ * Container-query breakpoints. These react to the width of an ANCESTOR, not the
+ * viewport — which is what the app shell actually needs: collapsing the sidebar
+ * makes the content area wider, and the page body should reflow off that, not
+ * off the window. The shell marks the containers (`@container/content` etc.).
+ */
+export type ContainerName = 'app' | 'content' | 'nav' | 'topbar' | 'pageheader';
+export type ContainerSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+export type ContainerBreakpoint = `@${ContainerSize}/${ContainerName}`;
+
+export type Breakpoint = 'base' | ViewportBreakpoint | ContainerBreakpoint;
+
+const VIEWPORT: Breakpoint[] = ['sm', 'md', 'lg', 'xl'];
+const CONTAINER_NAMES: ContainerName[] = [
+  'app',
+  'content',
+  'nav',
+  'topbar',
+  'pageheader',
+];
+const CONTAINER_SIZES: ContainerSize[] = [
+  'sm',
+  'md',
+  'lg',
+  'xl',
+  '2xl',
+  '3xl',
+  '4xl',
+];
+
+const CONTAINER: Breakpoint[] = CONTAINER_NAMES.flatMap((name) =>
+  CONTAINER_SIZES.map((size) => `@${size}/${name}` as ContainerBreakpoint)
+);
+
+// `base` first so the unprefixed value is emitted before any override.
+const BREAKPOINTS: Breakpoint[] = ['base', ...VIEWPORT, ...CONTAINER];
 
 export type Responsive<T> = T | Partial<Record<Breakpoint, T>>;
 
@@ -37,7 +72,13 @@ export function isResponsive<T>(
   );
 }
 
-/** `md` + `grid-cols-2` → `md:grid-cols-2`; `base` stays unprefixed. */
+/**
+ * The breakpoint key IS the Tailwind variant prefix, so viewport and container
+ * breakpoints share one code path:
+ *   `md`          + `grid-cols-2` → `md:grid-cols-2`
+ *   `@xl/content` + `grid-cols-3` → `@xl/content:grid-cols-3`
+ * `base` stays unprefixed.
+ */
 function prefix(bp: Breakpoint, className: string): string {
   return bp === 'base' ? className : `${bp}:${className}`;
 }
@@ -67,6 +108,125 @@ export function plainValue<T>(value: Responsive<T> | undefined): T | undefined {
   return isResponsive(value) ? undefined : (value as T | undefined);
 }
 
+/* ------------------------- per-breakpoint siblings ------------------------ */
+/**
+ * A `Responsive<T>` object is ergonomic in code but unusable in a visual editor:
+ * the composer's supported controls are scalars, and an `object` control would
+ * hand a designer a raw JSON field instead of a token dropdown.
+ *
+ * So every responsive prop also accepts flat per-breakpoint siblings —
+ * `columns` + `columnsMd` + `columnsLg` — each a plain scalar that curates as a
+ * proper `select`. The component folds them back into one `Responsive<T>`.
+ * Code keeps the object form; Puck gets one dropdown per breakpoint.
+ *
+ * Container breakpoints are deliberately NOT exposed as siblings: they key off
+ * the app shell's named containers (`@container/content`), which do not exist on
+ * a composer canvas, so they would be dead controls. They remain code-only.
+ */
+export const VIEWPORT_SUFFIXES = ['Sm', 'Md', 'Lg', 'Xl'] as const;
+export type ViewportSuffix = (typeof VIEWPORT_SUFFIXES)[number];
+
+const SUFFIX_TO_BREAKPOINT: Record<ViewportSuffix, ViewportBreakpoint> = {
+  Sm: 'sm',
+  Md: 'md',
+  Lg: 'lg',
+  Xl: 'xl',
+};
+
+export type Siblings<T> = Partial<Record<ViewportSuffix, T>>;
+
+/* --------------------- container-query siblings (Puck) -------------------- */
+/**
+ * Container breakpoints are a 5-container x 6-size grid; exposing every pair as
+ * a sibling would mean ~30 props PER responsive prop. Instead a component picks
+ * ONE container to respond to (`container='content'`) and then sets size-suffixed
+ * siblings against it:
+ *
+ *   <Grid container='content' columns={1} columnsCqXl={2} columnsCq4xl={3} />
+ *   →  grid-cols-1  @xl/content:grid-cols-2  @4xl/content:grid-cols-3
+ *
+ * That is 6 siblings per prop instead of 30, and it is how the props are used in
+ * practice — one element reacts to one meaningful ancestor.
+ *
+ * The code-level object form still addresses any container directly:
+ *   columns={{ base: 1, '@xl/content': 2, '@3xl/topbar': 4 }}
+ */
+export const CONTAINER_SUFFIXES = [
+  'CqMd',
+  'CqLg',
+  'CqXl',
+  'Cq2xl',
+  'Cq3xl',
+  'Cq4xl',
+] as const;
+export type ContainerSuffix = (typeof CONTAINER_SUFFIXES)[number];
+
+const CQ_SUFFIX_TO_SIZE: Record<ContainerSuffix, ContainerSize> = {
+  CqMd: 'md',
+  CqLg: 'lg',
+  CqXl: 'xl',
+  Cq2xl: '2xl',
+  Cq3xl: '3xl',
+  Cq4xl: '4xl',
+};
+
+export type ContainerSiblings<T> = Partial<Record<ContainerSuffix, T>>;
+
+/**
+ * Fold `<prop>Cq*` siblings into the base value, resolved against `container`.
+ *
+ * A container-query class is inert unless some ancestor is marked
+ * `@container/<name>` — so when `container` is omitted the siblings are ignored
+ * rather than emitted as classes that would silently never match.
+ */
+export function foldContainerSiblings<T>(
+  base: Responsive<T> | undefined,
+  container: ContainerName | undefined,
+  siblings: ContainerSiblings<T>
+): Responsive<T> | undefined {
+  const set = CONTAINER_SUFFIXES.filter((s) => siblings[s] != null);
+  if (set.length === 0 || !container) return base;
+
+  const out: Partial<Record<Breakpoint, T>> = isResponsive(base)
+    ? { ...base }
+    : {};
+  // A scalar base becomes the `base` breakpoint, so it stops emitting an inline
+  // style that would beat the container-query classes.
+  if (!isResponsive(base) && base != null) out.base = base as T;
+  for (const s of set) {
+    const key = `@${CQ_SUFFIX_TO_SIZE[s]}/${container}` as ContainerBreakpoint;
+    out[key] = siblings[s] as T;
+  }
+  return out;
+}
+
+/** Marks an element as a named container: `@container/content`. */
+export function containerClass(name: ContainerName | undefined) {
+  return name ? `@container/${name}` : undefined;
+}
+
+/**
+ * Fold `<prop>Sm|Md|Lg|Xl` siblings into the base value.
+ *
+ * Returns `base` untouched when no sibling is set, so a plain scalar keeps the
+ * inline-style fast path and does not gain a stray class.
+ */
+export function foldSiblings<T>(
+  base: Responsive<T> | undefined,
+  siblings: Siblings<T>
+): Responsive<T> | undefined {
+  const set = VIEWPORT_SUFFIXES.filter((s) => siblings[s] != null);
+  if (set.length === 0) return base;
+
+  const out: Partial<Record<Breakpoint, T>> = isResponsive(base)
+    ? { ...base }
+    : {};
+  // A scalar base becomes the `base` breakpoint once any sibling exists.
+  if (!isResponsive(base) && base != null) out.base = base as T;
+  for (const s of set) out[SUFFIX_TO_BREAKPOINT[s]] = siblings[s] as T;
+  return out;
+}
+
 /* ---------------------------- class builders ----------------------------- */
 /* Each maps one prop value to its Tailwind class. Kept as functions (not literal
    maps) because responsive-safelist.css guarantees the classes exist. */
@@ -89,6 +249,9 @@ export const directionClass = (v: Direction): string =>
   `flex-${v.replace('column', 'col')}`;
 
 export const columnsClass = (v: number): string => `grid-cols-${v}`;
+
+/** GridItem column span — `<GridItem span={{ base: 1, '@4xl/content': 2 }} />`. */
+export const spanClass = (v: number): string => `col-span-${v}`;
 
 export type Align = 'start' | 'center' | 'end' | 'stretch' | 'baseline';
 export const alignClass = (v: Align): string => `items-${v}`;

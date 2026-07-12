@@ -15,6 +15,7 @@
     "./styles.css": "./dist/styles.css",
     "./styles/tokens.css": "./src/styles/tokens.css",
     "./styles/responsive-safelist.css": "./src/styles/responsive-safelist.css",
+    "./styles/container-safelist.css": "./src/styles/container-safelist.css",
     "./styles/globals.css": "./src/styles/globals.css"
   },
   "files": [

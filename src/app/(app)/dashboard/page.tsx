@@ -142,21 +142,12 @@ export default function DashboardPage() {
       />
 
       {/* Tile grid. The column counts react to the CONTENT container's width
-          (@container/content on the AppShell main), not the viewport — the
-          Responsive<> prop vocabulary only covers viewport breakpoints, so the
-          container-query columns stay as classes.
-          TODO(ds-gap): container-query breakpoints for Grid `columns`.
-          `columns={{ base: 1 }}` (rather than a plain 1) is deliberate: a plain
-          value resolves to an inline grid-template-columns, which would beat the
-          container-query classes below. */}
-      <Grid
-        columns={{ base: 1 }}
-        gap={4}
-        className='@xl/content:grid-cols-2 @4xl/content:grid-cols-3'
-      >
+          (@container/content on the AppShell main), not the viewport —
+          collapsing the sidebar widens the container and the tiles reflow off
+          that. */}
+      <Grid columns={{ base: 1, '@xl/content': 2, '@4xl/content': 3 }} gap={4}>
         {/* ---- Up next (spans 2 cols on wide containers) ---- */}
-        {/* TODO(ds-gap): GridItem `span` has no container-query form either. */}
-        <GridItem className='@4xl/content:col-span-2'>
+        <GridItem span={{ base: 1, '@4xl/content': 2 }}>
           <UpNextTile
             events={upNextEvents}
             isLoading={eventsLoading}

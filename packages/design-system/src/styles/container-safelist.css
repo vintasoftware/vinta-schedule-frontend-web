@@ -1,0 +1,44 @@
+/* Container-query variants for the layout primitives.
+ *
+ * These react to an ANCESTOR's width, not the viewport — which is what the app
+ * shell actually needs: collapsing the sidebar widens the content area, and the
+ * page body should reflow off that, not off the window. The shell marks the
+ * containers (@container/app · /content · /nav · /topbar · /pageheader).
+ *
+ * SEPARATE FILE, AND NOT CHEAP. This is a 6-size x 5-container cross-product,
+ * so it only generates the utilities containers actually gate (display, columns,
+ * direction, alignment, padding) on a reduced spacing scale — not the full box
+ * vocabulary. It still costs ~130KB raw (~15KB gzipped).
+ *
+ * Import it only if you use container-responsive props
+ * (`columns={{ base: 1, '@4xl/content': 3 }}`). Skip it and those props are
+ * silent no-ops; the viewport breakpoints in responsive-safelist.css are
+ * unaffected.
+ */
+
+/* The `@container/<name>` markers themselves — `asContainer` builds these at
+ * runtime, so the scanner never sees them. Without these, a Puck-authored page
+ * cannot declare a container and every container-query prop is inert. */
+@source inline('@container/{app,content,nav,topbar,pageheader}');
+
+@source inline(
+  '@{md,lg,xl,2xl,3xl,4xl}/{app,content,nav,topbar,pageheader}:{hidden,block,flex,inline-flex,grid}'
+);
+@source inline(
+  '@{md,lg,xl,2xl,3xl,4xl}/{app,content,nav,topbar,pageheader}:grid-cols-{1,2,3,4,5,6,7,8,9,10,11,12}'
+);
+@source inline(
+  '@{md,lg,xl,2xl,3xl,4xl}/{app,content,nav,topbar,pageheader}:col-span-{1,2,3,4,5,6,7,8,9,10,11,12}'
+);
+@source inline(
+  '@{md,lg,xl,2xl,3xl,4xl}/{app,content,nav,topbar,pageheader}:flex-{row,col}'
+);
+@source inline(
+  '@{md,lg,xl,2xl,3xl,4xl}/{app,content,nav,topbar,pageheader}:items-{start,center,end,stretch}'
+);
+@source inline(
+  '@{md,lg,xl,2xl,3xl,4xl}/{app,content,nav,topbar,pageheader}:justify-{start,center,end,between}'
+);
+@source inline(
+  '@{md,lg,xl,2xl,3xl,4xl}/{app,content,nav,topbar,pageheader}:{p,px,py}-{0,2,4,6,8,12}'
+);

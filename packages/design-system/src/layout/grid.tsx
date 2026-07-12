@@ -14,7 +14,10 @@ import {
   plainValue,
   isResponsive,
   columnsClass,
+  spanClass,
   spaceClass,
+  foldSiblings,
+  foldContainerSiblings,
   type Responsive,
 } from './responsive';
 
@@ -44,6 +47,30 @@ export interface GridProps
   align?: Align;
   justify?: Justify;
   inline?: boolean;
+
+  /* Composer-editable per-breakpoint siblings (see ./responsive). */
+  columnsSm?: number;
+  columnsMd?: number;
+  columnsLg?: number;
+  columnsXl?: number;
+  gapSm?: Space;
+  gapMd?: Space;
+  gapLg?: Space;
+  gapXl?: Space;
+
+  /* Container-query siblings, resolved against `container` (BoxStyleProps). */
+  columnsCqMd?: number;
+  columnsCqLg?: number;
+  columnsCqXl?: number;
+  columnsCq2xl?: number;
+  columnsCq3xl?: number;
+  columnsCq4xl?: number;
+  gapCqMd?: Space;
+  gapCqLg?: Space;
+  gapCqXl?: Space;
+  gapCq2xl?: Space;
+  gapCq3xl?: Space;
+  gapCq4xl?: Space;
 }
 
 function template(value: number | string | undefined): string | undefined {
@@ -65,18 +92,75 @@ const Grid = React.forwardRef<HTMLElement, GridProps>(function Grid(
     as: Comp = 'div',
     className,
     style,
-    columns = 12,
+    columns: columnsProp = 12,
     rows,
-    gap = 6,
+    gap: gapProp = 6,
     rowGap,
     columnGap,
     align,
     justify,
     inline,
+    columnsSm,
+    columnsMd,
+    columnsLg,
+    columnsXl,
+    gapSm,
+    gapMd,
+    gapLg,
+    gapXl,
+    columnsCqMd,
+    columnsCqLg,
+    columnsCqXl,
+    columnsCq2xl,
+    columnsCq3xl,
+    columnsCq4xl,
+    gapCqMd,
+    gapCqLg,
+    gapCqXl,
+    gapCq2xl,
+    gapCq3xl,
+    gapCq4xl,
     ...boxProps
   },
   ref
 ) {
+  const container = boxProps.container;
+  // Fold the composer-editable siblings back into one Responsive value. A raw
+  // grid-template string has no per-breakpoint form, so it passes through.
+  let columns =
+    typeof columnsProp === 'string'
+      ? columnsProp
+      : foldSiblings(columnsProp, {
+          Sm: columnsSm,
+          Md: columnsMd,
+          Lg: columnsLg,
+          Xl: columnsXl,
+        });
+  let gap = foldSiblings(gapProp, {
+    Sm: gapSm,
+    Md: gapMd,
+    Lg: gapLg,
+    Xl: gapXl,
+  });
+
+  if (typeof columns !== 'string') {
+    columns = foldContainerSiblings(columns, container, {
+      CqMd: columnsCqMd,
+      CqLg: columnsCqLg,
+      CqXl: columnsCqXl,
+      Cq2xl: columnsCq2xl,
+      Cq3xl: columnsCq3xl,
+      Cq4xl: columnsCq4xl,
+    });
+  }
+  gap = foldContainerSiblings(gap, container, {
+    CqMd: gapCqMd,
+    CqLg: gapCqLg,
+    CqXl: gapCqXl,
+    Cq2xl: gapCq2xl,
+    Cq3xl: gapCq3xl,
+    Cq4xl: gapCq4xl,
+  });
   // A responsive `display` is emitted as classes; Grid would otherwise always
   // write display:grid inline, which beats them and kills the breakpoint.
   const responsiveDisplay = isResponsive(boxProps.display);
@@ -121,8 +205,22 @@ const Grid = React.forwardRef<HTMLElement, GridProps>(function Grid(
 export interface GridItemProps
   extends BoxStyleProps, Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
   as?: React.ElementType;
-  /** Columns to span. */
-  span?: number;
+  /**
+   * Columns to span. Accepts a per-breakpoint object, including container
+   * queries: `span={{ base: 1, '@4xl/content': 2 }}`.
+   */
+  span?: Responsive<number>;
+  /* Composer-editable per-breakpoint siblings. */
+  spanSm?: number;
+  spanMd?: number;
+  spanLg?: number;
+  spanXl?: number;
+  spanCqMd?: number;
+  spanCqLg?: number;
+  spanCqXl?: number;
+  spanCq2xl?: number;
+  spanCq3xl?: number;
+  spanCq4xl?: number;
   /** Rows to span. */
   rowSpan?: number;
   colStart?: number;
@@ -134,30 +232,62 @@ const GridItem = React.forwardRef<HTMLElement, GridItemProps>(function GridItem(
     as: Comp = 'div',
     className,
     style,
-    span,
+    span: spanProp,
     rowSpan,
     colStart,
     colEnd,
+    spanSm,
+    spanMd,
+    spanLg,
+    spanXl,
+    spanCqMd,
+    spanCqLg,
+    spanCqXl,
+    spanCq2xl,
+    spanCq3xl,
+    spanCq4xl,
     ...boxProps
   },
   ref
 ) {
+  const container = boxProps.container;
+  let span = foldSiblings(spanProp, {
+    Sm: spanSm,
+    Md: spanMd,
+    Lg: spanLg,
+    Xl: spanXl,
+  });
+  span = foldContainerSiblings(span, container, {
+    CqMd: spanCqMd,
+    CqLg: spanCqLg,
+    CqXl: spanCqXl,
+    Cq2xl: spanCq2xl,
+    Cq3xl: spanCq3xl,
+    Cq4xl: spanCq4xl,
+  });
   const { classes: itemClasses, rest: plainItem } =
     splitResponsiveBoxProps(boxProps);
   const { style: resolved, rest } = splitBoxProps(plainItem);
+
+  // A responsive span resolves to col-span-* classes; a plain one to an inline
+  // gridColumn. Never both — the inline style would beat the classes.
+  const spanCls = responsiveClasses(span, spanClass);
+  const plainSpan = plainValue(span);
+
   const itemStyle: CSSProperties = {
-    gridColumn:
-      colStart != null || colEnd != null
-        ? `${colStart ?? 'auto'} / ${colEnd ?? (span != null ? `span ${span}` : 'auto')}`
-        : span != null
-          ? `span ${span} / span ${span}`
+    gridColumn: spanCls
+      ? undefined
+      : colStart != null || colEnd != null
+        ? `${colStart ?? 'auto'} / ${colEnd ?? (plainSpan != null ? `span ${plainSpan}` : 'auto')}`
+        : plainSpan != null
+          ? `span ${plainSpan} / span ${plainSpan}`
           : undefined,
     gridRow: rowSpan != null ? `span ${rowSpan} / span ${rowSpan}` : undefined,
   };
   return (
     <Comp
       ref={ref}
-      className={cn(itemClasses, className)}
+      className={cn(itemClasses, spanCls, className)}
       style={{ ...resolved, ...itemStyle, ...style }}
       {...rest}
     />

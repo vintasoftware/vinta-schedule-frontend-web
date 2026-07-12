@@ -11,6 +11,10 @@
    them explicitly — without it, responsive props silently render as no-ops. */
 @import 'vinta-schedule-design-system/styles/responsive-safelist.css';
 
+/* Container-query variants (the app shell's @container/content etc.). Opt-in:
+   ~130KB raw. Drop this import if you never use container-responsive props. */
+@import 'vinta-schedule-design-system/styles/container-safelist.css';
+
 /* The design-system components ship as source; scan them so the utilities
    they use are generated in the app bundle. */
 @source '../../packages/design-system/src';

@@ -48,6 +48,107 @@ const meta = {
       control: 'inline-radio',
       options: ['left', 'center', 'right'],
     },
+
+    // Per-breakpoint padding — one dropdown per breakpoint, so the
+    // composer can author responsive values (not just the base).
+    pSm: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    pMd: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    pLg: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    pXl: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    // Per-breakpoint display — one dropdown per breakpoint, so the
+    // composer can author responsive values (not just the base).
+    displaySm: {
+      control: 'select',
+      options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
+    },
+    displayMd: {
+      control: 'select',
+      options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
+    },
+    displayLg: {
+      control: 'select',
+      options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
+    },
+    displayXl: {
+      control: 'select',
+      options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
+    },
+
+    // ---- Container queries -------------------------------------------------
+    // React to an ANCESTOR's width instead of the viewport. Declare a container
+    // with `asContainer`, then point `container` at it and set the Cq* values.
+    asContainer: {
+      control: 'select',
+      options: ['app', 'content', 'nav', 'topbar', 'pageheader'],
+      description: 'Make THIS element a named container others can respond to',
+    },
+    container: {
+      control: 'select',
+      options: ['app', 'content', 'nav', 'topbar', 'pageheader'],
+      description: 'Which ancestor container the Cq* values below respond to',
+    },
+    // Per-container-size padding.
+    pCqMd: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    pCqLg: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    pCqXl: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    pCq2xl: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    pCq3xl: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    pCq4xl: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    // Per-container-size display.
+    displayCqMd: {
+      control: 'select',
+      options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
+    },
+    displayCqLg: {
+      control: 'select',
+      options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
+    },
+    displayCqXl: {
+      control: 'select',
+      options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
+    },
+    displayCq2xl: {
+      control: 'select',
+      options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
+    },
+    displayCq3xl: {
+      control: 'select',
+      options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
+    },
+    displayCq4xl: {
+      control: 'select',
+      options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
+    },
   },
   args: {
     p: 6,

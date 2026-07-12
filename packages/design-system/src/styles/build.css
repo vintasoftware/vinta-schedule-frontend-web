@@ -14,6 +14,7 @@
 @import 'tw-animate-css';
 @import './tokens.css';
 @import './responsive-safelist.css';
+@import './container-safelist.css';
 
 /* Scan the package source so utilities referenced by components are generated
  * into the shipped stylesheet. Relative to this file (src/styles/). */

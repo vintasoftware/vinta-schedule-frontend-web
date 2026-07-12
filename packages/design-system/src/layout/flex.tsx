@@ -18,9 +18,12 @@ import {
   alignClass,
   justifyClass,
   spaceClass,
+  foldSiblings,
+  foldContainerSiblings,
   type Responsive,
 } from './responsive';
 
+export type FlexDirection = 'row' | 'column' | 'row-reverse' | 'column-reverse';
 type Align = 'start' | 'center' | 'end' | 'stretch' | 'baseline';
 type Justify = 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
 
@@ -45,7 +48,7 @@ export interface FlexProps
   extends BoxStyleProps, Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
   as?: React.ElementType;
   /** Accepts a per-breakpoint object: `direction={{ base: 'column', md: 'row' }}`. */
-  direction?: Responsive<'row' | 'column' | 'row-reverse' | 'column-reverse'>;
+  direction?: Responsive<FlexDirection>;
   /** Accepts a per-breakpoint object. */
   align?: Responsive<Align>;
   /** Accepts a per-breakpoint object. */
@@ -56,6 +59,51 @@ export interface FlexProps
   rowGap?: Space;
   columnGap?: Space;
   inline?: boolean;
+
+  /* Composer-editable per-breakpoint siblings — flat scalars so they curate as
+     token dropdowns in Puck. Folded into the base prop below. */
+  directionSm?: FlexDirection;
+  directionMd?: FlexDirection;
+  directionLg?: FlexDirection;
+  directionXl?: FlexDirection;
+  alignSm?: Align;
+  alignMd?: Align;
+  alignLg?: Align;
+  alignXl?: Align;
+  justifySm?: Justify;
+  justifyMd?: Justify;
+  justifyLg?: Justify;
+  justifyXl?: Justify;
+  gapSm?: Space;
+  gapMd?: Space;
+  gapLg?: Space;
+  gapXl?: Space;
+
+  /* Container-query siblings, resolved against `container` (BoxStyleProps). */
+  directionCqMd?: FlexDirection;
+  directionCqLg?: FlexDirection;
+  directionCqXl?: FlexDirection;
+  directionCq2xl?: FlexDirection;
+  directionCq3xl?: FlexDirection;
+  directionCq4xl?: FlexDirection;
+  alignCqMd?: Align;
+  alignCqLg?: Align;
+  alignCqXl?: Align;
+  alignCq2xl?: Align;
+  alignCq3xl?: Align;
+  alignCq4xl?: Align;
+  justifyCqMd?: Justify;
+  justifyCqLg?: Justify;
+  justifyCqXl?: Justify;
+  justifyCq2xl?: Justify;
+  justifyCq3xl?: Justify;
+  justifyCq4xl?: Justify;
+  gapCqMd?: Space;
+  gapCqLg?: Space;
+  gapCqXl?: Space;
+  gapCq2xl?: Space;
+  gapCq3xl?: Space;
+  gapCq4xl?: Space;
 }
 
 /**
@@ -71,23 +119,124 @@ const Flex = React.forwardRef<HTMLElement, FlexProps>(function Flex(
     as: Comp = 'div',
     className,
     style,
-    direction = 'row',
-    align,
-    justify,
+    direction: directionProp = 'row',
+    align: alignProp,
+    justify: justifyProp,
     wrap,
-    gap,
+    gap: gapProp,
     rowGap,
     columnGap,
     inline,
+    directionSm,
+    directionMd,
+    directionLg,
+    directionXl,
+    alignSm,
+    alignMd,
+    alignLg,
+    alignXl,
+    justifySm,
+    justifyMd,
+    justifyLg,
+    justifyXl,
+    gapSm,
+    gapMd,
+    gapLg,
+    gapXl,
+    directionCqMd,
+    directionCqLg,
+    directionCqXl,
+    directionCq2xl,
+    directionCq3xl,
+    directionCq4xl,
+    alignCqMd,
+    alignCqLg,
+    alignCqXl,
+    alignCq2xl,
+    alignCq3xl,
+    alignCq4xl,
+    justifyCqMd,
+    justifyCqLg,
+    justifyCqXl,
+    justifyCq2xl,
+    justifyCq3xl,
+    justifyCq4xl,
+    gapCqMd,
+    gapCqLg,
+    gapCqXl,
+    gapCq2xl,
+    gapCq3xl,
+    gapCq4xl,
     ...boxProps
   },
   ref
 ) {
+  // `container` lives on BoxStyleProps, so read it without consuming it —
+  // splitResponsiveBoxProps still needs it for the box-level Cq siblings.
+  const container = boxProps.container;
+  // Fold the composer-editable siblings back into one Responsive value.
+  let direction = foldSiblings(directionProp, {
+    Sm: directionSm,
+    Md: directionMd,
+    Lg: directionLg,
+    Xl: directionXl,
+  });
+  let align = foldSiblings(alignProp, {
+    Sm: alignSm,
+    Md: alignMd,
+    Lg: alignLg,
+    Xl: alignXl,
+  });
+  let justify = foldSiblings(justifyProp, {
+    Sm: justifySm,
+    Md: justifyMd,
+    Lg: justifyLg,
+    Xl: justifyXl,
+  });
+  let gap = foldSiblings(gapProp, {
+    Sm: gapSm,
+    Md: gapMd,
+    Lg: gapLg,
+    Xl: gapXl,
+  });
   // A responsive `display` (the `hidden md:flex` idiom) is emitted as classes by
   // splitResponsiveBoxProps. Flex would otherwise ALWAYS write display:flex as
   // an inline style, which beats those classes and silently kills the
   // breakpoint. Detect it and leave `display` to the classes.
   const responsiveDisplay = isResponsive(boxProps.display);
+  direction = foldContainerSiblings(direction, container, {
+    CqMd: directionCqMd,
+    CqLg: directionCqLg,
+    CqXl: directionCqXl,
+    Cq2xl: directionCq2xl,
+    Cq3xl: directionCq3xl,
+    Cq4xl: directionCq4xl,
+  });
+  align = foldContainerSiblings(align, container, {
+    CqMd: alignCqMd,
+    CqLg: alignCqLg,
+    CqXl: alignCqXl,
+    Cq2xl: alignCq2xl,
+    Cq3xl: alignCq3xl,
+    Cq4xl: alignCq4xl,
+  });
+  justify = foldContainerSiblings(justify, container, {
+    CqMd: justifyCqMd,
+    CqLg: justifyCqLg,
+    CqXl: justifyCqXl,
+    Cq2xl: justifyCq2xl,
+    Cq3xl: justifyCq3xl,
+    Cq4xl: justifyCq4xl,
+  });
+  gap = foldContainerSiblings(gap, container, {
+    CqMd: gapCqMd,
+    CqLg: gapCqLg,
+    CqXl: gapCqXl,
+    Cq2xl: gapCq2xl,
+    Cq3xl: gapCq3xl,
+    Cq4xl: gapCq4xl,
+  });
+
   const { classes: boxClasses, rest: plainBox } =
     splitResponsiveBoxProps(boxProps);
   const { style: resolved, rest } = splitBoxProps(plainBox);

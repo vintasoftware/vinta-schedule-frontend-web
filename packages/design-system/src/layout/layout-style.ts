@@ -4,12 +4,18 @@ import {
   isResponsive,
   plainValue,
   responsiveClasses,
+  foldSiblings,
+  foldContainerSiblings,
+  containerClass,
   spaceClass,
   displayClass,
   textAlignClass,
+  VIEWPORT_SUFFIXES,
+  CONTAINER_SUFFIXES,
   type Responsive,
   type Display,
   type TextAlign,
+  type ContainerName,
 } from './responsive';
 
 /**
@@ -140,7 +146,8 @@ export function color(c: ColorToken | undefined): string | undefined {
  * Those resolve to Tailwind breakpoint classes rather than inline styles — see
  * splitResponsiveBoxProps below and ./responsive.
  */
-export interface BoxStyleProps {
+export interface BoxStyleProps
+  extends BoxResponsiveSiblings, BoxContainerSiblings {
   // padding
   p?: Responsive<Space>;
   px?: Responsive<Space>;
@@ -200,6 +207,86 @@ export interface BoxStyleProps {
   textAlign?: Responsive<TextAlign> | CSSProperties['textAlign'];
 }
 
+/**
+ * Per-breakpoint siblings for the box vocabulary — the composer-editable form of
+ * the same responsive props (`p` + `pMd` + `pLg`). Each is a plain scalar, so it
+ * curates as a token `select` in Puck instead of a raw JSON object field.
+ * Folded back into the base prop by splitResponsiveBoxProps.
+ */
+export interface BoxResponsiveSiblings {
+  pSm?: Space;
+  pMd?: Space;
+  pLg?: Space;
+  pXl?: Space;
+  pxSm?: Space;
+  pxMd?: Space;
+  pxLg?: Space;
+  pxXl?: Space;
+  pySm?: Space;
+  pyMd?: Space;
+  pyLg?: Space;
+  pyXl?: Space;
+  displaySm?: Display;
+  displayMd?: Display;
+  displayLg?: Display;
+  displayXl?: Display;
+  textAlignSm?: TextAlign;
+  textAlignMd?: TextAlign;
+  textAlignLg?: TextAlign;
+  textAlignXl?: TextAlign;
+}
+
+/**
+ * Container-query siblings, resolved against the `container` prop
+ * (`<Box container='content' pCqXl={8} />`). See ./responsive — one container
+ * per element, six sizes, rather than a 30-way cross-product per prop.
+ */
+export interface BoxContainerSiblings {
+  /**
+   * Marks THIS element as a named container, so descendants can respond to its
+   * width (`@container/content`). A composer canvas has no app shell, so a
+   * Puck-authored page must declare its own container before container-query
+   * props do anything.
+   */
+  asContainer?: ContainerName;
+  /** Which ancestor container the `*Cq*` siblings below resolve against. */
+  container?: ContainerName;
+
+  pCqMd?: Space;
+  pCqLg?: Space;
+  pCqXl?: Space;
+  pCq2xl?: Space;
+  pCq3xl?: Space;
+  pCq4xl?: Space;
+  pxCqMd?: Space;
+  pxCqLg?: Space;
+  pxCqXl?: Space;
+  pxCq2xl?: Space;
+  pxCq3xl?: Space;
+  pxCq4xl?: Space;
+  pyCqMd?: Space;
+  pyCqLg?: Space;
+  pyCqXl?: Space;
+  pyCq2xl?: Space;
+  pyCq3xl?: Space;
+  pyCq4xl?: Space;
+  displayCqMd?: Display;
+  displayCqLg?: Display;
+  displayCqXl?: Display;
+  displayCq2xl?: Display;
+  displayCq3xl?: Display;
+  displayCq4xl?: Display;
+  textAlignCqMd?: TextAlign;
+  textAlignCqLg?: TextAlign;
+  textAlignCqXl?: TextAlign;
+  textAlignCq2xl?: TextAlign;
+  textAlignCq3xl?: TextAlign;
+  textAlignCq4xl?: TextAlign;
+}
+
+/** Base props that have per-breakpoint siblings (see BoxResponsiveSiblings). */
+const SIBLING_KEYS = ['p', 'px', 'py', 'display', 'textAlign'] as const;
+
 /** Box props that accept a per-breakpoint object. */
 const RESPONSIVE_KEYS = [
   'p',
@@ -227,6 +314,54 @@ export function splitResponsiveBoxProps<T extends BoxStyleProps>(
 ): { classes: string | undefined; rest: T } {
   const classes: string[] = [];
   const rest = { ...props } as Record<string, unknown>;
+
+  // `asContainer` marks this element as a named container; `container` is the
+  // ancestor the *Cq* siblings resolve against. Neither may reach the DOM.
+  const asContainer = rest.asContainer as ContainerName | undefined;
+  const container = rest.container as ContainerName | undefined;
+  delete rest.asContainer;
+  delete rest.container;
+  const marker = containerClass(asContainer);
+  if (marker) classes.push(marker);
+
+  // Fold the composer-editable siblings (`pMd`, `displayCqXl`, …) into their
+  // base prop, then drop them so they never reach the DOM as attributes.
+  for (const key of SIBLING_KEYS) {
+    const viewport: Record<string, unknown> = {};
+    let anyViewport = false;
+    for (const suffix of VIEWPORT_SUFFIXES) {
+      const name = `${key}${suffix}`;
+      if (rest[name] != null) {
+        viewport[suffix] = rest[name];
+        anyViewport = true;
+      }
+      delete rest[name];
+    }
+    if (anyViewport) {
+      rest[key] = foldSiblings(
+        rest[key] as Responsive<unknown>,
+        viewport as never
+      );
+    }
+
+    const cq: Record<string, unknown> = {};
+    let anyCq = false;
+    for (const suffix of CONTAINER_SUFFIXES) {
+      const name = `${key}${suffix}`;
+      if (rest[name] != null) {
+        cq[suffix] = rest[name];
+        anyCq = true;
+      }
+      delete rest[name];
+    }
+    if (anyCq) {
+      rest[key] = foldContainerSiblings(
+        rest[key] as Responsive<unknown>,
+        container,
+        cq as never
+      );
+    }
+  }
 
   for (const key of RESPONSIVE_KEYS) {
     const value = rest[key];

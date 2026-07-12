@@ -39,6 +39,163 @@ const meta = {
       control: 'select',
       options: ['none', 'sm', 'md', 'lg', 'xl', '2xl', 'full'],
     },
+
+    // Per-breakpoint direction — one dropdown per breakpoint, so the
+    // composer can author responsive values (not just the base).
+    directionSm: { control: 'select', options: ['row', 'column'] },
+    directionMd: { control: 'select', options: ['row', 'column'] },
+    directionLg: { control: 'select', options: ['row', 'column'] },
+    directionXl: { control: 'select', options: ['row', 'column'] },
+    // Per-breakpoint gap — one dropdown per breakpoint, so the
+    // composer can author responsive values (not just the base).
+    gapSm: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    gapMd: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    gapLg: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    gapXl: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    // Per-breakpoint align — one dropdown per breakpoint, so the
+    // composer can author responsive values (not just the base).
+    alignSm: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+    },
+    alignMd: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+    },
+    alignLg: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+    },
+    alignXl: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+    },
+    // Per-breakpoint justify — one dropdown per breakpoint, so the
+    // composer can author responsive values (not just the base).
+    justifySm: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
+    justifyMd: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
+    justifyLg: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
+    justifyXl: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
+
+    // ---- Container queries -------------------------------------------------
+    // React to an ANCESTOR's width instead of the viewport. Declare a container
+    // with `asContainer`, then point `container` at it and set the Cq* values.
+    asContainer: {
+      control: 'select',
+      options: ['app', 'content', 'nav', 'topbar', 'pageheader'],
+      description: 'Make THIS element a named container others can respond to',
+    },
+    container: {
+      control: 'select',
+      options: ['app', 'content', 'nav', 'topbar', 'pageheader'],
+      description: 'Which ancestor container the Cq* values below respond to',
+    },
+    // Per-container-size direction.
+    directionCqMd: { control: 'select', options: ['row', 'column'] },
+    directionCqLg: { control: 'select', options: ['row', 'column'] },
+    directionCqXl: { control: 'select', options: ['row', 'column'] },
+    directionCq2xl: { control: 'select', options: ['row', 'column'] },
+    directionCq3xl: { control: 'select', options: ['row', 'column'] },
+    directionCq4xl: { control: 'select', options: ['row', 'column'] },
+    // Per-container-size gap.
+    gapCqMd: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    gapCqLg: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    gapCqXl: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    gapCq2xl: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    gapCq3xl: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    gapCq4xl: {
+      control: 'select',
+      options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
+    },
+    // Per-container-size align.
+    alignCqMd: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+    },
+    alignCqLg: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+    },
+    alignCqXl: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+    },
+    alignCq2xl: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+    },
+    alignCq3xl: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+    },
+    alignCq4xl: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+    },
+    // Per-container-size justify.
+    justifyCqMd: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
+    justifyCqLg: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
+    justifyCqXl: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
+    justifyCq2xl: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
+    justifyCq3xl: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
+    justifyCq4xl: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
   },
   args: { gap: 4, align: 'center', justify: 'start' },
   parameters: { puck: { slots: ['children'] } },
