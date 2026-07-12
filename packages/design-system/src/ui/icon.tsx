@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 
 import { cn } from '../lib/utils';
 import { color, type ColorToken } from '../layout/layout-style';
+import { ICONS, type IconName } from './icon-registry';
 
 /**
  * Icon size scale. Mirrors the sizes the app actually hand-writes with Tailwind
@@ -23,8 +24,20 @@ export interface IconProps extends Omit<
   React.SVGAttributes<SVGSVGElement>,
   'color'
 > {
-  /** The lucide icon component to render, e.g. `icon={Calendar}`. */
-  icon: LucideIcon;
+  /**
+   * The lucide icon component, e.g. `icon={Calendar}`. The ergonomic form in
+   * code, and it wins over `name` when both are given.
+   *
+   * NOT serializable, so it can never be a composer control — a visual editor
+   * must use `name` instead.
+   */
+  icon?: LucideIcon;
+  /**
+   * Registry key, e.g. `name='calendar-plus'` (see ./icon-registry). A string,
+   * so a designer can actually pick an icon in the composer. Ignored when `icon`
+   * is supplied.
+   */
+  name?: IconName;
   /** Token size. Defaults to `sm` (16px). */
   size?: IconSize;
   /** Design-token color (resolves to `var(--<token>)`); inherits when omitted. */
@@ -49,7 +62,8 @@ export interface IconProps extends Omit<
  */
 const Icon = React.forwardRef<SVGSVGElement, IconProps>(function Icon(
   {
-    icon: Glyph,
+    icon,
+    name,
     size = 'sm',
     color: tone,
     spin,
@@ -60,6 +74,13 @@ const Icon = React.forwardRef<SVGSVGElement, IconProps>(function Icon(
   },
   ref
 ) {
+  // `icon` (code) wins; `name` (composer) is the serializable fallback.
+  const Glyph = icon ?? (name ? ICONS[name] : undefined);
+
+  // An unknown/absent name must not crash a composer-authored page — a missing
+  // glyph should be a hole in the layout, not a white screen.
+  if (!Glyph) return null;
+
   // Named a11y props are spread BEFORE `...props` so a caller (e.g. Spinner,
   // which needs role="status") can still override them.
   const a11y = label

@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
-import { cn } from '@/lib/utils/index';
 import {
   Avatar,
   AvatarFallback,
@@ -39,6 +38,9 @@ import {
   Center,
   Flex,
   HStack,
+  Sidebar,
+  SidebarGroup,
+  SidebarItem,
   Text,
   VStack,
   type FlexProps,
@@ -56,55 +58,29 @@ const FlexButton = Flex as unknown as React.ForwardRefExoticComponent<
 >;
 
 // ---------------------------------------------------------------------------
-// TODO(ds-gap): the sidebar chrome needs four things the DS has no prop for:
-//   1. a single-edge border (`border-r` / `border-b` / `border-t`) — `border` is
-//      all-or-nothing, and <Divider> can't draw a container's own edge;
-//   2. :hover surfaces + `transition-colors` on a row;
-//   3. this design's 10px / 2px / 6px metrics, which are off the 4px Space scale;
-//   4. 13px / 11px font sizes, which are between the `xs` and `sm` Text tokens.
-// (1), (3) and (4) are carried as token-referencing inline values below; (2) is
-// the only thing that still needs a utility class (a pseudo-class cannot be
-// expressed inline).
+// TODO(ds-gap): the two-line footer rows (static org button, account menu
+// trigger) have no DS primitive — <SidebarItem> is a single-line label/icon/badge
+// row, so an avatar + name + meta row still has to be hand-rolled from
+// Flex/Center/Text here. A `<SidebarProfileRow avatar={…} primary={…}
+// secondary={…} trailingIconName={…}>` (or a `SidebarItem` that accepts
+// `secondaryLabel` + a leading slot) would delete the rest of this file.
+//
+// The remaining local constants exist because:
+//   * :hover surfaces + `transition-colors` have no prop (pseudo-classes cannot
+//     be expressed inline) — HOVER_ROW_CLASS;
+//   * this design's 10px gaps and 13px/11px font sizes fall between the Space
+//     and Text token steps.
 // ---------------------------------------------------------------------------
-const ASIDE_STYLE: React.CSSProperties = {
-  borderRight: '1px solid var(--sidebar-border)',
-};
-const BRAND_STYLE: React.CSSProperties = {
-  gap: '0.625rem',
-  borderBottom: '1px solid var(--sidebar-border)',
-};
+const BRAND_STYLE: React.CSSProperties = { gap: '0.625rem' };
 const BRAND_WORDMARK_STYLE: React.CSSProperties = {
   borderLeft: '1px solid var(--border)',
   paddingLeft: '0.625rem',
   fontSize: '13px',
 };
-const GROUP_STYLE: React.CSSProperties = { gap: '0.125rem' };
-const GROUP_LABEL_STYLE: React.CSSProperties = {
-  paddingInline: '0.625rem',
-  paddingBottom: '0.375rem',
-  fontSize: '11px',
-  letterSpacing: '0.06em',
-};
-const NAV_ROW_STYLE: React.CSSProperties = {
-  paddingInline: '0.625rem',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-};
-const NAV_BADGE_STYLE: React.CSSProperties = {
-  paddingInline: '0.375rem',
-  paddingBlock: '0.125rem',
-  fontSize: '11px',
-  fontWeight: 600,
-};
-const NAV_LABEL_STYLE: React.CSSProperties = { flexGrow: 1 };
-const FOOTER_STYLE: React.CSSProperties = {
-  borderTop: '1px solid var(--sidebar-border)',
-};
 const FOOTER_ROW_STYLE: React.CSSProperties = {
   gap: '0.625rem',
   paddingInline: '0.625rem',
 };
-const THEME_LABEL_STYLE: React.CSSProperties = { fontSize: '13px' };
 const ORG_AVATAR_STYLE: React.CSSProperties = {
   fontSize: '13px',
   fontWeight: 700,
@@ -147,53 +123,23 @@ const DEFAULT_GROUPS: SidebarNavGroup[] = [
   },
 ];
 
-/** The shared layout of a nav row, whether it renders as a link or a button. */
-function navRowProps(active: boolean) {
-  return {
-    align: 'center' as const,
-    gap: 3 as const,
-    height: 36,
-    radius: 'md' as const,
-    textAlign: 'left' as const,
-    bg: active ? 'sidebar-accent' : undefined,
-    color: active ? 'sidebar-accent-foreground' : 'sidebar-foreground',
-    style: NAV_ROW_STYLE,
-    className: cn('transition-colors', !active && 'hover:bg-sidebar-accent'),
-  };
-}
-
-/** Icon + label (+ optional count) — the inside of a nav row. */
-function NavRowContent({
-  item,
-  active,
-}: {
-  item: SidebarNavItem;
-  active: boolean;
-}) {
-  return (
-    <>
-      <Icon
-        icon={item.icon}
-        size='sm'
-        color={active ? 'primary' : 'muted-foreground'}
-      />
-      <Text as='span' align='left' style={NAV_LABEL_STYLE}>
-        {item.label}
-      </Text>
-      {item.badge != null ? (
-        <Box
-          as='span'
-          bg='vinta-50'
-          color='primary'
-          radius='full'
-          style={NAV_BADGE_STYLE}
-        >
-          {item.badge}
-        </Box>
-      ) : null}
-    </>
-  );
-}
+/** Top of the rail: the wordmark + product name. */
+const BRAND = (
+  <HStack align='center' style={BRAND_STYLE}>
+    {/* className: a `dark:` filter (invert the wordmark) has no DS prop. */}
+    <Image
+      src='/vinta-wordmark.svg'
+      alt='Vinta'
+      height={19}
+      width='auto'
+      fit='contain'
+      className='dark:brightness-0 dark:invert'
+    />
+    <Text weight='medium' color='muted-foreground' style={BRAND_WORDMARK_STYLE}>
+      Schedule
+    </Text>
+  </HStack>
+);
 
 export interface AppSidebarProps extends React.HTMLAttributes<HTMLElement> {
   groups?: SidebarNavGroup[];
@@ -227,7 +173,6 @@ export interface AppSidebarProps extends React.HTMLAttributes<HTMLElement> {
 // eslint-disable. The exported AppSidebar wraps it in forwardRef below.
 function AppSidebarInner(
   {
-    className,
     groups = DEFAULT_GROUPS,
     activeId = 'calendar',
     onNavigate,
@@ -259,122 +204,71 @@ function AppSidebarInner(
     }
   };
   const isDark = mounted && resolvedTheme === 'dark';
-  return (
-    <VStack
-      as='aside'
-      ref={ref as React.Ref<HTMLElement>}
-      width={244}
-      height='full'
-      shrink={0}
-      bg='sidebar'
-      style={ASIDE_STYLE}
-      className={className}
-      {...props}
-    >
-      {/* Brand */}
-      <HStack height={64} px={5} style={BRAND_STYLE}>
-        {/* className: a `dark:` filter (invert the wordmark) has no DS prop. */}
-        <Image
-          src='/vinta-wordmark.svg'
-          alt='Vinta'
-          height={19}
-          width='auto'
-          fit='contain'
-          className='dark:brightness-0 dark:invert'
+
+  const footer = (
+    <VStack gap={1}>
+      <SidebarItem
+        label={isDark ? 'Light mode' : 'Dark mode'}
+        icon={isDark ? Sun : Moon}
+        onClick={toggleTheme}
+        aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      />
+      {memberships && memberships.length >= 1 && onSelectOrg ? (
+        <OrgSwitcher
+          memberships={memberships}
+          activeOrgId={activeOrgId ?? null}
+          onSelect={onSelectOrg}
+          onCreateOrg={onCreateOrg}
         />
-        <Text
-          weight='medium'
-          color='muted-foreground'
-          style={BRAND_WORDMARK_STYLE}
-        >
-          Schedule
-        </Text>
-      </HStack>
-
-      {/* Nav */}
-      <VStack as='nav' grow={1} gap={5} px={3} py={4} overflow='auto'>
-        {groups.map((group, i) => (
-          <VStack
-            key={group.label ?? i}
-            mt={i > 0 ? 3 : undefined}
-            style={GROUP_STYLE}
-          >
-            {group.label ? (
-              <Text
-                weight='semibold'
-                uppercase
-                color='muted-foreground'
-                style={GROUP_LABEL_STYLE}
-              >
-                {group.label}
-              </Text>
-            ) : null}
-            {group.items.map((item) => {
-              // An item is active if it matches the explicit activeId prop OR
-              // (when it has an href) if the current pathname is exactly that href
-              // OR starts with that href followed by '/'. The latter guard
-              // prevents '/team' from falsely matching '/team-x'.
-              const active =
-                item.id === activeId ||
-                (item.href != null &&
-                  (pathname === item.href ||
-                    pathname.startsWith(item.href + '/')));
-
-              if (item.href) {
-                return (
-                  <Link key={item.id} href={item.href}>
-                    <Flex {...navRowProps(active)}>
-                      <NavRowContent item={item} active={active} />
-                    </Flex>
-                  </Link>
-                );
-              }
-              return (
-                <FlexButton
-                  key={item.id}
-                  as='button'
-                  type='button'
-                  onClick={() => onNavigate?.(item.id)}
-                  {...navRowProps(active)}
-                >
-                  <NavRowContent item={item} active={active} />
-                </FlexButton>
-              );
-            })}
-          </VStack>
-        ))}
-      </VStack>
-
-      {/* Org + user */}
-      <VStack gap={1} p={3} style={FOOTER_STYLE}>
+      ) : (
         <FlexButton
           as='button'
           type='button'
-          onClick={toggleTheme}
-          aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
           align='center'
-          height={36}
+          height={44}
           radius='md'
           textAlign='left'
           style={FOOTER_ROW_STYLE}
           className={HOVER_ROW_CLASS}
         >
-          <Icon icon={isDark ? Sun : Moon} size='sm' color='muted-foreground' />
-          <Text as='span' style={THEME_LABEL_STYLE}>
-            {isDark ? 'Light mode' : 'Dark mode'}
-          </Text>
+          <Center
+            width={28}
+            height={28}
+            radius='md'
+            bg='vinta-600'
+            color='#ffffff'
+            shrink={0}
+            style={ORG_AVATAR_STYLE}
+          >
+            {orgName.charAt(0)}
+          </Center>
+          <Box minWidth={0} grow={1}>
+            <Text
+              as='div'
+              weight='semibold'
+              leading='tight'
+              truncate
+              style={PRIMARY_LINE_STYLE}
+            >
+              {orgName}
+            </Text>
+            <Text
+              as='div'
+              color='muted-foreground'
+              leading='tight'
+              style={SECONDARY_LINE_STYLE}
+            >
+              {orgMeta}
+            </Text>
+          </Box>
         </FlexButton>
-        {memberships && memberships.length >= 1 && onSelectOrg ? (
-          <OrgSwitcher
-            memberships={memberships}
-            activeOrgId={activeOrgId ?? null}
-            onSelect={onSelectOrg}
-            onCreateOrg={onCreateOrg}
-          />
-        ) : (
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <FlexButton
             as='button'
             type='button'
+            aria-label='Account menu'
             align='center'
             height={44}
             radius='md'
@@ -382,106 +276,107 @@ function AppSidebarInner(
             style={FOOTER_ROW_STYLE}
             className={HOVER_ROW_CLASS}
           >
-            <Center
-              width={28}
-              height={28}
-              radius='md'
-              bg='vinta-600'
-              color='#ffffff'
-              shrink={0}
-              style={ORG_AVATAR_STYLE}
-            >
-              {orgName.charAt(0)}
-            </Center>
+            {/* className: Avatar / AvatarFallback are shadcn atoms with no
+                size or color props. */}
+            <Avatar className='size-7'>
+              {userPicture ? (
+                <AvatarImage src={userPicture} alt={userName} />
+              ) : null}
+              <AvatarFallback className='bg-teal-100 text-[11px] text-teal-700'>
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
             <Box minWidth={0} grow={1}>
               <Text
                 as='div'
-                weight='semibold'
+                weight='medium'
                 leading='tight'
                 truncate
                 style={PRIMARY_LINE_STYLE}
               >
-                {orgName}
+                {userName}
               </Text>
               <Text
                 as='div'
                 color='muted-foreground'
                 leading='tight'
+                truncate
                 style={SECONDARY_LINE_STYLE}
               >
-                {orgMeta}
+                {userEmail}
               </Text>
             </Box>
+            <Icon icon={ChevronsUpDown} size='sm' color='muted-foreground' />
           </FlexButton>
-        )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <FlexButton
-              as='button'
-              type='button'
-              aria-label='Account menu'
-              align='center'
-              height={44}
-              radius='md'
-              textAlign='left'
-              style={FOOTER_ROW_STYLE}
-              className={HOVER_ROW_CLASS}
-            >
-              {/* className: Avatar / AvatarFallback are shadcn atoms with no
-                  size or color props. */}
-              <Avatar className='size-7'>
-                {userPicture ? (
-                  <AvatarImage src={userPicture} alt={userName} />
-                ) : null}
-                <AvatarFallback className='bg-teal-100 text-[11px] text-teal-700'>
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-              <Box minWidth={0} grow={1}>
-                <Text
-                  as='div'
-                  weight='medium'
-                  leading='tight'
-                  truncate
-                  style={PRIMARY_LINE_STYLE}
-                >
-                  {userName}
-                </Text>
-                <Text
-                  as='div'
-                  color='muted-foreground'
-                  leading='tight'
-                  truncate
-                  style={SECONDARY_LINE_STYLE}
-                >
-                  {userEmail}
-                </Text>
-              </Box>
-              <Icon icon={ChevronsUpDown} size='sm' color='muted-foreground' />
-            </FlexButton>
-          </DropdownMenuTrigger>
-          {/* className: DropdownMenuContent is a shadcn atom with no width prop. */}
-          <DropdownMenuContent align='start' side='top' className='w-56'>
-            <DropdownMenuItem asChild>
-              <Link href='/profile'>
-                <User />
-                Profile
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href='/security'>
-                <Shield />
-                Account security
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onLogout?.()}>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </VStack>
+        </DropdownMenuTrigger>
+        {/* className: DropdownMenuContent is a shadcn atom with no width prop. */}
+        <DropdownMenuContent align='start' side='top' className='w-56'>
+          <DropdownMenuItem asChild>
+            <Link href='/profile'>
+              <User />
+              Profile
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href='/security'>
+              <Shield />
+              Account security
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onLogout?.()}>
+            <LogOut />
+            Log out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </VStack>
+  );
+
+  return (
+    <Sidebar ref={ref} width={244} brand={BRAND} footer={footer} {...props}>
+      {groups.map((group, i) => (
+        <SidebarGroup key={group.label ?? i} label={group.label}>
+          {group.items.map((item) => {
+            // An item is active if it matches the explicit activeId prop OR
+            // (when it has an href) if the current pathname is exactly that href
+            // OR starts with that href followed by '/'. The latter guard
+            // prevents '/team' from falsely matching '/team-x'.
+            const active =
+              item.id === activeId ||
+              (item.href != null &&
+                (pathname === item.href ||
+                  pathname.startsWith(item.href + '/')));
+
+            if (item.href) {
+              // asChild: the Link becomes the row element (a real <a> with
+              // client-side routing) and the icon/label/badge render inside it.
+              return (
+                <SidebarItem
+                  key={item.id}
+                  asChild
+                  label={item.label}
+                  icon={item.icon}
+                  badge={item.badge}
+                  active={active}
+                >
+                  <Link href={item.href} />
+                </SidebarItem>
+              );
+            }
+            return (
+              <SidebarItem
+                key={item.id}
+                label={item.label}
+                icon={item.icon}
+                badge={item.badge}
+                active={active}
+                onClick={() => onNavigate?.(item.id)}
+              />
+            );
+          })}
+        </SidebarGroup>
+      ))}
+    </Sidebar>
   );
 }
 

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '../story-types';
 import { Bell, Calendar, Check, Clock, Trash2, Video } from 'lucide-react';
 
 import { Icon } from './icon';
+import { ICON_NAMES } from './icon-registry';
 
 const meta = {
   title: 'Components/Icon',
@@ -11,6 +12,15 @@ const meta = {
   // (not serializable) and is therefore fixed in args rather than exposed as an
   // editable control; the token props are what an editor should tune.
   argTypes: {
+    // `icon` (a React component) is NOT serializable, so it can never be a
+    // composer control. `name` keys into the icon registry and IS — this is what
+    // lets a designer actually pick a glyph instead of being stuck with
+    // whatever sat in the story args.
+    name: {
+      control: 'select',
+      options: ICON_NAMES,
+      description: 'Icon to render (registry key)',
+    },
     size: {
       control: 'select',
       options: ['xs', 'sm', 'md', 'lg', 'xl'],
@@ -36,7 +46,7 @@ const meta = {
       description: 'Accessible name; decorative (aria-hidden) when empty',
     },
   },
-  args: { icon: Calendar, size: 'sm', color: 'foreground', spin: false },
+  args: { name: 'calendar', size: 'sm', color: 'foreground', spin: false },
 } satisfies Meta<typeof Icon>;
 
 export default meta;

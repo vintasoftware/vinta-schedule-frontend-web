@@ -50,5 +50,13 @@ export type { Breakpoint, Responsive } from './responsive';
 export { Navbar, BrandMark, type NavbarProps } from './navbar';
 export { AppTopbar, type AppTopbarProps } from './app-topbar';
 export { PageHeader, type PageHeaderProps } from './page-header';
+export {
+  Sidebar,
+  SidebarGroup,
+  SidebarItem,
+  type SidebarProps,
+  type SidebarGroupProps,
+  type SidebarItemProps,
+} from './sidebar';
 export { AppShell, type AppShellProps } from './app-shell';
 export { AuthLayout, type AuthLayoutProps } from './auth-layout';
