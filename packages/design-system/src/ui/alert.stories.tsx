@@ -11,7 +11,10 @@ const meta = {
   // icon + AlertTitle + AlertDescription through `children`, so `children` is a
   // slot and must never also be an argTypes key (SLOT_ARGTYPE_COLLISION).
   argTypes: {
-    variant: { control: 'inline-radio', options: ['default', 'destructive'] },
+    variant: {
+      control: 'select',
+      options: ['default', 'destructive', 'warning', 'success'],
+    },
   },
   args: { variant: 'default' },
   parameters: { puck: { slots: ['children'] } },
@@ -40,6 +43,32 @@ export const Destructive: Story = {
       <AlertTitle>Booking conflict</AlertTitle>
       <AlertDescription>
         This slot overlaps an existing appointment. Pick another time.
+      </AlertDescription>
+    </Alert>
+  ),
+};
+
+export const Warning: Story = {
+  args: { variant: 'warning' },
+  render: (args) => (
+    <Alert {...args} className='w-96'>
+      <TriangleAlert className='h-4 w-4' />
+      <AlertTitle>Token shown once</AlertTitle>
+      <AlertDescription>
+        Copy it now — you will not be able to see it again.
+      </AlertDescription>
+    </Alert>
+  ),
+};
+
+export const Success: Story = {
+  args: { variant: 'success' },
+  render: (args) => (
+    <Alert {...args} className='w-96'>
+      <CalendarClock className='h-4 w-4' />
+      <AlertTitle>Calendar connected</AlertTitle>
+      <AlertDescription>
+        Bookings will now sync automatically every 15 minutes.
       </AlertDescription>
     </Alert>
   ),

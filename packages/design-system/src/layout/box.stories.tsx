@@ -37,6 +37,12 @@ const meta = {
       ],
     },
     border: { control: 'boolean' },
+    // Per-side borders — the `border-b` / `border-r` idiom (row rules, sidebar
+    // chrome), which the all-or-nothing `border` prop cannot express.
+    borderTop: { control: 'boolean' },
+    borderRight: { control: 'boolean' },
+    borderBottom: { control: 'boolean' },
+    borderLeft: { control: 'boolean' },
     width: { control: 'select', options: [180, 320, 480, 'full'] },
     textAlign: {
       control: 'inline-radio',

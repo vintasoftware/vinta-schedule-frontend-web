@@ -26,6 +26,10 @@ const meta = {
       control: 'select',
       options: ['xs', 'sm', 'default', 'lg', 'xl', 'icon'],
     },
+    fullWidth: {
+      control: 'boolean',
+      description: 'Stretch to fill the container (replaces a w-full class)',
+    },
     disabled: { control: 'boolean' },
   },
   args: { children: 'Book appointment', variant: 'default', size: 'default' },

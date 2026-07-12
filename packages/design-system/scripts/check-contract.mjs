@@ -86,6 +86,79 @@ const PROTOTYPE_MODE_DIST = await (async () => {
   }
 })();
 
+/**
+ * Extract a component's cva variant groups → their keys, e.g.
+ *   { variant: ['default','destructive','warning','success'], size: [...] }
+ * Returns {} when the file has no cva block. Brace-depth scan rather than a
+ * regex, so nested option objects don't confuse it.
+ */
+async function readCvaVariants(componentFile) {
+  let src;
+  try {
+    src = await readFile(componentFile, 'utf8');
+  } catch {
+    return {};
+  }
+  const start = src.indexOf('variants: {');
+  if (start === -1) return {};
+
+  // Walk from the opening brace of `variants: {` to its matching close.
+  let i = src.indexOf('{', start);
+  let depth = 0;
+  let end = -1;
+  for (let j = i; j < src.length; j++) {
+    if (src[j] === '{') depth++;
+    else if (src[j] === '}') {
+      depth--;
+      if (depth === 0) {
+        end = j;
+        break;
+      }
+    }
+  }
+  if (end === -1) return {};
+  const body = src.slice(i + 1, end);
+
+  // Top-level keys of `variants` are the groups; their own top-level keys are
+  // the options.
+  const groups = {};
+  depth = 0;
+  let groupName = null;
+  let groupStart = 0;
+  for (let j = 0; j < body.length; j++) {
+    const ch = body[j];
+    if (ch === '{') {
+      if (depth === 0) {
+        const before = body.slice(0, j);
+        const m = before.match(/([A-Za-z0-9_$]+)\s*:\s*$/);
+        groupName = m ? m[1] : null;
+        groupStart = j + 1;
+      }
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0 && groupName) {
+        const inner = body.slice(groupStart, j);
+        // option keys at this level only
+        const keys = [];
+        let d = 0;
+        for (const line of inner.split('\n')) {
+          const trimmed = line.trim();
+          if (d === 0) {
+            const km = trimmed.match(/^['"]?([A-Za-z0-9_$-]+)['"]?\s*:/);
+            if (km) keys.push(km[1]);
+          }
+          d += (line.match(/\{/g) || []).length;
+          d -= (line.match(/\}/g) || []).length;
+        }
+        if (keys.length) groups[groupName] = keys;
+        groupName = null;
+      }
+    }
+  }
+  return groups;
+}
+
 async function findStories(dir) {
   const out = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -184,6 +257,32 @@ for (const file of stories) {
   const argTypes = meta.argTypes ?? {};
   const slots = meta.parameters?.puck?.slots ?? [];
   const names = Object.keys(argTypes);
+
+  // STALENESS — the contract can be well-formed but WRONG. When a component's
+  // cva gains a variant (Alert's `warning`/`success`, Button's `fullWidth`) the
+  // story's `options` list silently keeps advertising the old set, so the new
+  // variant is invisible to the composer. Cross-check the sibling component's
+  // cva variant keys against the story's curated options.
+  const componentFile = file.replace(/\.stories\.tsx$/, '.tsx');
+  const cvaVariants = await readCvaVariants(componentFile);
+  for (const [group, keys] of Object.entries(cvaVariants)) {
+    const declared = argTypes[group]?.options;
+    if (!Array.isArray(declared)) continue; // not curated as an enum — fine
+    const missing = keys.filter((k) => !declared.map(String).includes(k));
+    if (missing.length) {
+      errors.push(
+        `${rel}: argTypes.${group}.options is STALE — component defines ${missing.map((m) => `'${m}'`).join(', ')} but the story does not offer it`
+      );
+    }
+    const bogus = declared
+      .map(String)
+      .filter((d) => !keys.includes(d) && d !== 'true' && d !== 'false');
+    if (bogus.length) {
+      errors.push(
+        `${rel}: argTypes.${group}.options offers ${bogus.map((b) => `'${b}'`).join(', ')}, which the component's cva does not define`
+      );
+    }
+  }
 
   // §1 — extract.ts:271-276. The emptiness check counts argTypes KEYS and runs
   // BEFORE slots are read (extractSlots is not called until :288). So slots do
