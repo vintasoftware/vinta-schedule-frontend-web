@@ -34,7 +34,86 @@ import {
 } from 'vinta-schedule-design-system/ui/dropdown-menu';
 import type { MyMembership } from '@/client';
 import { OrgSwitcher } from '@/components/organizations/org-switcher';
-import { Box, VStack, Text } from 'vinta-schedule-design-system/layout';
+import {
+  Box,
+  Center,
+  Flex,
+  HStack,
+  Text,
+  VStack,
+  type FlexProps,
+} from 'vinta-schedule-design-system/layout';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import { Image } from 'vinta-schedule-design-system/ui/image';
+
+// <Flex as='button'> renders a real <button>, but FlexProps is typed against the
+// generic HTMLAttributes set, so `type` is not in it. Widen the component once
+// here (the same trick the DS itself uses for <FormLayout>'s <form>).
+const FlexButton = Flex as unknown as React.ForwardRefExoticComponent<
+  FlexProps &
+    React.ButtonHTMLAttributes<HTMLButtonElement> &
+    React.RefAttributes<HTMLElement>
+>;
+
+// ---------------------------------------------------------------------------
+// TODO(ds-gap): the sidebar chrome needs four things the DS has no prop for:
+//   1. a single-edge border (`border-r` / `border-b` / `border-t`) — `border` is
+//      all-or-nothing, and <Divider> can't draw a container's own edge;
+//   2. :hover surfaces + `transition-colors` on a row;
+//   3. this design's 10px / 2px / 6px metrics, which are off the 4px Space scale;
+//   4. 13px / 11px font sizes, which are between the `xs` and `sm` Text tokens.
+// (1), (3) and (4) are carried as token-referencing inline values below; (2) is
+// the only thing that still needs a utility class (a pseudo-class cannot be
+// expressed inline).
+// ---------------------------------------------------------------------------
+const ASIDE_STYLE: React.CSSProperties = {
+  borderRight: '1px solid var(--sidebar-border)',
+};
+const BRAND_STYLE: React.CSSProperties = {
+  gap: '0.625rem',
+  borderBottom: '1px solid var(--sidebar-border)',
+};
+const BRAND_WORDMARK_STYLE: React.CSSProperties = {
+  borderLeft: '1px solid var(--border)',
+  paddingLeft: '0.625rem',
+  fontSize: '13px',
+};
+const GROUP_STYLE: React.CSSProperties = { gap: '0.125rem' };
+const GROUP_LABEL_STYLE: React.CSSProperties = {
+  paddingInline: '0.625rem',
+  paddingBottom: '0.375rem',
+  fontSize: '11px',
+  letterSpacing: '0.06em',
+};
+const NAV_ROW_STYLE: React.CSSProperties = {
+  paddingInline: '0.625rem',
+  fontSize: '0.875rem',
+  fontWeight: 500,
+};
+const NAV_BADGE_STYLE: React.CSSProperties = {
+  paddingInline: '0.375rem',
+  paddingBlock: '0.125rem',
+  fontSize: '11px',
+  fontWeight: 600,
+};
+const NAV_LABEL_STYLE: React.CSSProperties = { flexGrow: 1 };
+const FOOTER_STYLE: React.CSSProperties = {
+  borderTop: '1px solid var(--sidebar-border)',
+};
+const FOOTER_ROW_STYLE: React.CSSProperties = {
+  gap: '0.625rem',
+  paddingInline: '0.625rem',
+};
+const THEME_LABEL_STYLE: React.CSSProperties = { fontSize: '13px' };
+const ORG_AVATAR_STYLE: React.CSSProperties = {
+  fontSize: '13px',
+  fontWeight: 700,
+};
+const PRIMARY_LINE_STYLE: React.CSSProperties = { fontSize: '13px' };
+const SECONDARY_LINE_STYLE: React.CSSProperties = { fontSize: '11px' };
+
+/** The only utility class left in this file: a :hover surface has no DS prop. */
+const HOVER_ROW_CLASS = 'hover:bg-sidebar-accent transition-colors';
 
 export interface SidebarNavItem {
   id: string;
@@ -67,6 +146,54 @@ const DEFAULT_GROUPS: SidebarNavGroup[] = [
     ],
   },
 ];
+
+/** The shared layout of a nav row, whether it renders as a link or a button. */
+function navRowProps(active: boolean) {
+  return {
+    align: 'center' as const,
+    gap: 3 as const,
+    height: 36,
+    radius: 'md' as const,
+    textAlign: 'left' as const,
+    bg: active ? 'sidebar-accent' : undefined,
+    color: active ? 'sidebar-accent-foreground' : 'sidebar-foreground',
+    style: NAV_ROW_STYLE,
+    className: cn('transition-colors', !active && 'hover:bg-sidebar-accent'),
+  };
+}
+
+/** Icon + label (+ optional count) — the inside of a nav row. */
+function NavRowContent({
+  item,
+  active,
+}: {
+  item: SidebarNavItem;
+  active: boolean;
+}) {
+  return (
+    <>
+      <Icon
+        icon={item.icon}
+        size='sm'
+        color={active ? 'primary' : 'muted-foreground'}
+      />
+      <Text as='span' align='left' style={NAV_LABEL_STYLE}>
+        {item.label}
+      </Text>
+      {item.badge != null ? (
+        <Box
+          as='span'
+          bg='vinta-50'
+          color='primary'
+          radius='full'
+          style={NAV_BADGE_STYLE}
+        >
+          {item.badge}
+        </Box>
+      ) : null}
+    </>
+  );
+}
 
 export interface AppSidebarProps extends React.HTMLAttributes<HTMLElement> {
   groups?: SidebarNavGroup[];
@@ -140,39 +267,44 @@ function AppSidebarInner(
       height='full'
       shrink={0}
       bg='sidebar'
-      className={cn('border-sidebar-border border-r', className)}
+      style={ASIDE_STYLE}
+      className={className}
       {...props}
     >
       {/* Brand */}
-      <div className='border-sidebar-border flex h-16 items-center gap-2.5 border-b px-5'>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <HStack height={64} px={5} style={BRAND_STYLE}>
+        {/* className: a `dark:` filter (invert the wordmark) has no DS prop. */}
+        <Image
           src='/vinta-wordmark.svg'
           alt='Vinta'
-          className='h-[19px] w-auto dark:brightness-0 dark:invert'
+          height={19}
+          width='auto'
+          fit='contain'
+          className='dark:brightness-0 dark:invert'
         />
         <Text
           weight='medium'
           color='muted-foreground'
-          className='border-border border-l pl-2.5 text-[13px]'
+          style={BRAND_WORDMARK_STYLE}
         >
           Schedule
         </Text>
-      </div>
+      </HStack>
 
       {/* Nav */}
       <VStack as='nav' grow={1} gap={5} px={3} py={4} overflow='auto'>
         {groups.map((group, i) => (
           <VStack
             key={group.label ?? i}
-            className={cn('gap-0.5', i > 0 && 'mt-3')}
+            mt={i > 0 ? 3 : undefined}
+            style={GROUP_STYLE}
           >
             {group.label ? (
               <Text
                 weight='semibold'
                 uppercase
                 color='muted-foreground'
-                className='px-2.5 pb-1.5 text-[11px] tracking-[0.06em]'
+                style={GROUP_LABEL_STYLE}
               >
                 {group.label}
               </Text>
@@ -187,52 +319,26 @@ function AppSidebarInner(
                 (item.href != null &&
                   (pathname === item.href ||
                     pathname.startsWith(item.href + '/')));
-              const Icon = item.icon;
-              const itemContent = (
-                <>
-                  <Icon
-                    className={cn(
-                      'size-[17px]',
-                      active ? 'text-primary' : 'text-muted-foreground'
-                    )}
-                  />
-                  <Text as='span' className='flex-1 text-left'>
-                    {item.label}
-                  </Text>
-                  {item.badge != null ? (
-                    <Text
-                      as='span'
-                      weight='semibold'
-                      color='primary'
-                      className='bg-vinta-50 rounded-full px-1.5 py-0.5 text-[11px]'
-                    >
-                      {item.badge}
-                    </Text>
-                  ) : null}
-                </>
-              );
-              const itemClass = cn(
-                'group flex h-9 items-center gap-3 rounded-md px-2.5 text-sm font-medium transition-colors',
-                active
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent'
-              );
+
               if (item.href) {
                 return (
-                  <Link key={item.id} href={item.href} className={itemClass}>
-                    {itemContent}
+                  <Link key={item.id} href={item.href}>
+                    <Flex {...navRowProps(active)}>
+                      <NavRowContent item={item} active={active} />
+                    </Flex>
                   </Link>
                 );
               }
               return (
-                <button
+                <FlexButton
                   key={item.id}
+                  as='button'
                   type='button'
                   onClick={() => onNavigate?.(item.id)}
-                  className={itemClass}
+                  {...navRowProps(active)}
                 >
-                  {itemContent}
-                </button>
+                  <NavRowContent item={item} active={active} />
+                </FlexButton>
               );
             })}
           </VStack>
@@ -240,22 +346,24 @@ function AppSidebarInner(
       </VStack>
 
       {/* Org + user */}
-      <VStack gap={1} p={3} className='border-sidebar-border border-t'>
-        <button
+      <VStack gap={1} p={3} style={FOOTER_STYLE}>
+        <FlexButton
+          as='button'
           type='button'
           onClick={toggleTheme}
           aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-          className='hover:bg-sidebar-accent flex h-9 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
+          align='center'
+          height={36}
+          radius='md'
+          textAlign='left'
+          style={FOOTER_ROW_STYLE}
+          className={HOVER_ROW_CLASS}
         >
-          {isDark ? (
-            <Sun className='text-muted-foreground size-[17px]' />
-          ) : (
-            <Moon className='text-muted-foreground size-[17px]' />
-          )}
-          <Text as='span' className='text-[13px]'>
+          <Icon icon={isDark ? Sun : Moon} size='sm' color='muted-foreground' />
+          <Text as='span' style={THEME_LABEL_STYLE}>
             {isDark ? 'Light mode' : 'Dark mode'}
           </Text>
-        </button>
+        </FlexButton>
         {memberships && memberships.length >= 1 && onSelectOrg ? (
           <OrgSwitcher
             memberships={memberships}
@@ -264,27 +372,34 @@ function AppSidebarInner(
             onCreateOrg={onCreateOrg}
           />
         ) : (
-          <button
+          <FlexButton
+            as='button'
             type='button'
-            className='hover:bg-sidebar-accent flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
+            align='center'
+            height={44}
+            radius='md'
+            textAlign='left'
+            style={FOOTER_ROW_STYLE}
+            className={HOVER_ROW_CLASS}
           >
-            <Box
+            <Center
               width={28}
               height={28}
               radius='md'
               bg='vinta-600'
+              color='#ffffff'
               shrink={0}
-              className='flex items-center justify-center text-[13px] font-bold text-white'
+              style={ORG_AVATAR_STYLE}
             >
               {orgName.charAt(0)}
-            </Box>
+            </Center>
             <Box minWidth={0} grow={1}>
               <Text
                 as='div'
                 weight='semibold'
                 leading='tight'
                 truncate
-                className='text-[13px]'
+                style={PRIMARY_LINE_STYLE}
               >
                 {orgName}
               </Text>
@@ -292,20 +407,28 @@ function AppSidebarInner(
                 as='div'
                 color='muted-foreground'
                 leading='tight'
-                className='text-[11px]'
+                style={SECONDARY_LINE_STYLE}
               >
                 {orgMeta}
               </Text>
             </Box>
-          </button>
+          </FlexButton>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
+            <FlexButton
+              as='button'
               type='button'
               aria-label='Account menu'
-              className='hover:bg-sidebar-accent flex h-11 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors'
+              align='center'
+              height={44}
+              radius='md'
+              textAlign='left'
+              style={FOOTER_ROW_STYLE}
+              className={HOVER_ROW_CLASS}
             >
+              {/* className: Avatar / AvatarFallback are shadcn atoms with no
+                  size or color props. */}
               <Avatar className='size-7'>
                 {userPicture ? (
                   <AvatarImage src={userPicture} alt={userName} />
@@ -320,7 +443,7 @@ function AppSidebarInner(
                   weight='medium'
                   leading='tight'
                   truncate
-                  className='text-[13px]'
+                  style={PRIMARY_LINE_STYLE}
                 >
                   {userName}
                 </Text>
@@ -329,14 +452,15 @@ function AppSidebarInner(
                   color='muted-foreground'
                   leading='tight'
                   truncate
-                  className='text-[11px]'
+                  style={SECONDARY_LINE_STYLE}
                 >
                   {userEmail}
                 </Text>
               </Box>
-              <ChevronsUpDown className='text-muted-foreground size-[15px]' />
-            </button>
+              <Icon icon={ChevronsUpDown} size='sm' color='muted-foreground' />
+            </FlexButton>
           </DropdownMenuTrigger>
+          {/* className: DropdownMenuContent is a shadcn atom with no width prop. */}
           <DropdownMenuContent align='start' side='top' className='w-56'>
             <DropdownMenuItem asChild>
               <Link href='/profile'>

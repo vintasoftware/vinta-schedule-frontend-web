@@ -163,6 +163,16 @@ export interface BoxStyleProps {
   radius?: Radius;
   shadow?: Shadow;
   border?: boolean | number;
+  /**
+   * Per-side borders — the `border-b` / `border-r` / `divide-y` idiom, which is
+   * everywhere in app chrome (sidebars, table rows, section rules) and has no
+   * expression via the all-or-nothing `border` prop. Each takes `true` (1px) or
+   * an explicit width. All sides use `borderColor` (default the `border` token).
+   */
+  borderTop?: boolean | number;
+  borderRight?: boolean | number;
+  borderBottom?: boolean | number;
+  borderLeft?: boolean | number;
   borderColor?: ColorToken;
   // sizing
   width?: Size;
@@ -175,6 +185,12 @@ export interface BoxStyleProps {
   display?: Responsive<Display> | CSSProperties['display'];
   overflow?: CSSProperties['overflow'];
   position?: CSSProperties['position'];
+  // Inset + stacking — needed by sticky bars and absolutely-positioned badges.
+  top?: Size;
+  right?: Size;
+  bottom?: Size;
+  left?: Size;
+  zIndex?: number;
   // flex item
   grow?: boolean | number;
   shrink?: boolean | number;
@@ -253,6 +269,10 @@ const BOX_KEYS: (keyof BoxStyleProps)[] = [
   'radius',
   'shadow',
   'border',
+  'borderTop',
+  'borderRight',
+  'borderBottom',
+  'borderLeft',
   'borderColor',
   'width',
   'height',
@@ -263,6 +283,11 @@ const BOX_KEYS: (keyof BoxStyleProps)[] = [
   'display',
   'overflow',
   'position',
+  'top',
+  'right',
+  'bottom',
+  'left',
+  'zIndex',
   'grow',
   'shrink',
   'basis',
@@ -334,6 +359,31 @@ export function boxStyle(props: BoxStyleProps): CSSProperties {
     s.borderColor = color(props.borderColor);
   }
 
+  // Per-side borders. Each sets its own width/style/color so it works whether or
+  // not the all-sides `border` prop is also present.
+  const sideColor = color(props.borderColor ?? 'border');
+  const sideWidth = (v: boolean | number) => `${v === true ? 1 : v}px`;
+  if (props.borderTop) {
+    s.borderTopWidth = sideWidth(props.borderTop);
+    s.borderTopStyle = 'solid';
+    s.borderTopColor = sideColor;
+  }
+  if (props.borderRight) {
+    s.borderRightWidth = sideWidth(props.borderRight);
+    s.borderRightStyle = 'solid';
+    s.borderRightColor = sideColor;
+  }
+  if (props.borderBottom) {
+    s.borderBottomWidth = sideWidth(props.borderBottom);
+    s.borderBottomStyle = 'solid';
+    s.borderBottomColor = sideColor;
+  }
+  if (props.borderLeft) {
+    s.borderLeftWidth = sideWidth(props.borderLeft);
+    s.borderLeftStyle = 'solid';
+    s.borderLeftColor = sideColor;
+  }
+
   // sizing
   if (props.width != null) s.width = size(props.width);
   if (props.height != null) s.height = heightSize(props.height);
@@ -349,6 +399,13 @@ export function boxStyle(props: BoxStyleProps): CSSProperties {
   if (props.overflow != null) s.overflow = props.overflow;
   if (props.position != null) s.position = props.position;
   if (textAlign != null) s.textAlign = textAlign;
+
+  // inset + stacking
+  if (props.top != null) s.top = size(props.top);
+  if (props.right != null) s.right = size(props.right);
+  if (props.bottom != null) s.bottom = size(props.bottom);
+  if (props.left != null) s.left = size(props.left);
+  if (props.zIndex != null) s.zIndex = props.zIndex;
 
   // flex item
   if (props.grow != null) s.flexGrow = flexNum(props.grow);

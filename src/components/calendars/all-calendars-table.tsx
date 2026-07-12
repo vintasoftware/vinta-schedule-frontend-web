@@ -8,6 +8,7 @@ import { useDataTableQuery } from '@/components/data-table/use-data-table-query'
 import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
 import { VStack, Text, HStack } from 'vinta-schedule-design-system/layout';
 import type { Calendar, CalendarTypeEnum } from '@/client';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
@@ -139,12 +140,12 @@ function SyncButton({ calendar, isLoading, onSync }: SyncButtonProps) {
     >
       {isLoading ? (
         <>
-          <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+          <Icon icon={RotateCw} spin />
           Syncing…
         </>
       ) : (
         <>
-          <Cloud className='mr-1 size-4' aria-hidden />
+          <Cloud aria-hidden />
           Sync
         </>
       )}

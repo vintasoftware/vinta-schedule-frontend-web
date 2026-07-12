@@ -17,6 +17,7 @@ import { CalendarDays, CalendarCheck, Clock, Zap } from 'lucide-react';
 import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 import { Stack } from 'vinta-schedule-design-system/layout/stack';
 import { VStack, HStack } from 'vinta-schedule-design-system/layout/flex';
+import { Grid, GridItem } from 'vinta-schedule-design-system/layout/grid';
 import { Text } from 'vinta-schedule-design-system/layout/text';
 import {
   Card,
@@ -26,7 +27,9 @@ import {
   CardTitle,
 } from 'vinta-schedule-design-system/ui/card';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
 import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 
 import { useProfile } from '@/hooks/users/use-profile';
 import { useCalendarEvents } from '@/hooks/events/use-calendar-events';
@@ -138,16 +141,28 @@ export default function DashboardPage() {
         description='Your at-a-glance schedule overview.'
       />
 
-      {/* Tile grid */}
-      <div className='grid gap-4 @xl/content:grid-cols-2 @4xl/content:grid-cols-3'>
+      {/* Tile grid. The column counts react to the CONTENT container's width
+          (@container/content on the AppShell main), not the viewport — the
+          Responsive<> prop vocabulary only covers viewport breakpoints, so the
+          container-query columns stay as classes.
+          TODO(ds-gap): container-query breakpoints for Grid `columns`.
+          `columns={{ base: 1 }}` (rather than a plain 1) is deliberate: a plain
+          value resolves to an inline grid-template-columns, which would beat the
+          container-query classes below. */}
+      <Grid
+        columns={{ base: 1 }}
+        gap={4}
+        className='@xl/content:grid-cols-2 @4xl/content:grid-cols-3'
+      >
         {/* ---- Up next (spans 2 cols on wide containers) ---- */}
-        <div className='@4xl/content:col-span-2'>
+        {/* TODO(ds-gap): GridItem `span` has no container-query form either. */}
+        <GridItem className='@4xl/content:col-span-2'>
           <UpNextTile
             events={upNextEvents}
             isLoading={eventsLoading}
             isError={eventsError}
           />
-        </div>
+        </GridItem>
 
         {/* ---- My calendars ---- */}
         <MyCalendarsTile
@@ -170,7 +185,7 @@ export default function DashboardPage() {
 
         {/* ---- Quick actions ---- */}
         <QuickActionsTile />
-      </div>
+      </Grid>
     </Stack>
   );
 }
@@ -193,10 +208,12 @@ interface UpNextTileProps {
 
 function UpNextTile({ events, isLoading, isError }: UpNextTileProps) {
   return (
+    // `h-full` — Card exposes no height prop; the tile must fill its grid row.
     <Card className='h-full'>
       <CardHeader>
         <HStack gap={2}>
-          <CalendarDays className='text-muted-foreground size-4' aria-hidden />
+          <Icon icon={CalendarDays} size='sm' color='muted-foreground' />
+          {/* `text-base` — CardTitle exposes no size prop. */}
           <CardTitle className='text-base'>Up next</CardTitle>
         </HStack>
       </CardHeader>
@@ -205,7 +222,7 @@ function UpNextTile({ events, isLoading, isError }: UpNextTileProps) {
         {isLoading ? (
           <VStack gap={3}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className='h-10 w-full' />
+              <Skeleton key={i} height={40} width='full' />
             ))}
           </VStack>
         ) : isError ? (
@@ -217,39 +234,40 @@ function UpNextTile({ events, isLoading, isError }: UpNextTileProps) {
             <Text size='sm' color='muted-foreground'>
               No upcoming events
             </Text>
-            <Button variant='link' size='sm' className='p-0' asChild>
+            <TextLink size='sm' asChild>
               <Link href='/calendars'>Connect a calendar</Link>
-            </Button>
+            </TextLink>
           </VStack>
         ) : (
           <VStack gap={0}>
-            {events.map((ev) => {
+            {events.map((ev, i) => {
               const dayTime = zonedFormat(
                 ev.startDt.toISO() ?? '',
                 ev.timezone,
                 'EEE, MMM d · h:mm a'
               );
               return (
-                <div
+                <HStack
                   key={ev.id}
-                  className='border-border flex items-start gap-3 border-b py-2.5 last:border-b-0'
+                  align='start'
+                  gap={3}
+                  py={3}
+                  // The rule sits between rows — the `last:border-b-0` idiom,
+                  // expressed as data rather than as a CSS pseudo-selector.
+                  borderBottom={i < events.length - 1}
                 >
-                  <VStack gap={0} className='min-w-0 flex-1'>
-                    <Text size='sm' className='font-medium'>
+                  <VStack gap={0} minWidth={0} grow>
+                    <Text size='sm' weight='medium'>
                       {ev.title}
                     </Text>
                     <Text size='xs' color='muted-foreground'>
                       {dayTime}
                     </Text>
                   </VStack>
-                  <Text
-                    size='xs'
-                    color='muted-foreground'
-                    className='shrink-0 pt-0.5'
-                  >
+                  <Text size='xs' color='muted-foreground' shrink={0} pt={1}>
                     {ev.timezoneLabel}
                   </Text>
-                </div>
+                </HStack>
               );
             })}
           </VStack>
@@ -258,9 +276,9 @@ function UpNextTile({ events, isLoading, isError }: UpNextTileProps) {
 
       {!isLoading && !isError && (
         <CardFooter>
-          <Button variant='link' size='sm' className='p-0' asChild>
+          <TextLink size='sm' asChild>
             <Link href='/events'>View all events &rarr;</Link>
-          </Button>
+          </TextLink>
         </CardFooter>
       )}
     </Card>
@@ -290,14 +308,13 @@ function MyCalendarsTile({
   onSync,
 }: MyCalendarsTileProps) {
   return (
+    // `h-full` — Card exposes no height prop; the tile must fill its grid row.
     <Card className='h-full'>
       <CardHeader>
-        <HStack gap={2} className='justify-between'>
+        <HStack gap={2} justify='between'>
           <HStack gap={2}>
-            <CalendarCheck
-              className='text-muted-foreground size-4'
-              aria-hidden
-            />
+            <Icon icon={CalendarCheck} size='sm' color='muted-foreground' />
+            {/* `text-base` — CardTitle exposes no size prop. */}
             <CardTitle className='text-base'>My calendars</CardTitle>
           </HStack>
           {!isLoading && !isError && (
@@ -312,7 +329,7 @@ function MyCalendarsTile({
         {isLoading ? (
           <VStack gap={3}>
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className='h-9 w-full' />
+              <Skeleton key={i} height={36} width='full' />
             ))}
           </VStack>
         ) : isError ? (
@@ -324,21 +341,25 @@ function MyCalendarsTile({
             <Text size='sm' color='muted-foreground'>
               No calendars connected
             </Text>
-            <Button variant='link' size='sm' className='p-0' asChild>
+            <TextLink size='sm' asChild>
               <Link href='/calendars'>Connect a calendar</Link>
-            </Button>
+            </TextLink>
           </VStack>
         ) : (
           <VStack gap={0}>
-            {calendars.map((cal) => (
-              <div
+            {calendars.map((cal, i) => (
+              <HStack
                 key={cal.id}
-                className='border-border flex items-center gap-2 border-b py-2 last:border-b-0'
+                gap={2}
+                py={2}
+                borderBottom={i < calendars.length - 1}
               >
-                <VStack gap={0} className='min-w-0 flex-1'>
-                  <Text size='sm' className='font-medium'>
+                <VStack gap={0} minWidth={0} grow>
+                  <Text size='sm' weight='medium'>
                     {cal.name}
                   </Text>
+                  {/* `capitalize` — Text has `uppercase` but no `capitalize`
+                      prop. TODO(ds-gap): add a `transform`/`capitalize` prop. */}
                   <Text
                     size='xs'
                     color='muted-foreground'
@@ -355,7 +376,7 @@ function MyCalendarsTile({
                 >
                   {syncingIds.has(cal.id) ? 'Syncing…' : 'Sync'}
                 </Button>
-              </div>
+              </HStack>
             ))}
           </VStack>
         )}
@@ -363,9 +384,9 @@ function MyCalendarsTile({
 
       {!isLoading && !isError && (
         <CardFooter>
-          <Button variant='link' size='sm' className='p-0' asChild>
+          <TextLink size='sm' asChild>
             <Link href='/calendars'>Manage calendars &rarr;</Link>
-          </Button>
+          </TextLink>
         </CardFooter>
       )}
     </Card>
@@ -390,25 +411,27 @@ function AvailabilityTile({
   isLoading,
 }: AvailabilityTileProps) {
   return (
+    // `h-full` — Card exposes no height prop; the tile must fill its grid row.
     <Card className='h-full'>
       <CardHeader>
         <HStack gap={2}>
-          <Clock className='text-muted-foreground size-4' aria-hidden />
+          <Icon icon={Clock} size='sm' color='muted-foreground' />
+          {/* `text-base` — CardTitle exposes no size prop. */}
           <CardTitle className='text-base'>Availability</CardTitle>
         </HStack>
       </CardHeader>
 
       <CardContent>
         {isLoading ? (
-          <Skeleton className='h-8 w-3/4' />
+          <Skeleton height={32} width='75%' />
         ) : !hasDefault ? (
           <VStack gap={2}>
             <Text size='sm' color='muted-foreground'>
               No default calendar
             </Text>
-            <Button variant='link' size='sm' className='p-0' asChild>
+            <TextLink size='sm' asChild>
               <Link href='/calendars'>Connect a calendar</Link>
-            </Button>
+            </TextLink>
           </VStack>
         ) : (
           <Text size='sm' color='muted-foreground'>
@@ -418,9 +441,9 @@ function AvailabilityTile({
       </CardContent>
 
       <CardFooter>
-        <Button variant='link' size='sm' className='p-0' asChild>
+        <TextLink size='sm' asChild>
           <Link href='/availability'>Manage availability &rarr;</Link>
-        </Button>
+        </TextLink>
       </CardFooter>
     </Card>
   );
@@ -432,23 +455,25 @@ function AvailabilityTile({
 
 function QuickActionsTile() {
   return (
+    // `h-full` — Card exposes no height prop; the tile must fill its grid row.
     <Card className='h-full'>
       <CardHeader>
         <HStack gap={2}>
-          <Zap className='text-muted-foreground size-4' aria-hidden />
+          <Icon icon={Zap} size='sm' color='muted-foreground' />
+          {/* `text-base` — CardTitle exposes no size prop. */}
           <CardTitle className='text-base'>Quick actions</CardTitle>
         </HStack>
       </CardHeader>
 
       <CardContent>
         <VStack gap={2}>
-          <Button variant='outline' size='sm' className='w-full' asChild>
+          <Button variant='outline' size='sm' fullWidth asChild>
             <Link href='/calendars'>Connect calendar</Link>
           </Button>
-          <Button variant='outline' size='sm' className='w-full' asChild>
+          <Button variant='outline' size='sm' fullWidth asChild>
             <Link href='/availability'>Set availability</Link>
           </Button>
-          <Button variant='outline' size='sm' className='w-full' asChild>
+          <Button variant='outline' size='sm' fullWidth asChild>
             <Link href='/events'>View events</Link>
           </Button>
         </VStack>

@@ -23,7 +23,7 @@ import {
   FormControl,
   FormMessage,
 } from 'vinta-schedule-design-system/ui/form';
-import { VStack, Text } from 'vinta-schedule-design-system/layout';
+import { VStack, Text, FormLayout } from 'vinta-schedule-design-system/layout';
 import { useCreateInvitation } from '@/hooks/invitations/use-create-invitation';
 import { useResendInvitation } from '@/hooks/invitations/use-resend-invitation';
 import { invitationsList } from '@/client/sdk.gen';
@@ -221,11 +221,7 @@ export function InviteMemberDialog({
         <Form {...form}>
           {/* noValidate: zod (via react-hook-form) owns all validation; the
               browser's native constraint validation must not intercept submit. */}
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-            noValidate
-          >
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             <FormField
               control={form.control}
               name='firstName'
@@ -327,7 +323,7 @@ export function InviteMemberDialog({
                   : 'Send invitation'}
               </Button>
             </DialogFooter>
-          </form>
+          </FormLayout>
         </Form>
       </DialogContent>
     </Dialog>

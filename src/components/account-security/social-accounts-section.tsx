@@ -105,8 +105,8 @@ export function SocialAccountsSection() {
       <CardContent>
         {isLoading ? (
           <VStack gap={3}>
-            <Skeleton className='h-10 w-full' />
-            <Skeleton className='h-10 w-full' />
+            <Skeleton height={40} width='full' />
+            <Skeleton height={40} width='full' />
           </VStack>
         ) : (
           <VStack gap={3}>
@@ -141,7 +141,7 @@ export function SocialAccountsSection() {
                       justify='between'
                       align='center'
                       gap={4}
-                      className='pl-6'
+                      pl={6}
                     >
                       <Text size='sm' color='muted-foreground'>
                         {account.display}

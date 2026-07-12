@@ -35,7 +35,9 @@ const preview: Preview = {
   parameters: {
     controls: {
       matchers: {
-        color: /(background|color)$/i,
+        // No `color` matcher: our token props (`color`, `background`) are unions
+        // of token names, not CSS colors, and a color-picker control on them
+        // renders broken ("Control of type color only supports string").
         date: /Date$/i,
       },
     },

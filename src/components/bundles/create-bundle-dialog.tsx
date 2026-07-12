@@ -44,7 +44,13 @@ import {
   FormControl,
   FormMessage,
 } from 'vinta-schedule-design-system/ui/form';
-import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import {
+  VStack,
+  HStack,
+  Text,
+  FormLayout,
+} from 'vinta-schedule-design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useCreateBundle } from '@/hooks/bundles/use-create-bundle';
 
@@ -161,11 +167,7 @@ export function CreateBundleDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-            noValidate
-          >
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             {/* Bundle name */}
             <FormField
               control={form.control}
@@ -226,9 +228,7 @@ export function CreateBundleDialog({
             {/* Primary calendar (radio select among chosen calendars) */}
             {selectedCalendars.length > 0 && (
               <VStack gap={3}>
-                <label className='text-sm leading-none font-medium'>
-                  Primary calendar
-                </label>
+                <Label>Primary calendar</Label>
 
                 <Controller
                   control={form.control}
@@ -249,12 +249,13 @@ export function CreateBundleDialog({
                                 value={cal.id.toString()}
                                 id={`primary-cal-${cal.id}`}
                               />
-                              <label
+                              <Label
                                 htmlFor={`primary-cal-${cal.id}`}
-                                className='cursor-pointer text-sm select-none'
+                                // Label has no cursor/user-select props.
+                                className='cursor-pointer select-none'
                               >
                                 {cal.name}
-                              </label>
+                              </Label>
                             </HStack>
                           ))}
                       </VStack>
@@ -288,7 +289,7 @@ export function CreateBundleDialog({
                 {isPending ? 'Creating…' : 'Create bundle'}
               </Button>
             </DialogFooter>
-          </form>
+          </FormLayout>
         </Form>
       </DialogContent>
     </Dialog>

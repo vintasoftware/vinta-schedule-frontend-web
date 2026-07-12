@@ -13,6 +13,7 @@ import {
 import {
   responsiveClasses,
   plainValue,
+  isResponsive,
   directionClass,
   alignClass,
   justifyClass,
@@ -61,7 +62,9 @@ export interface FlexProps
  * Flex — flexbox container driven by props. Composes all Box style props plus
  * direction / align / justify / wrap / gap.
  *
- *   <Flex justify="between" align="center" gap={4}>…</Flex>
+ * ```tsx
+ * <Flex justify="between" align="center" gap={4}>…</Flex>
+ * ```
  */
 const Flex = React.forwardRef<HTMLElement, FlexProps>(function Flex(
   {
@@ -80,6 +83,11 @@ const Flex = React.forwardRef<HTMLElement, FlexProps>(function Flex(
   },
   ref
 ) {
+  // A responsive `display` (the `hidden md:flex` idiom) is emitted as classes by
+  // splitResponsiveBoxProps. Flex would otherwise ALWAYS write display:flex as
+  // an inline style, which beats those classes and silently kills the
+  // breakpoint. Detect it and leave `display` to the classes.
+  const responsiveDisplay = isResponsive(boxProps.display);
   const { classes: boxClasses, rest: plainBox } =
     splitResponsiveBoxProps(boxProps);
   const { style: resolved, rest } = splitBoxProps(plainBox);
@@ -97,7 +105,7 @@ const Flex = React.forwardRef<HTMLElement, FlexProps>(function Flex(
   const plainGap = plainValue(gap);
 
   const flexStyle: CSSProperties = {
-    display: inline ? 'inline-flex' : 'flex',
+    display: responsiveDisplay ? undefined : inline ? 'inline-flex' : 'flex',
     flexDirection: directionCls ? undefined : plainDirection,
     alignItems: plainAlign ? ALIGN[plainAlign] : undefined,
     justifyContent: plainJustify ? JUSTIFY[plainJustify] : undefined,

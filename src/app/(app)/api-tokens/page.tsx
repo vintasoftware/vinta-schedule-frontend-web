@@ -32,7 +32,7 @@ export default function ApiTokensPage() {
       onClick={() => setNewTokenDialogOpen(true)}
       data-testid='new-token-button'
     >
-      <Plus className='mr-1 h-4 w-4' />
+      <Plus />
       New token
     </Button>
   );

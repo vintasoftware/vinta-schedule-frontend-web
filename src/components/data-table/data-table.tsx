@@ -17,9 +17,16 @@ import {
   TableCell,
 } from 'vinta-schedule-design-system/ui/table';
 import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
 import { DataTableToolbar } from './data-table-toolbar';
 import { DataTablePagination } from './data-table-pagination';
-import { VStack, Box, Flex } from 'vinta-schedule-design-system/layout';
+import {
+  VStack,
+  Box,
+  Flex,
+  Center,
+  Text,
+} from 'vinta-schedule-design-system/layout';
 import { cn } from '@/lib/utils/index';
 import type { DataTableColumn, DataTableQuery } from './types';
 
@@ -89,16 +96,15 @@ function SortIcon({
   isSorted: false | 'asc' | 'desc';
 }): React.ReactElement {
   if (isSorted === 'asc') {
-    return <ArrowUp className='ml-1 inline size-3.5' aria-hidden />;
+    return <Icon icon={ArrowUp} size='sm' />;
   }
   if (isSorted === 'desc') {
-    return <ArrowDown className='ml-1 inline size-3.5' aria-hidden />;
+    return <Icon icon={ArrowDown} size='sm' />;
   }
+  // The idle arrow is deliberately half-strength; an alpha tint of a token has
+  // no prop form, so the class stays.
   return (
-    <ArrowUpDown
-      className='text-muted-foreground/50 ml-1 inline size-3.5'
-      aria-hidden
-    />
+    <Icon icon={ArrowUpDown} size='sm' className='text-muted-foreground/50' />
   );
 }
 
@@ -145,7 +151,9 @@ export function DataTable<T>({
   const isEmpty = !isLoading && data.length === 0;
 
   return (
-    <VStack data-slot='data-table' className={cn(className)}>
+    // `className` is a public prop of this component — it is forwarded, not
+    // authored here.
+    <VStack data-slot='data-table' className={className}>
       {/* Toolbar */}
       <DataTableToolbar
         search={query.search}
@@ -157,9 +165,11 @@ export function DataTable<T>({
       />
 
       {/* Table */}
-      <Box radius='md' border className='overflow-hidden'>
+      <Box radius='md' border overflow='hidden'>
         <Table>
           <TableHeader
+            // shadcn <thead> atom — it takes no box props, so the sticky chrome
+            // has no prop form here.
             className={cn(stickyHeader && 'bg-background sticky top-0 z-10')}
           >
             {table.getHeaderGroups().map((headerGroup) => (
@@ -171,6 +181,8 @@ export function DataTable<T>({
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
+                      // :hover variant + cursor/user-select on a shadcn <th>:
+                      // none of these have a prop form.
                       className={cn(
                         canSort &&
                           'hover:text-foreground cursor-pointer select-none'
@@ -189,7 +201,7 @@ export function DataTable<T>({
                       }
                     >
                       {header.isPlaceholder ? null : (
-                        <Flex as='span' inline align='center'>
+                        <Flex as='span' inline align='center' gap={1}>
                           {flexRender(
                             header.column.columnDef.header,
                             header.getContext()
@@ -211,7 +223,7 @@ export function DataTable<T>({
                 <TableRow key={`skeleton-${rowIdx}`} aria-hidden>
                   {table.getAllColumns().map((col) => (
                     <TableCell key={col.id}>
-                      <Skeleton className='h-5 w-full' />
+                      <Skeleton height={20} width='full' />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -219,15 +231,14 @@ export function DataTable<T>({
             ) : isEmpty ? (
               // Empty state
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className='h-32 text-center'
-                >
-                  {emptyState ?? (
-                    <p className='text-muted-foreground text-sm'>
-                      No results found.
-                    </p>
-                  )}
+                <TableCell colSpan={columns.length}>
+                  <Center height={128} textAlign='center'>
+                    {emptyState ?? (
+                      <Text size='sm' color='muted-foreground'>
+                        No results found.
+                      </Text>
+                    )}
+                  </Center>
                 </TableCell>
               </TableRow>
             ) : (

@@ -70,7 +70,7 @@ function parseIntOrDefault(value: string | null, fallback: number): number {
  * requirement without boilerplate at every call site:
  *
  * ```tsx
- * <DataTableQueryBoundary>
+ * `<DataTableQueryBoundary>`
  *   <MyTablePage />   // calls useDataTableQuery inside
  * </DataTableQueryBoundary>
  * ```

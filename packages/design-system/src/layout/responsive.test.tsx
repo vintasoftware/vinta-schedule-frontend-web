@@ -70,6 +70,34 @@ describe('responsive props', () => {
     expect(el.className).not.toContain('p-4');
   });
 
+  // Regression: Flex/Grid unconditionally wrote `display: flex|grid` as an
+  // inline style, which beat the `hidden md:flex` breakpoint classes — so a
+  // responsive `display` silently did nothing on them (it only worked on Box).
+  it('honours responsive display on Flex (inline display must not win)', () => {
+    const { container } = render(
+      <Flex display={{ base: 'hidden', md: 'flex' }} />
+    );
+    const el = container.firstChild as HTMLElement;
+    expect(el.className).toContain('hidden');
+    expect(el.className).toContain('md:flex');
+    expect(el.style.display).toBe('');
+  });
+
+  it('honours responsive display on Grid (inline display must not win)', () => {
+    const { container } = render(
+      <Grid display={{ base: 'hidden', md: 'grid' }} />
+    );
+    const el = container.firstChild as HTMLElement;
+    expect(el.className).toContain('hidden');
+    expect(el.className).toContain('md:grid');
+    expect(el.style.display).toBe('');
+  });
+
+  it('still sets inline display for a plain Flex', () => {
+    const { container } = render(<Flex />);
+    expect((container.firstChild as HTMLElement).style.display).toBe('flex');
+  });
+
   it('never leaks a responsive object into the DOM as an attribute', () => {
     const { container } = render(<Box p={{ base: 4, md: 6 }} />);
     const el = container.firstChild as HTMLElement;

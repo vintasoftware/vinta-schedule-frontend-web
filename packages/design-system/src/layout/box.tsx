@@ -19,7 +19,9 @@ export interface BoxProps
  * driven entirely by token props (padding, margin, bg, radius, shadow, sizing…)
  * instead of utility classes.
  *
- *   <Box p={4} bg="card" radius="lg" shadow="sm" border>…</Box>
+ * ```tsx
+ * <Box p={4} bg="card" radius="lg" shadow="sm" border>…</Box>
+ * ```
  */
 const Box = React.forwardRef<HTMLElement, BoxProps>(function Box(
   { as: Comp = 'div', className, style, ...props },

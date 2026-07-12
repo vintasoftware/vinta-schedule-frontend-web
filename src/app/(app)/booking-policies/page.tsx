@@ -32,7 +32,7 @@ export default function BookingPoliciesPage() {
       onClick={() => setNewPolicyDialogOpen(true)}
       data-testid='new-booking-policy-button'
     >
-      <Plus className='mr-1 h-4 w-4' />
+      <Plus />
       New policy
     </Button>
   );

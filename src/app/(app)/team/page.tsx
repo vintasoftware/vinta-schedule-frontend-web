@@ -38,7 +38,7 @@ export default function TeamPage() {
         title='Team'
         description='Manage your organization members and invitations.'
       />
-      <Tabs defaultValue='team' className='w-full'>
+      <Tabs defaultValue='team'>
         <TabsList>
           <TabsTrigger value='team'>Team</TabsTrigger>
           <TabsTrigger value='invitations'>Invitations</TabsTrigger>

@@ -50,7 +50,11 @@ import {
   FormControl,
   FormMessage,
 } from 'vinta-schedule-design-system/ui/form';
+import { Label } from 'vinta-schedule-design-system/ui/label';
 import {
+  Box,
+  Divider,
+  FormLayout,
   VStack,
   HStack,
   Stack,
@@ -218,7 +222,7 @@ function RecurrenceFields({ form }: RecurrenceFieldsProps) {
   };
 
   return (
-    <VStack gap={3} className='border-border rounded-md border p-3'>
+    <VStack gap={3} p={3} border radius='md'>
       {/* Frequency */}
       <FormField
         control={form.control}
@@ -276,8 +280,8 @@ function RecurrenceFields({ form }: RecurrenceFieldsProps) {
       {/* BYDAY — only for weekly */}
       {freq === 'WEEKLY' && (
         <VStack gap={2}>
-          <label className='text-sm leading-none font-medium'>On days</label>
-          <HStack gap={2} className='flex-wrap'>
+          <Label>On days</Label>
+          <HStack gap={2} wrap>
             {WEEKDAYS.map((day) => (
               <HStack key={day.byday} gap={1} align='center'>
                 <Checkbox
@@ -287,12 +291,14 @@ function RecurrenceFields({ form }: RecurrenceFieldsProps) {
                     handleBydayToggle(day.byday, Boolean(checked))
                   }
                 />
-                <label
+                {/* cursor-pointer / select-none: pointer + selection affordances
+                    have no token prop on the shadcn Label. */}
+                <Label
                   htmlFor={`blocked-byday-${day.byday}`}
-                  className='cursor-pointer text-sm select-none'
+                  className='cursor-pointer select-none'
                 >
                   {day.short}
-                </label>
+                </Label>
               </HStack>
             ))}
           </HStack>
@@ -465,36 +471,36 @@ export function BlockedTimeForm({ calendarId = null }: BlockedTimeFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Stack gap={6}>
-          {/* Basic fields */}
-          <Stack gap={4}>
-            <Text size='sm' weight='medium' color='foreground'>
-              Block time details
-            </Text>
+      <FormLayout gap={6} onSubmit={form.handleSubmit(onSubmit)}>
+        {/* Basic fields */}
+        <Stack gap={4}>
+          <Text size='sm' weight='medium' color='foreground'>
+            Block time details
+          </Text>
 
-            {/* Date */}
-            <FormField
-              control={form.control}
-              name='date'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type='date' {...field} disabled={isPending} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          {/* Date */}
+          <FormField
+            control={form.control}
+            name='date'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Date</FormLabel>
+                <FormControl>
+                  <Input type='date' {...field} disabled={isPending} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            {/* Start time / End time */}
-            <HStack gap={3}>
+          {/* Start time / End time */}
+          <HStack gap={3}>
+            <Box grow basis={0}>
               <FormField
                 control={form.control}
                 name='startTime'
                 render={({ field }) => (
-                  <FormItem className='flex-1'>
+                  <FormItem>
                     <FormLabel>Start time</FormLabel>
                     <FormControl>
                       <Input type='time' {...field} disabled={isPending} />
@@ -503,14 +509,16 @@ export function BlockedTimeForm({ calendarId = null }: BlockedTimeFormProps) {
                   </FormItem>
                 )}
               />
-              <Text size='sm' color='muted-foreground' className='pt-6'>
-                –
-              </Text>
+            </Box>
+            <Text size='sm' color='muted-foreground' pt={6}>
+              –
+            </Text>
+            <Box grow basis={0}>
               <FormField
                 control={form.control}
                 name='endTime'
                 render={({ field }) => (
-                  <FormItem className='flex-1'>
+                  <FormItem>
                     <FormLabel>End time</FormLabel>
                     <FormControl>
                       <Input type='time' {...field} disabled={isPending} />
@@ -519,36 +527,38 @@ export function BlockedTimeForm({ calendarId = null }: BlockedTimeFormProps) {
                   </FormItem>
                 )}
               />
-            </HStack>
+            </Box>
+          </HStack>
 
-            {/* Reason */}
-            <FormField
-              control={form.control}
-              name='reason'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reason (optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='text'
-                      placeholder='e.g., Personal time, Doctor appointment'
-                      {...field}
-                      disabled={isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </Stack>
-
-          {/* Repeat toggle */}
+          {/* Reason */}
           <FormField
             control={form.control}
-            name='repeat'
+            name='reason'
             render={({ field }) => (
-              <FormItem className='border-border flex items-center justify-between rounded-lg border p-3'>
-                <FormLabel className='mb-0'>Repeat this block</FormLabel>
+              <FormItem>
+                <FormLabel>Reason (optional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type='text'
+                    placeholder='e.g., Personal time, Doctor appointment'
+                    {...field}
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </Stack>
+
+        {/* Repeat toggle */}
+        <FormField
+          control={form.control}
+          name='repeat'
+          render={({ field }) => (
+            <FormItem>
+              <HStack justify='between' p={3} border radius='lg'>
+                <FormLabel>Repeat this block</FormLabel>
                 <FormControl>
                   <Switch
                     checked={field.value}
@@ -556,34 +566,34 @@ export function BlockedTimeForm({ calendarId = null }: BlockedTimeFormProps) {
                     disabled={isPending}
                   />
                 </FormControl>
-              </FormItem>
-            )}
-          />
-
-          {/* Recurrence sub-form */}
-          {repeat && (
-            <>
-              <div className='border-border border-t' />
-              <RecurrenceFields form={form} />
-            </>
+              </HStack>
+            </FormItem>
           )}
+        />
 
-          {/* Footer */}
-          <HStack gap={3} className='justify-end'>
-            <Button
-              type='button'
-              variant='outline'
-              onClick={() => form.reset(getDefaultValues(timezone))}
-              disabled={isPending}
-            >
-              Reset
-            </Button>
-            <Button type='submit' disabled={isPending}>
-              {isPending ? 'Creating…' : 'Create blocked time'}
-            </Button>
-          </HStack>
-        </Stack>
-      </form>
+        {/* Recurrence sub-form */}
+        {repeat && (
+          <>
+            <Divider />
+            <RecurrenceFields form={form} />
+          </>
+        )}
+
+        {/* Footer */}
+        <HStack gap={3} justify='end'>
+          <Button
+            type='button'
+            variant='outline'
+            onClick={() => form.reset(getDefaultValues(timezone))}
+            disabled={isPending}
+          >
+            Reset
+          </Button>
+          <Button type='submit' disabled={isPending}>
+            {isPending ? 'Creating…' : 'Create blocked time'}
+          </Button>
+        </HStack>
+      </FormLayout>
     </Form>
   );
 }

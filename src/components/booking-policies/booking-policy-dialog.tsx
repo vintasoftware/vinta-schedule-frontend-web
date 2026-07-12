@@ -48,7 +48,7 @@ import {
   FormDescription,
   FormMessage,
 } from 'vinta-schedule-design-system/ui/form';
-import { Text } from 'vinta-schedule-design-system/layout';
+import { VStack, Text, FormLayout } from 'vinta-schedule-design-system/layout';
 import {
   useCreateBookingPolicy,
   useUpdateBookingPolicy,
@@ -220,11 +220,7 @@ export function BookingPolicyDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-            noValidate
-          >
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             <FormField
               control={form.control}
               name='targetType'
@@ -293,12 +289,14 @@ export function BookingPolicyDialog({
               />
             )}
 
-            <Text weight='semibold' size='sm' className='mt-2'>
-              Rules
-            </Text>
-            <Text size='sm' color='muted-foreground' className='-mt-2'>
-              Set any rule to 0 to leave it unconstrained.
-            </Text>
+            <VStack gap={2} mt={2}>
+              <Text weight='semibold' size='sm'>
+                Rules
+              </Text>
+              <Text size='sm' color='muted-foreground'>
+                Set any rule to 0 to leave it unconstrained.
+              </Text>
+            </VStack>
 
             {RULE_FIELDS.map((rule) => (
               <FormField
@@ -338,7 +336,7 @@ export function BookingPolicyDialog({
                     : 'Create policy'}
               </Button>
             </DialogFooter>
-          </form>
+          </FormLayout>
         </Form>
       </DialogContent>
     </Dialog>

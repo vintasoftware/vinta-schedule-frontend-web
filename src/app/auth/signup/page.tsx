@@ -10,14 +10,19 @@ import { Checkbox } from 'vinta-schedule-design-system/ui/checkbox';
 import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
 import {
   Box,
+  Flex,
+  FormLayout,
+  Grid,
   Stack,
   HStack,
   VStack,
   Heading,
   Text,
 } from 'vinta-schedule-design-system/layout';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
+import { SocialProviderIcon } from '@/components/authentication/social-provider-icon';
 import {
   Alert,
   AlertTitle,
@@ -35,16 +40,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Suspense, useMemo, useState } from 'react';
-import type { Provider, Signup } from '@/auth-client';
+import type { Signup } from '@/auth-client';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
 import { useAuthConfig } from '@/hooks/authentication/use-auth-config';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faGoogle,
-  faFacebook,
-  faApple,
-} from '@fortawesome/free-brands-svg-icons';
-import { User } from 'lucide-react';
 import { useProviderLogin } from '@/hooks/authentication/use-provider-login';
 
 const passwordStrengthRegex =
@@ -92,19 +90,6 @@ const makeSignupSchema = (isInvited: boolean) =>
     });
 
 type SignupSchema = z.infer<ReturnType<typeof makeSignupSchema>>;
-
-function ProviderIcon({ provider }: { provider: Provider }) {
-  switch (provider.id) {
-    case 'google':
-      return <FontAwesomeIcon icon={faGoogle} className='mr-2' />;
-    case 'facebook':
-      return <FontAwesomeIcon icon={faFacebook} className='mr-2' />;
-    case 'apple':
-      return <FontAwesomeIcon icon={faApple} className='mr-2' />;
-    default:
-      return <User />;
-  }
-}
 
 function SignupPageContent() {
   const router = useRouter();
@@ -177,302 +162,323 @@ function SignupPageContent() {
 
   return (
     <AuthLayout navbar={<AuthNavbar />} variant='two-column'>
-      <Card className='flex w-full max-w-3xl flex-col overflow-hidden p-0 md:flex-row'>
-        {/* Left column: Info and Social */}
-        <VStack
-          grow={1}
-          justify='center'
-          gap={8}
-          p={8}
-          className='border-b md:border-r md:border-b-0'
+      <Card>
+        <Flex
+          direction={{ base: 'column', md: 'row' }}
+          overflow='hidden'
+          radius='xl'
         >
-          <BackLink href='/' label='Back to home' />
-          <Stack gap={4}>
-            <Heading level={1} size='3xl'>
-              Create your account
-            </Heading>
-            <Text size='sm' color='muted-foreground'>
-              {isInvited
-                ? "You've been invited to join an organization. Sign up to accept."
-                : 'Sign up to access all features and start your journey.'}
-            </Text>
-          </Stack>
-          {/* Social signup buttons */}
-          <Box>
-            {isAuthConfigLoading ? (
-              <VStack gap={2} mt={4}>
-                <Button disabled className='w-full animate-pulse opacity-70'>
-                  Loading social providers...
-                </Button>
-                <Button
-                  disabled
-                  className='w-full animate-pulse opacity-70'
-                ></Button>
-              </VStack>
-            ) : socialProviders.length > 0 ? (
-              <VStack gap={2} mt={4}>
-                {socialProviders.map((provider) => (
-                  <Button
-                    key={provider.id}
-                    onClick={async () => {
-                      const { redirect_url: redirectUrl } = await providerLogin(
-                        {
-                          provider: provider.id,
-                          callbackUrl: `${window.location.origin}/auth/social/${provider.id}/callback`,
-                          process: 'login',
-                        }
-                      );
-                      window.location.href = redirectUrl;
-                    }}
-                    disabled={
-                      signUpMutation.isPending ||
-                      providerLoginMutation.isPending
-                    }
-                    className='w-full'
-                  >
-                    <ProviderIcon provider={provider} />
-                    Sign in with {provider.name}
-                  </Button>
-                ))}
-              </VStack>
-            ) : null}
-          </Box>
-        </VStack>
-        {/* Right column: Form */}
-        <VStack grow={1} justify='center' p={8}>
-          {/* Only show the separator if there are social providers */}
-          {!isAuthConfigLoading && socialProviders.length > 0 && (
-            <HStack align='center' mb={8} className='sm:hidden'>
-              <Box grow={1} className='border-border border-t' />
-              <Text size='xs' color='muted-foreground' className='mx-2'>
-                or
+          {/* Left column: Info and Social */}
+          <VStack
+            grow={1}
+            justify='center'
+            gap={8}
+            p={8}
+            // TODO(ds-gap): per-side borders (borderBottom/borderRight) are not
+            // responsive — the "rule below on mobile, rule to the right on md"
+            // split cannot be expressed with the DS box props today.
+            className='border-b md:border-r md:border-b-0'
+          >
+            <BackLink href='/' label='Back to home' />
+            <Stack gap={4}>
+              <Heading level={1} size='3xl'>
+                Create your account
+              </Heading>
+              <Text size='sm' color='muted-foreground'>
+                {isInvited
+                  ? "You've been invited to join an organization. Sign up to accept."
+                  : 'Sign up to access all features and start your journey.'}
               </Text>
-              <Box grow={1} className='border-border border-t' />
-            </HStack>
-          )}
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className='flex flex-col gap-4'
-            >
-              <Box className='grid gap-4 sm:grid-cols-2'>
-                <FormField
-                  control={form.control}
-                  name='first_name'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='text'
-                          autoComplete='given-name'
-                          placeholder='First name'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='last_name'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='text'
-                          autoComplete='family-name'
-                          placeholder='Last name'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Box>
-              {!isInvited && (
-                <FormField
-                  control={form.control}
-                  name='organization_name'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Organization Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='text'
-                          autoComplete='organization'
-                          placeholder='Your organization'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              <FormField
-                control={form.control}
-                name='email'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='email'
-                        autoComplete='email'
-                        placeholder='Email'
-                        readOnly={isInvited && Boolean(invitedEmail)}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='phone'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='text'
-                        autoComplete='tel'
-                        placeholder='Phone'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Box className='grid gap-4 sm:grid-cols-2'>
-                <FormField
-                  control={form.control}
-                  name='password'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='password'
-                          autoComplete='new-password'
-                          placeholder='••••••••'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='confirm_password'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='password'
-                          autoComplete='new-password'
-                          placeholder='Repeat password'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Box>
-              <FormField
-                control={form.control}
-                name='accepted_terms'
-                render={({ field }) => (
-                  <FormItem>
-                    <HStack gap={2} align='start'>
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid='accepted-terms-checkbox'
-                        />
-                      </FormControl>
-                      <FormLabel className='mb-0 leading-snug font-normal'>
-                        I agree to the{' '}
-                        <Link
-                          href='/privacy'
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='text-primary hover:underline'
-                        >
-                          Privacy Policy
-                        </Link>{' '}
-                        and{' '}
-                        <Link
-                          href='/terms'
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='text-primary hover:underline'
-                        >
-                          Terms of Use
-                        </Link>
-                        .
-                      </FormLabel>
-                    </HStack>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='accepted_sms_consent'
-                render={({ field }) => (
-                  <FormItem>
-                    <HStack gap={2} align='start'>
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid='accepted-sms-consent-checkbox'
-                        />
-                      </FormControl>
-                      <FormLabel className='mb-0 leading-snug font-normal'>
-                        I agree to receive SMS text messages (e.g. verification
-                        codes) at the phone number I provide. Msg &amp; data
-                        rates may apply.
-                      </FormLabel>
-                    </HStack>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {error && (
-                <Alert variant='destructive'>
-                  <AlertTitle>Signup failed</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              {success && (
-                <Alert variant='default'>
-                  <AlertTitle>Success</AlertTitle>
-                  <AlertDescription>{success}</AlertDescription>
-                </Alert>
-              )}
-              <Button
-                type='submit'
-                className='mt-2 w-full'
-                disabled={signUpMutation.isPending}
+            </Stack>
+            {/* Social signup buttons */}
+            <Box>
+              {isAuthConfigLoading ? (
+                <VStack gap={2} mt={4}>
+                  {/* `w-full`: <Button> exposes no width prop. The pulse/alpha
+                      skeleton treatment is an animation — inexpressible as a
+                      token prop. */}
+                  <Button disabled className='w-full animate-pulse opacity-70'>
+                    Loading social providers...
+                  </Button>
+                  <Button
+                    disabled
+                    className='w-full animate-pulse opacity-70'
+                  ></Button>
+                </VStack>
+              ) : socialProviders.length > 0 ? (
+                <VStack gap={2} mt={4}>
+                  {socialProviders.map((provider) => (
+                    <Button
+                      key={provider.id}
+                      onClick={async () => {
+                        const { redirect_url: redirectUrl } =
+                          await providerLogin({
+                            provider: provider.id,
+                            callbackUrl: `${window.location.origin}/auth/social/${provider.id}/callback`,
+                            process: 'login',
+                          });
+                        window.location.href = redirectUrl;
+                      }}
+                      disabled={
+                        signUpMutation.isPending ||
+                        providerLoginMutation.isPending
+                      }
+                      // `w-full`: <Button> exposes no width prop.
+                      className='w-full'
+                    >
+                      <SocialProviderIcon provider={provider} />
+                      Sign in with {provider.name}
+                    </Button>
+                  ))}
+                </VStack>
+              ) : null}
+            </Box>
+          </VStack>
+          {/* Right column: Form */}
+          <VStack grow={1} justify='center' p={8}>
+            {/* Only show the separator if there are social providers */}
+            {!isAuthConfigLoading && socialProviders.length > 0 && (
+              <HStack
+                align='center'
+                mb={8}
+                display={{ base: 'flex', sm: 'hidden' }}
               >
-                {signUpMutation.isPending ? 'Signing up...' : 'Sign Up'}
-              </Button>
-            </form>
-          </Form>
-        </VStack>
+                <Box grow={1} borderTop />
+                <Text size='xs' color='muted-foreground' mx={2}>
+                  or
+                </Text>
+                <Box grow={1} borderTop />
+              </HStack>
+            )}
+            <Form {...form}>
+              <FormLayout gap={4} onSubmit={form.handleSubmit(onSubmit)}>
+                <Grid gap={4} columns={{ base: 1, sm: 2 }}>
+                  <FormField
+                    control={form.control}
+                    name='first_name'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='text'
+                            autoComplete='given-name'
+                            placeholder='First name'
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='last_name'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='text'
+                            autoComplete='family-name'
+                            placeholder='Last name'
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </Grid>
+                {!isInvited && (
+                  <FormField
+                    control={form.control}
+                    name='organization_name'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Organization Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='text'
+                            autoComplete='organization'
+                            placeholder='Your organization'
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                <FormField
+                  control={form.control}
+                  name='email'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='email'
+                          autoComplete='email'
+                          placeholder='Email'
+                          readOnly={isInvited && Boolean(invitedEmail)}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='phone'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='text'
+                          autoComplete='tel'
+                          placeholder='Phone'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Grid gap={4} columns={{ base: 1, sm: 2 }}>
+                  <FormField
+                    control={form.control}
+                    name='password'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='password'
+                            autoComplete='new-password'
+                            placeholder='••••••••'
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='confirm_password'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='password'
+                            autoComplete='new-password'
+                            placeholder='Repeat password'
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </Grid>
+                <FormField
+                  control={form.control}
+                  name='accepted_terms'
+                  render={({ field }) => (
+                    <FormItem>
+                      <HStack gap={2} align='start'>
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid='accepted-terms-checkbox'
+                          />
+                        </FormControl>
+                        {/* FormLabel is shadcn's <Label>: it exposes no weight /
+                          leading / margin props, so the checkbox-row typography
+                          override stays a class. */}
+                        <FormLabel className='mb-0 leading-snug font-normal'>
+                          I agree to the{' '}
+                          <TextLink asChild>
+                            <Link
+                              href='/privacy'
+                              target='_blank'
+                              rel='noopener noreferrer'
+                            >
+                              Privacy Policy
+                            </Link>
+                          </TextLink>{' '}
+                          and{' '}
+                          <TextLink asChild>
+                            <Link
+                              href='/terms'
+                              target='_blank'
+                              rel='noopener noreferrer'
+                            >
+                              Terms of Use
+                            </Link>
+                          </TextLink>
+                          .
+                        </FormLabel>
+                      </HStack>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='accepted_sms_consent'
+                  render={({ field }) => (
+                    <FormItem>
+                      <HStack gap={2} align='start'>
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid='accepted-sms-consent-checkbox'
+                          />
+                        </FormControl>
+                        {/* FormLabel is shadcn's <Label>: no weight / leading /
+                          margin props. */}
+                        <FormLabel className='mb-0 leading-snug font-normal'>
+                          I agree to receive SMS text messages (e.g.
+                          verification codes) at the phone number I provide. Msg
+                          &amp; data rates may apply.
+                        </FormLabel>
+                      </HStack>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {error && (
+                  <Alert variant='destructive'>
+                    <AlertTitle>Signup failed</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                {success && (
+                  <Alert variant='default'>
+                    <AlertTitle>Success</AlertTitle>
+                    <AlertDescription>{success}</AlertDescription>
+                  </Alert>
+                )}
+                {/* `mt-2 w-full`: <Button> exposes no margin/width props. */}
+                <Button
+                  type='submit'
+                  className='mt-2 w-full'
+                  disabled={signUpMutation.isPending}
+                >
+                  {signUpMutation.isPending ? 'Signing up...' : 'Sign Up'}
+                </Button>
+              </FormLayout>
+            </Form>
+          </VStack>
+        </Flex>
       </Card>
     </AuthLayout>
   );

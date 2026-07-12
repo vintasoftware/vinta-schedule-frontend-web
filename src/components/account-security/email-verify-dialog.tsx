@@ -15,7 +15,7 @@ import {
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Input } from 'vinta-schedule-design-system/ui/input';
 import { Label } from 'vinta-schedule-design-system/ui/label';
-import { VStack, Text } from 'vinta-schedule-design-system/layout';
+import { VStack, Text, FormLayout } from 'vinta-schedule-design-system/layout';
 
 import { useVerifyEmail } from '@/hooks/authentication/use-verify-email';
 import { ACCOUNT_EMAILS_QUERY_KEY } from '@/hooks/authentication/use-account-emails';
@@ -65,7 +65,7 @@ export function EmailVerifyDialog({
             Enter the verification code we sent to this address.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleVerify}>
+        <FormLayout onSubmit={handleVerify}>
           <VStack gap={4}>
             <VStack gap={2}>
               <Label htmlFor='email-verify-code'>Verification code</Label>
@@ -101,7 +101,7 @@ export function EmailVerifyDialog({
               </Button>
             </DialogFooter>
           </VStack>
-        </form>
+        </FormLayout>
       </DialogContent>
     </Dialog>
   );

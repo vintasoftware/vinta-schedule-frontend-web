@@ -18,7 +18,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from 'vinta-schedule-design-system/ui/input-otp';
-import { VStack, Text } from 'vinta-schedule-design-system/layout';
+import { Box, VStack, Text } from 'vinta-schedule-design-system/layout';
 
 import { TotpSetupData } from '@/hooks/authentication/use-totp-config';
 import { useActivateTotp } from '@/hooks/authentication/use-activate-totp';
@@ -71,14 +71,15 @@ export function TotpSetupDialog({
           </DialogDescription>
         </DialogHeader>
         <VStack gap={4} align='center'>
-          <div className='bg-card rounded-md border p-4'>
+          <Box bg='card' radius='md' border p={4}>
             <QRCodeSVG value={setupData.totp_url} size={176} marginSize={1} />
-          </div>
+          </Box>
           <VStack gap={1} align='center'>
             <Text size='sm' color='muted-foreground'>
               Manual entry secret
             </Text>
-            <Text size='sm' className='font-mono break-all select-all'>
+            {/* `break-all` (word-break) + `select-all` (user-select) have no prop form. */}
+            <Text size='sm' family='mono' className='break-all select-all'>
               {setupData.secret}
             </Text>
           </VStack>

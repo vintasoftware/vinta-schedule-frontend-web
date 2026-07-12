@@ -39,7 +39,7 @@ export default function BrandingPage() {
   // ---------------------------------------------------------------------------
   if (brandingQuery.isLoading) {
     return (
-      <Center className='flex-1'>
+      <Center grow>
         <Text color='muted-foreground'>Loading branding settings…</Text>
       </Center>
     );

@@ -18,7 +18,7 @@ export function NewBookingButton() {
   return (
     <>
       <Button onClick={() => setOpen(true)}>
-        <Plus className='h-4 w-4' aria-hidden='true' />
+        <Plus aria-hidden='true' />
         New booking
       </Button>
       <BookingFormDialog open={open} onOpenChange={setOpen} />

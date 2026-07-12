@@ -43,7 +43,7 @@ import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
 import { eventRange } from '@/lib/datetime/index';
 import { Stack } from 'vinta-schedule-design-system/layout/stack';
 import { Text } from 'vinta-schedule-design-system/layout/text';
-import { HStack } from 'vinta-schedule-design-system/layout';
+import { Box, HStack } from 'vinta-schedule-design-system/layout';
 import {
   Tabs,
   TabsList,
@@ -226,14 +226,14 @@ export function EventsView({
         {/* Scope picker + View toggle in a horizontal layout */}
         <HStack gap={4} align='center' justify='between'>
           {/* Calendar scope picker (Phase 15) */}
-          <div data-testid='calendar-scope-picker'>
+          <Box data-testid='calendar-scope-picker'>
             <CalendarScopePicker
               calendars={calendarOptions}
               value={selectedCalendarId}
               onChange={handleCalendarChange}
               disabled={calendarsLoading}
             />
-          </div>
+          </Box>
         </HStack>
 
         {/* Calendar view — the range updates when view changes */}

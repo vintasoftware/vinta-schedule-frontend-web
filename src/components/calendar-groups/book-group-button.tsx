@@ -18,7 +18,7 @@ export function BookGroupButton() {
   return (
     <>
       <Button variant='outline' onClick={() => setOpen(true)}>
-        <Users className='h-4 w-4' aria-hidden='true' />
+        <Users aria-hidden='true' />
         Book a group
       </Button>
       <GroupBookingFlow open={open} onOpenChange={setOpen} />

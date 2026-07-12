@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Center, Text } from 'vinta-schedule-design-system/layout';
 import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
 
 /**
@@ -44,9 +45,11 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
 
   if (isLoading || isGated) {
     return (
-      <div className='flex min-h-screen items-center justify-center'>
-        <div className='text-muted-foreground'>Loading…</div>
-      </div>
+      <Center minHeight='screen'>
+        <Text as='div' color='muted-foreground'>
+          Loading…
+        </Text>
+      </Center>
     );
   }
 

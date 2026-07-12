@@ -25,7 +25,14 @@ import {
   FormLabel,
   FormMessage,
 } from 'vinta-schedule-design-system/ui/form';
-import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
+import {
+  Box,
+  VStack,
+  HStack,
+  Text,
+  FormLayout,
+  VisuallyHidden,
+} from 'vinta-schedule-design-system/layout';
 
 import { useAccountPhone } from '@/hooks/authentication/use-account-phone';
 import { useUpdatePhone } from '@/hooks/authentication/use-update-phone';
@@ -111,7 +118,7 @@ export function PhoneSection() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <Skeleton className='h-10 w-full' />
+          <Skeleton height={40} width='full' />
         ) : isError ? (
           <Text size='sm' color='destructive'>
             Could not load your phone number.
@@ -151,34 +158,36 @@ export function PhoneSection() {
 
             {showForm && (
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                  <VStack gap={2} className='max-w-md'>
+                <FormLayout onSubmit={form.handleSubmit(onSubmit)}>
+                  <VStack gap={2} maxWidth={448}>
                     <Text size='xs' color='muted-foreground'>
                       By adding or changing your phone number you agree to
                       receive SMS verification codes at that number. Msg &amp;
                       data rates may apply.
                     </Text>
                     <HStack gap={2} align='start'>
-                      <FormField
-                        control={form.control}
-                        name='phone'
-                        render={({ field }) => (
-                          <FormItem className='flex-1'>
-                            <FormLabel className='sr-only'>
-                              Phone number
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type='tel'
-                                placeholder='+1 555 555 5555'
-                                autoComplete='tel'
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <Box grow shrink basis={0} minWidth={0}>
+                        <FormField
+                          control={form.control}
+                          name='phone'
+                          render={({ field }) => (
+                            <FormItem>
+                              <VisuallyHidden as={FormLabel}>
+                                Phone number
+                              </VisuallyHidden>
+                              <FormControl>
+                                <Input
+                                  type='tel'
+                                  placeholder='+1 555 555 5555'
+                                  autoComplete='tel'
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </Box>
                       <Button
                         type='submit'
                         disabled={
@@ -205,7 +214,7 @@ export function PhoneSection() {
                       )}
                     </HStack>
                   </VStack>
-                </form>
+                </FormLayout>
               </Form>
             )}
           </VStack>

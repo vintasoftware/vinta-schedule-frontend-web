@@ -38,7 +38,7 @@ export default function PartnerLayout({
         }
         actions={<ThemeToggle />}
       />
-      <Box as='main' className='flex-1 px-6 py-10'>
+      <Box as='main' grow px={6} py={10}>
         {children}
       </Box>
     </Flex>

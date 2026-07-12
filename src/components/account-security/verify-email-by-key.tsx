@@ -57,7 +57,8 @@ export function VerifyEmailByKey({ verificationKey }: VerifyEmailByKeyProps) {
   }, [verificationKey]);
 
   return (
-    <Card className='w-full max-w-sm space-y-6 p-8'>
+    // Card exposes only `padding`; width/max-width have no prop (shadcn internal).
+    <Card padding={8} className='w-full max-w-sm'>
       <VStack gap={4} align='center'>
         <Heading level={1} size='2xl' align='center'>
           Email verification

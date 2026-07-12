@@ -11,7 +11,14 @@ import {
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Card } from 'vinta-schedule-design-system/ui/card';
 import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
-import { VStack, Text, Heading } from 'vinta-schedule-design-system/layout';
+import {
+  Box,
+  FormLayout,
+  VStack,
+  Text,
+  Heading,
+} from 'vinta-schedule-design-system/layout';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
 import {
@@ -144,127 +151,141 @@ export default function VerifyPhonePage() {
 
   return (
     <AuthLayout navbar={<AuthNavbar />} variant='single'>
-      <Card className='w-full max-w-sm space-y-6 p-8'>
-        <BackLink href='/auth/login' label='Back to login' />
-        <form onSubmit={handleSubmit} className='space-y-6'>
-          <Heading level={1} size='2xl' align='center'>
-            Verify Phone
-          </Heading>
-          <VStack align='center' gap={4}>
-            <InputOTP
-              maxLength={8}
-              value={otp}
-              onChange={setOtp}
-              containerClassName='justify-center'
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-              </InputOTPGroup>
-              <InputOTPSeparator />
-              <InputOTPGroup>
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-                <InputOTPSlot index={6} />
-                <InputOTPSlot index={7} />
-              </InputOTPGroup>
-            </InputOTP>
+      <Box maxWidth={384} mx='auto'>
+        <Card padding={8}>
+          <VStack gap={6}>
+            <BackLink href='/auth/login' label='Back to login' />
+            <FormLayout gap={6} onSubmit={handleSubmit}>
+              <Heading level={1} size='2xl' align='center'>
+                Verify Phone
+              </Heading>
+              <VStack align='center' gap={4}>
+                <InputOTP
+                  maxLength={8}
+                  value={otp}
+                  onChange={setOtp}
+                  // `containerClassName` is InputOTP's own slot-container hook;
+                  // it takes no DS layout props.
+                  containerClassName='justify-center'
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                    <InputOTPSlot index={6} />
+                    <InputOTPSlot index={7} />
+                  </InputOTPGroup>
+                </InputOTP>
 
-            {consentRecoveryMessage && (
-              <Alert variant='default'>
-                <AlertTitle>One moment</AlertTitle>
-                <AlertDescription>{consentRecoveryMessage}</AlertDescription>
-              </Alert>
-            )}
+                {consentRecoveryMessage && (
+                  <Alert variant='default'>
+                    <AlertTitle>One moment</AlertTitle>
+                    <AlertDescription>
+                      {consentRecoveryMessage}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-            {resendMessage && (
-              <Alert
-                variant={
-                  resendMessage.startsWith('Verification code')
-                    ? 'default'
-                    : 'destructive'
-                }
+                {resendMessage && (
+                  <Alert
+                    variant={
+                      resendMessage.startsWith('Verification code')
+                        ? 'default'
+                        : 'destructive'
+                    }
+                  >
+                    <AlertTitle>
+                      {resendMessage.startsWith('Verification code')
+                        ? 'Success'
+                        : 'Error'}
+                    </AlertTitle>
+                    <AlertDescription>{resendMessage}</AlertDescription>
+                  </Alert>
+                )}
+              </VStack>
+              {error && (
+                <Alert variant='destructive'>
+                  <AlertTitle>Verification failed</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              {success && (
+                <Alert variant='default'>
+                  <AlertTitle>Success</AlertTitle>
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
+              )}
+              {/* `w-full`: <Button> exposes no width prop. */}
+              <Button
+                type='submit'
+                className='w-full'
+                disabled={verifyPhoneMutation.isPending}
               >
-                <AlertTitle>
-                  {resendMessage.startsWith('Verification code')
-                    ? 'Success'
-                    : 'Error'}
-                </AlertTitle>
-                <AlertDescription>{resendMessage}</AlertDescription>
-              </Alert>
-            )}
-          </VStack>
-          {error && (
-            <Alert variant='destructive'>
-              <AlertTitle>Verification failed</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {success && (
-            <Alert variant='default'>
-              <AlertTitle>Success</AlertTitle>
-              <AlertDescription>{success}</AlertDescription>
-            </Alert>
-          )}
-          <Button
-            type='submit'
-            className='w-full'
-            disabled={verifyPhoneMutation.isPending}
-          >
-            {verifyPhoneMutation.isPending ? 'Verifying...' : 'Verify'}
-          </Button>
-          <Text as='div' size='sm' align='center' className='mt-2'>
-            <a
-              href=''
-              role='button'
-              onClick={async (e) => {
-                e.preventDefault();
-                setResendMessage(null);
-                setConsentRecoveryMessage(null);
-                try {
-                  await resendPhoneVerificationCode();
-                  setResendMessage('Verification code resent to your phone.');
-                } catch (err) {
-                  if (isConsentRequiredError(err)) {
+                {verifyPhoneMutation.isPending ? 'Verifying...' : 'Verify'}
+              </Button>
+              <Text as='div' size='sm' align='center' mt={2}>
+                <TextLink
+                  href=''
+                  role='button'
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    setResendMessage(null);
+                    setConsentRecoveryMessage(null);
                     try {
-                      await recoverFromConsentRequired(
-                        () => resendPhoneVerificationCode(),
-                        phone?.phone,
-                        isAccountPhoneLoading,
-                        createConsent,
-                        () =>
-                          setConsentRecoveryMessage(CONSENT_RECOVERY_MESSAGE)
-                      );
-                      setConsentRecoveryMessage(null);
+                      await resendPhoneVerificationCode();
                       setResendMessage(
                         'Verification code resent to your phone.'
                       );
-                    } catch (retryErr) {
-                      setConsentRecoveryMessage(null);
+                    } catch (err) {
+                      if (isConsentRequiredError(err)) {
+                        try {
+                          await recoverFromConsentRequired(
+                            () => resendPhoneVerificationCode(),
+                            phone?.phone,
+                            isAccountPhoneLoading,
+                            createConsent,
+                            () =>
+                              setConsentRecoveryMessage(
+                                CONSENT_RECOVERY_MESSAGE
+                              )
+                          );
+                          setConsentRecoveryMessage(null);
+                          setResendMessage(
+                            'Verification code resent to your phone.'
+                          );
+                        } catch (retryErr) {
+                          setConsentRecoveryMessage(null);
+                          setResendMessage(
+                            retryErr instanceof Error
+                              ? retryErr.message
+                              : 'Failed to resend code'
+                          );
+                        }
+                        return;
+                      }
                       setResendMessage(
-                        retryErr instanceof Error
-                          ? retryErr.message
+                        err instanceof Error
+                          ? err.message
                           : 'Failed to resend code'
                       );
                     }
-                    return;
-                  }
-                  setResendMessage(
-                    err instanceof Error ? err.message : 'Failed to resend code'
-                  );
-                }
-              }}
-              className='text-primary hover:underline'
-            >
-              {resendPhoneVerificationCodeMutation.isPending
-                ? 'Resending...'
-                : 'Resend Code'}
-            </a>
-          </Text>
-        </form>
-      </Card>
+                  }}
+                >
+                  {resendPhoneVerificationCodeMutation.isPending
+                    ? 'Resending...'
+                    : 'Resend Code'}
+                </TextLink>
+              </Text>
+            </FormLayout>
+          </VStack>
+        </Card>
+      </Box>
     </AuthLayout>
   );
 }

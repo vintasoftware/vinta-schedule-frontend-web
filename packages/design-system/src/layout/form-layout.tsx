@@ -8,7 +8,9 @@ import type { Space } from './layout-style';
  * prop, not by utility classes. It replaces the app's hand-rolled
  * `<form className='space-y-4'>` / `space-y-6` pattern:
  *
- *   <FormLayout gap={6} onSubmit={handleSubmit(onValid)}>…</FormLayout>
+ * ```tsx
+ * <FormLayout gap={6} onSubmit={handleSubmit(onValid)}>…</FormLayout>
+ * ```
  *
  * It is a thin composition over the existing primitive — it renders
  * `<Flex as='form' direction='column' gap={gap}>` rather than reimplementing
@@ -21,11 +23,13 @@ import type { Space } from './layout-style';
  * share a name — the composer synthesizes a flat barrel across every subpath
  * export, so a second `Form` would be a hard name collision.
  *
- *   <Form {...form}>
- *     <FormLayout gap={4} onSubmit={form.handleSubmit(onValid)}>
- *       <FormField … />
- *     </FormLayout>
- *   </Form>
+ * ```tsx
+ * <Form {...form}>
+ *   <FormLayout gap={4} onSubmit={form.handleSubmit(onValid)}>
+ *     <FormField … />
+ *   </FormLayout>
+ * </Form>
+ * ```
  */
 export interface FormLayoutProps extends React.FormHTMLAttributes<HTMLFormElement> {
   /** Vertical space between children, on the DS 4px token scale. */

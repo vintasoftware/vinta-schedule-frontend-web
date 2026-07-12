@@ -36,7 +36,7 @@ export default function ResourcesPage() {
         description='Manage shared resource calendars — rooms, equipment, and anything members can book.'
         actions={
           <Button onClick={() => setCreateOpen(true)}>
-            <Plus className='mr-1 size-4' aria-hidden />
+            <Plus aria-hidden />
             New resource calendar
           </Button>
         }

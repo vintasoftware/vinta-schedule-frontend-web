@@ -31,7 +31,9 @@ export interface HeadingProps extends TextProps {
  * Heading — semantic heading with design-system defaults per level. Override
  * any token via props.
  *
- *   <Heading level={2}>Section title</Heading>
+ * ```tsx
+ * <Heading level={2}>Section title</Heading>
+ * ```
  */
 const Heading = React.forwardRef<HTMLElement, HeadingProps>(function Heading(
   { level = 2, size, weight, tracking = 'tight', leading = 'tight', ...props },

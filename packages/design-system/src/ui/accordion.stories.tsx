@@ -69,7 +69,9 @@ export const Default: Story = {
 
 export const Multiple: Story = {
   args: { type: 'multiple' },
-  render: (args) => (
+  // `collapsible` is a type="single" prop; Radix passes it straight to the DOM
+  // for type="multiple", so drop the inherited default arg here.
+  render: ({ collapsible: _collapsible, ...args }) => (
     <Accordion {...args} className='w-96'>
       <AccordionItem value='1'>
         <AccordionTrigger>Working hours</AccordionTrigger>

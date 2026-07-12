@@ -17,6 +17,7 @@ export { Center } from './center';
 export { Spacer } from './spacer';
 export { Section, type SectionProps } from './section';
 export { Divider, type DividerProps } from './divider';
+export { VisuallyHidden, type VisuallyHiddenProps } from './visually-hidden';
 export { Container, type ContainerProps } from './container';
 export { FormLayout, type FormLayoutProps } from './form-layout';
 

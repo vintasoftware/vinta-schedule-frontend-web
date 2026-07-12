@@ -31,6 +31,7 @@ import {
   AlertDescription,
 } from 'vinta-schedule-design-system/ui/alert';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
 import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
 import type { AvailableTimeWindow, UnavailableTimeWindow } from '@/client';
 import { zonedFormat } from '@/lib/datetime/index';
@@ -86,8 +87,8 @@ export function ConflictSurface({
 }: ConflictSurfaceProps) {
   return (
     <VStack gap={4} data-testid='conflict-surface'>
-      <Alert className='border-warning bg-background'>
-        <TriangleAlert className='text-warning h-4 w-4' />
+      <Alert variant='warning'>
+        <Icon icon={TriangleAlert} />
         <AlertTitle>Scheduling conflict detected</AlertTitle>
         <AlertDescription>
           The selected time overlaps with existing blocks on the following
@@ -130,7 +131,7 @@ function ConflictItem({ conflict }: { conflict: CalendarConflict }) {
 
   return (
     <VStack gap={2} p={3} border radius='md' data-testid='conflict-item'>
-      <Text size='sm' className='font-medium'>
+      <Text size='sm' weight='medium'>
         {calendarName}
       </Text>
 

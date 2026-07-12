@@ -36,7 +36,7 @@ import {
   FormItem,
   FormControl,
 } from 'vinta-schedule-design-system/ui/form';
-import { VStack } from 'vinta-schedule-design-system/layout';
+import { Box, FormLayout, Text } from 'vinta-schedule-design-system/layout';
 import { useExternalEventUpdatePolicy } from '@/hooks/sync/use-external-event-update-policy';
 import type { ExternalEventUpdatePolicyEnum } from '@/client';
 
@@ -126,51 +126,63 @@ export function ExternalEventUpdatePolicyForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <VStack gap={6}>
-          <FormField
-            control={form.control}
-            name='external_event_update_policy'
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <RadioGroup
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    className='grid gap-3'
-                    aria-label='External event update policy'
-                  >
-                    {POLICY_OPTIONS.map((opt) => (
-                      <Label
-                        key={opt.value}
-                        htmlFor={`policy-${opt.value}`}
-                        className='border-border has-[:checked]:border-primary flex cursor-pointer items-start gap-3 rounded-lg border p-4 leading-snug'
-                      >
-                        <RadioGroupItem
-                          value={opt.value}
-                          id={`policy-${opt.value}`}
-                          disabled={isPending}
-                          className='mt-0.5'
-                        />
-                        <span className='block'>
-                          <span className='font-medium'>{opt.label}</span>
-                          <span className='text-muted-foreground mt-0.5 block text-sm font-normal'>
-                            {opt.description}
-                          </span>
-                        </span>
-                      </Label>
-                    ))}
-                  </RadioGroup>
-                </FormControl>
-              </FormItem>
-            )}
-          />
+      <FormLayout gap={6} onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          control={form.control}
+          name='external_event_update_policy'
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                {/* className: shadcn <RadioGroup> is `grid gap-2` internally and
+                    exposes no gap prop. */}
+                <RadioGroup
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  className='gap-3'
+                  aria-label='External event update policy'
+                >
+                  {POLICY_OPTIONS.map((opt) => (
+                    // className: the selected-card border relies on the
+                    // `:has(:checked)` variant, which must sit on the same
+                    // element that draws the border — inexpressible as a token
+                    // prop. `cursor-pointer` is likewise a CSS-only concern.
+                    <Label
+                      key={opt.value}
+                      htmlFor={`policy-${opt.value}`}
+                      className='border-border has-[:checked]:border-primary flex cursor-pointer items-start gap-3 rounded-lg border p-4 leading-snug'
+                    >
+                      {/* className: shadcn <RadioGroupItem> (Radix) exposes no
+                          margin prop; a 2px optical nudge onto the first line. */}
+                      <RadioGroupItem
+                        value={opt.value}
+                        id={`policy-${opt.value}`}
+                        disabled={isPending}
+                        className='mt-0.5'
+                      />
+                      <Box>
+                        <Text weight='medium'>{opt.label}</Text>
+                        <Text
+                          display='block'
+                          mt={1}
+                          size='sm'
+                          weight='normal'
+                          color='muted-foreground'
+                        >
+                          {opt.description}
+                        </Text>
+                      </Box>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              </FormControl>
+            </FormItem>
+          )}
+        />
 
-          <Button type='submit' disabled={isPending || isUnchanged}>
-            {isPending ? 'Saving...' : 'Save settings'}
-          </Button>
-        </VStack>
-      </form>
+        <Button type='submit' disabled={isPending || isUnchanged}>
+          {isPending ? 'Saving...' : 'Save settings'}
+        </Button>
+      </FormLayout>
     </Form>
   );
 }

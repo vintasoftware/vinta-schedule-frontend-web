@@ -73,7 +73,7 @@ export function MfaSection() {
       </CardHeader>
       <CardContent>
         {isLoading || isConfigLoading ? (
-          <Skeleton className='h-10 w-full' />
+          <Skeleton height={40} width='full' />
         ) : isError ? (
           <Text size='sm' color='destructive'>
             Could not load your two-factor settings.

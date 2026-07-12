@@ -32,8 +32,20 @@ import {
 import { DateTime } from 'luxon';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import './calendar-theme.css';
-import { Flex, HStack } from 'vinta-schedule-design-system/layout';
+import {
+  Box,
+  Flex,
+  Grid,
+  HStack,
+  Heading,
+  Text,
+  VStack,
+  type BoxProps,
+  type ColorToken,
+  type StackProps,
+} from 'vinta-schedule-design-system/layout';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { List, ListItem } from 'vinta-schedule-design-system/ui/list';
 import {
   Tabs,
   TabsList,
@@ -52,6 +64,44 @@ import {
   type CalendarEventVM,
   type SchedulingChipStatus,
 } from './event-vm';
+
+// ---------------------------------------------------------------------------
+// Local primitives
+//
+// `Box` renders any element through `as`, but its props are typed for a generic
+// HTMLElement, so button-only attributes (`type`, `disabled`) are not in the
+// prop list. This cast re-adds them without reaching for a raw <button>.
+// ---------------------------------------------------------------------------
+
+const BoxButton = Box as React.ComponentType<
+  BoxProps & React.ButtonHTMLAttributes<HTMLButtonElement>
+>;
+
+const HStackButton = HStack as React.ComponentType<
+  StackProps & React.ButtonHTMLAttributes<HTMLButtonElement>
+>;
+
+/** An unstyled, full-width, left-aligned button wrapper around an event chip. */
+function EventButton({
+  onClick,
+  children,
+}: {
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <BoxButton
+      as='button'
+      type='button'
+      display='block'
+      width='full'
+      textAlign='left'
+      onClick={onClick}
+    >
+      {children}
+    </BoxButton>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Luxon localizer — wire to Phase 0c's Luxon (ISO week starts Monday = 1)
@@ -110,14 +160,21 @@ function DefaultEventContent({
         data-slot='scheduling-chip'
         data-compact=''
         status={schedulingChipStatus(event.status)}
+        // SchedulingChip is a DS atom with no layout props: it must fill the
+        // absolutely-positioned react-big-calendar event cell, and the compact
+        // variant re-flows it onto one line.
         className='h-full w-full flex-row items-baseline gap-1 py-0'
         title={
-          <span className='truncate'>
+          <Text truncate>
             {event.title}
             {startLabel ? (
-              <span className='ml-1 font-normal opacity-70'>{startLabel}</span>
+              // TODO(ds-gap): Text has no margin/opacity props — the inline
+              // de-emphasised start time needs both.
+              <Text weight='normal' className='ml-1 opacity-70'>
+                {startLabel}
+              </Text>
             ) : null}
-          </span>
+          </Text>
         }
       />
     );
@@ -127,13 +184,15 @@ function DefaultEventContent({
     <SchedulingChip
       data-slot='scheduling-chip'
       status={schedulingChipStatus(event.status)}
+      // Fill the absolutely-positioned react-big-calendar event cell (no prop).
       className='h-full w-full'
       title={event.title}
       meta={
-        <span className='flex flex-wrap items-center gap-x-1'>
-          {timeRange ? <span>{timeRange}</span> : null}
-          <span>{event.timezoneLabel}</span>
-        </span>
+        // `as='span'` because SchedulingChip renders `meta` inside a <span>.
+        <HStack as='span' wrap columnGap={1}>
+          {timeRange ? <Text>{timeRange}</Text> : null}
+          <Text>{event.timezoneLabel}</Text>
+        </HStack>
       }
     />
   );
@@ -191,7 +250,7 @@ function CalendarToolbar({
       justify='between'
       gap={2}
       wrap
-      className='mb-3'
+      mb={3}
     >
       <HStack gap={1}>
         <Button
@@ -222,7 +281,9 @@ function CalendarToolbar({
         </Button>
       </HStack>
 
-      <span className='text-foreground text-base font-medium'>{label}</span>
+      <Text size='base' weight='medium' color='foreground'>
+        {label}
+      </Text>
 
       <Tabs value={view} onValueChange={(next) => onView(next as View)}>
         <TabsList>
@@ -296,35 +357,40 @@ function AgendaChipList({
 
   if (groupedDays.length === 0) {
     return (
-      <div data-slot='agenda-chip-list' className='rbc-agenda-empty'>
+      // `rbc-agenda-empty` is react-big-calendar's own empty-state class, styled
+      // by calendar-theme.css — a third-party styling contract.
+      <Box data-slot='agenda-chip-list' className='rbc-agenda-empty'>
         No events in this range.
-      </div>
+      </Box>
     );
   }
 
   return (
-    <div data-slot='agenda-chip-list' className='flex flex-col gap-4 p-2'>
+    <VStack data-slot='agenda-chip-list' gap={4} p={2}>
       {groupedDays.map((day) => (
-        <section key={day.key} className='flex flex-col gap-2'>
-          <h3 className='text-muted-foreground text-xs font-semibold tracking-wide uppercase'>
+        <VStack as='section' key={day.key} gap={2}>
+          <Heading
+            level={3}
+            size='xs'
+            weight='semibold'
+            tracking='wide'
+            uppercase
+            color='muted-foreground'
+          >
             {day.label}
-          </h3>
-          <ul className='flex flex-col gap-1.5'>
+          </Heading>
+          <List variant='plain' gap={2}>
             {day.events.map((event) => (
-              <li key={event.id}>
-                <button
-                  type='button'
-                  className='block w-full text-left'
-                  onClick={(e) => onSelectEvent?.(event, e)}
-                >
+              <ListItem key={event.id}>
+                <EventButton onClick={(e) => onSelectEvent?.(event, e)}>
                   <EventContent event={event} />
-                </button>
-              </li>
+                </EventButton>
+              </ListItem>
             ))}
-          </ul>
-        </section>
+          </List>
+        </VStack>
       ))}
-    </div>
+    </VStack>
   );
 }
 
@@ -373,11 +439,11 @@ AgendaChipList.title = (
 
 const MONTH_VISIBLE_LIMIT = 3;
 
-const CHIP_DOT_CLASS: Record<SchedulingChipStatus, string> = {
-  booked: 'bg-vinta-600',
-  available: 'bg-teal-600',
-  tentative: 'bg-warning',
-  conflict: 'bg-destructive',
+const CHIP_DOT_COLOR: Record<SchedulingChipStatus, ColorToken> = {
+  booked: 'vinta-600',
+  available: 'teal-600',
+  tentative: 'warning',
+  conflict: 'destructive',
 };
 
 interface MonthLocalizer {
@@ -419,26 +485,43 @@ function MonthCompactEvent({
 }): React.ReactElement {
   const time = event.startDt.isValid ? event.startDt.toFormat('h:mm') : '';
   return (
-    <button
+    <HStackButton
+      as='button'
       type='button'
       onClick={(e) => onSelect?.(event, e)}
       title={event.title}
-      className='hover:bg-muted flex h-5 w-full items-center gap-1 rounded px-1 text-left text-xs'
+      gap={1}
+      px={1}
+      height={20}
+      width='full'
+      radius='sm'
+      textAlign='left'
+      // TODO(ds-gap): no hover-state prop on the layout primitives.
+      className='hover:bg-muted'
     >
-      <span
-        className={cn(
-          'size-1.5 shrink-0 rounded-full',
-          CHIP_DOT_CLASS[schedulingChipStatus(event.status)]
-        )}
+      <Box
+        as='span'
+        width={6}
+        height={6}
+        radius='full'
+        shrink={0}
+        bg={CHIP_DOT_COLOR[schedulingChipStatus(event.status)]}
         aria-hidden
       />
       {time ? (
-        <span className='text-muted-foreground shrink-0 tabular-nums'>
+        // TODO(ds-gap): Text has no flex-item (shrink) or tabular-numerals prop.
+        <Text
+          size='xs'
+          color='muted-foreground'
+          className='shrink-0 tabular-nums'
+        >
           {time}
-        </span>
+        </Text>
       ) : null}
-      <span className='truncate font-medium'>{event.title}</span>
-    </button>
+      <Text size='xs' weight='medium' truncate>
+        {event.title}
+      </Text>
+    </HStackButton>
   );
 }
 
@@ -463,21 +546,19 @@ function DayEventsDialog({
             {day ? day.toFormat('cccc, LLLL d') : 'Events'}
           </DialogTitle>
         </DialogHeader>
-        <div className='flex max-h-[60vh] flex-col gap-1.5 overflow-y-auto'>
+        <VStack gap={2} maxHeight='60vh' overflow='auto'>
           {events.map((event) => (
-            <button
+            <EventButton
               key={event.id}
-              type='button'
-              className='block w-full text-left'
               onClick={(e) => {
                 onSelectEvent?.(event, e);
                 onClose();
               }}
             >
               <EventContent event={event} />
-            </button>
+            </EventButton>
           ))}
-        </div>
+        </VStack>
       </DialogContent>
     </Dialog>
   );
@@ -507,21 +588,32 @@ function MonthChipGrid({
   const dialogEvents = dialogDay ? eventsOnDay(events, dialogDay) : [];
 
   return (
-    <div
+    <Box
       data-slot='month-chip-grid'
-      className='border-border bg-card overflow-hidden rounded-md border'
+      bg='card'
+      border
+      borderColor='border'
+      radius='md'
+      overflow='hidden'
     >
-      <div className='grid grid-cols-7'>
+      <Grid columns={7} gap={0}>
         {weekdayLabels.map((label) => (
-          <div
-            key={label}
-            className='text-muted-foreground border-border border-b px-2 py-1.5 text-xs font-semibold tracking-wide uppercase'
-          >
-            {label}
-          </div>
+          // TODO(ds-gap): `border` sets all four sides — a single-side border
+          // (the header underline) has no prop.
+          <Box key={label} px={2} py={1} className='border-border border-b'>
+            <Text
+              size='xs'
+              weight='semibold'
+              tracking='wide'
+              uppercase
+              color='muted-foreground'
+            >
+              {label}
+            </Text>
+          </Box>
         ))}
-      </div>
-      <div className='grid grid-cols-7'>
+      </Grid>
+      <Grid columns={7} gap={0}>
         {days.map((day) => {
           const dayEvents = eventsOnDay(events, day);
           const visible = dayEvents.slice(0, MONTH_VISIBLE_LIMIT);
@@ -529,25 +621,34 @@ function MonthChipGrid({
           const isOffRange = day.month !== monthStart.month;
           const isToday = day.hasSame(today, 'day');
           return (
-            <div
+            <VStack
               key={day.toISODate()}
+              gap={1}
+              p={1}
+              minHeight='7rem'
+              // TODO(ds-gap): per-side borders (+ the `last:` variant) and the
+              // 40%-alpha muted tint are not expressible as token props.
               className={cn(
-                'border-border flex min-h-[7rem] flex-col gap-0.5 border-r border-b p-1 last:border-r-0',
+                'border-border border-r border-b last:border-r-0',
                 isOffRange && 'bg-muted/40',
                 isToday && 'bg-accent'
               )}
             >
-              <div
-                className={cn(
-                  'px-1 text-xs',
-                  isOffRange
-                    ? 'text-muted-foreground'
-                    : 'text-foreground font-medium',
-                  isToday && 'text-primary font-bold'
-                )}
-              >
-                {day.day}
-              </div>
+              <Box px={1}>
+                <Text
+                  size='xs'
+                  weight={isToday ? 'bold' : isOffRange ? 'normal' : 'medium'}
+                  color={
+                    isToday
+                      ? 'primary'
+                      : isOffRange
+                        ? 'muted-foreground'
+                        : 'foreground'
+                  }
+                >
+                  {day.day}
+                </Text>
+              </Box>
               {visible.map((event) => (
                 <MonthCompactEvent
                   key={event.id}
@@ -556,25 +657,32 @@ function MonthChipGrid({
                 />
               ))}
               {overflow > 0 ? (
-                <button
+                <BoxButton
+                  as='button'
                   type='button'
                   onClick={() => setDialogDay(day)}
-                  className='text-muted-foreground hover:text-foreground px-1 text-left text-xs font-medium'
+                  px={1}
+                  textAlign='left'
+                  color='muted-foreground'
+                  // TODO(ds-gap): no hover-state prop on the layout primitives.
+                  className='hover:text-foreground'
                 >
-                  +{overflow} more
-                </button>
+                  <Text size='xs' weight='medium'>
+                    +{overflow} more
+                  </Text>
+                </BoxButton>
               ) : null}
-            </div>
+            </VStack>
           );
         })}
-      </div>
+      </Grid>
       <DayEventsDialog
         day={dialogDay}
         events={dialogEvents}
         onClose={() => setDialogDay(null)}
         onSelectEvent={onSelectEvent}
       />
-    </div>
+    </Box>
   );
 }
 

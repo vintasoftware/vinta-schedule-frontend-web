@@ -12,6 +12,7 @@ import {
 import {
   responsiveClasses,
   plainValue,
+  isResponsive,
   columnsClass,
   spaceClass,
   type Responsive,
@@ -53,9 +54,11 @@ function template(value: number | string | undefined): string | undefined {
 
 /**
  * Grid — CSS grid container. Defaults to the design system's 12-column grid;
- * pass `columns` for any count (or a template string). Compose with <GridItem>.
+ * pass `columns` for any count (or a template string). Compose with `<GridItem>`.
  *
- *   <Grid columns={3} gap={4}>…</Grid>
+ * ```tsx
+ * <Grid columns={3} gap={4}>…</Grid>
+ * ```
  */
 const Grid = React.forwardRef<HTMLElement, GridProps>(function Grid(
   {
@@ -74,6 +77,9 @@ const Grid = React.forwardRef<HTMLElement, GridProps>(function Grid(
   },
   ref
 ) {
+  // A responsive `display` is emitted as classes; Grid would otherwise always
+  // write display:grid inline, which beats them and kills the breakpoint.
+  const responsiveDisplay = isResponsive(boxProps.display);
   const { classes: boxClasses, rest: plainBox } =
     splitResponsiveBoxProps(boxProps);
   const { style: resolved, rest } = splitBoxProps(plainBox);
@@ -91,7 +97,7 @@ const Grid = React.forwardRef<HTMLElement, GridProps>(function Grid(
   const plainGap = plainValue(gap);
 
   const gridStyle: CSSProperties = {
-    display: inline ? 'inline-grid' : 'grid',
+    display: responsiveDisplay ? undefined : inline ? 'inline-grid' : 'grid',
     gridTemplateColumns: columnsCls ? undefined : template(plainColumns),
     gridTemplateRows: template(rows),
     alignItems: align ? ALIGN[align] : undefined,

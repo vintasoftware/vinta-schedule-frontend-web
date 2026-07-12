@@ -2,7 +2,10 @@ import * as React from 'react';
 
 /**
  * Spacer — flexible gap that pushes siblings apart inside a Flex/HStack/VStack.
- *   <HStack><Logo /><Spacer /><Actions /></HStack>
+ *
+ * ```tsx
+ * <HStack><Logo /><Spacer /><Actions /></HStack>
+ * ```
  */
 const Spacer = React.forwardRef<
   HTMLDivElement,

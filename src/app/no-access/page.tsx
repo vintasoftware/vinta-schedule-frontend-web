@@ -17,7 +17,7 @@ import { Flex } from 'vinta-schedule-design-system/layout/flex';
 export default function NoAccessPage() {
   return (
     <Center minHeight='screen'>
-      <Stack gap={6} className='max-w-sm text-center'>
+      <Stack gap={6} maxWidth={384} textAlign='center'>
         <Stack gap={2}>
           <Heading level={1} size='2xl'>
             Access Disabled

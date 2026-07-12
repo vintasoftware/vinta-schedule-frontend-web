@@ -4,7 +4,16 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Bell } from 'lucide-react';
 
+import {
+  Box,
+  Center,
+  Divider,
+  HStack,
+  Text,
+  VStack,
+} from 'vinta-schedule-design-system/layout';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { List, ListItem } from 'vinta-schedule-design-system/ui/list';
 import {
   Popover,
   PopoverContent,
@@ -20,6 +29,22 @@ import { NotificationListItem } from './notification-list-item';
 // interval and on window focus.
 const POLL_INTERVAL_MS = 60_000;
 const DROPDOWN_PAGE_SIZE = 10;
+
+// TODO(ds-gap): no DS prop expresses `position: relative`+`flex-shrink` on a
+// Button, a negative inset (`-top-0.5`), a 10px font size, or a between-items
+// rule on <List> (the old `divide-y`). They ride as token-free inline values.
+const TRIGGER_STYLE: React.CSSProperties = {
+  position: 'relative',
+  flexShrink: 0,
+};
+const BADGE_STYLE: React.CSSProperties = {
+  top: '-0.125rem',
+  right: '-0.125rem',
+};
+const BADGE_TEXT_STYLE: React.CSSProperties = { fontSize: '10px' };
+const ROW_RULE_STYLE: React.CSSProperties = {
+  borderTop: '1px solid var(--border)',
+};
 
 /**
  * NotificationsBell — topbar bell with an unread-count badge. Opens a dropdown
@@ -40,7 +65,7 @@ export function NotificationsBell() {
         <Button
           variant='ghost'
           size='icon'
-          className='relative shrink-0'
+          style={TRIGGER_STYLE}
           aria-label={
             unreadCount > 0
               ? `Notifications, ${unreadCount} unread`
@@ -49,55 +74,80 @@ export function NotificationsBell() {
         >
           <Bell />
           {unreadCount > 0 ? (
-            <span className='bg-primary text-primary-foreground absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-semibold'>
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
+            <Center
+              as='span'
+              position='absolute'
+              height={16}
+              minWidth={16}
+              px={1}
+              radius='full'
+              bg='primary'
+              color='primary-foreground'
+              style={BADGE_STYLE}
+            >
+              <Text
+                as='span'
+                weight='semibold'
+                leading='none'
+                style={BADGE_TEXT_STYLE}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </Center>
           ) : null}
         </Button>
       </PopoverTrigger>
 
+      {/* className: PopoverContent is a shadcn atom — no width / padding props. */}
       <PopoverContent align='end' className='w-80 p-0'>
-        <div className='flex items-center justify-between border-b px-4 py-3'>
-          <p className='text-sm font-semibold'>Notifications</p>
+        <HStack justify='between' px={4} py={3}>
+          <Text as='p' size='sm' weight='semibold'>
+            Notifications
+          </Text>
           {unreadCount > 0 ? (
-            <span className='text-muted-foreground text-xs'>
+            <Text size='xs' color='muted-foreground'>
               {unreadCount} unread
-            </span>
+            </Text>
           ) : null}
-        </div>
+        </HStack>
+        <Divider />
 
+        {/* className: ScrollArea is a shadcn atom — no max-height prop. */}
         <ScrollArea className='max-h-80'>
           {isLoading ? (
-            <div className='space-y-3 p-4'>
+            <VStack gap={3} p={4}>
               {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className='h-12 w-full' />
+                <Skeleton key={i} height={48} width='full' />
               ))}
-            </div>
+            </VStack>
           ) : notifications.length === 0 ? (
-            <p className='text-muted-foreground px-4 py-8 text-center text-sm'>
-              You&rsquo;re all caught up.
-            </p>
+            <Box px={4} py={8}>
+              <Text as='p' size='sm' color='muted-foreground' align='center'>
+                You&rsquo;re all caught up.
+              </Text>
+            </Box>
           ) : (
-            <ul className='divide-y'>
-              {notifications.map((n) => (
-                <li key={n.id}>
+            <List variant='plain' gap={0}>
+              {notifications.map((n, i) => (
+                <ListItem key={n.id} style={i > 0 ? ROW_RULE_STYLE : undefined}>
                   <NotificationListItem
                     notification={n}
                     onMarkRead={markRead}
                   />
-                </li>
+                </ListItem>
               ))}
-            </ul>
+            </List>
           )}
         </ScrollArea>
 
-        <div className='border-t p-2'>
-          <Button asChild variant='ghost' className='w-full justify-center'>
+        <Divider />
+        <VStack p={2}>
+          <Button asChild variant='ghost'>
             <Link href='/notifications' onClick={() => setOpen(false)}>
               See all notifications
             </Link>
           </Button>
-        </div>
+        </VStack>
       </PopoverContent>
     </Popover>
   );

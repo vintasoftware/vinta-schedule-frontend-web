@@ -30,7 +30,7 @@ import {
   FormControl,
   FormDescription,
 } from 'vinta-schedule-design-system/ui/form';
-import { VStack } from 'vinta-schedule-design-system/layout';
+import { Box, FormLayout, HStack } from 'vinta-schedule-design-system/layout';
 import { useRoomsSyncConfig } from '@/hooks/sync/use-rooms-sync-config';
 
 // ---------------------------------------------------------------------------
@@ -82,14 +82,25 @@ export function RoomsSyncSettingsForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <VStack gap={6}>
-          <FormField
-            control={form.control}
-            name='should_sync_rooms'
-            render={({ field }) => (
-              <FormItem className='border-border flex items-center justify-between gap-4 rounded-lg border p-4'>
-                <div className='flex-1'>
+      <FormLayout gap={6} onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          control={form.control}
+          name='should_sync_rooms'
+          render={({ field }) => (
+            <FormItem>
+              <HStack
+                gap={4}
+                align='center'
+                justify='between'
+                p={4}
+                radius='lg'
+                border
+                borderColor='border'
+              >
+                <Box grow>
+                  {/* className: shadcn <FormLabel> (Radix Label) exposes no
+                      size/weight props, and the field must stay a real
+                      <label htmlFor> for the Switch wiring. */}
                   <FormLabel className='text-base font-semibold'>
                     Sync rooms
                   </FormLabel>
@@ -97,7 +108,7 @@ export function RoomsSyncSettingsForm() {
                     Enable synchronization of room resources from your calendar
                     provider
                   </FormDescription>
-                </div>
+                </Box>
                 <FormControl>
                   <Switch
                     checked={field.value}
@@ -106,15 +117,15 @@ export function RoomsSyncSettingsForm() {
                     aria-label='Enable rooms sync'
                   />
                 </FormControl>
-              </FormItem>
-            )}
-          />
+              </HStack>
+            </FormItem>
+          )}
+        />
 
-          <Button type='submit' disabled={isPending}>
-            {isPending ? 'Saving...' : 'Save settings'}
-          </Button>
-        </VStack>
-      </form>
+        <Button type='submit' disabled={isPending}>
+          {isPending ? 'Saving...' : 'Save settings'}
+        </Button>
+      </FormLayout>
     </Form>
   );
 }

@@ -31,7 +31,7 @@ export default function WebhooksPage() {
       onClick={() => setNewWebhookDialogOpen(true)}
       data-testid='new-webhook-button'
     >
-      <Plus className='mr-1 h-4 w-4' />
+      <Plus />
       New webhook
     </Button>
   );

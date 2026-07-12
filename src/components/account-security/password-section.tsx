@@ -22,7 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from 'vinta-schedule-design-system/ui/form';
-import { VStack } from 'vinta-schedule-design-system/layout';
+import { Flex, VStack, FormLayout } from 'vinta-schedule-design-system/layout';
 
 import { useAuthUser } from '@/hooks/authentication/use-auth-user';
 import { useChangePassword } from '@/hooks/authentication/use-change-password';
@@ -102,8 +102,8 @@ export function PasswordSection() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <VStack gap={4} className='max-w-sm'>
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)}>
+            <VStack gap={4} maxWidth={384}>
               {hasPassword && (
                 <FormField
                   control={form.control}
@@ -160,15 +160,18 @@ export function PasswordSection() {
                   </FormItem>
                 )}
               />
-              <Button
-                type='submit'
-                className='self-start'
-                disabled={changePasswordMutation.isPending || isLoading}
-              >
-                {changePasswordMutation.isPending ? 'Saving…' : title}
-              </Button>
+              {/* Row wrapper keeps the button at its natural width (the stack
+                  would otherwise stretch it edge to edge). */}
+              <Flex>
+                <Button
+                  type='submit'
+                  disabled={changePasswordMutation.isPending || isLoading}
+                >
+                  {changePasswordMutation.isPending ? 'Saving…' : title}
+                </Button>
+              </Flex>
             </VStack>
-          </form>
+          </FormLayout>
         </Form>
       </CardContent>
       <ReauthenticateDialog request={reauthenticationRequest} />

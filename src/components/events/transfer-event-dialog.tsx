@@ -29,7 +29,7 @@ import {
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
 import { Label } from 'vinta-schedule-design-system/ui/label';
-import { VStack } from 'vinta-schedule-design-system/layout';
+import { VStack, Text } from 'vinta-schedule-design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useTransferEvent } from '@/hooks/events/use-transfer-event';
 
@@ -98,13 +98,15 @@ export function TransferEventDialog({
           <DialogTitle>Transfer event</DialogTitle>
           <DialogDescription>
             Select a destination calendar for{' '}
-            <span className='font-medium'>{eventTitle}</span>.
+            <Text weight='medium'>{eventTitle}</Text>.
           </DialogDescription>
         </DialogHeader>
 
         <VStack gap={4}>
           {/* Destination calendar picker */}
           <VStack gap={2}>
+            {/* className: shadcn <Label> exposes no weight prop and the label
+                must stay a real <label htmlFor> for the combobox wiring. */}
             <Label
               htmlFor='transfer-destination-calendar'
               className='font-semibold'

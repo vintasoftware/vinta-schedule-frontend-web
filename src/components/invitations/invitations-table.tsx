@@ -8,6 +8,7 @@ import { useDataTableQuery } from '@/components/data-table/use-data-table-query'
 import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -136,12 +137,12 @@ function ResendButton({ invitation, isLoading, onResend }: ResendButtonProps) {
     >
       {isLoading ? (
         <>
-          <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+          <Spinner label='' />
           Resending…
         </>
       ) : (
         <>
-          <RotateCw className='mr-1 size-4' aria-hidden />
+          <RotateCw aria-hidden />
           Resend
         </>
       )}
@@ -178,12 +179,12 @@ function RevokeButton({ invitation, isLoading, onRevoke }: RevokeButtonProps) {
       >
         {isLoading ? (
           <>
-            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            <Spinner label='' />
             Revoking…
           </>
         ) : (
           <>
-            <Trash2 className='mr-1 size-4' aria-hidden />
+            <Trash2 aria-hidden />
             Revoke
           </>
         )}
@@ -195,8 +196,8 @@ function RevokeButton({ invitation, isLoading, onRevoke }: RevokeButtonProps) {
             <AlertDialogTitle>Revoke invitation</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to revoke the invitation for{' '}
-              <span className='font-medium'>{invitation.email}</span>? This
-              action cannot be undone.
+              <Text weight='medium'>{invitation.email}</Text>? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -204,7 +205,7 @@ function RevokeButton({ invitation, isLoading, onRevoke }: RevokeButtonProps) {
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={isLoading}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              variant='destructive'
             >
               Revoke
             </AlertDialogAction>
@@ -338,7 +339,7 @@ function InvitationsTableInner() {
 
   const toolbarActions = (
     <Button size='sm' onClick={() => setInviteOpen(true)}>
-      <UserPlus className='size-4' aria-hidden />
+      <UserPlus aria-hidden />
       Invite member
     </Button>
   );

@@ -10,9 +10,11 @@ import { cn } from '../lib/utils';
  * Like <Button>, it supports `asChild` so a routing library can own the element
  * while the DS owns the styling:
  *
- *   <TextLink asChild><NextLink href="/bookings">View booking</NextLink></TextLink>
+ * ```tsx
+ * <TextLink asChild><NextLink href="/bookings">View booking</NextLink></TextLink>
+ * ```
  *
- * Not to be confused with `layout/link`'s <Link>, which is the composer's
+ * Not to be confused with `layout/link`'s `<Link>`, which is the composer's
  * prototype-mode navigating primitive (it reads usePrototypeMode() and renders
  * inert in the editor). TextLink knows nothing about prototype mode: it is a
  * plain `<a href>` for real applications.

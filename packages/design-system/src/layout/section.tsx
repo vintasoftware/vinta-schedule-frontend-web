@@ -10,7 +10,7 @@ export interface SectionProps extends Omit<BoxProps, 'py'> {
 
 /**
  * Section — a vertical page band with consistent top/bottom padding. Renders a
- * <section> by default; override with `as`.
+ * `<section>` by default; override with `as`.
  */
 const Section = React.forwardRef<HTMLElement, SectionProps>(function Section(
   { as = 'section', py = 16, ...props },

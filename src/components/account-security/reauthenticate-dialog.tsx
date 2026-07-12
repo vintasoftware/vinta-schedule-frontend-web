@@ -14,7 +14,12 @@ import {
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Input } from 'vinta-schedule-design-system/ui/input';
 import { Label } from 'vinta-schedule-design-system/ui/label';
-import { VStack, Text } from 'vinta-schedule-design-system/layout';
+import {
+  Flex,
+  VStack,
+  Text,
+  FormLayout,
+} from 'vinta-schedule-design-system/layout';
 
 import { ReauthenticationRequest } from '@/hooks/authentication/use-sensitive-action';
 import { useReauthenticate } from '@/hooks/authentication/use-reauthenticate';
@@ -82,7 +87,7 @@ export function ReauthenticateDialog({ request }: ReauthenticateDialogProps) {
             For your security, please confirm your identity to continue.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
+        <FormLayout onSubmit={handleSubmit}>
           <VStack gap={4}>
             {activeMethod === 'password' ? (
               <VStack gap={2}>
@@ -113,19 +118,23 @@ export function ReauthenticateDialog({ request }: ReauthenticateDialogProps) {
               </VStack>
             )}
             {canPassword && canMfa && (
-              <Button
-                type='button'
-                variant='link'
-                size='sm'
-                className='self-start px-0'
-                onClick={() =>
-                  setMethod(activeMethod === 'password' ? 'mfa' : 'password')
-                }
-              >
-                {activeMethod === 'password'
-                  ? 'Use an authenticator code instead'
-                  : 'Use your password instead'}
-              </Button>
+              // Row wrapper keeps the link button at its natural width; `px-0`
+              // stays a class — Button exposes no padding prop.
+              <Flex>
+                <Button
+                  type='button'
+                  variant='link'
+                  size='sm'
+                  className='px-0'
+                  onClick={() =>
+                    setMethod(activeMethod === 'password' ? 'mfa' : 'password')
+                  }
+                >
+                  {activeMethod === 'password'
+                    ? 'Use an authenticator code instead'
+                    : 'Use your password instead'}
+                </Button>
+              </Flex>
             )}
             <DialogFooter>
               <Button
@@ -145,7 +154,7 @@ export function ReauthenticateDialog({ request }: ReauthenticateDialogProps) {
               </Button>
             </DialogFooter>
           </VStack>
-        </form>
+        </FormLayout>
       </DialogContent>
     </Dialog>
   );

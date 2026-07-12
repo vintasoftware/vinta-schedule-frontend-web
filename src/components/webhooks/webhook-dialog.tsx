@@ -32,6 +32,7 @@ import {
   FormDescription,
   FormMessage,
 } from 'vinta-schedule-design-system/ui/form';
+import { FormLayout } from 'vinta-schedule-design-system/layout';
 import type { EventTypeEnum } from '@/client';
 import {
   useCreateWebhookConfiguration,
@@ -191,11 +192,7 @@ export function WebhookDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-            noValidate
-          >
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             <FormField
               control={form.control}
               name='event_type'
@@ -250,6 +247,7 @@ export function WebhookDialog({
                   <FormControl>
                     <Textarea
                       placeholder='{ "Authorization": "Bearer …" }'
+                      // shadcn Textarea has no family/size props.
                       className='font-mono text-sm'
                       rows={4}
                       data-testid='webhook-headers'
@@ -287,7 +285,7 @@ export function WebhookDialog({
                     : 'Create webhook'}
               </Button>
             </DialogFooter>
-          </form>
+          </FormLayout>
         </Form>
       </DialogContent>
     </Dialog>

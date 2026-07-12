@@ -50,7 +50,16 @@ import {
   FormDescription,
   FormMessage,
 } from 'vinta-schedule-design-system/ui/form';
-import { VStack, HStack, Text, Box } from 'vinta-schedule-design-system/layout';
+import { List, ListItem } from 'vinta-schedule-design-system/ui/list';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import {
+  VStack,
+  HStack,
+  Text,
+  Box,
+  FormLayout,
+} from 'vinta-schedule-design-system/layout';
 import { useUpsertServiceAccount } from '@/hooks/service-accounts/use-service-account';
 
 // ---------------------------------------------------------------------------
@@ -105,23 +114,29 @@ function ExternalAnchor({
   children: React.ReactNode;
 }) {
   return (
-    <a
+    <TextLink
       href={href}
       target='_blank'
       rel='noopener noreferrer'
-      className='text-primary inline-flex items-center gap-1 font-medium underline underline-offset-2'
+      underline='always'
     >
-      {children}
-      <ExternalLink className='h-3.5 w-3.5' aria-hidden='true' />
-    </a>
+      <HStack as='span' inline gap={1} align='center'>
+        <Text weight='medium'>{children}</Text>
+        <Icon icon={ExternalLink} size='xs' />
+      </HStack>
+    </TextLink>
   );
 }
 
 function OrderedSteps({ children }: { children: React.ReactNode }) {
+  // The muted tone rides in on the wrapper so <List> keeps its token styling
+  // (ordered markers, ps-5, text-sm) with no class overrides.
   return (
-    <ol className='text-muted-foreground list-decimal space-y-2 pl-5 text-sm'>
-      {children}
-    </ol>
+    <Box color='muted-foreground'>
+      <List variant='ordered' gap={2}>
+        {children}
+      </List>
+    </Box>
   );
 }
 
@@ -141,23 +156,27 @@ const INSTRUCTION_STEPS: StepDef[] = [
     description: 'Create a dedicated service account in Google Cloud.',
     content: (
       <OrderedSteps>
-        <li>
+        <ListItem>
           Open the{' '}
           <ExternalAnchor href='https://console.cloud.google.com/iam-admin/serviceaccounts'>
             Google Cloud service accounts page
           </ExternalAnchor>{' '}
           and select (or create) the project for your organization.
-        </li>
-        <li>
-          Click <strong>Create service account</strong>, give it a name such as{' '}
-          <code className='font-mono text-xs'>vinta-schedule-rooms</code>, then
-          click <strong>Done</strong>. No project-level roles are required.
-        </li>
-        <li>
+        </ListItem>
+        <ListItem>
+          Click <Text weight='semibold'>Create service account</Text>, give it a
+          name such as{' '}
+          <Text as='code' family='mono' size='xs'>
+            vinta-schedule-rooms
+          </Text>
+          , then click <Text weight='semibold'>Done</Text>. No project-level
+          roles are required.
+        </ListItem>
+        <ListItem>
           Open the new service account and copy its{' '}
-          <strong>Unique ID (Client ID)</strong> — you&apos;ll need it in
-          step&nbsp;3.
-        </li>
+          <Text weight='semibold'>Unique ID (Client ID)</Text> — you&apos;ll
+          need it in step&nbsp;3.
+        </ListItem>
       </OrderedSteps>
     ),
   },
@@ -166,20 +185,20 @@ const INSTRUCTION_STEPS: StepDef[] = [
     description: 'Turn on the APIs the service account will call.',
     content: (
       <OrderedSteps>
-        <li>
+        <ListItem>
           Enable the{' '}
           <ExternalAnchor href='https://console.cloud.google.com/apis/library/admin.googleapis.com'>
             Admin SDK API
           </ExternalAnchor>{' '}
           for the project.
-        </li>
-        <li>
+        </ListItem>
+        <ListItem>
           Enable the{' '}
           <ExternalAnchor href='https://console.cloud.google.com/apis/library/calendar-json.googleapis.com'>
             Google Calendar API
           </ExternalAnchor>{' '}
           for the project.
-        </li>
+        </ListItem>
       </OrderedSteps>
     ),
   },
@@ -190,23 +209,29 @@ const INSTRUCTION_STEPS: StepDef[] = [
     content: (
       <VStack gap={3}>
         <OrderedSteps>
-          <li>
+          <ListItem>
             Open the{' '}
             <ExternalAnchor href='https://admin.google.com/ac/owl/domainwidedelegation'>
               Domain-wide delegation page
             </ExternalAnchor>{' '}
             in the Google Admin Console (you must be a super-admin).
-          </li>
-          <li>
-            Click <strong>Add new</strong> and paste the service account&apos;s{' '}
-            <strong>Client ID</strong> from step&nbsp;1.
-          </li>
-          <li>
-            In <strong>OAuth scopes</strong>, paste the two scopes below
-            (comma-separated), then click <strong>Authorize</strong>.
-          </li>
+          </ListItem>
+          <ListItem>
+            Click <Text weight='semibold'>Add new</Text> and paste the service
+            account&apos;s <Text weight='semibold'>Client ID</Text> from
+            step&nbsp;1.
+          </ListItem>
+          <ListItem>
+            In <Text weight='semibold'>OAuth scopes</Text>, paste the two scopes
+            below (comma-separated), then click{' '}
+            <Text weight='semibold'>Authorize</Text>.
+          </ListItem>
         </OrderedSteps>
         <Box p={3} radius='md' border borderColor='border' bg='muted'>
+          {/* className: the scope blob is a code sample — it must wrap inside
+              words and preserve whitespace. `break-all` / `whitespace-pre-wrap`
+              have no token-prop equivalent (DS gap: no `wrap`/`whiteSpace`
+              prop on Text). */}
           <Text
             size='xs'
             family='mono'
@@ -216,9 +241,9 @@ const INSTRUCTION_STEPS: StepDef[] = [
           </Text>
         </Box>
         <Text size='xs' color='muted-foreground'>
-          The <strong>admin email</strong> you enter in the final step must be a
-          Google Workspace super-admin in this domain — the service account
-          impersonates it to list rooms.
+          The <Text weight='semibold'>admin email</Text> you enter in the final
+          step must be a Google Workspace super-admin in this domain — the
+          service account impersonates it to list rooms.
         </Text>
       </VStack>
     ),
@@ -228,22 +253,24 @@ const INSTRUCTION_STEPS: StepDef[] = [
     description: 'Generate the key file you will paste in the next step.',
     content: (
       <OrderedSteps>
-        <li>
+        <ListItem>
           Back in the{' '}
           <ExternalAnchor href='https://console.cloud.google.com/iam-admin/serviceaccounts'>
             service accounts page
           </ExternalAnchor>
-          , open your service account and go to the <strong>Keys</strong> tab.
-        </li>
-        <li>
-          Click <strong>Add key → Create new key</strong>, choose{' '}
-          <strong>JSON</strong>, and click <strong>Create</strong>. The key file
-          downloads automatically.
-        </li>
-        <li>
+          , open your service account and go to the{' '}
+          <Text weight='semibold'>Keys</Text> tab.
+        </ListItem>
+        <ListItem>
+          Click <Text weight='semibold'>Add key → Create new key</Text>, choose{' '}
+          <Text weight='semibold'>JSON</Text>, and click{' '}
+          <Text weight='semibold'>Create</Text>. The key file downloads
+          automatically.
+        </ListItem>
+        <ListItem>
           Keep the file handy — you&apos;ll paste its contents in the next step.
           Treat it like a password and delete it once configured.
-        </li>
+        </ListItem>
       </OrderedSteps>
     ),
   },
@@ -368,6 +395,8 @@ export function ServiceAccountWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* className: DialogContent owns its own sizing/scroll and exposes no
+          height prop, so the viewport cap rides in as classes. */}
       <DialogContent className='max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -385,9 +414,9 @@ export function ServiceAccountWizard({
 
         {onFormStep ? (
           <Form {...form}>
-            <form
+            <FormLayout
+              gap={4}
               onSubmit={form.handleSubmit(onSubmit)}
-              className='flex flex-col gap-4'
               noValidate
             >
               <VStack gap={1}>
@@ -395,6 +424,8 @@ export function ServiceAccountWizard({
                   Paste Google service-account JSON (fills email and private key
                   fields)
                 </Text>
+                {/* className: shadcn <Textarea> exposes no family/size props;
+                    the JSON blob must render monospaced. */}
                 <Textarea
                   placeholder='Paste JSON here…'
                   value={pasteJson}
@@ -476,6 +507,8 @@ export function ServiceAccountWizard({
                   <FormItem>
                     <FormLabel>Private key</FormLabel>
                     <FormControl>
+                      {/* className: shadcn <Textarea> exposes no family/size
+                          props; the PEM key must render monospaced. */}
                       <Textarea
                         placeholder='-----BEGIN PRIVATE KEY-----'
                         autoComplete='off'
@@ -523,11 +556,12 @@ export function ServiceAccountWizard({
                       : 'Add service account'}
                 </Button>
               </DialogFooter>
-            </form>
+            </FormLayout>
           </Form>
         ) : (
           <>
-            <Box className='min-h-[12rem]'>{currentInstruction!.content}</Box>
+            {/* 12rem — keeps the dialog height stable across instruction steps. */}
+            <Box minHeight={192}>{currentInstruction!.content}</Box>
             <DialogFooter>
               <Button
                 type='button'

@@ -105,7 +105,7 @@ function GroupsTableInner() {
       onClick={() => setCreateDialogOpen(true)}
       data-testid='new-group-button'
     >
-      <Plus className='mr-1 h-4 w-4' />
+      <Plus />
       New group
     </Button>
   );

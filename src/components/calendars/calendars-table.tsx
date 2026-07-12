@@ -17,6 +17,7 @@ import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Switch } from 'vinta-schedule-design-system/ui/switch';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -272,7 +273,7 @@ function BookingRulesButton({
       disabled={isLoading}
       aria-label={`Edit booking rules for ${calendar.name}`}
     >
-      <SlidersHorizontal className='mr-1 size-4' aria-hidden />
+      <SlidersHorizontal aria-hidden />
       Booking rules
     </Button>
   );
@@ -299,12 +300,12 @@ function SyncButton({ calendar, isLoading, onSync }: SyncButtonProps) {
     >
       {isLoading ? (
         <>
-          <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+          <Icon icon={RotateCw} spin />
           Syncing…
         </>
       ) : (
         <>
-          <Cloud className='mr-1 size-4' aria-hidden />
+          <Cloud aria-hidden />
           Sync
         </>
       )}
@@ -343,12 +344,12 @@ function UnlistButton({
     >
       {isUnlisted ? (
         <>
-          <Eye className='mr-1 size-4' aria-hidden />
+          <Eye aria-hidden />
           List
         </>
       ) : (
         <>
-          <EyeOff className='mr-1 size-4' aria-hidden />
+          <EyeOff aria-hidden />
           Unlist
         </>
       )}
@@ -385,12 +386,12 @@ function DeleteButton({ calendar, isLoading, onDelete }: DeleteButtonProps) {
       >
         {isLoading ? (
           <>
-            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            <Icon icon={RotateCw} spin />
             Deleting…
           </>
         ) : (
           <>
-            <Trash2 className='mr-1 size-4' aria-hidden />
+            <Trash2 aria-hidden />
             Delete
           </>
         )}
@@ -402,8 +403,8 @@ function DeleteButton({ calendar, isLoading, onDelete }: DeleteButtonProps) {
             <AlertDialogTitle>Delete calendar</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete{' '}
-              <span className='font-medium'>{calendar.name}</span>? This action
-              cannot be undone.
+              <Text weight='medium'>{calendar.name}</Text>? This action cannot
+              be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -411,6 +412,9 @@ function DeleteButton({ calendar, isLoading, onDelete }: DeleteButtonProps) {
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={isLoading}
+              // shadcn internal: AlertDialogAction hardcodes `buttonVariants()`
+              // and exposes no `variant` prop, so the destructive surface can
+              // only be set through className.
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
             >
               Delete
@@ -648,7 +652,7 @@ function CalendarsTableInner() {
 
   const toolbarActions = (
     <Button size='sm' onClick={() => setCreateOpen(true)}>
-      <Plus className='size-4' aria-hidden />
+      <Plus aria-hidden />
       New calendar
     </Button>
   );

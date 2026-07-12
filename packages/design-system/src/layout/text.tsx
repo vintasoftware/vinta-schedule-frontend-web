@@ -1,7 +1,14 @@
 import * as React from 'react';
 
 import { cn } from '../lib/utils';
-import { color, type ColorToken } from './layout-style';
+import {
+  color,
+  boxStyle,
+  splitBoxProps,
+  splitResponsiveBoxProps,
+  type ColorToken,
+  type BoxStyleProps,
+} from './layout-style';
 
 export type TextSize =
   | 'xs'
@@ -73,10 +80,8 @@ const ALIGN: Record<TextAlign, string> = {
   justify: 'text-justify',
 };
 
-export interface TextProps extends Omit<
-  React.HTMLAttributes<HTMLElement>,
-  'color'
-> {
+export interface TextProps
+  extends BoxStyleProps, Omit<React.HTMLAttributes<HTMLElement>, 'color'> {
   as?: React.ElementType;
   size?: TextSize;
   weight?: TextWeight;
@@ -94,7 +99,9 @@ export interface TextProps extends Omit<
  * Text — typography primitive. Drive size/weight/family/leading/tracking/color
  * through props instead of utility classes.
  *
- *   <Text size="sm" color="muted-foreground">Helper copy</Text>
+ * ```tsx
+ * <Text size="sm" color="muted-foreground">Helper copy</Text>
+ * ```
  */
 const Text = React.forwardRef<HTMLElement, TextProps>(function Text(
   {
@@ -115,6 +122,10 @@ const Text = React.forwardRef<HTMLElement, TextProps>(function Text(
   },
   ref
 ) {
+  // Text now carries the full box vocabulary; resolve it exactly like Box does.
+  const { classes: boxClasses, rest: plainBox } =
+    splitResponsiveBoxProps(props);
+  const { style: resolved, rest } = splitBoxProps(plainBox);
   return (
     <Comp
       ref={ref}
@@ -128,10 +139,11 @@ const Text = React.forwardRef<HTMLElement, TextProps>(function Text(
         truncate && 'truncate',
         italic && 'italic',
         uppercase && 'uppercase',
+        boxClasses,
         className
       )}
-      style={{ color: color(colorToken), ...style }}
-      {...props}
+      style={{ ...resolved, color: color(colorToken), ...style }}
+      {...rest}
     />
   );
 });

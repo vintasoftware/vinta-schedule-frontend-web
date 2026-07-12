@@ -7,14 +7,15 @@
  * CalendarView. Fully wired in Phase 15; for now it is a presentational
  * component driven by `calendars` + `value` + `onChange` props.
  *
- * Design: renders as a shadcn/ui <Select> so it picks up all the token-based
+ * Design: renders as a shadcn/ui `<Select>` so it picks up all the token-based
  * styling automatically (border-border, bg-background, text-foreground, etc.).
  * No fetching, no hooks — the parent supplies the calendar list.
  */
 
 import * as React from 'react';
 import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
-import { HStack, Text } from 'vinta-schedule-design-system/layout';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import { Box, HStack, Text } from 'vinta-schedule-design-system/layout';
 import { CalendarDays } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -84,13 +85,12 @@ export function CalendarScopePicker({
       gap={2}
       className={className}
     >
-      <CalendarDays
-        className='text-muted-foreground size-4 shrink-0'
-        aria-hidden
-      />
-      <Text size='sm' color='muted-foreground' className='shrink-0'>
-        Calendar:
-      </Text>
+      <Icon icon={CalendarDays} size='sm' color='muted-foreground' />
+      <Box shrink={0}>
+        <Text size='sm' color='muted-foreground'>
+          Calendar:
+        </Text>
+      </Box>
       <Combobox
         options={[
           { value: ALL_CALENDARS_VALUE, label: 'All calendars' },
@@ -104,6 +104,8 @@ export function CalendarScopePicker({
         disabled={disabled}
         placeholder='Select calendar'
         searchPlaceholder='Search calendars…'
+        // shadcn internal: Combobox forwards className to its trigger button and
+        // exposes no size prop — the compact 32px trigger has no other route.
         className='h-8 min-w-[160px] text-sm'
       />
     </HStack>
