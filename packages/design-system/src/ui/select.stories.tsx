@@ -31,7 +31,11 @@ const meta = {
     name: { control: 'text', description: 'Name submitted with the form' },
     dir: { control: 'inline-radio', options: ['ltr', 'rtl'] },
   },
-  parameters: { puck: { slots: ['children'] } },
+  parameters: {
+    puck: {
+      slots: [{ name: 'children', allow: ['SelectTrigger', 'SelectContent'] }],
+    },
+  },
 } satisfies Meta<typeof Select>;
 
 export default meta;

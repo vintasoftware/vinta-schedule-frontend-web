@@ -27,7 +27,17 @@ const meta = {
     },
     id: { control: 'text', description: 'DOM id on the <table> element' },
   },
-  parameters: { puck: { slots: ['children'] } },
+  // A table holds a header, body, footer, and/or caption, nothing else.
+  parameters: {
+    puck: {
+      slots: [
+        {
+          name: 'children',
+          allow: ['TableHeader', 'TableBody', 'TableFooter', 'TableCaption'],
+        },
+      ],
+    },
+  },
 } satisfies Meta<typeof Table>;
 
 export default meta;

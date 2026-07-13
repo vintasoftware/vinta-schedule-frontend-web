@@ -17,7 +17,12 @@ const meta = {
       description: 'Accessible name for the avatar',
     },
   },
-  parameters: { puck: { slots: ['children'] } },
+  // An avatar only ever composes an image and a fallback — a closed set.
+  parameters: {
+    puck: {
+      slots: [{ name: 'children', allow: ['AvatarImage', 'AvatarFallback'] }],
+    },
+  },
 } satisfies Meta<typeof Avatar>;
 
 export default meta;

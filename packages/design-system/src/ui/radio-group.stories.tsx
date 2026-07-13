@@ -28,6 +28,10 @@ const meta = {
     name: { control: 'text', description: 'Name submitted with the form' },
   },
   args: { defaultValue: '30' },
+  // Left UNRESTRICTED on purpose: a radio group legally contains layout
+  // wrappers and labels around each RadioGroupItem (e.g. Flex > RadioGroupItem
+  // + Label), so the set of legal children is open. Restricting this to
+  // RadioGroupItem would forbid labelled rows, which is the normal usage.
   parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof RadioGroup>;
 

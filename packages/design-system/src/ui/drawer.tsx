@@ -16,11 +16,29 @@ const Drawer = ({
 );
 Drawer.displayName = 'Drawer';
 
-const DrawerTrigger = DrawerPrimitive.Trigger;
+/**
+ * Wrappers, not bare aliases: vaul builds on Radix Dialog, so
+ * `DrawerPrimitive.Trigger` carries the displayName 'DialogTrigger'. The
+ * composer resolves a component by name, and pinning a name onto the shared
+ * primitive would rename Dialog's own trigger — so give each its own identity.
+ */
+const DrawerTrigger = React.forwardRef<
+  React.ElementRef<typeof DrawerPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Trigger>
+>(function DrawerTrigger(props, ref) {
+  return <DrawerPrimitive.Trigger ref={ref} {...props} />;
+});
+DrawerTrigger.displayName = 'DrawerTrigger';
 
 const DrawerPortal = DrawerPrimitive.Portal;
 
-const DrawerClose = DrawerPrimitive.Close;
+const DrawerClose = React.forwardRef<
+  React.ElementRef<typeof DrawerPrimitive.Close>,
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Close>
+>(function DrawerClose(props, ref) {
+  return <DrawerPrimitive.Close ref={ref} {...props} />;
+});
+DrawerClose.displayName = 'DrawerClose';
 
 const DrawerOverlay = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
@@ -90,7 +108,7 @@ const DrawerTitle = React.forwardRef<
     {...props}
   />
 ));
-DrawerTitle.displayName = DrawerPrimitive.Title.displayName;
+DrawerTitle.displayName = 'DrawerTitle';
 
 const DrawerDescription = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Description>,
@@ -102,7 +120,7 @@ const DrawerDescription = React.forwardRef<
     {...props}
   />
 ));
-DrawerDescription.displayName = DrawerPrimitive.Description.displayName;
+DrawerDescription.displayName = 'DrawerDescription';
 
 export {
   Drawer,

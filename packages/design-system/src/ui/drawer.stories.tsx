@@ -49,7 +49,12 @@ const meta = {
     defaultOpen: false,
     shouldScaleBackground: true,
   },
-  parameters: { puck: { slots: ['children'] } },
+  // A drawer's children are its trigger and its overlay content — nothing else.
+  parameters: {
+    puck: {
+      slots: [{ name: 'children', allow: ['DrawerTrigger', 'DrawerContent'] }],
+    },
+  },
 } satisfies Meta<typeof Drawer>;
 
 export default meta;

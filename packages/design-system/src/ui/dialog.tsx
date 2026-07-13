@@ -23,6 +23,9 @@ function DialogTrigger({
 }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
   return <DialogPrimitive.Trigger data-slot='dialog-trigger' {...props} />;
 }
+// Pinned: same bundler name-collision risk as `Dialog` above (Storybook
+// docgen / the composer's contract extractor resolve components by name).
+DialogTrigger.displayName = 'DialogTrigger';
 
 function DialogPortal({
   ...props
@@ -35,6 +38,8 @@ function DialogClose({
 }: React.ComponentProps<typeof DialogPrimitive.Close>) {
   return <DialogPrimitive.Close data-slot='dialog-close' {...props} />;
 }
+// Pinned: same bundler name-collision risk as `Dialog` above.
+DialogClose.displayName = 'DialogClose';
 
 function DialogOverlay({
   className,
@@ -85,6 +90,8 @@ function DialogContent({
     </DialogPortal>
   );
 }
+// Pinned: same bundler name-collision risk as `Dialog` above.
+DialogContent.displayName = 'DialogContent';
 
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
@@ -135,6 +142,8 @@ function DialogTitle({
     />
   );
 }
+// Pinned: same bundler name-collision risk as `Dialog` above.
+DialogTitle.displayName = 'DialogTitle';
 
 function DialogDescription({
   className,
@@ -148,6 +157,8 @@ function DialogDescription({
     />
   );
 }
+// Pinned: same bundler name-collision risk as `Dialog` above.
+DialogDescription.displayName = 'DialogDescription';
 
 export {
   Dialog,

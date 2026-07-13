@@ -28,7 +28,16 @@ const meta = {
     },
   },
   args: { defaultOpen: false },
-  parameters: { puck: { slots: ['children'] } },
+  parameters: {
+    puck: {
+      slots: [
+        {
+          name: 'children',
+          allow: ['AlertDialogTrigger', 'AlertDialogContent'],
+        },
+      ],
+    },
+  },
 } satisfies Meta<typeof AlertDialog>;
 
 export default meta;

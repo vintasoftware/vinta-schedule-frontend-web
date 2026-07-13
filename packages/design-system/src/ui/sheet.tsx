@@ -7,11 +7,35 @@ import { X } from 'lucide-react';
 
 import { cn } from '../lib/utils';
 
-const Sheet = SheetPrimitive.Root;
+/**
+ * Root / Trigger / Close are thin wrappers, NOT bare aliases of the Radix
+ * primitives. A bare alias (`const SheetTrigger = SheetPrimitive.Trigger`) is
+ * the very same object as Dialog's trigger — Sheet is built on @radix-ui/react-dialog
+ * — so it inherits the displayName 'DialogTrigger', and pinning a correct name
+ * onto it would rename Dialog's trigger too. The composer resolves a component
+ * by name, so each of these needs an identity of its own.
+ */
+// Root is a context provider with no DOM node of its own, so it takes no ref.
+const Sheet = (props: React.ComponentProps<typeof SheetPrimitive.Root>) => (
+  <SheetPrimitive.Root {...props} />
+);
+Sheet.displayName = 'Sheet';
 
-const SheetTrigger = SheetPrimitive.Trigger;
+const SheetTrigger = React.forwardRef<
+  React.ElementRef<typeof SheetPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Trigger>
+>(function SheetTrigger(props, ref) {
+  return <SheetPrimitive.Trigger ref={ref} {...props} />;
+});
+SheetTrigger.displayName = 'SheetTrigger';
 
-const SheetClose = SheetPrimitive.Close;
+const SheetClose = React.forwardRef<
+  React.ElementRef<typeof SheetPrimitive.Close>,
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Close>
+>(function SheetClose(props, ref) {
+  return <SheetPrimitive.Close ref={ref} {...props} />;
+});
+SheetClose.displayName = 'SheetClose';
 
 const SheetPortal = SheetPrimitive.Portal;
 
@@ -73,7 +97,7 @@ const SheetContent = React.forwardRef<
     </SheetPrimitive.Content>
   </SheetPortal>
 ));
-SheetContent.displayName = SheetPrimitive.Content.displayName;
+SheetContent.displayName = 'SheetContent';
 
 const SheetHeader = ({
   className,
@@ -113,7 +137,7 @@ const SheetTitle = React.forwardRef<
     {...props}
   />
 ));
-SheetTitle.displayName = SheetPrimitive.Title.displayName;
+SheetTitle.displayName = 'SheetTitle';
 
 const SheetDescription = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Description>,
@@ -125,7 +149,7 @@ const SheetDescription = React.forwardRef<
     {...props}
   />
 ));
-SheetDescription.displayName = SheetPrimitive.Description.displayName;
+SheetDescription.displayName = 'SheetDescription';
 
 export {
   Sheet,

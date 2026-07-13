@@ -36,7 +36,11 @@ const meta = {
     },
   },
   args: { orientation: 'horizontal', delayDuration: 200 },
-  parameters: { puck: { slots: ['children'] } },
+  // The root only ever composes a single NavigationMenuList; the viewport is
+  // internal plumbing the root renders itself and is never user-composed.
+  parameters: {
+    puck: { slots: [{ name: 'children', allow: ['NavigationMenuList'] }] },
+  },
 } satisfies Meta<typeof NavigationMenu>;
 
 export default meta;

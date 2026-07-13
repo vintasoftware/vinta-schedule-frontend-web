@@ -27,7 +27,15 @@ const meta = {
     autoFocus: { control: 'boolean' },
   },
   args: { maxLength: 6 },
-  parameters: { puck: { slots: ['children'] } },
+  // An OTP field composes groups of slots plus an optional separator between
+  // groups — nothing else belongs directly under the root.
+  parameters: {
+    puck: {
+      slots: [
+        { name: 'children', allow: ['InputOTPGroup', 'InputOTPSeparator'] },
+      ],
+    },
+  },
 } satisfies Meta<typeof InputOTP>;
 
 export default meta;

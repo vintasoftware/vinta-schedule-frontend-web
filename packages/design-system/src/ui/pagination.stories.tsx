@@ -26,7 +26,10 @@ const meta = {
     },
   },
   args: { align: 'center' },
-  parameters: { puck: { slots: ['children'] } },
+  // A pagination nav holds exactly one page-list, nothing else.
+  parameters: {
+    puck: { slots: [{ name: 'children', allow: ['PaginationContent'] }] },
+  },
 } satisfies Meta<typeof Pagination>;
 
 export default meta;

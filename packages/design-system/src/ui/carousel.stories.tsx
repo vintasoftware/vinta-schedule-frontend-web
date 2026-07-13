@@ -28,7 +28,18 @@ const meta = {
     },
   },
   args: { orientation: 'horizontal' },
-  parameters: { puck: { slots: ['children'] } },
+  // A carousel composes its scrollable content plus the prev/next controls —
+  // nothing else belongs directly under the root.
+  parameters: {
+    puck: {
+      slots: [
+        {
+          name: 'children',
+          allow: ['CarouselContent', 'CarouselPrevious', 'CarouselNext'],
+        },
+      ],
+    },
+  },
 } satisfies Meta<typeof Carousel>;
 
 export default meta;

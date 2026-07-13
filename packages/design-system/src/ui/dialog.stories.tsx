@@ -31,7 +31,11 @@ const meta = {
     },
   },
   args: { defaultOpen: false, modal: true },
-  parameters: { puck: { slots: ['children'] } },
+  parameters: {
+    puck: {
+      slots: [{ name: 'children', allow: ['DialogTrigger', 'DialogContent'] }],
+    },
+  },
 } satisfies Meta<typeof Dialog>;
 
 export default meta;

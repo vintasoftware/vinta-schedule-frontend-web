@@ -25,7 +25,10 @@ const meta = {
     },
   },
   args: { separator: 'chevron' },
-  parameters: { puck: { slots: ['children'] } },
+  // A breadcrumb holds exactly one trail list, nothing else.
+  parameters: {
+    puck: { slots: [{ name: 'children', allow: ['BreadcrumbList'] }] },
+  },
 } satisfies Meta<typeof Breadcrumb>;
 
 export default meta;

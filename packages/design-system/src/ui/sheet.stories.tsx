@@ -14,9 +14,7 @@ import { Button } from './button';
 
 const meta = {
   title: 'Components/Sheet',
-  // `component:` is deliberately omitted: Sheet re-exports Radix's Dialog Root,
-  // whose displayName is 'Dialog' and would not match the title leaf 'Sheet'
-  // (§7). The leaf still resolves through the named `Sheet` import.
+  component: Sheet,
   tags: ['autodocs'],
   // Radix DialogProps: `open`/`defaultOpen`/`modal`/`onOpenChange`. `side` is a
   // SheetContent prop, not a root prop, so it is not curated here. `children`
@@ -32,7 +30,12 @@ const meta = {
     },
   },
   args: { defaultOpen: false, modal: true },
-  parameters: { puck: { slots: ['children'] } },
+  // A sheet's children are its trigger and its overlay content — nothing else.
+  parameters: {
+    puck: {
+      slots: [{ name: 'children', allow: ['SheetTrigger', 'SheetContent'] }],
+    },
+  },
 } satisfies Meta<typeof Sheet>;
 
 export default meta;

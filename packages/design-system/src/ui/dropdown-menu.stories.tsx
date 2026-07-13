@@ -29,7 +29,16 @@ const meta = {
     dir: { control: 'inline-radio', options: ['ltr', 'rtl'] },
   },
   args: { defaultOpen: false, modal: true },
-  parameters: { puck: { slots: ['children'] } },
+  parameters: {
+    puck: {
+      slots: [
+        {
+          name: 'children',
+          allow: ['DropdownMenuTrigger', 'DropdownMenuContent'],
+        },
+      ],
+    },
+  },
 } satisfies Meta<typeof DropdownMenu>;
 
 export default meta;

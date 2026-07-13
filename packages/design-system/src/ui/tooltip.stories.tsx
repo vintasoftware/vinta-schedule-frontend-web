@@ -28,7 +28,14 @@ const meta = {
     disableHoverableContent: { control: 'boolean' },
   },
   args: { defaultOpen: false, delayDuration: 700 },
-  parameters: { puck: { slots: ['children'] } },
+  // A tooltip's children are its trigger and its content — nothing else.
+  parameters: {
+    puck: {
+      slots: [
+        { name: 'children', allow: ['TooltipTrigger', 'TooltipContent'] },
+      ],
+    },
+  },
 } satisfies Meta<typeof Tooltip>;
 
 export default meta;
