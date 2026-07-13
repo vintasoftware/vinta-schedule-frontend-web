@@ -14,7 +14,10 @@ const meta = {
     label: { control: 'text', description: 'Optional section heading' },
   },
   args: { label: 'Configure' },
-  parameters: { puck: { slots: ['children'] } },
+  // A nav group is a list of nav rows.
+  parameters: {
+    puck: { slots: [{ name: 'children', allow: ['SidebarItem'] }] },
+  },
 } satisfies Meta<typeof SidebarGroup>;
 
 export default meta;

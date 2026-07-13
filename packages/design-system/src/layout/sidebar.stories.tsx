@@ -9,8 +9,16 @@ const meta = {
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
-    // brand / footer / children are all composed content.
-    puck: { slots: ['brand', 'children', 'footer'] },
+    puck: {
+      slots: [
+        // brand / footer are genuinely open: a wordmark, an org switcher, an
+        // account menu. Only the nav list is constrained — it renders into a
+        // <nav>, where a group or a bare row are the only things that belong.
+        'brand',
+        { name: 'children', allow: ['SidebarGroup', 'SidebarItem'] },
+        'footer',
+      ],
+    },
   },
   argTypes: {
     width: {

@@ -21,7 +21,11 @@ const meta = {
     },
   },
   args: { variant: 'bullet', gap: 2 },
-  parameters: { puck: { slots: ['children'] } },
+  // List renders a <ul>/<ol>, whose only legal child element is <li> — i.e.
+  // ListItem. Free content goes inside a ListItem, whose slot is unrestricted.
+  parameters: {
+    puck: { slots: [{ name: 'children', allow: ['ListItem'] }] },
+  },
 } satisfies Meta<typeof List>;
 
 export default meta;

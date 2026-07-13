@@ -26,7 +26,15 @@ const meta = {
     disabled: { control: 'boolean' },
   },
   args: { value: 'a' },
-  parameters: { puck: { slots: ['children'] } },
+  // An item is exactly a trigger plus its panel. Free content goes one level
+  // deeper, inside AccordionContent, whose own slot is unrestricted.
+  parameters: {
+    puck: {
+      slots: [
+        { name: 'children', allow: ['AccordionTrigger', 'AccordionContent'] },
+      ],
+    },
+  },
 } satisfies Meta<typeof AccordionItem>;
 
 export default meta;

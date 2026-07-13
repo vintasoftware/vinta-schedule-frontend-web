@@ -35,7 +35,11 @@ const meta = {
     dir: { control: 'inline-radio', options: ['ltr', 'rtl'] },
   },
   args: { type: 'single', collapsible: true },
-  parameters: { puck: { slots: ['children'] } },
+  // AccordionItem reads the root's Radix context — anything else dropped here
+  // either throws or renders outside the accordion's semantics.
+  parameters: {
+    puck: { slots: [{ name: 'children', allow: ['AccordionItem'] }] },
+  },
 } satisfies Meta<typeof Accordion>;
 
 export default meta;

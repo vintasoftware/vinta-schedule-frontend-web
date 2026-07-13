@@ -29,7 +29,13 @@ const meta = {
     orientation: 'horizontal',
     activationMode: 'automatic',
   },
-  parameters: { puck: { slots: ['children'] } },
+  // The root pairs a TabsList with the TabsContent panels it reveals; both read
+  // the root's Radix context. Panel bodies are free content one level deeper.
+  parameters: {
+    puck: {
+      slots: [{ name: 'children', allow: ['TabsList', 'TabsContent'] }],
+    },
+  },
 } satisfies Meta<typeof Tabs>;
 
 export default meta;

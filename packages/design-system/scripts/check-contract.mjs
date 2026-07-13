@@ -169,9 +169,56 @@ async function findStories(dir) {
   return out;
 }
 
+/**
+ * A slot entry is either a bare name (unrestricted) or `{ name, allow[] }`.
+ * Returns the slot NAMES; pushes a hard error for any malformed entry.
+ *
+ * Malformed `allow` is worse than an error here: the platform IGNORES it and
+ * quietly serves an unrestricted slot, so a typo'd restriction looks like it
+ * works while offering the user the very components it was meant to forbid.
+ */
+function slotNames(slots, rel, errors) {
+  if (!Array.isArray(slots)) return [];
+  const names = [];
+  for (const entry of slots) {
+    if (typeof entry === 'string') {
+      names.push(entry);
+      continue;
+    }
+    if (!entry || typeof entry !== 'object' || typeof entry.name !== 'string') {
+      errors.push(
+        `${rel}: slot entry ${JSON.stringify(entry)} is neither a string nor { name, allow } — the platform would ignore it`
+      );
+      continue;
+    }
+    names.push(entry.name);
+
+    if (entry.allow === undefined) continue; // unrestricted by design
+    if (!Array.isArray(entry.allow) || entry.allow.length === 0) {
+      errors.push(
+        `${rel}: slot '${entry.name}' has a malformed allow (${JSON.stringify(entry.allow)}) — the platform would silently drop the restriction`
+      );
+      continue;
+    }
+    for (const a of entry.allow) {
+      if (typeof a !== 'string' || !a) {
+        errors.push(
+          `${rel}: slot '${entry.name}' allow entry ${JSON.stringify(a)} is not a component name`
+        );
+      }
+    }
+  }
+  return names;
+}
+
 const errors = [];
 const converted = [];
 const legacy = [];
+
+/** Every contract component name (the leaf of meta.title) seen this run. */
+const contractNames = new Set();
+/** allow-list references, checked against contractNames once all are known. */
+const allowRefs = [];
 
 const stories = (await findStories(join(ROOT, 'src'))).sort();
 // Emit inside the package: the bundles keep `react` external, so Node must be
@@ -255,8 +302,19 @@ for (const file of stories) {
   }
 
   const argTypes = meta.argTypes ?? {};
-  const slots = meta.parameters?.puck?.slots ?? [];
+  const rawSlots = meta.parameters?.puck?.slots ?? [];
+  const slots = slotNames(rawSlots, rel, errors);
   const names = Object.keys(argTypes);
+
+  if (meta.title) contractNames.add(meta.title.split('/').pop().trim());
+  for (const entry of rawSlots) {
+    if (entry && typeof entry === 'object' && Array.isArray(entry.allow)) {
+      for (const a of entry.allow) {
+        if (typeof a === 'string' && a)
+          allowRefs.push({ rel, slot: entry.name, name: a });
+      }
+    }
+  }
 
   // STALENESS — the contract can be well-formed but WRONG. When a component's
   // cva gains a variant (Alert's `warning`/`success`, Button's `fullWidth`) the
@@ -380,6 +438,24 @@ for (const file of stories) {
     if (actual && actual !== leaf) {
       errors.push(`${rel}: title leaf '${leaf}' != component '${actual}' (§7)`);
     }
+  }
+}
+
+// Every allow entry must name a real contract component. The platform resolves
+// these to render functions BY NAME and silently drops the ones it cannot find,
+// so a typo ('AccordionItems') yields a slot that offers nothing, with no error
+// anywhere. Deferred to here because it needs every story's title first.
+for (const { rel, slot, name } of allowRefs) {
+  if (!contractNames.has(name)) {
+    const near = [...contractNames]
+      .filter((c) => c.toLowerCase().startsWith(name.slice(0, 4).toLowerCase()))
+      .slice(0, 3);
+    errors.push(
+      `${rel}: slot '${slot}' allows '${name}', which is not a contract component name` +
+        (near.length
+          ? ` — did you mean ${near.map((n) => `'${n}'`).join(' / ')}?`
+          : '')
+    );
   }
 }
 

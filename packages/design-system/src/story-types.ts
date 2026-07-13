@@ -33,12 +33,34 @@ export interface ArgType {
 }
 
 /**
+ * A slot that restricts what may be dropped into it.
+ *
+ * `allow` lists CONTRACT COMPONENT NAMES — the leaf of another story's
+ * `meta.title` (e.g. 'Components/AccordionItem' → 'AccordionItem'), which the
+ * platform resolves as a named export. A name with no matching story is
+ * silently dropped by the platform, so check:contract cross-checks every entry
+ * against the set of real titles.
+ *
+ * Restrict a slot when its content ONLY works inside that parent — chiefly
+ * Radix compounds, whose subcomponents read the root's React context and throw
+ * outside it. Leave a slot as a bare string when any component is legal there.
+ */
+export interface PuckSlot {
+  /** The prop name — must be a prop the component renders, typed `ReactNode`. */
+  name: string;
+  /** Component names the editor may offer inside. Omit for unrestricted. */
+  allow?: readonly string[];
+}
+
+/**
  * Puck contract parameters. Declare container slot props here (each name must be
  * a prop the component actually renders, typed `ReactNode`). The platform wires
  * Puck's SlotComponent for every declared name.
+ *
+ * An entry is either a bare name (unrestricted) or a `PuckSlot` (restricted).
  */
 export interface PuckParameters {
-  slots?: readonly string[];
+  slots?: readonly (string | PuckSlot)[];
   [key: string]: unknown;
 }
 

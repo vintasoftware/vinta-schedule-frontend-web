@@ -17,7 +17,10 @@ const meta = {
     id: { control: 'text', description: 'DOM id — anchors, tests' },
   },
   args: {},
-  parameters: { puck: { slots: ['children'] } },
+  // A tablist holds tabs, nothing else.
+  parameters: {
+    puck: { slots: [{ name: 'children', allow: ['TabsTrigger'] }] },
+  },
 } satisfies Meta<typeof TabsList>;
 
 export default meta;
