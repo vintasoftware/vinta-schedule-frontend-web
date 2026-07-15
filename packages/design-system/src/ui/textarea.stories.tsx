@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Textarea } from './textarea';
 import { Label } from './label';
@@ -7,8 +7,6 @@ const meta = {
   title: 'Components/Textarea',
   component: Textarea,
   tags: ['autodocs'],
-  // Leaf form control — self-closing, so NO slot. Real
-  // `React.ComponentProps<'textarea'>` members only (§6: no className/style).
   argTypes: {
     placeholder: { control: 'text' },
     rows: { control: 'number', description: 'Visible number of text lines' },

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   Accordion,
@@ -11,8 +11,6 @@ const meta = {
   title: 'Components/Accordion',
   component: Accordion,
   tags: ['autodocs'],
-  // Radix Accordion.Root scalars. `children` (the AccordionItem list) is
-  // composed content → a slot, so it must NOT also be an argTypes key.
   argTypes: {
     type: {
       control: 'inline-radio',
@@ -34,18 +32,14 @@ const meta = {
     },
     dir: { control: 'inline-radio', options: ['ltr', 'rtl'] },
   },
-  args: { type: 'single', collapsible: true },
-  // AccordionItem reads the root's Radix context — anything else dropped here
-  // either throws or renders outside the accordion's semantics.
-  parameters: {
-    puck: { slots: [{ name: 'children', allow: ['AccordionItem'] }] },
-  },
+  args: { type: 'single' },
 } satisfies Meta<typeof Accordion>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+  args: { type: 'single', collapsible: true },
   render: (args) => (
     <Accordion {...args} className='w-96'>
       <AccordionItem value='1'>
@@ -72,10 +66,10 @@ export const Default: Story = {
 };
 
 export const Multiple: Story = {
+  // `collapsible` is a type="single" prop, so it is set on Default rather than
+  // on the meta — inheriting it here would pass it straight through to the DOM.
   args: { type: 'multiple' },
-  // `collapsible` is a type="single" prop; Radix passes it straight to the DOM
-  // for type="multiple", so drop the inherited default arg here.
-  render: ({ collapsible: _collapsible, ...args }) => (
+  render: (args) => (
     <Accordion {...args} className='w-96'>
       <AccordionItem value='1'>
         <AccordionTrigger>Working hours</AccordionTrigger>

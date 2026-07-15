@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { SchedulingChip } from './scheduling-chip';
 
@@ -6,9 +6,6 @@ const meta = {
   title: 'Components/SchedulingChip',
   component: SchedulingChip,
   tags: ['autodocs'],
-  // Leaf label component: `status` options come from schedulingChipVariants' cva
-  // config; `title`/`meta` are ReactNode props but read as text here (§5) — so
-  // they are argTypes, not slots.
   argTypes: {
     status: {
       control: 'select',

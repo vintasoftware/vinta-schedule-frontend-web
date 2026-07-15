@@ -13,11 +13,11 @@ import type { Size } from './layout-style';
 /**
  * Sidebar — the generic, presentational app-navigation rail.
  *
- * Every prop here is SERIALIZABLE (strings, numbers, booleans), which is what
- * makes the whole thing bindable in the composer. The app's own AppSidebar
- * composes these pieces and supplies the parts that can never be serialized:
- * the router (`usePathname` for `active`), `next/link` (via `asChild`), the org
- * switcher, and the account menu.
+ * Every prop here is SERIALIZABLE (strings, numbers, booleans), so the whole
+ * rail can be driven from plain data/config. The app's own AppSidebar composes
+ * these pieces and supplies the parts that can never be serialized: the router
+ * (`usePathname` for `active`), `next/link` (via `asChild`), the org switcher,
+ * and the account menu.
  *
  *   <Sidebar brand={…} footer={…}>
  *     <SidebarGroup label='Configure'>
@@ -108,13 +108,13 @@ const SidebarGroup = React.forwardRef<HTMLDivElement, SidebarGroupProps>(
 export interface SidebarItemProps extends React.HTMLAttributes<HTMLElement> {
   label: string;
   /**
-   * Icon by REGISTRY KEY — a string, so the composer can pick one.
+   * Icon by REGISTRY KEY — a string, so it can come from data/config.
    * See ui/icon-registry.
    */
   iconName?: IconName;
   /**
    * Icon as a component. The ergonomic form in code; wins over `iconName`.
-   * Not serializable, so it is never a composer control.
+   * A React component is not serializable, so it can never come from JSON.
    */
   icon?: LucideIcon;
   /** Renders as a link when set; otherwise a button. */

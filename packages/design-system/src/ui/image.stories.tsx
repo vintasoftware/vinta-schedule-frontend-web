@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Image } from './image';
 
@@ -9,8 +9,6 @@ const meta = {
   title: 'Components/Image',
   component: Image,
   tags: ['autodocs'],
-  // Leaf component with no children — no slots (§5). `alt` is a required prop,
-  // so it is exposed as an editable string rather than hidden.
   argTypes: {
     src: { control: 'text' },
     alt: { control: 'text', description: 'Required; "" for decorative images' },

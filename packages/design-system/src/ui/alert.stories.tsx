@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CalendarClock, TriangleAlert } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from './alert';
@@ -7,9 +7,6 @@ const meta = {
   title: 'Components/Alert',
   component: Alert,
   tags: ['autodocs'],
-  // `variant` (cva, alert.tsx) is the only real scalar prop. Alert composes an
-  // icon + AlertTitle + AlertDescription through `children`, so `children` is a
-  // slot and must never also be an argTypes key (SLOT_ARGTYPE_COLLISION).
   argTypes: {
     variant: {
       control: 'select',
@@ -17,7 +14,6 @@ const meta = {
     },
   },
   args: { variant: 'default' },
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Alert>;
 
 export default meta;

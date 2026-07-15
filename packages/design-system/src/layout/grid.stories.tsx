@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Grid, GridItem } from './grid';
 
@@ -6,8 +6,6 @@ const meta = {
   title: 'Layout/Grid',
   component: Grid,
   tags: ['autodocs'],
-  // GridProps = grid vocabulary (columns/rows/gap/align/justify/inline) + the
-  // shared BoxStyleProps. `children` is the composed content slot (§3).
   argTypes: {
     columns: { control: { type: 'number', min: 1, max: 12 } },
     gap: { control: 'select', options: [0, 1, 2, 3, 4, 5, 6, 8] },
@@ -23,8 +21,6 @@ const meta = {
     },
     p: { control: 'select', options: [0, 2, 4, 6, 8] },
 
-    // Per-breakpoint columns — one dropdown per breakpoint, so the
-    // composer can author responsive values (not just the base).
     columnsSm: {
       control: 'select',
       options: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -41,8 +37,6 @@ const meta = {
       control: 'select',
       options: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
     },
-    // Per-breakpoint gap — one dropdown per breakpoint, so the
-    // composer can author responsive values (not just the base).
     gapSm: {
       control: 'select',
       options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
@@ -125,7 +119,6 @@ const meta = {
     },
   },
   args: { columns: 12, gap: 6 },
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Grid>;
 
 export default meta;

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Stack } from './stack';
 import { Button } from '../ui/button';
@@ -7,10 +7,6 @@ const meta = {
   title: 'Layout/Stack',
   component: Stack,
   tags: ['autodocs'],
-  // Container with BOTH curated scalar controls AND a slot. The typed
-  // style-prop vocabulary (layout-style.ts) maps cleanly to select/radio
-  // controls; `children` is the composed content slot (§3), typed ReactNode via
-  // FlexProps → React.HTMLAttributes. `className`/`style` stay unexposed (§6).
   argTypes: {
     direction: { control: 'inline-radio', options: ['column', 'row'] },
     gap: { control: 'select', options: [0, 1, 2, 3, 4, 5, 6, 8] },
@@ -24,14 +20,10 @@ const meta = {
     },
     wrap: { control: 'boolean' },
 
-    // Per-breakpoint direction — one dropdown per breakpoint, so the
-    // composer can author responsive values (not just the base).
     directionSm: { control: 'select', options: ['row', 'column'] },
     directionMd: { control: 'select', options: ['row', 'column'] },
     directionLg: { control: 'select', options: ['row', 'column'] },
     directionXl: { control: 'select', options: ['row', 'column'] },
-    // Per-breakpoint gap — one dropdown per breakpoint, so the
-    // composer can author responsive values (not just the base).
     gapSm: {
       control: 'select',
       options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
@@ -96,7 +88,6 @@ const meta = {
     },
   },
   args: { direction: 'column', gap: 4 },
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Stack>;
 
 export default meta;

@@ -60,8 +60,8 @@ export interface FlexProps
   columnGap?: Space;
   inline?: boolean;
 
-  /* Composer-editable per-breakpoint siblings — flat scalars so they curate as
-     token dropdowns in Puck. Folded into the base prop below. */
+  /* Flat per-breakpoint siblings (see ./responsive) — plain scalars, folded
+     into the base prop below. */
   directionSm?: FlexDirection;
   directionMd?: FlexDirection;
   directionLg?: FlexDirection;
@@ -174,7 +174,7 @@ const Flex = React.forwardRef<HTMLElement, FlexProps>(function Flex(
   // `container` lives on BoxStyleProps, so read it without consuming it —
   // splitResponsiveBoxProps still needs it for the box-level Cq siblings.
   const container = boxProps.container;
-  // Fold the composer-editable siblings back into one Responsive value.
+  // Fold the flat per-breakpoint siblings back into one Responsive value.
   let direction = foldSiblings(directionProp, {
     Sm: directionSm,
     Md: directionMd,

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { List, ListItem } from './list';
 
@@ -6,9 +6,6 @@ const meta = {
   title: 'Components/List',
   component: List,
   tags: ['autodocs'],
-  // Container: `children` composes <ListItem>s, so it is a SLOT (§5) and must
-  // NOT also appear in argTypes. The curated scalars below are the list's own
-  // vocabulary — `gap` is the shared 4px Space scale, `marker` a token color.
   argTypes: {
     variant: {
       control: 'inline-radio',
@@ -21,11 +18,6 @@ const meta = {
     },
   },
   args: { variant: 'bullet', gap: 2 },
-  // List renders a <ul>/<ol>, whose only legal child element is <li> — i.e.
-  // ListItem. Free content goes inside a ListItem, whose slot is unrestricted.
-  parameters: {
-    puck: { slots: [{ name: 'children', allow: ['ListItem'] }] },
-  },
 } satisfies Meta<typeof List>;
 
 export default meta;

@@ -6,11 +6,10 @@ import { resolveSize, type Radius, type Size } from '../layout/layout-style';
 /**
  * Image — a styled `<img>`.
  *
- * Deliberately framework-agnostic: the design system is consumed by the Next.js
- * app AND by the composer's plain-React runtime, so this renders a raw `<img>`
- * and never imports `next/image`. An app that wants the Next loader can still
- * drop `<NextImage>` in directly — this is the DS building block for the
- * ordinary case.
+ * Deliberately framework-agnostic: the design system must not depend on Next, so
+ * this renders a raw `<img>` and never imports `next/image`. An app that wants
+ * the Next loader can still drop `<NextImage>` in directly — this is the DS
+ * building block for the ordinary case.
  *
  * `alt` is REQUIRED (a11y); pass `alt=""` for decorative images.
  */
@@ -65,9 +64,9 @@ const Image = React.forwardRef<HTMLImageElement, ImageProps>(function Image(
   ref
 ) {
   return (
-    // The design system is framework-agnostic — it cannot import next/image
-    // (the composer renders it outside Next). Apps that need optimization can
-    // compose their own loader around this primitive.
+    // The design system is framework-agnostic — it must not depend on Next, so
+    // it cannot import next/image. Apps that need optimization can compose their
+    // own loader around this primitive.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       ref={ref}

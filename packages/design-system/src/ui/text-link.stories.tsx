@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { TextLink } from './text-link';
 
@@ -6,9 +6,6 @@ const meta = {
   title: 'Components/TextLink',
   component: TextLink,
   tags: ['autodocs'],
-  // Leaf link: `children` is the label, so it is an editable string argType and
-  // NOT a slot (§5). `asChild` is a composition escape hatch for the host app
-  // (wrapping next/link) and is intentionally not exposed as a control.
   argTypes: {
     children: { control: 'text', description: 'Link label' },
     href: { control: 'text' },

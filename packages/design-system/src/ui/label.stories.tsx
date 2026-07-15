@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Label } from './label';
 import { Input } from './input';
@@ -7,9 +7,6 @@ const meta = {
   title: 'Components/Label',
   component: Label,
   tags: ['autodocs'],
-  // `children` is the label text — an editable string here, NOT a slot, so
-  // there is no SLOT_ARGTYPE_COLLISION (§5). `htmlFor` is the real
-  // `LabelPrimitive.Root` prop that wires the label to its control.
   argTypes: {
     children: { control: 'text', description: 'Label text' },
     htmlFor: {

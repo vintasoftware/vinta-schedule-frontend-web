@@ -55,16 +55,15 @@ import {
 } from 'lucide-react';
 
 /**
- * The icon registry — the composer-editable form of `Icon`.
+ * The icon registry — the serializable form of `Icon`.
  *
- * `Icon`'s `icon` prop is a React component, which is not serializable, so it
- * can never be a Puck control: a composer-authored page could only ever render
- * whatever icon happened to sit in the story's `args`. A string `name` keyed
- * into this registry is serializable, so a designer can actually pick an icon.
+ * `Icon`'s `icon` prop is a React component, so it cannot survive JSON. A string
+ * `name` keyed into this registry can, which is what lets an icon be chosen from
+ * config, content, or any other data-driven source rather than only in code.
  *
  * Curated from the icons the app + design system genuinely use — not the whole
- * lucide set, which would be thousands of glyphs in a dropdown (and in the
- * bundle). Add a glyph here to make it available to the composer.
+ * lucide set, which would be thousands of glyphs in the bundle. Add a glyph here
+ * to make it available by name.
  */
 export const ICONS = {
   'alert-circle': AlertCircle,

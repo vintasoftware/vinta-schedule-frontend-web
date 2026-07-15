@@ -1,16 +1,13 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Text } from './text';
 import { Heading } from './heading';
 import { VStack } from './flex';
 
 const meta = {
-  // Title leaf must resolve to the named export in scope (§7): `Text`.
   title: 'Layout/Text',
   component: Text,
   tags: ['autodocs'],
-  // Text is a typography leaf: `children` is the editable label (a plain string
-  // control, not a slot — same as Button). `className`/`style` stay unexposed.
   argTypes: {
     children: { control: 'text', description: 'Text content' },
     size: {

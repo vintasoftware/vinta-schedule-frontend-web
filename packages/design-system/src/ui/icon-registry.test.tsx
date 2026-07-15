@@ -6,9 +6,8 @@ import { Icon } from './icon';
 import { ICONS, ICON_NAMES } from './icon-registry';
 
 /**
- * `icon` is a React component — not serializable, so a composer can never set
- * it. Without `name`, every icon on a Puck-authored page would be whatever glyph
- * happened to sit in the story's args.
+ * `icon` is a React component — not serializable, so it can never be set from
+ * JSON. `name` is the string key that lets an icon come from data or config.
  */
 describe('Icon name registry', () => {
   it('renders a glyph from a serializable name', () => {
@@ -23,7 +22,7 @@ describe('Icon name registry', () => {
   });
 
   it('renders nothing rather than crashing when neither is given', () => {
-    // A composer-authored page with an unset icon must be a hole, not a crash.
+    // A data-driven icon that is unset must be a hole, not a crash.
     const { container } = render(<Icon />);
     expect(container.querySelector('svg')).toBeNull();
   });

@@ -20,8 +20,8 @@ import type { Space } from './layout-style';
  * `../ui/form` (react-hook-form's FormProvider). They are complementary, not
  * alternatives: `Form` supplies the rhf context, `FormLayout` renders the
  * actual `<form>` element and stacks the fields inside it. They also must not
- * share a name — the composer synthesizes a flat barrel across every subpath
- * export, so a second `Form` would be a hard name collision.
+ * share a name — they are used together in the same file, so a second `Form`
+ * would be a hard name collision.
  *
  * ```tsx
  * <Form {...form}>

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   Table,
@@ -17,9 +17,6 @@ const meta = {
   title: 'Components/Table',
   component: Table,
   tags: ['autodocs'],
-  // Table is a plain <table> (`React.HTMLAttributes<HTMLTableElement>`) — it has
-  // no design-system prop of its own. Nothing was invented: the curated keys are
-  // real, forwarded HTML attributes. The rows/headers are `children` → slot (§4).
   argTypes: {
     'aria-label': {
       control: 'text',
@@ -28,16 +25,6 @@ const meta = {
     id: { control: 'text', description: 'DOM id on the <table> element' },
   },
   // A table holds a header, body, footer, and/or caption, nothing else.
-  parameters: {
-    puck: {
-      slots: [
-        {
-          name: 'children',
-          allow: ['TableHeader', 'TableBody', 'TableFooter', 'TableCaption'],
-        },
-      ],
-    },
-  },
 } satisfies Meta<typeof Table>;
 
 export default meta;

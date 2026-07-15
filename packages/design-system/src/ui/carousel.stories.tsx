@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   Carousel,
@@ -13,9 +13,6 @@ const meta = {
   title: 'Components/Carousel',
   component: Carousel,
   tags: ['autodocs'],
-  // `orientation` and `opts` are the real editable props on CarouselProps
-  // (`plugins`/`setApi` are functions/instances — not curatable). `children` is
-  // the composed slide content → slot (§4), never also an argType (§5).
   argTypes: {
     orientation: {
       control: 'inline-radio',
@@ -30,16 +27,6 @@ const meta = {
   args: { orientation: 'horizontal' },
   // A carousel composes its scrollable content plus the prev/next controls —
   // nothing else belongs directly under the root.
-  parameters: {
-    puck: {
-      slots: [
-        {
-          name: 'children',
-          allow: ['CarouselContent', 'CarouselPrevious', 'CarouselNext'],
-        },
-      ],
-    },
-  },
 } satisfies Meta<typeof Carousel>;
 
 export default meta;

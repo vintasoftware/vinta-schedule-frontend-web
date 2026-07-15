@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   Select,
@@ -14,9 +14,6 @@ const meta = {
   title: 'Components/Select',
   component: Select,
   tags: ['autodocs'],
-  // Container: `Select` (Radix Select.Root) renders composed children — the
-  // trigger and the content list — so `children` is a slot and must not also be
-  // an argType (§5). argTypes below are real Select.Root props (§6).
   argTypes: {
     defaultValue: {
       control: 'text',
@@ -30,11 +27,6 @@ const meta = {
     required: { control: 'boolean' },
     name: { control: 'text', description: 'Name submitted with the form' },
     dir: { control: 'inline-radio', options: ['ltr', 'rtl'] },
-  },
-  parameters: {
-    puck: {
-      slots: [{ name: 'children', allow: ['SelectTrigger', 'SelectContent'] }],
-    },
   },
 } satisfies Meta<typeof Select>;
 

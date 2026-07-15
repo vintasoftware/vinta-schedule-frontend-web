@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   DropdownMenu,
@@ -15,8 +15,6 @@ const meta = {
   title: 'Components/DropdownMenu',
   component: DropdownMenu,
   tags: ['autodocs'],
-  // Radix DropdownMenu.Root scalars. `children` (trigger + content) is composed
-  // content → a slot, never an argTypes key.
   argTypes: {
     defaultOpen: {
       control: 'boolean',
@@ -29,16 +27,6 @@ const meta = {
     dir: { control: 'inline-radio', options: ['ltr', 'rtl'] },
   },
   args: { defaultOpen: false, modal: true },
-  parameters: {
-    puck: {
-      slots: [
-        {
-          name: 'children',
-          allow: ['DropdownMenuTrigger', 'DropdownMenuContent'],
-        },
-      ],
-    },
-  },
 } satisfies Meta<typeof DropdownMenu>;
 
 export default meta;

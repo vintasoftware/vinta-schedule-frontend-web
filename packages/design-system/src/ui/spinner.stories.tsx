@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Spinner } from './spinner';
 
@@ -6,8 +6,6 @@ const meta = {
   title: 'Components/Spinner',
   component: Spinner,
   tags: ['autodocs'],
-  // Leaf loader built on Icon — no children, so NO slots. Same token vocabulary
-  // as Icon minus `icon`/`spin` (both fixed).
   argTypes: {
     size: {
       control: 'select',

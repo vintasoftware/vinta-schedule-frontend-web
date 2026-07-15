@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   Card,
@@ -15,10 +15,6 @@ const meta = {
   title: 'Components/Card',
   component: Card,
   tags: ['autodocs'],
-  // A container still curates scalars: the emptiness check counts argTypes keys
-  // and runs BEFORE slots are read, so slots alone would throw
-  // AUTO_INFERRED_ARGTYPES_ONLY. `padding` is a real prop (not a disabled-key
-  // placeholder) and must not collide with a slot name (SLOT_ARGTYPE_COLLISION).
   argTypes: {
     padding: {
       control: 'select',
@@ -26,7 +22,6 @@ const meta = {
       description: 'Padding on the card surface (4px token scale)',
     },
   },
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Card>;
 
 export default meta;

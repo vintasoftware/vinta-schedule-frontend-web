@@ -134,9 +134,9 @@ describe('responsive props', () => {
     expect(el.style.display).toBe('');
   });
 
-  /* ---------------- composer-editable per-breakpoint siblings --------------- */
-  // Puck's controls are scalars, so each responsive prop also takes flat
-  // `<prop>Md` siblings which fold back into one Responsive value.
+  /* -------------------- flat per-breakpoint siblings ------------------------ */
+  // Each responsive prop also takes flat `<prop>Md` scalar siblings, which fold
+  // back into one Responsive value.
 
   it('folds Grid columns siblings into breakpoint classes', () => {
     const { container } = render(
@@ -202,7 +202,7 @@ describe('responsive props', () => {
     expect(el.className).not.toContain('p-4');
   });
 
-  /* ------------- container-query siblings (full Puck control) -------------- */
+  /* ---------------------- container-query siblings -------------------------- */
 
   it('folds Cq siblings against the chosen container', () => {
     const { container: c } = render(
@@ -233,7 +233,7 @@ describe('responsive props', () => {
     expect(el.getAttribute('ascontainer')).toBeNull();
   });
 
-  it('supports the full Puck loop: declare a container, then respond to it', () => {
+  it('supports the full loop: declare a container, then respond to it', () => {
     const { container: c } = render(
       <Box asContainer='content'>
         <Flex container='content' direction='column' directionCq3xl='row' />

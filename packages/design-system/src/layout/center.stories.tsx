@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Center } from './center';
 import { Text } from './text';
@@ -7,9 +7,6 @@ const meta = {
   title: 'Layout/Center',
   component: Center,
   tags: ['autodocs'],
-  // Container: `children` is composed content (a slot), so it must NOT also be
-  // an argType. Containers still curate scalars — slots alone would throw
-  // AUTO_INFERRED_ARGTYPES_ONLY.
   argTypes: {
     minHeight: {
       control: 'text',
@@ -28,7 +25,6 @@ const meta = {
     direction: { control: 'inline-radio', options: ['row', 'column'] },
   },
   args: { minHeight: 200, bg: 'muted', radius: 'lg' },
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Center>;
 
 export default meta;

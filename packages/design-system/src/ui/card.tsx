@@ -7,8 +7,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Padding on the card surface, on the 4px token scale. Omit when composing
    * CardHeader/CardContent/CardFooter — those bring their own p-6. Useful when
-   * arbitrary content is placed directly in the card (e.g. the composer drops
-   * components into the `children` slot).
+   * arbitrary content is placed directly in the card's `children`.
    */
   padding?: Space;
 }

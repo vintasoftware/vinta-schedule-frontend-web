@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CalendarPlus } from 'lucide-react';
 
 import { AppTopbar } from './app-topbar';
@@ -8,9 +8,6 @@ const meta = {
   title: 'Composition/AppTopbar',
   component: AppTopbar,
   tags: ['autodocs'],
-  // `title` / `subtitle` are ReactNode but render as plain copy → text controls.
-  // `actions` and `leading` are composed content → slots (§3). `className` /
-  // `style` stay unexposed (§6).
   argTypes: {
     title: { control: 'text', description: 'Page title' },
     subtitle: {
@@ -28,7 +25,6 @@ const meta = {
   args: { title: 'Calendar', subtitle: 'This week · 3 bookings' },
   parameters: {
     layout: 'fullscreen',
-    puck: { slots: ['actions', 'leading'] },
   },
 } satisfies Meta<typeof AppTopbar>;
 

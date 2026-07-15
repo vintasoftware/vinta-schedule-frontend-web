@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Flex, HStack, VStack } from './flex';
 import { Box } from './box';
@@ -11,9 +11,6 @@ const meta = {
   title: 'Layout/Flex',
   component: Flex,
   tags: ['autodocs'],
-  // FlexProps = flex vocabulary (direction/align/justify/wrap/gap) + the shared
-  // BoxStyleProps. A useful subset is curated; `children` is the composed
-  // content slot (§3) and `className`/`style` stay unexposed (§6).
   argTypes: {
     direction: {
       control: 'inline-radio',
@@ -40,14 +37,10 @@ const meta = {
       options: ['none', 'sm', 'md', 'lg', 'xl', '2xl', 'full'],
     },
 
-    // Per-breakpoint direction — one dropdown per breakpoint, so the
-    // composer can author responsive values (not just the base).
     directionSm: { control: 'select', options: ['row', 'column'] },
     directionMd: { control: 'select', options: ['row', 'column'] },
     directionLg: { control: 'select', options: ['row', 'column'] },
     directionXl: { control: 'select', options: ['row', 'column'] },
-    // Per-breakpoint gap — one dropdown per breakpoint, so the
-    // composer can author responsive values (not just the base).
     gapSm: {
       control: 'select',
       options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
@@ -64,8 +57,6 @@ const meta = {
       control: 'select',
       options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
     },
-    // Per-breakpoint align — one dropdown per breakpoint, so the
-    // composer can author responsive values (not just the base).
     alignSm: {
       control: 'select',
       options: ['start', 'center', 'end', 'stretch', 'baseline'],
@@ -82,8 +73,6 @@ const meta = {
       control: 'select',
       options: ['start', 'center', 'end', 'stretch', 'baseline'],
     },
-    // Per-breakpoint justify — one dropdown per breakpoint, so the
-    // composer can author responsive values (not just the base).
     justifySm: {
       control: 'select',
       options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
@@ -198,7 +187,6 @@ const meta = {
     },
   },
   args: { gap: 4, align: 'center', justify: 'start' },
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Flex>;
 
 export default meta;

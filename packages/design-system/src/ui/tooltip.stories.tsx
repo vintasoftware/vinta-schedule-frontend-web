@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   Tooltip,
@@ -12,10 +12,6 @@ const meta = {
   title: 'Components/Tooltip',
   component: Tooltip,
   tags: ['autodocs'],
-  // Radix TooltipProps (the Root): `open`/`defaultOpen`/`delayDuration`/
-  // `disableHoverableContent`. `side`/`sideOffset` live on TooltipContent, not
-  // the root, so they are not curated here. Trigger + content are `children` →
-  // slot (§4), never also an argType (§5).
   argTypes: {
     defaultOpen: {
       control: 'boolean',
@@ -29,13 +25,6 @@ const meta = {
   },
   args: { defaultOpen: false, delayDuration: 700 },
   // A tooltip's children are its trigger and its content — nothing else.
-  parameters: {
-    puck: {
-      slots: [
-        { name: 'children', allow: ['TooltipTrigger', 'TooltipContent'] },
-      ],
-    },
-  },
 } satisfies Meta<typeof Tooltip>;
 
 export default meta;

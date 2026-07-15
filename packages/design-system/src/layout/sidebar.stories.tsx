@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Sidebar, SidebarGroup, SidebarItem } from './sidebar';
 import { Text } from './text';
@@ -9,16 +9,6 @@ const meta = {
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
-    puck: {
-      slots: [
-        // brand / footer are genuinely open: a wordmark, an org switcher, an
-        // account menu. Only the nav list is constrained — it renders into a
-        // <nav>, where a group or a bare row are the only things that belong.
-        'brand',
-        { name: 'children', allow: ['SidebarGroup', 'SidebarItem'] },
-        'footer',
-      ],
-    },
   },
   argTypes: {
     width: {

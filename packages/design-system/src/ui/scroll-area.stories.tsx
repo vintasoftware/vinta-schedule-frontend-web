@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { ScrollArea } from './scroll-area';
 
@@ -6,8 +6,6 @@ const meta = {
   title: 'Components/ScrollArea',
   component: ScrollArea,
   tags: ['autodocs'],
-  // Radix ScrollAreaProps: `type`, `dir`, `scrollHideDelay`. Container — the
-  // scrollable content is `children` → slot (§4), so it is not an argType (§5).
   argTypes: {
     type: {
       control: 'select',
@@ -21,7 +19,6 @@ const meta = {
     },
   },
   args: { type: 'hover' },
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof ScrollArea>;
 
 export default meta;

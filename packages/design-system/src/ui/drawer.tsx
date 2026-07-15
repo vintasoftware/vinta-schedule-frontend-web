@@ -18,9 +18,10 @@ Drawer.displayName = 'Drawer';
 
 /**
  * Wrappers, not bare aliases: vaul builds on Radix Dialog, so
- * `DrawerPrimitive.Trigger` carries the displayName 'DialogTrigger'. The
- * composer resolves a component by name, and pinning a name onto the shared
- * primitive would rename Dialog's own trigger — so give each its own identity.
+ * `DrawerPrimitive.Trigger` carries the displayName 'DialogTrigger'. React
+ * devtools and Storybook docgen resolve a component by name, and pinning a name
+ * onto the shared primitive would rename Dialog's own trigger — so give each its
+ * own identity.
  */
 const DrawerTrigger = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Trigger>,

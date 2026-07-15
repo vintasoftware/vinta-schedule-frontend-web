@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   Sheet,
@@ -16,9 +16,6 @@ const meta = {
   title: 'Components/Sheet',
   component: Sheet,
   tags: ['autodocs'],
-  // Radix DialogProps: `open`/`defaultOpen`/`modal`/`onOpenChange`. `side` is a
-  // SheetContent prop, not a root prop, so it is not curated here. `children`
-  // (trigger + content) is the composed slot (§4).
   argTypes: {
     defaultOpen: {
       control: 'boolean',
@@ -31,11 +28,6 @@ const meta = {
   },
   args: { defaultOpen: false, modal: true },
   // A sheet's children are its trigger and its overlay content — nothing else.
-  parameters: {
-    puck: {
-      slots: [{ name: 'children', allow: ['SheetTrigger', 'SheetContent'] }],
-    },
-  },
 } satisfies Meta<typeof Sheet>;
 
 export default meta;

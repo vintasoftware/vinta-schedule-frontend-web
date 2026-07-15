@@ -208,10 +208,10 @@ export interface BoxStyleProps
 }
 
 /**
- * Per-breakpoint siblings for the box vocabulary — the composer-editable form of
- * the same responsive props (`p` + `pMd` + `pLg`). Each is a plain scalar, so it
- * curates as a token `select` in Puck instead of a raw JSON object field.
- * Folded back into the base prop by splitResponsiveBoxProps.
+ * Per-breakpoint siblings for the box vocabulary — the flat form of the same
+ * responsive props (`p` + `pMd` + `pLg`). Each is a plain scalar rather than a
+ * nested object (see ./responsive). Folded back into the base prop by
+ * splitResponsiveBoxProps.
  */
 export interface BoxResponsiveSiblings {
   pSm?: Space;
@@ -244,9 +244,9 @@ export interface BoxResponsiveSiblings {
 export interface BoxContainerSiblings {
   /**
    * Marks THIS element as a named container, so descendants can respond to its
-   * width (`@container/content`). A composer canvas has no app shell, so a
-   * Puck-authored page must declare its own container before container-query
-   * props do anything.
+   * width (`@container/content`). Outside the app shell — which marks the
+   * containers itself — a page must declare its own container before any
+   * container-query prop does anything.
    */
   asContainer?: ContainerName;
   /** Which ancestor container the `*Cq*` siblings below resolve against. */
@@ -324,7 +324,7 @@ export function splitResponsiveBoxProps<T extends BoxStyleProps>(
   const marker = containerClass(asContainer);
   if (marker) classes.push(marker);
 
-  // Fold the composer-editable siblings (`pMd`, `displayCqXl`, …) into their
+  // Fold the flat per-breakpoint siblings (`pMd`, `displayCqXl`, …) into their
   // base prop, then drop them so they never reach the DOM as attributes.
   for (const key of SIBLING_KEYS) {
     const viewport: Record<string, unknown> = {};

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Heading } from './heading';
 import { VStack } from './flex';
@@ -7,8 +7,6 @@ const meta = {
   title: 'Layout/Heading',
   component: Heading,
   tags: ['autodocs'],
-  // Leaf: the copy is editable text, so `children` is a text argType and NOT a
-  // slot (a name may never be both — SLOT_ARGTYPE_COLLISION).
   argTypes: {
     children: { control: 'text', description: 'Heading copy' },
     level: {

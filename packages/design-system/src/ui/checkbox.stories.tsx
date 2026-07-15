@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Checkbox } from './checkbox';
 import { Label } from './label';
@@ -7,9 +7,6 @@ const meta = {
   title: 'Components/Checkbox',
   component: Checkbox,
   tags: ['autodocs'],
-  // Leaf control: the Radix `Checkbox.Root` renders its own Indicator, so it
-  // takes no composed content — NO slot. These are real Radix Root props
-  // (§6: className/style stay unexposed).
   argTypes: {
     defaultChecked: { control: 'boolean' },
     disabled: { control: 'boolean' },

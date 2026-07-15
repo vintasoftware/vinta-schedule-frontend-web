@@ -28,14 +28,14 @@ export interface IconProps extends Omit<
    * The lucide icon component, e.g. `icon={Calendar}`. The ergonomic form in
    * code, and it wins over `name` when both are given.
    *
-   * NOT serializable, so it can never be a composer control — a visual editor
-   * must use `name` instead.
+   * A React component is NOT serializable, so this form can never come from
+   * JSON — data- or config-driven callers must use `name` instead.
    */
   icon?: LucideIcon;
   /**
-   * Registry key, e.g. `name='calendar-plus'` (see ./icon-registry). A string,
-   * so a designer can actually pick an icon in the composer. Ignored when `icon`
-   * is supplied.
+   * Registry key, e.g. `name='calendar-plus'` (see ./icon-registry). A plain
+   * string, so an icon can come from data/config (JSON, an API payload, a CMS
+   * field). Ignored when `icon` is supplied.
    */
   name?: IconName;
   /** Token size. Defaults to `sm` (16px). */
@@ -74,11 +74,11 @@ const Icon = React.forwardRef<SVGSVGElement, IconProps>(function Icon(
   },
   ref
 ) {
-  // `icon` (code) wins; `name` (composer) is the serializable fallback.
+  // `icon` (code) wins; `name` is the serializable, data-driven fallback.
   const Glyph = icon ?? (name ? ICONS[name] : undefined);
 
-  // An unknown/absent name must not crash a composer-authored page — a missing
-  // glyph should be a hole in the layout, not a white screen.
+  // An unknown/absent name must not crash the page — a missing glyph should be
+  // a hole in the layout, not a white screen.
   if (!Glyph) return null;
 
   // Named a11y props are spread BEFORE `...props` so a caller (e.g. Spinner,

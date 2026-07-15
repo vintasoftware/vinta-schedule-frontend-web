@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import * as React from 'react';
 import { Combobox } from './combobox';
 
@@ -18,10 +18,6 @@ const meta = {
   title: 'Components/Combobox',
   component: Combobox,
   tags: ['autodocs'],
-  // Leaf: Combobox renders its own trigger/popover/list — it takes no composed
-  // ReactNode children, so NO slot. `options` is data (an array of
-  // {value,label,description}), edited with the `object` control. `className`
-  // is deliberately not exposed (§6).
   argTypes: {
     options: {
       control: 'object',
@@ -41,6 +37,9 @@ const meta = {
     options: FRAMEWORKS,
     placeholder: 'Select a framework…',
     searchPlaceholder: 'Search frameworks…',
+    // Combobox is controlled, so `onValueChange` is required. The stories below
+    // each own their state, but the arg has to be present to satisfy the type.
+    onValueChange: () => {},
   },
   parameters: { layout: 'centered' },
 } satisfies Meta<typeof Combobox>;

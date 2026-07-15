@@ -13,11 +13,6 @@ import { cn } from '../lib/utils';
  * ```tsx
  * <TextLink asChild><NextLink href="/bookings">View booking</NextLink></TextLink>
  * ```
- *
- * Not to be confused with `layout/link`'s `<Link>`, which is the composer's
- * prototype-mode navigating primitive (it reads usePrototypeMode() and renders
- * inert in the editor). TextLink knows nothing about prototype mode: it is a
- * plain `<a href>` for real applications.
  */
 const textLinkVariants = cva(
   'underline-offset-4 transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',

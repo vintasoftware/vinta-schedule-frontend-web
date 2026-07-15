@@ -1,17 +1,13 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { toast } from 'sonner';
 
 import { Toaster } from './sonner';
 import { Button } from './button';
 
 const meta = {
-  // Title leaf must match the real named export — the component is `Toaster`,
-  // so the old 'Components/Sonner (Toast)' leaf was invalid (§7).
   title: 'Components/Toaster',
   component: Toaster,
   tags: ['autodocs'],
-  // Leaf: sonner's ToasterProps. It renders the toast viewport, never composed
-  // children → no slot (§4). `className`/`style` are excluded (§6).
   argTypes: {
     position: {
       control: 'select',

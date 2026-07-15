@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { VisuallyHidden } from './visually-hidden';
 import { Button } from '../ui/button';
@@ -9,8 +9,6 @@ const meta = {
   title: 'Layout/VisuallyHidden',
   component: VisuallyHidden,
   tags: ['autodocs'],
-  // Leaf: the hidden copy is editable text, so `children` is a text argType and
-  // deliberately NOT a slot.
   argTypes: {
     children: {
       control: 'text',

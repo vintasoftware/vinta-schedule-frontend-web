@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   Drawer,
@@ -16,8 +16,6 @@ const meta = {
   title: 'Components/Drawer',
   component: Drawer,
   tags: ['autodocs'],
-  // vaul Drawer.Root scalars (drawer.tsx forwards every prop to it, and owns
-  // `shouldScaleBackground`). `children` (trigger + content) is composed → slot.
   argTypes: {
     direction: {
       control: 'select',
@@ -50,11 +48,6 @@ const meta = {
     shouldScaleBackground: true,
   },
   // A drawer's children are its trigger and its overlay content — nothing else.
-  parameters: {
-    puck: {
-      slots: [{ name: 'children', allow: ['DrawerTrigger', 'DrawerContent'] }],
-    },
-  },
 } satisfies Meta<typeof Drawer>;
 
 export default meta;

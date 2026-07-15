@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   NavigationMenu,
@@ -13,9 +13,6 @@ const meta = {
   title: 'Components/NavigationMenu',
   component: NavigationMenu,
   tags: ['autodocs'],
-  // Radix NavigationMenu.Root scalars (`value` / `onValueChange` are
-  // controlled-mode only). `children` (the NavigationMenuList) is composed
-  // content → a slot; the root also renders its own viewport after it.
   argTypes: {
     orientation: {
       control: 'inline-radio',
@@ -38,9 +35,6 @@ const meta = {
   args: { orientation: 'horizontal', delayDuration: 200 },
   // The root only ever composes a single NavigationMenuList; the viewport is
   // internal plumbing the root renders itself and is never user-composed.
-  parameters: {
-    puck: { slots: [{ name: 'children', allow: ['NavigationMenuList'] }] },
-  },
 } satisfies Meta<typeof NavigationMenu>;
 
 export default meta;

@@ -1,4 +1,5 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { ComponentProps } from 'react';
 
 import {
   InputOTP,
@@ -7,13 +8,18 @@ import {
   InputOTPSlot,
 } from './input-otp';
 
+/**
+ * InputOTP takes a `render` prop, which collides with Storybook's own `render`
+ * story field — so the args are typed without it. Its props are also a union
+ * (`children` XOR `render`); dropping `render` leaves the children branch, which
+ * is the one these stories use.
+ */
+type InputOTPArgs = Omit<ComponentProps<typeof InputOTP>, 'render'>;
+
 const meta = {
   title: 'Components/InputOTP',
   component: InputOTP,
   tags: ['autodocs'],
-  // Container: InputOTP renders composed children (the groups/slots/separator),
-  // so `children` is a slot and must not also be an argType (§5). argTypes are
-  // real `OTPInput` props (§6: containerClassName/className stay unexposed).
   argTypes: {
     maxLength: {
       control: 'number',
@@ -27,23 +33,22 @@ const meta = {
     autoFocus: { control: 'boolean' },
   },
   args: { maxLength: 6 },
-  // An OTP field composes groups of slots plus an optional separator between
-  // groups — nothing else belongs directly under the root.
-  parameters: {
-    puck: {
-      slots: [
-        { name: 'children', allow: ['InputOTPGroup', 'InputOTPSeparator'] },
-      ],
-    },
-  },
 } satisfies Meta<typeof InputOTP>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<InputOTPArgs>;
 
 export const Default: Story = {
-  render: (args) => (
-    <InputOTP maxLength={6} {...args}>
+  // Props are passed explicitly rather than spread: InputOTP's props are a union
+  // (`children` XOR a `render` callback), so spreading `args` leaves TypeScript
+  // unable to tell which branch we are on once children are also present.
+  render: ({ maxLength, textAlign, disabled, autoFocus }) => (
+    <InputOTP
+      maxLength={maxLength}
+      textAlign={textAlign}
+      disabled={disabled}
+      autoFocus={autoFocus}
+    >
       <InputOTPGroup>
         <InputOTPSlot index={0} />
         <InputOTPSlot index={1} />

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Container } from './container';
 
@@ -6,8 +6,6 @@ const meta = {
   title: 'Layout/Container',
   component: Container,
   tags: ['autodocs'],
-  // `width` is Container's own prop; the rest come from BoxStyleProps, which
-  // Container extends. `children` is the composed content slot (§3).
   argTypes: {
     width: { control: 'inline-radio', options: ['contained', 'prose', 'full'] },
     py: { control: 'select', options: [0, 2, 4, 6, 8, 12, 16] },
@@ -17,7 +15,7 @@ const meta = {
     },
   },
   args: { width: 'contained' },
-  parameters: { layout: 'fullscreen', puck: { slots: ['children'] } },
+  parameters: { layout: 'fullscreen' },
 } satisfies Meta<typeof Container>;
 
 export default meta;

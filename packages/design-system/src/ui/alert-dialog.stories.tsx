@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   AlertDialog,
@@ -17,10 +17,6 @@ const meta = {
   title: 'Components/AlertDialog',
   component: AlertDialog,
   tags: ['autodocs'],
-  // Radix AlertDialog.Root is `Omit<DialogProps, 'modal'>` — an alert dialog is
-  // always modal — so `defaultOpen` is its only real scalar prop (`open` /
-  // `onOpenChange` are controlled-mode only). `children` (trigger + content) is
-  // composed content → a slot.
   argTypes: {
     defaultOpen: {
       control: 'boolean',
@@ -28,16 +24,6 @@ const meta = {
     },
   },
   args: { defaultOpen: false },
-  parameters: {
-    puck: {
-      slots: [
-        {
-          name: 'children',
-          allow: ['AlertDialogTrigger', 'AlertDialogContent'],
-        },
-      ],
-    },
-  },
 } satisfies Meta<typeof AlertDialog>;
 
 export default meta;

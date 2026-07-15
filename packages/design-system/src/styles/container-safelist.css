@@ -17,8 +17,8 @@
  */
 
 /* The `@container/<name>` markers themselves — `asContainer` builds these at
- * runtime, so the scanner never sees them. Without these, a Puck-authored page
- * cannot declare a container and every container-query prop is inert. */
+ * runtime, so the scanner never sees them. Without these, a page cannot declare
+ * its own container and every container-query prop is inert. */
 @source inline('@container/{app,content,nav,topbar,pageheader}');
 
 @source inline(

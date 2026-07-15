@@ -14,8 +14,7 @@ function Dialog({
 }
 // Pinned: bundlers rename this function (it collides with radix-ui's own
 // `Dialog` export once inlined), and tooling that resolves the component by
-// name — Storybook docgen, the composer's contract extractor — would see the
-// mangled name instead.
+// name — React devtools, Storybook docgen — would see the mangled name instead.
 Dialog.displayName = 'Dialog';
 
 function DialogTrigger({
@@ -23,8 +22,8 @@ function DialogTrigger({
 }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
   return <DialogPrimitive.Trigger data-slot='dialog-trigger' {...props} />;
 }
-// Pinned: same bundler name-collision risk as `Dialog` above (Storybook
-// docgen / the composer's contract extractor resolve components by name).
+// Pinned: same bundler name-collision risk as `Dialog` above (React devtools /
+// Storybook docgen resolve components by name).
 DialogTrigger.displayName = 'DialogTrigger';
 
 function DialogPortal({

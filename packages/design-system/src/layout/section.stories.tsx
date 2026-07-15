@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Section } from './section';
 import { Heading } from './heading';
@@ -9,7 +9,6 @@ const meta = {
   title: 'Layout/Section',
   component: Section,
   tags: ['autodocs'],
-  // Container: `children` is a slot; the scalars below are the curated contract.
   argTypes: {
     py: {
       control: 'select',
@@ -28,7 +27,6 @@ const meta = {
     },
   },
   args: { py: 16 },
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Section>;
 
 export default meta;

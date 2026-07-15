@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Switch } from './switch';
 import { Label } from './label';
@@ -7,8 +7,6 @@ const meta = {
   title: 'Components/Switch',
   component: Switch,
   tags: ['autodocs'],
-  // Leaf control: Radix `Switch.Root` renders its own Thumb, so it takes no
-  // composed content — NO slot. Real Radix Root props only (§6).
   argTypes: {
     defaultChecked: { control: 'boolean' },
     disabled: { control: 'boolean' },

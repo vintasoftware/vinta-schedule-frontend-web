@@ -110,18 +110,19 @@ export function plainValue<T>(value: Responsive<T> | undefined): T | undefined {
 
 /* ------------------------- per-breakpoint siblings ------------------------ */
 /**
- * A `Responsive<T>` object is ergonomic in code but unusable in a visual editor:
- * the composer's supported controls are scalars, and an `object` control would
- * hand a designer a raw JSON field instead of a token dropdown.
+ * A `Responsive<T>` object is ergonomic in code, but a nested object is awkward
+ * anywhere props have to be flat scalars — serialized config, generated forms,
+ * or tooling that only understands primitive values.
  *
  * So every responsive prop also accepts flat per-breakpoint siblings —
- * `columns` + `columnsMd` + `columnsLg` — each a plain scalar that curates as a
- * proper `select`. The component folds them back into one `Responsive<T>`.
- * Code keeps the object form; Puck gets one dropdown per breakpoint.
+ * `columns` + `columnsMd` + `columnsLg` — each a plain scalar on the same token
+ * scale. The component folds them back into one `Responsive<T>`, so both forms
+ * behave identically; code normally keeps the object form.
  *
- * Container breakpoints are deliberately NOT exposed as siblings: they key off
- * the app shell's named containers (`@container/content`), which do not exist on
- * a composer canvas, so they would be dead controls. They remain code-only.
+ * Container breakpoints are deliberately NOT exposed as viewport-style siblings:
+ * they key off the app shell's named containers (`@container/content`), so they
+ * need a container to resolve against and take the explicit `container` + `*Cq*`
+ * form described below instead.
  */
 export const VIEWPORT_SUFFIXES = ['Sm', 'Md', 'Lg', 'Xl'] as const;
 export type ViewportSuffix = (typeof VIEWPORT_SUFFIXES)[number];
@@ -135,7 +136,7 @@ const SUFFIX_TO_BREAKPOINT: Record<ViewportSuffix, ViewportBreakpoint> = {
 
 export type Siblings<T> = Partial<Record<ViewportSuffix, T>>;
 
-/* --------------------- container-query siblings (Puck) -------------------- */
+/* ------------------------ container-query siblings ------------------------ */
 /**
  * Container breakpoints are a 5-container x 6-size grid; exposing every pair as
  * a sibling would mean ~30 props PER responsive prop. Instead a component picks

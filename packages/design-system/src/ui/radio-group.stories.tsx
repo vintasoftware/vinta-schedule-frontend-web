@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { RadioGroup, RadioGroupItem } from './radio-group';
 import { Label } from './label';
@@ -7,9 +7,6 @@ const meta = {
   title: 'Components/RadioGroup',
   component: RadioGroup,
   tags: ['autodocs'],
-  // Container: RadioGroup renders composed `children` (its RadioGroupItems), so
-  // `children` is a slot — and therefore must NOT also appear in argTypes (§5).
-  // The argTypes below are real `RadioGroup.Root` props (§6: no className).
   argTypes: {
     defaultValue: {
       control: 'text',
@@ -32,7 +29,6 @@ const meta = {
   // wrappers and labels around each RadioGroupItem (e.g. Flex > RadioGroupItem
   // + Label), so the set of legal children is open. Restricting this to
   // RadioGroupItem would forbid labelled rows, which is the normal usage.
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof RadioGroup>;
 
 export default meta;

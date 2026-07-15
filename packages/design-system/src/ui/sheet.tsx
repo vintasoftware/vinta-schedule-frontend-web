@@ -12,8 +12,8 @@ import { cn } from '../lib/utils';
  * primitives. A bare alias (`const SheetTrigger = SheetPrimitive.Trigger`) is
  * the very same object as Dialog's trigger — Sheet is built on @radix-ui/react-dialog
  * — so it inherits the displayName 'DialogTrigger', and pinning a correct name
- * onto it would rename Dialog's trigger too. The composer resolves a component
- * by name, so each of these needs an identity of its own.
+ * onto it would rename Dialog's trigger too. React devtools and Storybook docgen
+ * resolve a component by name, so each of these needs an identity of its own.
  */
 // Root is a context provider with no DOM node of its own, so it takes no ref.
 const Sheet = (props: React.ComponentProps<typeof SheetPrimitive.Root>) => (

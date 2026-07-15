@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Bell, Calendar, Check, Clock, Trash2, Video } from 'lucide-react';
 
 import { Icon } from './icon';
@@ -8,14 +8,7 @@ const meta = {
   title: 'Components/Icon',
   component: Icon,
   tags: ['autodocs'],
-  // Leaf glyph — renders no children, so NO slots. `icon` is a React component
-  // (not serializable) and is therefore fixed in args rather than exposed as an
-  // editable control; the token props are what an editor should tune.
   argTypes: {
-    // `icon` (a React component) is NOT serializable, so it can never be a
-    // composer control. `name` keys into the icon registry and IS — this is what
-    // lets a designer actually pick a glyph instead of being stuck with
-    // whatever sat in the story args.
     name: {
       control: 'select',
       options: ICON_NAMES,

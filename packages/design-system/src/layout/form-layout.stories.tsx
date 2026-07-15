@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { FormLayout } from './form-layout';
 import { Button } from '../ui/button';
@@ -9,11 +9,6 @@ const meta = {
   title: 'Layout/FormLayout',
   component: FormLayout,
   tags: ['autodocs'],
-  // Container: `children` is the composed content and is declared as a SLOT
-  // (§3), never an argType — a name may not be both (SLOT_ARGTYPE_COLLISION).
-  // The curated scalars are the real, forwarded form props: `gap` (the DS
-  // token scale that replaces `space-y-*`) plus the standard form attributes.
-  // `className`/`style` stay unexposed (§6).
   argTypes: {
     gap: { control: 'select', options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12] },
     noValidate: { control: 'boolean' },
@@ -22,7 +17,6 @@ const meta = {
     id: { control: 'text' },
   },
   args: { gap: 4, noValidate: false },
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof FormLayout>;
 
 export default meta;

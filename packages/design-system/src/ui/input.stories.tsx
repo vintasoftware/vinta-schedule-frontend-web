@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Input } from './input';
 import { Label } from './label';
@@ -7,9 +7,6 @@ const meta = {
   title: 'Components/Input',
   component: Input,
   tags: ['autodocs'],
-  // Leaf form control — self-closing, so NO slot. Props below are the real
-  // `React.ComponentProps<'input'>` members worth exposing to a designer.
-  // `className`/`style` are deliberately not exposed (§6).
   argTypes: {
     type: {
       control: 'select',

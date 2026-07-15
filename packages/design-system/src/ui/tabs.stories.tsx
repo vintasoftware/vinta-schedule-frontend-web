@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 
@@ -6,8 +6,6 @@ const meta = {
   title: 'Components/Tabs',
   component: Tabs,
   tags: ['autodocs'],
-  // Radix Tabs.Root scalars (`value` / `onValueChange` are controlled-mode
-  // only). `children` (TabsList + TabsContent) is composed content → a slot.
   argTypes: {
     defaultValue: {
       control: 'text',
@@ -31,11 +29,6 @@ const meta = {
   },
   // The root pairs a TabsList with the TabsContent panels it reveals; both read
   // the root's Radix context. Panel bodies are free content one level deeper.
-  parameters: {
-    puck: {
-      slots: [{ name: 'children', allow: ['TabsList', 'TabsContent'] }],
-    },
-  },
 } satisfies Meta<typeof Tabs>;
 
 export default meta;

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
   Pagination,
@@ -14,10 +14,6 @@ const meta = {
   title: 'Components/Pagination',
   component: Pagination,
   tags: ['autodocs'],
-  // The Pagination root is a bare <nav> and had no scalar prop of its own, so a
-  // real `align` prop was added (pagination.tsx) rather than faking one — it
-  // drives the nav's justify-* and was previously hard-coded to center.
-  // `children` (the page list) is composed content → a slot.
   argTypes: {
     align: {
       control: 'inline-radio',
@@ -27,9 +23,6 @@ const meta = {
   },
   args: { align: 'center' },
   // A pagination nav holds exactly one page-list, nothing else.
-  parameters: {
-    puck: { slots: [{ name: 'children', allow: ['PaginationContent'] }] },
-  },
 } satisfies Meta<typeof Pagination>;
 
 export default meta;

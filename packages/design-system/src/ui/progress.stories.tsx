@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Progress } from './progress';
 
@@ -6,8 +6,6 @@ const meta = {
   title: 'Components/Progress',
   component: Progress,
   tags: ['autodocs'],
-  // Leaf: Radix ProgressProps exposes `value` and `max` (numbers). It renders no
-  // composed children, so NO slot is declared (§4).
   argTypes: {
     value: { control: 'number', description: 'Current progress value' },
     max: { control: 'number', description: 'Maximum value (defaults to 100)' },

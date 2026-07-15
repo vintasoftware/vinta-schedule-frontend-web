@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Box } from './box';
 
@@ -6,10 +6,6 @@ const meta = {
   title: 'Layout/Box',
   component: Box,
   tags: ['autodocs'],
-  // Box's props are the shared BoxStyleProps vocabulary (layout-style.ts). Only
-  // a meaningful subset is exposed — spacing, surface, sizing. `className` /
-  // `style` are deliberately NOT editable (§6), and `children` is the composed
-  // content slot (§3) so it must not appear in argTypes (SLOT_ARGTYPE_COLLISION).
   argTypes: {
     p: { control: 'select', options: [0, 2, 4, 6, 8, 12] },
     px: { control: 'select', options: [0, 2, 4, 6, 8, 12] },
@@ -49,8 +45,6 @@ const meta = {
       options: ['left', 'center', 'right'],
     },
 
-    // Per-breakpoint padding — one dropdown per breakpoint, so the
-    // composer can author responsive values (not just the base).
     pSm: {
       control: 'select',
       options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
@@ -67,8 +61,6 @@ const meta = {
       control: 'select',
       options: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24],
     },
-    // Per-breakpoint display — one dropdown per breakpoint, so the
-    // composer can author responsive values (not just the base).
     displaySm: {
       control: 'select',
       options: ['hidden', 'block', 'flex', 'inline-flex', 'grid'],
@@ -157,7 +149,6 @@ const meta = {
     shadow: 'sm',
     border: true,
   },
-  parameters: { puck: { slots: ['children'] } },
 } satisfies Meta<typeof Box>;
 
 export default meta;

@@ -48,7 +48,7 @@ export interface GridProps
   justify?: Justify;
   inline?: boolean;
 
-  /* Composer-editable per-breakpoint siblings (see ./responsive). */
+  /* Flat per-breakpoint siblings (see ./responsive). */
   columnsSm?: number;
   columnsMd?: number;
   columnsLg?: number;
@@ -125,7 +125,7 @@ const Grid = React.forwardRef<HTMLElement, GridProps>(function Grid(
   ref
 ) {
   const container = boxProps.container;
-  // Fold the composer-editable siblings back into one Responsive value. A raw
+  // Fold the flat per-breakpoint siblings into one Responsive value. A raw
   // grid-template string has no per-breakpoint form, so it passes through.
   let columns =
     typeof columnsProp === 'string'
@@ -210,7 +210,7 @@ export interface GridItemProps
    * queries: `span={{ base: 1, '@4xl/content': 2 }}`.
    */
   span?: Responsive<number>;
-  /* Composer-editable per-breakpoint siblings. */
+  /* Flat per-breakpoint siblings (see ./responsive). */
   spanSm?: number;
   spanMd?: number;
   spanLg?: number;

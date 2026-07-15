@@ -11,7 +11,6 @@
     "./layout": "./src/layout/index.ts",
     "./layout/*": "./src/layout/*.tsx",
     "./lib/utils": "./src/lib/utils.ts",
-    "./story-types": "./src/story-types.ts",
     "./styles.css": "./dist/styles.css",
     "./styles/tokens.css": "./src/styles/tokens.css",
     "./styles/responsive-safelist.css": "./src/styles/responsive-safelist.css",
@@ -23,7 +22,6 @@
     "src/layout",
     "src/lib",
     "src/styles",
-    "src/story-types.ts",
     "dist",
     "components.json"
   ],
@@ -35,18 +33,11 @@
     "build-storybook": "storybook build",
     "build:css": "tailwindcss -i ./src/styles/build.css -o ./dist/styles.css",
     "build": "pnpm run build:css",
-    "check:contract": "node ./scripts/check-contract.mjs",
     "prepack": "pnpm run build:css"
   },
   "peerDependencies": {
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "vinta-ui-composer-prototype-mode": "^0.1.0"
-  },
-  "peerDependenciesMeta": {
-    "vinta-ui-composer-prototype-mode": {
-      "optional": true
-    }
+    "react-dom": "^19.0.0"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -91,7 +82,6 @@
     "@types/react": "^19.2.16",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
-    "esbuild": "^0.28.1",
     "jsdom": "^29.1.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -99,7 +89,6 @@
     "tailwindcss": "^4.3.0",
     "tw-animate-css": "^1.4.0",
     "typescript": "^6.0.3",
-    "vinta-ui-composer-prototype-mode": "^0.1.0",
     "vitest": "^4.1.8"
   }
 }

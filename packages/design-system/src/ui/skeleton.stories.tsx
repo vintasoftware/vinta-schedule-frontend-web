@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Skeleton } from './skeleton';
 
@@ -6,11 +6,6 @@ const meta = {
   title: 'Components/Skeleton',
   component: Skeleton,
   tags: ['autodocs'],
-  // Leaf component — renders no composed content, so NO slot (§4). The curated
-  // controls are the real, forwarded sizing props: `width`/`height` resolve
-  // through layout-style's `resolveSize` (number → px, or any CSS length),
-  // `radius` is the DS token scale, `shape` drives circle/text presets.
-  // `className`/`style` stay unexposed (§6).
   argTypes: {
     width: { control: 'text' },
     height: { control: 'text' },

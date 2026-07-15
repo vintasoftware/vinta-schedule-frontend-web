@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Divider } from './divider';
 import { Box, HStack, VStack } from './index';
@@ -8,7 +8,6 @@ const meta = {
   title: 'Layout/Divider',
   component: Divider,
   tags: ['autodocs'],
-  // Leaf: a rule draws no children, so there is no slot.
   argTypes: {
     orientation: {
       control: 'inline-radio',

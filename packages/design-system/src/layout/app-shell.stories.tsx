@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '../story-types';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { AppShell } from './app-shell';
 import { Sidebar, SidebarGroup, SidebarItem } from './sidebar';
@@ -7,20 +7,12 @@ import { Heading } from './heading';
 import { Text } from './text';
 import { Stack } from './stack';
 
-/**
- * AppShell — the page chrome: a sidebar rail, a topbar, and the page body.
- *
- * It is pure design system (Box/Flex/Container + a Sheet for the mobile
- * drawer), and `sidebar` / `topbar` / `children` are all ReactNode, so the whole
- * shell is composable in the editor: drop a Sidebar into the sidebar slot.
- */
 const meta = {
   title: 'Layout/AppShell',
   component: AppShell,
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
-    puck: { slots: ['sidebar', 'topbar', 'children'] },
   },
   argTypes: {
     width: {
