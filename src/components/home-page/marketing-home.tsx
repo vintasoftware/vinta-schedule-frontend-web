@@ -13,6 +13,7 @@ import {
   Play,
   Plug,
   Rss,
+  Server,
   ShieldCheck,
   UsersRound,
   Webhook,
@@ -153,7 +154,7 @@ function Hero() {
               <Text as='p' size='lg' color='muted-foreground' leading='relaxed'>
                 Vinta Schedule aggregates personal, resource, and virtual
                 calendars, then lets your patients find and book the right
-                provider or room — in seconds, in sync, HIPAA-ready.
+                provider or room — in seconds, always in sync.
               </Text>
             </Box>
             <Flex wrap align='center' gap={3} pt={3}>
@@ -171,7 +172,7 @@ function Hero() {
             <HStack gap={2} pt={1}>
               <Icon icon={ShieldCheck} size='sm' color='success' />
               <Text size='sm' color='muted-foreground'>
-                HIPAA-compliant · SOC 2 Type II · 99.99% sync uptime
+                Two-way sync in seconds · No credit card to start
               </Text>
             </HStack>
           </VStack>
@@ -205,12 +206,12 @@ function HeroMock() {
         <HStack gap={3} px={5} pt={4} pb={3}>
           <Center width={32} height={32} radius='lg' bg='vinta-600'>
             <Text size='xs' weight='bold' color={WHITE}>
-              Q
+              Y
             </Text>
           </Center>
           <VStack gap={0}>
             <Text as='div' size='sm' weight='semibold' leading='tight'>
-              Quilted Health
+              Your Clinic
             </Text>
             <Text as='div' size='xs' color='muted-foreground' leading='tight'>
               Prenatal Intake · 30 min
@@ -287,48 +288,6 @@ function HeroMock() {
   );
 }
 
-/* ---------------------------------------------------------------- Logos */
-function LogoCloud() {
-  const names = [
-    'Quilted Health',
-    'Rewind',
-    'Splendid Care',
-    'Lastmile',
-    'Medplum',
-    'Northwind Clinic',
-  ];
-  return (
-    <Box as='section' bg='background' py={12}>
-      <Container>
-        <VStack gap={6}>
-          <Text
-            as='p'
-            size='sm'
-            weight='medium'
-            align='center'
-            color='muted-foreground'
-          >
-            Scheduling for modern care teams
-          </Text>
-          <Flex wrap align='center' justify='center' columnGap={12} rowGap={5}>
-            {names.map((n) => (
-              <Text
-                key={n}
-                size='lg'
-                weight='semibold'
-                tracking='tight'
-                color='slate-400'
-              >
-                {n}
-              </Text>
-            ))}
-          </Flex>
-        </VStack>
-      </Container>
-    </Box>
-  );
-}
-
 /* ---------------------------------------------------------------- Features */
 function Features() {
   const items = [
@@ -350,7 +309,7 @@ function Features() {
     {
       icon: ShieldCheck,
       title: 'Built for healthcare',
-      body: 'HIPAA-compliant by default, audit logs on every change, and granular access for resources and staff.',
+      body: 'Audit logs on every change and granular, per-resource access — designed for the way care teams schedule.',
     },
   ];
   return (
@@ -432,9 +391,9 @@ function ApiShowcase() {
             <Box pt={2}>
               <List variant='plain' gap={3}>
                 {[
-                  'REST + webhooks for every booking event',
-                  'Idempotent holds so slots never double-book',
-                  'Typed SDKs for Python, Node & Go',
+                  'One GraphQL endpoint + webhooks for every booking event',
+                  'Calendar Groups resolve the right provider or room for you',
+                  'Booking codes for single-use, tokenless public scheduling',
                 ].map((t) => (
                   <ListItem key={t}>
                     <HStack gap={3}>
@@ -464,7 +423,7 @@ function ApiShowcase() {
               <Box width={12} height={12} radius='full' bg='slate-700' />
               <Box width={12} height={12} radius='full' bg='slate-700' />
               <Text size='xs' family='mono' color='slate-400'>
-                booking.sh
+                booking.graphql
               </Text>
             </HStack>
             <Divider tone='slate-800' />
@@ -477,57 +436,73 @@ function ApiShowcase() {
                 color='slate-100'
               >
                 <Text as='span' color='slate-500'>
-                  # Find availability in a Calendar Group
+                  # POST /graphql/ — find bookable slots in a Calendar Group
                 </Text>
                 {'\n'}
-                <Text as='span' color='teal-300'>
-                  curl
-                </Text>{' '}
-                https://api.vinta.dev/v1/groups/
                 <Text as='span' color='vinta-300'>
-                  grp_8fk2
-                </Text>
-                /availability \{'\n'}
-                {'  '}-d type=
-                <Text as='span' color='teal-300'>
-                  &quot;intake-30&quot;
+                  query
                 </Text>{' '}
-                -d date=
+                {'{\n'}
+                {'  '}
                 <Text as='span' color='teal-300'>
-                  &quot;2026-06-17&quot;
+                  calendarGroupBookableSlots
                 </Text>
-                {'\n\n'}
-                <Text as='span' color='slate-500'>
-                  # → confirm the slot
-                </Text>
-                {'\n'}
+                (groupId: 42,{'\n'}
+                {'    '}searchWindowStart:{' '}
                 <Text as='span' color='teal-300'>
-                  POST
-                </Text>{' '}
-                /v1/groups/grp_8fk2/bookings
-                {'\n'}
-                {'{ '}
-                <Text as='span' color='vinta-300'>
-                  &quot;start&quot;
-                </Text>
-                :{' '}
-                <Text as='span' color='teal-300'>
-                  &quot;2026-06-17T10:30-07:00&quot;
+                  &quot;2026-06-17T09:00:00-07:00&quot;
                 </Text>
                 ,{'\n'}
-                {'  '}
+                {'    '}durationSeconds: 1800){' { '}
                 <Text as='span' color='vinta-300'>
-                  &quot;patient&quot;
+                  startTime endTime
                 </Text>
-                :{' '}
-                <Text as='span' color='teal-300'>
-                  &quot;pat_1a2b&quot;
-                </Text>{' '}
-                {'}'}
+                {' }\n}'}
                 {'\n\n'}
                 <Text as='span' color='slate-500'>
-                  # ← 201 booked · synced to 3 calendars
+                  # → confirm — books the slot across every calendar in the group
                 </Text>
+                {'\n'}
+                <Text as='span' color='vinta-300'>
+                  mutation
+                </Text>{' '}
+                {'{\n'}
+                {'  '}
+                <Text as='span' color='teal-300'>
+                  createCalendarGroupEvent
+                </Text>
+                (input: {'{\n'}
+                {'    '}organizationId: 7, groupId: 42, timezone:{' '}
+                <Text as='span' color='teal-300'>
+                  &quot;America/Los_Angeles&quot;
+                </Text>
+                ,{'\n'}
+                {'    '}title:{' '}
+                <Text as='span' color='teal-300'>
+                  &quot;Prenatal Intake&quot;
+                </Text>
+                , description:{' '}
+                <Text as='span' color='teal-300'>
+                  &quot;&quot;
+                </Text>
+                ,{'\n'}
+                {'    '}startTime:{' '}
+                <Text as='span' color='teal-300'>
+                  &quot;2026-06-17T10:30:00-07:00&quot;
+                </Text>
+                ,{'\n'}
+                {'    '}endTime:{' '}
+                <Text as='span' color='teal-300'>
+                  &quot;2026-06-17T11:00:00-07:00&quot;
+                </Text>
+                ,{'\n'}
+                {'    '}slotSelections: [{'{ '}slotId: 5, calendarIds: [128]{' }'}]
+                {'\n'}
+                {'  }'}){' { '}
+                <Text as='span' color='vinta-300'>
+                  success event {'{ '}id{' }'}
+                </Text>
+                {' }\n}'}
               </Text>
             </Box>
           </Box>
@@ -627,6 +602,17 @@ function HowItWorks() {
 
 /* ---------------------------------------------------------------- Pricing */
 function Pricing() {
+  const feats = [
+    'Every feature — no seat, calendar, or API limits',
+    'Unlimited Calendar Groups & booking codes',
+    'Full GraphQL booking API + webhooks',
+    'Your data stays on your own infrastructure',
+  ];
+
+  /* Hosted / paid pricing tiers — retained for when managed plans return.
+     Vinta Schedule is currently completely free and self-hosted only, so the
+     tier table below is intentionally disabled rather than deleted.
+
   const tiers = [
     {
       name: 'Starter',
@@ -651,7 +637,6 @@ function Pricing() {
         'Up to 50 calendars',
         'Unlimited Calendar Groups',
         'Full booking API + webhooks',
-        'HIPAA BAA included',
         'Priority support',
       ],
       cta: 'Book a demo',
@@ -672,6 +657,79 @@ function Pricing() {
       highlight: false,
     },
   ];
+
+  <Grid columns={{ base: 1, md: 3 }} gap={5} mt={12} align='start'>
+    {tiers.map((t) => (
+      <Box
+        key={t.name}
+        position='relative'
+        p={6}
+        radius='2xl'
+        border
+        bg='card'
+        borderColor={t.highlight ? 'primary' : 'border'}
+        shadow={t.highlight ? 'lg' : undefined}
+      >
+        {t.highlight ? (
+          <Box position='absolute' style={{ top: '-0.75rem', left: '1.5rem' }}>
+            <Badge>
+              <Text size='xs' weight='semibold' tracking='wide' uppercase>
+                Most popular
+              </Text>
+            </Badge>
+          </Box>
+        ) : null}
+        <VStack gap={1}>
+          <Heading level={3} size='lg'>
+            {t.name}
+          </Heading>
+          <Box height={36}>
+            <Text as='p' size='sm' color='muted-foreground'>
+              {t.desc}
+            </Text>
+          </Box>
+        </VStack>
+        <Flex align='end' gap={1} pt={3}>
+          <Text size='4xl' weight='bold' leading='none' tracking='tight'>
+            {t.price}
+          </Text>
+          <Text size='sm' color='muted-foreground'>
+            {t.unit}
+          </Text>
+        </Flex>
+        <Box pt={6}>
+          // Button has no width prop (shadcn atom) — fullWidth is the escape.
+          <Button
+            asChild
+            variant={t.highlight ? 'default' : 'outline'}
+            fullWidth
+          >
+            <Link href='/auth/signup'>{t.cta}</Link>
+          </Button>
+        </Box>
+        <Box pt={6}>
+          <List variant='plain' gap={3}>
+            {t.feats.map((f) => (
+              <ListItem key={f}>
+                <Flex align='start' gap={2}>
+                  <Icon
+                    icon={Check}
+                    size='sm'
+                    color='success'
+                    style={{ marginTop: '0.125rem' }}
+                  />
+                  <Text size='sm'>{f}</Text>
+                </Flex>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Box>
+    ))}
+  </Grid>
+
+  */
+
   return (
     <Box as='section' bg='background' py={{ base: 20, md: 24 }}>
       <Container>
@@ -685,82 +743,80 @@ function Pricing() {
               align='center'
               className='md:text-4xl'
             >
-              Simple plans that scale with your calendars.
+              Free, and self-hosted.
             </Heading>
+            <Text
+              as='p'
+              size='lg'
+              align='center'
+              color='muted-foreground'
+              leading='relaxed'
+            >
+              Vinta Schedule is completely free and self-hosted — run the whole
+              platform on your own infrastructure, with every feature included
+              and no per-seat, per-calendar, or per-booking fees.
+            </Text>
           </VStack>
         </Box>
-        <Grid columns={{ base: 1, md: 3 }} gap={5} mt={12} align='start'>
-          {tiers.map((t) => (
-            <Box
-              key={t.name}
-              position='relative'
-              p={6}
-              radius='2xl'
-              border
-              bg='card'
-              borderColor={t.highlight ? 'primary' : 'border'}
-              shadow={t.highlight ? 'lg' : undefined}
-            >
-              {t.highlight ? (
-                <Box
-                  position='absolute'
-                  style={{ top: '-0.75rem', left: '1.5rem' }}
-                >
-                  <Badge>
-                    <Text size='xs' weight='semibold' tracking='wide' uppercase>
-                      Most popular
-                    </Text>
-                  </Badge>
-                </Box>
-              ) : null}
+        <Box mx='auto' maxWidth='30rem' mt={12}>
+          <Box
+            position='relative'
+            p={8}
+            radius='2xl'
+            border
+            bg='card'
+            borderColor='primary'
+            shadow='lg'
+          >
+            <VStack gap={4}>
+              <Center width={44} height={44} radius='xl' bg='vinta-50'>
+                <Icon icon={Server} size='md' color='primary' />
+              </Center>
               <VStack gap={1}>
-                <Heading level={3} size='lg'>
-                  {t.name}
-                </Heading>
-                <Box height={36}>
-                  <Text as='p' size='sm' color='muted-foreground'>
-                    {t.desc}
+                <Flex align='end' gap={2}>
+                  <Text
+                    size='4xl'
+                    weight='bold'
+                    leading='none'
+                    tracking='tight'
+                  >
+                    $0
                   </Text>
-                </Box>
+                  <Text size='sm' color='muted-foreground'>
+                    forever
+                  </Text>
+                </Flex>
+                <Text as='p' size='sm' color='muted-foreground'>
+                  Self-hosted · open to every team
+                </Text>
               </VStack>
-              <Flex align='end' gap={1} pt={3}>
-                <Text size='4xl' weight='bold' leading='none' tracking='tight'>
-                  {t.price}
-                </Text>
-                <Text size='sm' color='muted-foreground'>
-                  {t.unit}
-                </Text>
-              </Flex>
-              <Box pt={6}>
-                {/* Button has no width prop (shadcn atom) — `w-full` is the escape. */}
-                <Button
-                  asChild
-                  variant={t.highlight ? 'default' : 'outline'}
-                  fullWidth
-                >
-                  <Link href='/auth/signup'>{t.cta}</Link>
+              <List variant='plain' gap={3}>
+                {feats.map((f) => (
+                  <ListItem key={f}>
+                    <Flex align='start' gap={2}>
+                      <Icon
+                        icon={Check}
+                        size='sm'
+                        color='success'
+                        style={{ marginTop: '0.125rem' }}
+                      />
+                      <Text size='sm'>{f}</Text>
+                    </Flex>
+                  </ListItem>
+                ))}
+              </List>
+              <Box pt={2}>
+                {/* Button has no width prop (shadcn atom) — fullWidth is the escape. */}
+                <Button asChild fullWidth>
+                  <Link href='#'>
+                    Read the self-hosting guide
+                    <ArrowRight />
+                  </Link>
                 </Button>
               </Box>
-              <Box pt={6}>
-                <List variant='plain' gap={3}>
-                  {t.feats.map((f) => (
-                    <ListItem key={f}>
-                      <Flex align='start' gap={2}>
-                        <Icon
-                          icon={Check}
-                          size='sm'
-                          color='success'
-                          style={{ marginTop: '0.125rem' }}
-                        />
-                        <Text size='sm'>{f}</Text>
-                      </Flex>
-                    </ListItem>
-                  ))}
-                </List>
-              </Box>
-            </Box>
-          ))}
-        </Grid>
+            </VStack>
+          </Box>
+        </Box>
       </Container>
     </Box>
   );
@@ -852,9 +908,9 @@ function Footer() {
     },
     {
       h: 'Company',
-      links: ['About', 'Customers', 'Careers', 'Blog', 'Contact'],
+      links: ['About', 'Careers', 'Blog', 'Contact'],
     },
-    { h: 'Trust', links: ['HIPAA', 'SOC 2', 'Security', 'Privacy', 'Terms'] },
+    { h: 'Trust', links: ['Security', 'Privacy', 'Terms', 'Status'] },
   ];
   const social = [
     { key: 'globe', Glyph: Globe },
@@ -943,9 +999,9 @@ function Footer() {
             © 2026 Vinta Schedule. All rights reserved.
           </Text>
           <HStack gap={2}>
-            <Icon icon={ShieldCheck} size='xs' color='success' />
+            <Icon icon={CalendarSync} size='xs' color='primary' />
             <Text size='xs' color='muted-foreground'>
-              HIPAA-compliant · SOC 2 Type II
+              Two-way sync for every connected calendar
             </Text>
           </HStack>
         </Flex>
@@ -959,8 +1015,6 @@ export function MarketingHome() {
     <Box bg='card'>
       <MarketingNav />
       <Hero />
-      <Divider />
-      <LogoCloud />
       <Divider />
       <Features />
       <Divider />

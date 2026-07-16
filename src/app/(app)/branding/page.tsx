@@ -18,11 +18,13 @@ import { useBranding } from '@/hooks/branding/use-branding';
 /**
  * BrandingPage — reseller-admin branding console.
  *
- * Lives in the (partner) route group so it renders with a neutral chrome (no
- * tenant sidebar/shell). Auth/role gating is API-driven: the backend returns
- * 403 when the acting org is not a reseller or the user is not an admin. The
- * useBranding hook inspects the HTTP status directly (throwOnError:false) and
- * returns a discriminated result so each state can be rendered correctly.
+ * A normal internal (app) page: it renders inside the tenant AppShell. The
+ * sidebar link to this route is shown only when the acting org is flagged
+ * can_invite_organizations (see app-layout-client). Access is still API-driven
+ * as a backstop: the backend returns 403 when the acting org is not a reseller
+ * or the user is not an admin. The useBranding hook inspects the HTTP status
+ * directly (throwOnError:false) and returns a discriminated result so each
+ * state can be rendered correctly.
  *
  * States:
  *   • Loading — query in flight.

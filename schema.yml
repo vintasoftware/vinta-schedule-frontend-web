@@ -14074,6 +14074,13 @@ components:
             Return read-only service account info (no secrets), or None
             if unconfigured.
           readOnly: true
+        can_invite_organizations:
+          type: boolean
+          readOnly: true
+          description:
+            Whether this organization can invite/create other organizations.
+            DB/Django-admin only — never exposed via any API. Enables the whole reseller
+            capability bundle.
         created:
           type: string
           format: date-time
@@ -14083,6 +14090,7 @@ components:
           format: date-time
           readOnly: true
       required:
+        - can_invite_organizations
         - created
         - google_service_account
         - id
@@ -15115,6 +15123,13 @@ components:
             Return read-only service account info (no secrets), or None
             if unconfigured.
           readOnly: true
+        can_invite_organizations:
+          type: boolean
+          readOnly: true
+          description:
+            Whether this organization can invite/create other organizations.
+            DB/Django-admin only — never exposed via any API. Enables the whole reseller
+            capability bundle.
         created:
           type: string
           format: date-time

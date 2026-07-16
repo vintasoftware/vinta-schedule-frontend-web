@@ -39,6 +39,7 @@ const NEW_ORG: Organization = {
   id: 7,
   name: 'New Org',
   google_service_account: null,
+  can_invite_organizations: false,
   created: '2026-01-01T00:00:00Z',
   modified: '2026-01-01T00:00:00Z',
 };
