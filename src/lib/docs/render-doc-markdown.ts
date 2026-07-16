@@ -1,76 +1,50 @@
 /**
  * Server-only markdown → sanitized HTML renderer with syntax highlighting.
  *
- * Extends `src/lib/render-markdown.ts` with `rehype-highlight` for fenced code blocks.
- * The pipeline keeps `rehype-sanitize` to strip untrusted markup (backend-authored
- * concept docs are semi-trusted but still sanitized). Sanitization is configured
- * to permit `className` attributes on code blocks so highlighting is preserved.
+ * Shares its parse chain and base sanitize schema with
+ * `src/lib/render-markdown.ts` (via `createMarkdownProcessor` and
+ * `extendSanitizeSchema`) so there is one place where sanitization is
+ * configured. This pipeline only adds `rehype-highlight` for fenced code
+ * blocks and extends the schema to allow the specific `className` values
+ * that plugin produces.
  *
- * Ordering: highlight runs before sanitize, then sanitize allows the classes.
- * This ensures both highlighting works AND `javascript:` URLs are still stripped.
+ * Ordering: highlight runs before sanitize, so sanitize sees (and can
+ * filter) the classes highlight added, then strips anything else that
+ * isn't on the schema (scripts, event handlers, `javascript:` URLs, …).
  */
 import 'server-only';
 
 import rehypeHighlight from 'rehype-highlight';
-import rehypeSanitize, { defaultSchema, type Options } from 'rehype-sanitize';
+import rehypeSanitize, { type Options } from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
-import remarkGfm from 'remark-gfm';
-import remarkParse from 'remark-parse';
-import remarkRehype from 'remark-rehype';
-import { unified } from 'unified';
+import {
+  createMarkdownProcessor,
+  extendSanitizeSchema,
+} from '@/lib/render-markdown';
 
 /**
- * Extend the default sanitize schema to permit `className` on code/pre/span.
- * This allows rehype-highlight to style code blocks while still sanitizing
- * dangerous markup (scripts, event handlers, javascript: URLs, etc.).
+ * The default schema plus `className` on `code` and `span`, scoped to the
+ * exact patterns `rehype-highlight` emits: `hljs`/`language-*` on `<code>`
+ * and `hljs-*` on the token `<span>`s inside it. Every other tag keeps the
+ * default schema's rules — this does not touch the wildcard (`*`) entry,
+ * so no other element gains a new allowed attribute.
  */
-function createSanitizeSchemaWithHighlight(): Options {
-  // Deep copy the default schema to avoid mutating it
-  const schema = JSON.parse(JSON.stringify(defaultSchema)) as Options;
-
-  // Permit className on span, code, pre elements so rehype-highlight's markup survives
-  if (schema.attributes && typeof schema.attributes === 'object') {
-    const attrs = schema.attributes as Record<
-      string,
-      string[] | Record<string, boolean>
-    >;
-    let universalAttrs = attrs['*'];
-    if (!universalAttrs) {
-      universalAttrs = attrs['*'] = [];
-    }
-    if (Array.isArray(universalAttrs)) {
-      if (!universalAttrs.includes('className')) {
-        universalAttrs.push('className');
-      }
-      // Also ensure class is allowed (CSS class attribute)
-      if (!universalAttrs.includes('class')) {
-        universalAttrs.push('class');
-      }
-    }
-  }
-
-  return schema;
-}
+export const docsSanitizeSchema: Options = extendSanitizeSchema({
+  code: [['className', /^(language-|hljs)/]],
+  span: [['className', /^hljs-/]],
+});
 
 /**
  * Render a markdown string to sanitized HTML with syntax highlighting.
  *
- * Output is safe to inject via `dangerouslySetInnerHTML` because:
- * 1. rehype-highlight adds className attributes to <span> elements in code blocks
- * 2. The extended sanitize schema allows className
- * 3. rehype-sanitize still strips scripts, event handlers, and javascript: URLs
- * 4. rehypeStringify converts the sanitized tree to HTML
- *
- * The ordering matters: highlight runs first (adds classes), sanitize runs second
- * (allows the classes and removes dangerous content), stringify converts to string.
+ * Output is safe to inject via `dangerouslySetInnerHTML`: `rehype-sanitize`
+ * runs after `rehype-highlight` and before `rehype-stringify`, so anything
+ * returned has already had disallowed markup and attributes removed.
  */
 export async function renderDocMarkdownToSafeHtml(md: string): Promise<string> {
-  const file = await unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype)
+  const file = await createMarkdownProcessor()
     .use(rehypeHighlight)
-    .use(rehypeSanitize, createSanitizeSchemaWithHighlight())
+    .use(rehypeSanitize, docsSanitizeSchema)
     .use(rehypeStringify)
     .process(md);
 
