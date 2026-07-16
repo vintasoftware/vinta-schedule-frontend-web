@@ -2,10 +2,11 @@
  * NewTokenDialog tests.
  *
  * Covers:
- * - Create → secret shown once with copy-to-clipboard button + "you won't see this again" warning.
- * - After closing the dialog, the secret is no longer in the DOM / component state.
- * - The secret does NOT appear in the list (mock returns metadata only).
- * - No console.log of the secret.
+ * - Create → composed credential (`<system_user_id>:<token>`) shown once with
+ *   copy-to-clipboard button + "you won't see this again" warning.
+ * - After closing the dialog, the credential is no longer in the DOM / component state.
+ * - The credential does NOT appear in the list (mock returns metadata only).
+ * - No console.log of the credential.
  */
 
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
@@ -73,6 +74,10 @@ import type { SystemUserToken, SystemUserTokenResponse } from '@/client';
 // ---------------------------------------------------------------------------
 
 const ONE_TIME_SECRET = 'plaintext-secret-once-only-abc123';
+
+function makeCredential(id: number, secret: string): string {
+  return `${id}:${secret}`;
+}
 
 function makeToken(id: number): SystemUserToken {
   return {
@@ -143,7 +148,7 @@ describe('NewTokenDialog', () => {
     expect(screen.getByTestId('scope-checkbox-user')).toBeInTheDocument();
   });
 
-  it('shows the one-time secret after successful create with copy button and warning', async () => {
+  it('shows the one-time composed credential after successful create with copy button and warning', async () => {
     const user = userEvent.setup();
     const token = makeToken(1);
     vi.mocked(publicApiTokensCreate).mockResolvedValueOnce(
@@ -164,14 +169,14 @@ describe('NewTokenDialog', () => {
     // Submit
     await user.click(screen.getByTestId('create-token-submit'));
 
-    // Should switch to secret view
+    // Should switch to credential view
     await screen.findByText('API token created');
 
-    // Secret should be displayed
-    const secretInput = screen.getByTestId(
-      'token-secret-input'
+    // The composed `<system_user_id>:<token>` credential should be displayed
+    const credentialInput = screen.getByTestId(
+      'token-credential-input'
     ) as HTMLInputElement;
-    expect(secretInput.value).toBe(ONE_TIME_SECRET);
+    expect(credentialInput.value).toBe(makeCredential(1, ONE_TIME_SECRET));
 
     // Copy button should be visible
     expect(screen.getByTestId('copy-token-button')).toBeInTheDocument();
@@ -187,7 +192,7 @@ describe('NewTokenDialog', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('secret is cleared from the DOM after the dialog closes', async () => {
+  it('credential is cleared from the DOM after the dialog closes', async () => {
     const user = userEvent.setup();
     const token = makeToken(2);
     vi.mocked(publicApiTokensCreate).mockResolvedValueOnce(
@@ -203,7 +208,7 @@ describe('NewTokenDialog', () => {
     // Do NOT wrap in QueryClientProvider here — renderDialog's `wrapper` option
     // handles that. When rerender is called with just <NewTokenDialog/>, RTL
     // re-applies the wrapper automatically, keeping the SAME component instance
-    // and its state (onceSecret) across open/close transitions.
+    // and its state (onceCredential) across open/close transitions.
     const { rerender } = renderDialog(true, handleOpenChange);
 
     // Fill and submit
@@ -214,11 +219,11 @@ describe('NewTokenDialog', () => {
     await user.click(screen.getByTestId('scope-checkbox-calendar'));
     await user.click(screen.getByTestId('create-token-submit'));
 
-    // Wait for secret view
+    // Wait for credential view
     await screen.findByText('API token created');
     expect(
-      (screen.getByTestId('token-secret-input') as HTMLInputElement).value
-    ).toBe(ONE_TIME_SECRET);
+      (screen.getByTestId('token-credential-input') as HTMLInputElement).value
+    ).toBe(makeCredential(2, ONE_TIME_SECRET));
 
     // Click Done to close the dialog
     await user.click(screen.getByTestId('done-button'));
@@ -228,17 +233,21 @@ describe('NewTokenDialog', () => {
 
     // Rerender the SAME component instance with open=false (no extra wrapper —
     // the wrapper from renderDialog is re-applied by RTL automatically).
-    // This fires the useEffect that clears onceSecret on the mounted component.
+    // This fires the useEffect that clears onceCredential on the mounted component.
     rerender(<NewTokenDialog open={false} onOpenChange={handleOpenChange} />);
 
-    // Secret should no longer be in the DOM (Dialog content unmounts when closed)
-    expect(screen.queryByTestId('token-secret-input')).not.toBeInTheDocument();
-    expect(screen.queryByDisplayValue(ONE_TIME_SECRET)).not.toBeInTheDocument();
+    // Credential should no longer be in the DOM (Dialog content unmounts when closed)
+    expect(
+      screen.queryByTestId('token-credential-input')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByDisplayValue(makeCredential(2, ONE_TIME_SECRET))
+    ).not.toBeInTheDocument();
 
     void currentOpen; // suppress unused warning
   });
 
-  it('secret does NOT appear in the refetched token list (list returns metadata only)', async () => {
+  it('credential does NOT appear in the refetched token list (list returns metadata only)', async () => {
     const user = userEvent.setup();
     const token = makeToken(3);
     vi.mocked(publicApiTokensCreate).mockResolvedValueOnce(
@@ -271,29 +280,31 @@ describe('NewTokenDialog', () => {
 
     await screen.findByText('API token created');
 
-    // The secret input in the dialog shows the secret once — from local state only
-    const secretInput = screen.getByTestId(
-      'token-secret-input'
+    // The credential input in the dialog shows the composed credential once —
+    // from local state only.
+    const credentialInput = screen.getByTestId(
+      'token-credential-input'
     ) as HTMLInputElement;
-    expect(secretInput.value).toBe(ONE_TIME_SECRET);
+    expect(credentialInput.value).toBe(makeCredential(3, ONE_TIME_SECRET));
 
     // Verify the list mock models the real invariant: the secret is NEVER
     // in the list response. The mock itself returns a token without 'token'.
     expect('token' in listToken).toBe(false);
 
-    // The secret is ONLY in the dialog's local state (shown in the input).
-    // No other part of the DOM should contain the secret outside the secret view.
+    // The credential is ONLY in the dialog's local state (shown in the input).
+    // No other part of the DOM should contain the credential outside the
+    // credential view.
     const allInputs = document.querySelectorAll('input');
-    const secretInputEl = screen.getByTestId('token-secret-input');
-    // Only the dedicated secret input holds the secret value
+    const credentialInputEl = screen.getByTestId('token-credential-input');
+    // Only the dedicated credential input holds the credential value
     allInputs.forEach((input) => {
-      if (input !== secretInputEl) {
-        expect(input.value).not.toBe(ONE_TIME_SECRET);
+      if (input !== credentialInputEl) {
+        expect(input.value).not.toBe(makeCredential(3, ONE_TIME_SECRET));
       }
     });
   });
 
-  it('does not call console.log with the secret', async () => {
+  it('does not call console.log with the credential', async () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     const user = userEvent.setup();
     const token = makeToken(4);
@@ -312,14 +323,15 @@ describe('NewTokenDialog', () => {
 
     await screen.findByText('API token created');
 
-    // Verify console.log was never called with the secret
+    // Verify console.log was never called with the credential (or either half)
     const allLogCalls = consoleSpy.mock.calls.flat().join(' ');
+    expect(allLogCalls).not.toContain(makeCredential(4, ONE_TIME_SECRET));
     expect(allLogCalls).not.toContain(ONE_TIME_SECRET);
 
     consoleSpy.mockRestore();
   });
 
-  it('copy-to-clipboard writes the secret to the clipboard', async () => {
+  it('copy-to-clipboard writes the composed credential to the clipboard', async () => {
     // Use writeToClipboard: false so userEvent doesn't replace navigator.clipboard
     const user = userEvent.setup({ writeToClipboard: false });
     const token = makeToken(5);
@@ -350,7 +362,9 @@ describe('NewTokenDialog', () => {
     await user.click(screen.getByTestId('copy-token-button'));
 
     await waitFor(() => {
-      expect(writeTextSpy).toHaveBeenCalledWith(ONE_TIME_SECRET);
+      expect(writeTextSpy).toHaveBeenCalledWith(
+        makeCredential(5, ONE_TIME_SECRET)
+      );
     });
   });
 
@@ -408,7 +422,7 @@ describe('NewTokenDialog', () => {
     });
   });
 
-  it('resets form state when dialog closes and reopens (no stale secret)', async () => {
+  it('resets form state when dialog closes and reopens (no stale credential)', async () => {
     const user = userEvent.setup();
     const token = makeToken(6);
     vi.mocked(publicApiTokensCreate).mockResolvedValueOnce(
@@ -417,9 +431,9 @@ describe('NewTokenDialog', () => {
 
     const handleOpenChange = vi.fn();
     // Use rerender (without extra wrapper) to drive the SAME component instance
-    // through create → secret shown → close → reopen. Passing just
+    // through create → credential shown → close → reopen. Passing just
     // <NewTokenDialog/> lets RTL re-apply the renderDialog wrapper, preserving
-    // the React tree and its state so the useEffect that clears onceSecret
+    // the React tree and its state so the useEffect that clears onceCredential
     // fires on the MOUNTED component — not a fresh mount.
     const { rerender } = renderDialog(true, handleOpenChange);
 
@@ -430,27 +444,34 @@ describe('NewTokenDialog', () => {
     await user.click(screen.getByTestId('scope-checkbox-calendar'));
     await user.click(screen.getByTestId('create-token-submit'));
 
-    // Secret view: the one-time token is shown in the input
+    // Credential view: the one-time composed credential is shown in the input
     await screen.findByText('API token created');
     expect(
-      (screen.getByTestId('token-secret-input') as HTMLInputElement).value
-    ).toBe(ONE_TIME_SECRET);
+      (screen.getByTestId('token-credential-input') as HTMLInputElement).value
+    ).toBe(makeCredential(6, ONE_TIME_SECRET));
 
     // Close: rerender with open=false (wrapper re-applied by RTL).
-    // The useEffect fires on the mounted component and clears onceSecret.
+    // The useEffect fires on the mounted component and clears onceCredential.
     rerender(<NewTokenDialog open={false} onOpenChange={handleOpenChange} />);
 
-    // The Dialog unmounts its content when closed — secret input gone from DOM.
-    expect(screen.queryByTestId('token-secret-input')).not.toBeInTheDocument();
-    expect(screen.queryByDisplayValue(ONE_TIME_SECRET)).not.toBeInTheDocument();
+    // The Dialog unmounts its content when closed — credential input gone from DOM.
+    expect(
+      screen.queryByTestId('token-credential-input')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByDisplayValue(makeCredential(6, ONE_TIME_SECRET))
+    ).not.toBeInTheDocument();
 
-    // Reopen on the SAME instance: should show the form, NOT the secret view.
-    // If onceSecret was not cleared by the close useEffect, isSecretView would
-    // still be true and the secret input would appear again — test catches that.
+    // Reopen on the SAME instance: should show the form, NOT the credential view.
+    // If onceCredential was not cleared by the close useEffect, isCredentialView
+    // would still be true and the credential input would appear again — test
+    // catches that.
     rerender(<NewTokenDialog open={true} onOpenChange={handleOpenChange} />);
 
-    // After reopen: form view is shown (placeholder visible, no secret input)
+    // After reopen: form view is shown (placeholder visible, no credential input)
     await screen.findByPlaceholderText('My integration');
-    expect(screen.queryByTestId('token-secret-input')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('token-credential-input')
+    ).not.toBeInTheDocument();
   });
 });
