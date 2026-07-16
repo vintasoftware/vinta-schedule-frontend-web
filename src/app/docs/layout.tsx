@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-import { Box, Flex, Section } from 'vinta-schedule-design-system/layout';
+import {
+  Box,
+  Container,
+  Flex,
+  Section,
+} from 'vinta-schedule-design-system/layout';
 import { DocsSidebar } from '@/components/docs/docs-sidebar';
 
 export const metadata: Metadata = {
@@ -16,28 +21,27 @@ export const metadata: Metadata = {
  * prospects linked from marketing, so this sits alongside `privacy` / `terms`,
  * not under the authenticated route group.
  *
- * Sidebar + a prose-width main column, mirroring the privacy/terms page
- * shell. The main column is a plain `Box` (not a nested `Container`) — a
- * `Container`'s `width: 100%` becomes this flex item's flex-basis and fights
- * the sidebar's fixed width for space; a bare `Box` with `grow`/`maxWidth`
- * sizes correctly without that tug-of-war.
+ * Sidebar + a prose-width main column. Container is nested inside a grow/minWidth
+ * Box for the main content, following the AppShell pattern. This keeps Container
+ * as the single source of truth for width values. The outer Container caps the
+ * entire row at contained width; the inner Container caps the main column to
+ * prose width.
  */
 export default function DocsLayout({ children }: { children: ReactNode }) {
   return (
     <Section>
-      <Flex
-        direction={{ base: 'column', lg: 'row' }}
-        align={{ base: 'stretch', lg: 'start' }}
-        gap={8}
-        px={{ base: 4, md: 8 }}
-        mx='auto'
-        maxWidth={1200}
-      >
-        <DocsSidebar />
-        <Box grow={1} minWidth={0} maxWidth='68ch'>
-          {children}
-        </Box>
-      </Flex>
+      <Container width='contained'>
+        <Flex
+          direction={{ base: 'column', lg: 'row' }}
+          align={{ base: 'stretch', lg: 'start' }}
+          gap={8}
+        >
+          <DocsSidebar />
+          <Box grow={1} minWidth={0}>
+            <Container width='prose'>{children}</Container>
+          </Box>
+        </Flex>
+      </Container>
     </Section>
   );
 }
