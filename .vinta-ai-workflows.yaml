@@ -1,0 +1,107 @@
+# yaml-language-server: $schema=./node_modules/vinta-ai-workflows/schemas/vinta-ai-workflows-config.v1.schema.json
+
+schema_version: 1
+vinta_ai_workflows_version: 0.2.0
+last_synced_at: 2026-07-16T00:00:00Z
+
+project:
+  name: vinta-schedule-frontend-web
+  default_branch: main
+  code_host: github
+  stack_summary: >-
+    Next.js 16 App Router (React 19, TypeScript strict) consuming an external Django REST API;
+    Tailwind v4 with tokens in a pnpm-workspace design-system package (shadcn/ui + layout
+    primitives); TanStack Query v5 over hey-api generated OpenAPI clients; react-hook-form + zod;
+    Vitest + Testing Library; Playwright e2e; two Storybooks; deployed to Vercel via tag-driven CI.
+  ai_plans_dir: ai-plans
+  # No PR/MR template found — .github/ contains only workflows/. implement-plan will scaffold a
+  # free-form Description in the prs-context file until a template exists.
+  pr_template_paths: []
+
+commands:
+  lint: pnpm run lint
+  format: pnpm run format
+  # Type-check gate. `pnpm run build` (next build) is the deploy build, not the per-phase gate.
+  build: pnpm run typecheck
+  test_unit: pnpm run test
+  test_unit_scoped: pnpm vitest run <path-or-pattern>
+  test_unit_new_pattern: pnpm vitest run <new-test-path>
+  # No test:e2e script exists; Playwright is invoked directly.
+  e2e: npx playwright test
+
+policies:
+  pr_creation: agents-create
+  ai_coauthor: forbidden
+  commit_style: conventional
+  commit_strategy: ask
+  stage_pattern: git add <explicit paths touched by this change>
+  anti_git_add_all_reason: >-
+    The tree carries untracked .env* files, generated schema.yml / schema-auth.yml synced from the
+    backend repo, and regenerated src/client/ + src/auth-client/ output. `git add -A` sweeps secrets
+    and codegen churn into the commit.
+  dependency_licenses:
+    enforcement: block
+    forbidden_spdx:
+      - GPL-2.0-only
+      - GPL-3.0-only
+      - AGPL-3.0-only
+      - SSPL-1.0
+    allowed_overrides: []
+
+vendors:
+  - claude
+
+foundation_skills:
+  plan-feature: enabled
+  create-spec: enabled
+  create-qa-use-cases: enabled
+  implement-plan: enabled
+  amend-plan: enabled
+  open-pr-from-context: enabled
+  add-e2e-test: enabled
+  add-env-var: enabled
+  systematic-debugging: enabled
+  prepare-worktree: enabled
+  thermo-nuclear-code-quality-review: enabled
+  deslop-comments: enabled
+  handoff: enabled
+  add-one-off-script: disabled
+  handoff-to-client: disabled
+
+foundation_agents:
+  implementer: enabled
+  reviewer: enabled
+  fixer: enabled
+
+agent_models:
+  reviewer: 3
+  fixer: 2
+  worktree_prep: 1
+  integrate: 1
+
+stacks:
+  - nextjs-app-router
+  - typescript-monorepo
+
+stack_specialist_agents: []
+
+run_options:
+  implement-plan:
+    pause_between_phases: false
+    generate_inline_comments: false
+    full_test_suite: false
+    use_worktree: true
+  amend-plan:
+    blast_radius_signal_threshold: 2
+
+skills:
+  systematic-debugging:
+    observability_mcp_servers:
+      - sentry
+  prepare-worktree:
+    worktree_root: .claude/worktrees
+    deps_strategy: symlink
+    compose_network: per-worktree
+    # No database in this repo — the frontend talks to an external API. This value is inert.
+    test_db_strategy: fork-on-schema-change
+    summary_dir: .vinta-ai-workflows/worktrees

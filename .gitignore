@@ -45,9 +45,18 @@ next-env.d.ts
 # storybook
 storybook-static
 
-# AI workflow PR-context (durable, not committed)
-.vinta-ai-workflows/prs-context/
+# AI workflow local state — prs-context, handoffs, worktree summaries, MCP preflight cache.
+# Per-machine, never committed. (Superset of the old prs-context/ entry.)
+.vinta-ai-workflows/
 pr-screenshots/
+
+# Builder skills installed by `npx vinta-ai-workflows install --tool claude-code`.
+# They are symlinks into node_modules carrying a version-pinned pnpm-store path
+# (…/vinta-ai-workflows@X.Y.Z/…), so committing them would break for anyone on a
+# different resolved version. Re-run the CLI to restore them — required after every
+# package bump anyway, since the pinned path stops resolving.
+# No trailing slash: git sees these as symlinks (files), not directories.
+ai-tools/skills/vinta-*
 
 # Playwright
 test-results/
