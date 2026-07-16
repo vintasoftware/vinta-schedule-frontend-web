@@ -4,20 +4,10 @@ import Link from 'next/link';
 import { Heading, Stack, Text } from 'vinta-schedule-design-system/layout';
 import { List, ListItem } from 'vinta-schedule-design-system/ui/list';
 import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
-import { DOCS_NAV, type DocsNavSection } from '@/lib/docs/nav';
+import { DOCS_NAV } from '@/lib/docs/nav';
 
 export const metadata: Metadata = {
   title: 'Overview',
-};
-
-const SECTION_DESCRIPTIONS: Record<DocsNavSection['slug'], string> = {
-  'getting-started':
-    'Mint a public API token and send your first authenticated GraphQL request.',
-  reference: 'Every query, mutation, and type in the public GraphQL schema.',
-  concepts:
-    'How Calendar Groups, Events, Availability, and Bundles fit together.',
-  webhooks: 'The outbound event catalog and the webhook configuration types.',
-  explorer: 'A live GraphiQL console to try requests against /graphql/.',
 };
 
 /**
@@ -44,7 +34,7 @@ export default function DocsPage() {
                 <Link href={section.href}>{section.title}</Link>
               </TextLink>
               <Text size='sm' color='muted-foreground'>
-                {SECTION_DESCRIPTIONS[section.slug]}
+                {section.description}
               </Text>
             </Stack>
           </ListItem>

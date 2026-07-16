@@ -17,6 +17,8 @@ export interface DocsNavItem {
 }
 
 export interface DocsNavSection extends DocsNavItem {
+  /** One-line description for top-level section, rendered on the landing page. */
+  description: string;
   /** Nested sub-nav items. Empty until a later phase populates them. */
   children?: DocsNavItem[];
 }
@@ -32,25 +34,34 @@ export const DOCS_NAV: DocsNavSection[] = [
     title: 'Getting Started',
     slug: 'getting-started',
     href: '/docs/getting-started',
+    description:
+      'Mint a public API token and send your first authenticated GraphQL request.',
   },
   {
     title: 'Schema Reference',
     slug: 'reference',
     href: '/docs/reference',
+    description:
+      'Every query, mutation, and type in the public GraphQL schema.',
   },
   {
     title: 'Concepts',
     slug: 'concepts',
     href: '/docs/concepts',
+    description:
+      'How Calendar Groups, Events, Availability, and Bundles fit together.',
   },
   {
     title: 'Webhooks',
     slug: 'webhooks',
     href: '/docs/webhooks',
+    description:
+      'The outbound event catalog and the webhook configuration types.',
   },
   {
     title: 'Explorer',
     slug: 'explorer',
     href: '/docs/explorer',
+    description: 'A live GraphiQL console to try requests against /graphql/.',
   },
 ];
