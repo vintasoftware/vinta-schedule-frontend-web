@@ -11,9 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
 import {
   Form,
   FormField,
@@ -21,7 +21,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
+import { FormLayout } from 'vinta-schedule-design-system/layout';
 import { useCreateCalendar } from '@/hooks/calendars/use-create-calendar';
 
 // ---------------------------------------------------------------------------
@@ -102,11 +103,7 @@ export function CreateCalendarDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-            noValidate
-          >
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             <FormField
               control={form.control}
               name='name'
@@ -158,7 +155,7 @@ export function CreateCalendarDialog({
                 {isPending ? 'Creating…' : 'Create calendar'}
               </Button>
             </DialogFooter>
-          </form>
+          </FormLayout>
         </Form>
       </DialogContent>
     </Dialog>

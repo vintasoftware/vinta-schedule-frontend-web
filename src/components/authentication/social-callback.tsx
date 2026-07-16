@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { Center, Text } from 'vinta-schedule-design-system/layout';
 import { useProviderLoginCallback } from '@/hooks/authentication/use-provider-login-callback';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
 import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
@@ -45,11 +46,13 @@ export function SocialCallback({ provider, params }: SocialCallbackProps) {
   }, [provider]);
 
   return (
-    <div className='flex min-h-screen flex-col items-center justify-center'>
-      <div className='mb-2 text-lg font-semibold'>Connecting...</div>
-      <div className='text-muted-foreground'>
+    <Center direction='column' minHeight='screen'>
+      <Text as='div' size='lg' weight='semibold' mb={2}>
+        Connecting...
+      </Text>
+      <Text as='div' color='muted-foreground'>
         Please wait while we finish your social login.
-      </div>
-    </div>
+      </Text>
+    </Center>
   );
 }

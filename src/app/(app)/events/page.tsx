@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import { Stack } from '@/components/layout/stack';
-import { PageHeader } from '@/components/layout/page-header';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
+import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 import { EventsView } from '@/components/events/events-view';
 import { NewBookingButton } from '@/components/bookings/new-booking-button';
 import { BookGroupButton } from '@/components/calendar-groups/book-group-button';
-import { HStack } from '@/components/layout';
+import { HStack } from 'vinta-schedule-design-system/layout';
 
 /**
  * EventsPage — member view of their calendar events.

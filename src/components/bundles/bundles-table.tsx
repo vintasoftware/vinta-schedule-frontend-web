@@ -9,7 +9,7 @@
  */
 
 import * as React from 'react';
-import { Plus, Pencil, Trash2, RotateCw } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Calendar } from '@/client';
 import { DataTable } from '@/components/data-table/data-table';
@@ -17,8 +17,9 @@ import type { DataTableColumn } from '@/components/data-table/types';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useDeleteBundle } from '@/hooks/bundles/use-delete-bundle';
-import { VStack, Text, HStack } from '@/components/layout';
-import { Button } from '@/components/ui/button';
+import { VStack, Text, HStack } from 'vinta-schedule-design-system/layout';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +29,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
 import { CreateBundleDialog } from './create-bundle-dialog';
 import { EditBundleDialog } from './edit-bundle-dialog';
 
@@ -65,7 +66,7 @@ function makeColumns(
             aria-label={`Edit ${row.original.name}`}
             data-testid={`edit-bundle-${row.original.id}`}
           >
-            <Pencil className='h-4 w-4' />
+            <Pencil />
           </Button>
           <DeleteButton
             bundle={row.original}
@@ -108,12 +109,12 @@ function DeleteButton({ bundle, isLoading, onDelete }: DeleteButtonProps) {
       >
         {isLoading ? (
           <>
-            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            <Spinner label='' />
             Deleting…
           </>
         ) : (
           <>
-            <Trash2 className='mr-1 size-4' aria-hidden />
+            <Trash2 aria-hidden />
             Delete
           </>
         )}
@@ -125,8 +126,8 @@ function DeleteButton({ bundle, isLoading, onDelete }: DeleteButtonProps) {
             <AlertDialogTitle>Delete bundle</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete{' '}
-              <span className='font-medium'>{bundle.name}</span>? This action
-              cannot be undone.
+              <Text weight='medium'>{bundle.name}</Text>? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -134,7 +135,7 @@ function DeleteButton({ bundle, isLoading, onDelete }: DeleteButtonProps) {
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={isLoading}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              variant='destructive'
             >
               Delete
             </AlertDialogAction>
@@ -251,7 +252,7 @@ function BundlesTableInner() {
       onClick={() => setCreateDialogOpen(true)}
       data-testid='new-bundle-button'
     >
-      <Plus className='mr-1 h-4 w-4' />
+      <Plus />
       New bundle
     </Button>
   );

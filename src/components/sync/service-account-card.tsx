@@ -27,10 +27,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { VStack, HStack, Text, Box } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import { VStack, HStack, Text, Box } from 'vinta-schedule-design-system/layout';
 import {
   useServiceAccount,
   useDeleteServiceAccount,
@@ -77,10 +78,7 @@ export function ServiceAccountCard() {
       <Box p={6} radius='lg' border borderColor='border'>
         <VStack gap={4}>
           <HStack gap={2} align='center'>
-            <Settings
-              className='text-muted-foreground h-5 w-5'
-              aria-hidden='true'
-            />
+            <Icon icon={Settings} size='md' color='muted-foreground' />
             <Text weight='semibold'>Service Account</Text>
           </HStack>
 
@@ -145,7 +143,7 @@ export function ServiceAccountCard() {
                   aria-label='Remove service account'
                   data-testid='remove-service-account-button'
                 >
-                  <Trash2 className='mr-1 h-4 w-4' aria-hidden='true' />
+                  <Trash2 aria-hidden='true' />
                   Remove
                 </Button>
               </HStack>
@@ -185,7 +183,7 @@ export function ServiceAccountCard() {
             <AlertDialogDescription>
               Are you sure you want to remove the service account{' '}
               {serviceAccount && (
-                <span className='font-medium'>{serviceAccount.email}</span>
+                <Text weight='medium'>{serviceAccount.email}</Text>
               )}
               ? Rooms sync will stop working until a new service account is
               configured.
@@ -193,6 +191,9 @@ export function ServiceAccountCard() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {/* className: AlertDialogAction hardcodes the default button variant
+                and exposes no `variant` prop, so the destructive surface (and
+                its :hover alpha tint) can only be applied as classes. */}
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={deleteMutation.isPending}

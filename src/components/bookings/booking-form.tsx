@@ -51,18 +51,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Checkbox } from 'vinta-schedule-design-system/ui/checkbox';
+import { Switch } from 'vinta-schedule-design-system/ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from 'vinta-schedule-design-system/ui/select';
 import {
   Form,
   FormField,
@@ -70,8 +70,15 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack, HStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import {
+  Box,
+  FormLayout,
+  VStack,
+  HStack,
+  Text,
+} from 'vinta-schedule-design-system/layout';
 import { useMyCalendars } from '@/hooks/calendars/use-my-calendars';
 import { useResourceCalendars } from '@/hooks/calendars/use-resource-calendars';
 import { useAvailabilityCheck } from '@/hooks/bookings/use-availability-check';
@@ -87,7 +94,7 @@ import {
   weekdayMatrix,
   type RecurrenceRule,
 } from '@/lib/datetime/index';
-import { Combobox } from '@/components/ui/combobox';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
 import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
 
 // ---------------------------------------------------------------------------
@@ -268,7 +275,7 @@ function RecurrenceFields({ form }: RecurrenceFieldsProps) {
   };
 
   return (
-    <VStack gap={3} className='border-border rounded-md border p-3'>
+    <VStack gap={3} p={3} border radius='md'>
       {/* Frequency */}
       <FormField
         control={form.control}
@@ -326,8 +333,8 @@ function RecurrenceFields({ form }: RecurrenceFieldsProps) {
       {/* BYDAY — only for weekly */}
       {freq === 'WEEKLY' && (
         <VStack gap={2}>
-          <label className='text-sm leading-none font-medium'>On days</label>
-          <HStack gap={2} className='flex-wrap'>
+          <Label>On days</Label>
+          <HStack gap={2} wrap>
             {WEEKDAYS.map((day) => (
               <HStack key={day.byday} gap={1} align='center'>
                 <Checkbox
@@ -337,12 +344,14 @@ function RecurrenceFields({ form }: RecurrenceFieldsProps) {
                     handleBydayToggle(day.byday, Boolean(checked))
                   }
                 />
-                <label
+                {/* cursor-pointer / select-none: pointer + selection affordances
+                    have no token prop on the shadcn Label. */}
+                <Label
                   htmlFor={`byday-${day.byday}`}
-                  className='cursor-pointer text-sm select-none'
+                  className='cursor-pointer select-none'
                 >
                   {day.short}
-                </label>
+                </Label>
               </HStack>
             ))}
           </HStack>
@@ -710,9 +719,9 @@ export function BookingFormDialog({
               isPending={isPending}
             />
           ) : (
-            <form
+            <FormLayout
+              gap={4}
               onSubmit={form.handleSubmit(onSubmit)}
-              className='flex flex-col gap-4'
               noValidate
             >
               {/* Title */}
@@ -752,32 +761,36 @@ export function BookingFormDialog({
 
               {/* Start time / End time */}
               <HStack gap={3}>
-                <FormField
-                  control={form.control}
-                  name='startTime'
-                  render={({ field }) => (
-                    <FormItem className='flex-1'>
-                      <FormLabel>Start time</FormLabel>
-                      <FormControl>
-                        <Input type='time' {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='endTime'
-                  render={({ field }) => (
-                    <FormItem className='flex-1'>
-                      <FormLabel>End time</FormLabel>
-                      <FormControl>
-                        <Input type='time' {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <Box grow basis={0}>
+                  <FormField
+                    control={form.control}
+                    name='startTime'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start time</FormLabel>
+                        <FormControl>
+                          <Input type='time' {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </Box>
+                <Box grow basis={0}>
+                  <FormField
+                    control={form.control}
+                    name='endTime'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End time</FormLabel>
+                        <FormControl>
+                          <Input type='time' {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </Box>
               </HStack>
 
               {/* Timezone */}
@@ -830,9 +843,7 @@ export function BookingFormDialog({
               {/* Co-booked calendars (multi-select via checkboxes) */}
               {primaryCalendarId && coBookableCalendars.length > 0 && (
                 <VStack gap={2}>
-                  <label className='text-sm leading-none font-medium'>
-                    Also block on (co-booked)
-                  </label>
+                  <Label>Also block on (co-booked)</Label>
                   <VStack gap={2}>
                     {coBookableCalendars.map((cal) => (
                       <HStack key={cal.id} gap={2} align='center'>
@@ -843,12 +854,13 @@ export function BookingFormDialog({
                             handleCoBookToggle(cal.id, Boolean(checked))
                           }
                         />
-                        <label
+                        {/* cursor-pointer / select-none have no token prop on Label. */}
+                        <Label
                           htmlFor={`co-book-${cal.id}`}
-                          className='cursor-pointer text-sm select-none'
+                          className='cursor-pointer select-none'
                         >
                           {cal.name}
-                        </label>
+                        </Label>
                       </HStack>
                     ))}
                   </VStack>
@@ -857,12 +869,7 @@ export function BookingFormDialog({
 
               {/* Resource calendars — bookable by every member */}
               <VStack gap={2}>
-                <label
-                  htmlFor='resource-calendars'
-                  className='text-sm leading-none font-medium'
-                >
-                  Resource calendars
-                </label>
+                <Label htmlFor='resource-calendars'>Resource calendars</Label>
                 <Combobox
                   multiple
                   id='resource-calendars'
@@ -886,12 +893,7 @@ export function BookingFormDialog({
 
               {/* Internal attendees */}
               <VStack gap={2}>
-                <label
-                  htmlFor='internal-attendees'
-                  className='text-sm leading-none font-medium'
-                >
-                  Internal attendees
-                </label>
+                <Label htmlFor='internal-attendees'>Internal attendees</Label>
                 <Combobox
                   multiple
                   id='internal-attendees'
@@ -931,62 +933,61 @@ export function BookingFormDialog({
 
               {/* External attendees */}
               <VStack gap={2}>
-                <label className='text-sm leading-none font-medium'>
-                  External attendees
-                </label>
+                <Label>External attendees</Label>
                 {externalFields.map((field, index) => (
-                  <VStack
-                    key={field.id}
-                    gap={2}
-                    className='border-border rounded-md border p-2'
-                  >
+                  <VStack key={field.id} gap={2} p={2} border radius='md'>
                     <HStack gap={2} align='start'>
-                      <FormField
-                        control={form.control}
-                        name={`externalAttendances.${index}.name`}
-                        render={({ field: f }) => (
-                          <FormItem className='flex-1'>
-                            <FormLabel>Name (optional)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type='text'
-                                placeholder='Jane Doe'
-                                autoComplete='off'
-                                {...f}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`externalAttendances.${index}.email`}
-                        render={({ field: f }) => (
-                          <FormItem className='flex-1'>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input
-                                type='email'
-                                placeholder='jane@example.com'
-                                autoComplete='off'
-                                {...f}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <Box grow basis={0}>
+                        <FormField
+                          control={form.control}
+                          name={`externalAttendances.${index}.name`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel>Name (optional)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type='text'
+                                  placeholder='Jane Doe'
+                                  autoComplete='off'
+                                  {...f}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </Box>
+                      <Box grow basis={0}>
+                        <FormField
+                          control={form.control}
+                          name={`externalAttendances.${index}.email`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type='email'
+                                  placeholder='jane@example.com'
+                                  autoComplete='off'
+                                  {...f}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </Box>
                     </HStack>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='sm'
-                      className='self-end'
-                      onClick={() => removeExternal(index)}
-                    >
-                      Remove
-                    </Button>
+                    <HStack justify='end'>
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => removeExternal(index)}
+                      >
+                        Remove
+                      </Button>
+                    </HStack>
                   </VStack>
                 ))}
                 <Button
@@ -1009,12 +1010,13 @@ export function BookingFormDialog({
                   }
                   aria-label='Enable recurring booking'
                 />
-                <label
+                {/* cursor-pointer / select-none have no token prop on Label. */}
+                <Label
                   htmlFor='repeat-toggle'
-                  className='cursor-pointer text-sm font-medium select-none'
+                  className='cursor-pointer select-none'
                 >
                   Repeat
-                </label>
+                </Label>
               </HStack>
 
               {/* Recurrence sub-form — gated behind the Repeat switch */}
@@ -1033,7 +1035,7 @@ export function BookingFormDialog({
                   {isPending ? 'Checking…' : 'Create booking'}
                 </Button>
               </DialogFooter>
-            </form>
+            </FormLayout>
           )}
         </Form>
       </DialogContent>

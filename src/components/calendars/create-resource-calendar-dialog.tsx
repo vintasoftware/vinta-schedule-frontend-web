@@ -12,10 +12,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Switch } from 'vinta-schedule-design-system/ui/switch';
 import {
   Form,
   FormField,
@@ -24,8 +24,12 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from '@/components/ui/form';
-import { HStack } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import {
+  FormLayout,
+  HStack,
+  VStack,
+} from 'vinta-schedule-design-system/layout';
 import { useCreateResourceCalendar } from '@/hooks/calendars/use-create-resource-calendar';
 
 // ---------------------------------------------------------------------------
@@ -134,7 +138,7 @@ export function CreateResourceCalendarDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={onSubmit} className='flex flex-col gap-4' noValidate>
+          <FormLayout onSubmit={onSubmit} gap={4} noValidate>
             <FormField
               control={form.control}
               name='name'
@@ -207,12 +211,12 @@ export function CreateResourceCalendarDialog({
               render={({ field }) => (
                 <FormItem>
                   <HStack gap={3} align='center' justify='between'>
-                    <div className='space-y-0.5'>
+                    <VStack gap={1}>
                       <FormLabel>Manage availability windows</FormLabel>
                       <FormDescription>
                         Let this resource define its own bookable time windows.
                       </FormDescription>
-                    </div>
+                    </VStack>
                     <FormControl>
                       <Switch
                         checked={field.value}
@@ -239,7 +243,7 @@ export function CreateResourceCalendarDialog({
                 {isPending ? 'Creating…' : 'Create resource calendar'}
               </Button>
             </DialogFooter>
-          </form>
+          </FormLayout>
         </Form>
       </DialogContent>
     </Dialog>

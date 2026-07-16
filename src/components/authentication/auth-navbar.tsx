@@ -2,16 +2,16 @@
 
 import Link from 'next/link';
 
-import { Navbar, BrandMark } from '@/components/layout/navbar';
-import { Button } from '@/components/ui/button';
+import { Navbar, BrandMark } from 'vinta-schedule-design-system/layout/navbar';
+import { HStack } from 'vinta-schedule-design-system/layout';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Image } from 'vinta-schedule-design-system/ui/image';
 import { ThemeToggle } from '@/components/navigation/theme-toggle';
 import type { TenantBranding } from '@/lib/branding-shared';
 import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
-import { cn } from '@/lib/utils/index';
 
 interface ThemedBrandMarkProps {
   branding: TenantBranding;
-  className?: string;
 }
 
 /**
@@ -23,35 +23,37 @@ interface ThemedBrandMarkProps {
  * treated as branded and rendered through the custom path so neither value
  * is silently dropped.
  */
-function ThemedBrandMark({ branding, className }: ThemedBrandMarkProps) {
+function ThemedBrandMark({ branding }: ThemedBrandMarkProps) {
   const isVintaDefault =
     branding.logoUrl === VINTA_DEFAULT_BRANDING.logoUrl &&
     branding.appName === VINTA_DEFAULT_BRANDING.appName;
 
   if (isVintaDefault) {
     // Preserve exact vinta rendering — no visual diff for unbranded tenants.
-    return <BrandMark className={className} />;
+    return <BrandMark />;
   }
 
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
+    <HStack gap={2}>
       {/*
        * Reseller logos are arbitrary colored brand assets supplied by the
        * tenant — inverting them in dark mode (as we do for the vinta SVG
-       * wordmark) would break their brand colors. The branded img renders
+       * wordmark) would break their brand colors. The branded image renders
        * as-is in all themes; the reseller is responsible for supplying an
        * asset that works on both light and dark backgrounds.
        *
        * next/image is intentionally NOT used here: reseller logo domains are
        * fully dynamic and cannot be pre-listed in next.config remotePatterns.
+       * The DS `Image` atom renders a plain, unoptimized image element, which
+       * is exactly what we want here.
        */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={branding.logoUrl}
         alt={branding.appName}
-        className='h-5 w-auto'
+        height={20}
+        fit='contain'
       />
-    </div>
+    </HStack>
   );
 }
 

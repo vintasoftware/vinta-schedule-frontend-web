@@ -9,7 +9,7 @@ import type {
   KindEnum,
   ProviderEnum,
 } from '@/client';
-import type { BadgeProps } from '@/components/ui/badge';
+import type { BadgeProps } from 'vinta-schedule-design-system/ui/badge';
 
 // ---------------------------------------------------------------------------
 // Status

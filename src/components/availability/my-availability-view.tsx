@@ -6,7 +6,7 @@
  * Shows a single week at a time and lets the user page between weeks. The
  * viewed week is tracked on the URL (?week=<offset> where 0 = current week,
  * +1 = next week, -1 = last week), so a refresh or deep-link lands on the same
- * week. Must render inside a <Suspense> boundary (useUrlState → useSearchParams).
+ * week. Must render inside a `<Suspense>` boundary (useUrlState → useSearchParams).
  *
  * Uses useMyAvailability which derives busy windows from the calendar's
  * unavailable-windows (events + the user's blocked-times, de-duplicated).
@@ -20,9 +20,17 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { CalendarOff, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { VStack, HStack, Stack, Text, Heading } from '@/components/layout';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import {
+  VStack,
+  HStack,
+  Stack,
+  Text,
+  Heading,
+} from 'vinta-schedule-design-system/layout';
 import { useMyAvailability } from '@/hooks/availability/use-my-availability';
 import { useUrlState } from '@/hooks/use-url-state';
 import { FreeBusyList } from './free-busy-list';
@@ -78,15 +86,15 @@ export function MyAvailabilityView() {
 
   if (!hasDefault && !isLoading) {
     return (
-      <Stack gap={3} className='py-4'>
-        <VStack gap={2} className='items-center text-center'>
-          <CalendarOff className='text-muted-foreground h-8 w-8' aria-hidden />
+      <Stack gap={3} py={4}>
+        <VStack gap={2} align='center' textAlign='center'>
+          <Icon icon={CalendarOff} size='xl' color='muted-foreground' />
           <Text color='muted-foreground'>
             No default calendar yet — connect or import a calendar.
           </Text>
-          <Button variant='link' size='sm' className='p-0' asChild>
+          <TextLink size='md' asChild>
             <Link href='/calendars'>Go to Calendars &rarr;</Link>
-          </Button>
+          </TextLink>
         </VStack>
       </Stack>
     );
@@ -95,14 +103,14 @@ export function MyAvailabilityView() {
   return (
     <Stack gap={4}>
       {/* Week pager — makes the single-week scope explicit and navigable. */}
-      <HStack gap={3} className='items-center justify-between'>
+      <HStack gap={3} justify='between'>
         <VStack gap={0}>
           <Heading size='sm'>{relativeLabel}</Heading>
           <Text size='sm' color='muted-foreground'>
             {weekLabel}
           </Text>
         </VStack>
-        <HStack gap={2} className='items-center'>
+        <HStack gap={2}>
           {weekOffset !== 0 && (
             <Button
               variant='ghost'
@@ -119,7 +127,7 @@ export function MyAvailabilityView() {
             onClick={() => goToWeek(weekOffset - 1)}
             aria-label='Previous week'
           >
-            <ChevronLeft className='size-4' aria-hidden />
+            <ChevronLeft aria-hidden />
           </Button>
           <Button
             variant='outline'
@@ -127,7 +135,7 @@ export function MyAvailabilityView() {
             onClick={() => goToWeek(weekOffset + 1)}
             aria-label='Next week'
           >
-            <ChevronRight className='size-4' aria-hidden />
+            <ChevronRight aria-hidden />
           </Button>
         </HStack>
       </HStack>
@@ -135,7 +143,7 @@ export function MyAvailabilityView() {
       {isLoading ? (
         <VStack gap={2}>
           {[1, 2, 3].map((n) => (
-            <Skeleton key={n} className='h-12 w-full rounded-md' />
+            <Skeleton key={n} height={48} width='full' radius='md' />
           ))}
         </VStack>
       ) : (

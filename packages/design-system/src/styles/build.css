@@ -1,0 +1,35 @@
+/* Build entry for the standalone, publishable stylesheet (dist/styles.css).
+ *
+ * A consumer that installs this package from a registry has a Tailwind build
+ * that only scans its own workspace — it never runs this package's `@source`
+ * scan. So we precompile a self-contained stylesheet here: the brand tokens
+ * (which don't exist in the host) plus every utility the components emit. The
+ * Tailwind v4 CLI reads this file (`pnpm run build:css`).
+ *
+ * Consumers load the result via the `./styles.css` export. In-repo, the app
+ * still uses src/app/globals.css (tokens + its own @source); this file is only
+ * for external, registry-installed consumers.
+ */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './tokens.css';
+@import './responsive-safelist.css';
+@import './container-safelist.css';
+
+/* Scan the package source so utilities referenced by components are generated
+ * into the shipped stylesheet. Relative to this file (src/styles/). */
+@source '../ui';
+@source '../layout';
+
+/* next/font injects --font-dm-sans / --font-geist-mono in the schedule app; a
+ * non-Next host has no next/font. Provide real fallback stacks so shipped CSS
+ * renders with sensible fonts standalone. tokens.css only *references* these
+ * vars, so defining them here doesn't conflict. */
+@layer base {
+  :root {
+    --font-dm-sans:
+      'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-geist-mono:
+      'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+  }
+}

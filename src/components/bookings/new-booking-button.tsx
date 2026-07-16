@@ -9,7 +9,7 @@
 
 import * as React from 'react';
 import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import { BookingFormDialog } from '@/components/bookings/booking-form';
 
 export function NewBookingButton() {
@@ -18,7 +18,7 @@ export function NewBookingButton() {
   return (
     <>
       <Button onClick={() => setOpen(true)}>
-        <Plus className='h-4 w-4' aria-hidden='true' />
+        <Plus aria-hidden='true' />
         New booking
       </Button>
       <BookingFormDialog open={open} onOpenChange={setOpen} />

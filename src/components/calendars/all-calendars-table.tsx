@@ -6,9 +6,10 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { VStack, Text, HStack } from '@/components/layout';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import { VStack, Text, HStack } from 'vinta-schedule-design-system/layout';
 import type { Calendar, CalendarTypeEnum } from '@/client';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useTriggerUserCalendarSync } from '@/hooks/sync/use-trigger-user-calendar-sync';
@@ -139,12 +140,12 @@ function SyncButton({ calendar, isLoading, onSync }: SyncButtonProps) {
     >
       {isLoading ? (
         <>
-          <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+          <Icon icon={RotateCw} spin />
           Syncing…
         </>
       ) : (
         <>
-          <Cloud className='mr-1 size-4' aria-hidden />
+          <Cloud aria-hidden />
           Sync
         </>
       )}
@@ -267,6 +268,8 @@ export interface AllCalendarsTableProps {
   calendarType?: CalendarTypeEnum;
 }
 
-export function AllCalendarsTable({ calendarType }: AllCalendarsTableProps = {}) {
+export function AllCalendarsTable({
+  calendarType,
+}: AllCalendarsTableProps = {}) {
   return <AllCalendarsTableInner calendarType={calendarType} />;
 }

@@ -9,8 +9,8 @@ import {
   PaginationNext,
   PaginationPrevious,
   PaginationEllipsis,
-} from '@/components/ui/pagination';
-import { Flex } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/pagination';
+import { Flex, Text } from 'vinta-schedule-design-system/layout';
 import { cn } from '@/lib/utils/index';
 
 // ---------------------------------------------------------------------------
@@ -98,18 +98,20 @@ export function DataTablePagination({
       align='center'
       gap={2}
       py={2}
-      // Responsive: switch to row layout at @md/content container breakpoint
+      // CONTAINER query (@md/content), not a viewport breakpoint — the layout
+      // primitives' `Responsive` props only speak viewport breakpoints, so this
+      // one stays a class.
       className={cn(
         '@md/content:flex-row @md/content:justify-between',
         className
       )}
     >
       {/* Row count summary */}
-      <p className='text-muted-foreground text-sm'>
+      <Text size='sm' color='muted-foreground'>
         {totalCount === 0
           ? 'No results'
           : `Showing ${start}–${end} of ${totalCount}`}
-      </p>
+      </Text>
 
       {totalPages > 1 && (
         <Pagination>
@@ -120,6 +122,8 @@ export function DataTablePagination({
                 onClick={page > 1 ? () => onPageChange(page - 1) : undefined}
                 aria-disabled={page <= 1}
                 tabIndex={page <= 1 ? -1 : undefined}
+                // shadcn Pagination link has no `disabled` prop — the muted,
+                // click-through-proof state has no prop form.
                 className={page <= 1 ? 'pointer-events-none opacity-50' : ''}
               />
             </PaginationItem>
@@ -154,6 +158,7 @@ export function DataTablePagination({
                 }
                 aria-disabled={page >= totalPages}
                 tabIndex={page >= totalPages ? -1 : undefined}
+                // Same as Previous — no `disabled` prop on the shadcn link.
                 className={
                   page >= totalPages ? 'pointer-events-none opacity-50' : ''
                 }

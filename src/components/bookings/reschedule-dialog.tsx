@@ -39,9 +39,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
 import {
   Form,
   FormField,
@@ -49,8 +49,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { FormLayout, VStack } from 'vinta-schedule-design-system/layout';
 import {
   ConflictSurface,
   type CalendarConflict,
@@ -371,9 +371,9 @@ export function RescheduleDialog({
                 isPending={isPending}
               />
             ) : (
-              <form
+              <FormLayout
+                gap={4}
                 onSubmit={form.handleSubmit(onSubmit)}
-                className='flex flex-col gap-4'
                 data-testid='reschedule-form'
               >
                 <VStack gap={4}>
@@ -474,7 +474,7 @@ export function RescheduleDialog({
                     {isPending ? 'Rescheduling…' : 'Reschedule'}
                   </Button>
                 </DialogFooter>
-              </form>
+              </FormLayout>
             )}
           </Form>
         </DialogContent>

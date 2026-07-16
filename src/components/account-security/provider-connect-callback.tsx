@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { VStack, Text, Heading } from '@/components/layout';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { VStack, Text, Heading } from 'vinta-schedule-design-system/layout';
 
 import { useConnectProviderCallback } from '@/hooks/authentication/use-connect-provider-callback';
 
@@ -87,7 +87,8 @@ export function ProviderConnectCallback() {
 
   if (mode.kind === 'login-error') {
     return (
-      <Card className='w-full max-w-sm space-y-6 p-8'>
+      // Card exposes only `padding`; width/max-width have no prop (shadcn internal).
+      <Card padding={8} className='w-full max-w-sm'>
         <VStack gap={4} align='center'>
           <Heading level={1} size='2xl' align='center'>
             Sign-in failed

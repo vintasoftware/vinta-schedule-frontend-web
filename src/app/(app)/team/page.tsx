@@ -1,12 +1,17 @@
 'use client';
 
 import * as React from 'react';
-import { Stack } from '@/components/layout/stack';
-import { PageHeader } from '@/components/layout/page-header';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
+import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { TeamTable } from '@/components/team/team-table';
 import { InvitationsTable } from '@/components/invitations/invitations-table';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from 'vinta-schedule-design-system/ui/tabs';
 import { useRequireRole } from '@/components/navigation/role-gate';
 
 /**
@@ -33,7 +38,7 @@ export default function TeamPage() {
         title='Team'
         description='Manage your organization members and invitations.'
       />
-      <Tabs defaultValue='team' className='w-full'>
+      <Tabs defaultValue='team'>
         <TabsList>
           <TabsTrigger value='team'>Team</TabsTrigger>
           <TabsTrigger value='invitations'>Invitations</TabsTrigger>

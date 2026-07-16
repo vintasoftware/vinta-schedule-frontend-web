@@ -94,6 +94,13 @@ const ADMIN_MEMBERSHIP: CurrentMembership = {
   organization: { id: 1, name: 'Test Org' },
 };
 
+// Reseller org: flagged can_invite_organizations. Only these orgs surface the
+// Branding link in the sidebar.
+const RESELLER_ADMIN_MEMBERSHIP: CurrentMembership = {
+  role: 'admin',
+  organization: { id: 1, name: 'Test Org', can_invite_organizations: true },
+};
+
 function mockOrgSuccess(membership: CurrentMembership) {
   vi.mocked(organizationsCurrentRetrieve).mockResolvedValue({
     data: membership,
@@ -239,6 +246,35 @@ describe('AppLayout (integration)', () => {
       // Admin nav group items should be visible.
       expect(screen.getByText('Team')).toBeInTheDocument();
       expect(screen.getByText('API tokens')).toBeInTheDocument();
+    });
+
+    it('does not show the Branding link for a non-reseller org', async () => {
+      mockOrgSuccess(ADMIN_MEMBERSHIP);
+      renderLayout();
+
+      await waitFor(() => {
+        expect(screen.getByAltText('Vinta')).toBeInTheDocument();
+      });
+
+      // can_invite_organizations is absent → no Branding link.
+      expect(screen.queryByText('Branding')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('reseller org (can_invite_organizations)', () => {
+    beforeEach(() => {
+      setSessionActiveCookie();
+    });
+
+    it('shows the Branding link for a reseller org', async () => {
+      mockOrgSuccess(RESELLER_ADMIN_MEMBERSHIP);
+      renderLayout();
+
+      await waitFor(() => {
+        expect(screen.getByAltText('Vinta')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Branding')).toBeInTheDocument();
     });
   });
 

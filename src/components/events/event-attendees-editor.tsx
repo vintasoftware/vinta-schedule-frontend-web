@@ -21,10 +21,10 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 import { Trash2, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Combobox } from '@/components/ui/combobox';
-import { VStack, HStack, Text } from '@/components/layout';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
+import { Box, VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
 import { useResourceCalendars } from '@/hooks/calendars/use-resource-calendars';
 import { useUpdateAttendees } from '@/hooks/events/use-update-attendees';
 import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
@@ -264,7 +264,7 @@ export function EventAttendeesEditor({
       {/* Internal attendees                                                  */}
       {/* ------------------------------------------------------------------ */}
       <VStack gap={3}>
-        <Text size='sm' className='font-semibold'>
+        <Text size='sm' weight='semibold'>
           Internal attendees
         </Text>
 
@@ -276,7 +276,7 @@ export function EventAttendeesEditor({
 
         {internalRows.map((row) => (
           <HStack key={row.key} gap={2} align='center'>
-            <Text size='sm' className='flex-1'>
+            <Text size='sm' grow>
               {row.label}
             </Text>
             <Button
@@ -287,7 +287,7 @@ export function EventAttendeesEditor({
               onClick={() => removeInternal(row.key)}
               disabled={isPending}
             >
-              <Trash2 className='h-4 w-4' />
+              <Trash2 />
             </Button>
           </HStack>
         ))}
@@ -321,7 +321,7 @@ export function EventAttendeesEditor({
       {/* External attendees                                                  */}
       {/* ------------------------------------------------------------------ */}
       <VStack gap={3}>
-        <Text size='sm' className='font-semibold'>
+        <Text size='sm' weight='semibold'>
           External attendees
         </Text>
 
@@ -333,7 +333,7 @@ export function EventAttendeesEditor({
 
         {externalRows.map((row) => (
           <HStack key={row.key} gap={2} align='center'>
-            <VStack gap={0} className='flex-1'>
+            <VStack gap={0} grow>
               <Text size='sm'>{row.email}</Text>
               {row.name && (
                 <Text size='xs' color='muted-foreground'>
@@ -349,31 +349,33 @@ export function EventAttendeesEditor({
               onClick={() => removeExternal(row.key)}
               disabled={isPending}
             >
-              <Trash2 className='h-4 w-4' />
+              <Trash2 />
             </Button>
           </HStack>
         ))}
 
         {/* Add new external attendee */}
         <HStack gap={2} align='center'>
-          <Input
-            type='text'
-            placeholder='Name (optional)'
-            value={newExternalName}
-            onChange={(e) => setNewExternalName(e.target.value)}
-            disabled={isPending}
-            className='flex-1'
-            aria-label='External attendee name'
-          />
-          <Input
-            type='email'
-            placeholder='Email'
-            value={newExternalEmail}
-            onChange={(e) => setNewExternalEmail(e.target.value)}
-            disabled={isPending}
-            className='flex-1'
-            aria-label='External attendee email'
-          />
+          <Box grow shrink basis={0}>
+            <Input
+              type='text'
+              placeholder='Name (optional)'
+              value={newExternalName}
+              onChange={(e) => setNewExternalName(e.target.value)}
+              disabled={isPending}
+              aria-label='External attendee name'
+            />
+          </Box>
+          <Box grow shrink basis={0}>
+            <Input
+              type='email'
+              placeholder='Email'
+              value={newExternalEmail}
+              onChange={(e) => setNewExternalEmail(e.target.value)}
+              disabled={isPending}
+              aria-label='External attendee email'
+            />
+          </Box>
           <Button
             type='button'
             variant='outline'
@@ -382,7 +384,7 @@ export function EventAttendeesEditor({
             onClick={addExternal}
             disabled={isPending || !newExternalEmail}
           >
-            <Plus className='h-4 w-4' />
+            <Plus />
           </Button>
         </HStack>
       </VStack>
@@ -391,7 +393,7 @@ export function EventAttendeesEditor({
       {/* Resource allocations                                                */}
       {/* ------------------------------------------------------------------ */}
       <VStack gap={3}>
-        <Text size='sm' className='font-semibold'>
+        <Text size='sm' weight='semibold'>
           Resource calendars
         </Text>
 
@@ -405,7 +407,7 @@ export function EventAttendeesEditor({
           const cal = resourceCalendars.find((c) => c.id === row.calendarId);
           return (
             <HStack key={row.key} gap={2} align='center'>
-              <Text size='sm' className='flex-1'>
+              <Text size='sm' grow>
                 {cal?.name ?? `Calendar ${row.calendarId}`}
               </Text>
               <Button
@@ -416,7 +418,7 @@ export function EventAttendeesEditor({
                 onClick={() => removeResource(row.key)}
                 disabled={isPending}
               >
-                <Trash2 className='h-4 w-4' />
+                <Trash2 />
               </Button>
             </HStack>
           );
@@ -459,7 +461,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from '@/components/ui/sheet';
+} from 'vinta-schedule-design-system/ui/sheet';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -469,7 +471,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
 import { Download } from 'lucide-react';
 import { ScopePromptDialog } from '@/components/bookings/scope-prompt-dialog';
 import type { RecurringScope } from '@/components/bookings/scope-prompt-dialog';
@@ -586,6 +588,8 @@ export function EventAttendeesSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
+        {/* className: SheetContent owns its own width/scroll and exposes no
+            size prop; `sm:max-w-lg` is a breakpoint override of that internal. */}
         <SheetContent side='right' className='overflow-y-auto sm:max-w-lg'>
           <SheetHeader>
             <SheetTitle>{event.title}</SheetTitle>
@@ -595,7 +599,7 @@ export function EventAttendeesSheet({
             </SheetDescription>
           </SheetHeader>
 
-          <div className='mt-6'>
+          <Box mt={6}>
             <EventAttendeesEditor
               eventId={raw.id}
               initialAttendances={raw.attendances}
@@ -603,14 +607,15 @@ export function EventAttendeesSheet({
               initialResourceAllocations={raw.resource_allocations}
               onSaved={() => onOpenChange(false)}
             />
-          </div>
+          </Box>
 
-          {/* Actions: Edit + Reschedule + Cancel */}
-          <div className='mt-6 space-y-2 border-t pt-4'>
+          {/* Actions: Edit + Reschedule + Cancel.
+              The stack stretches its children, so the buttons are full-width
+              without a `w-full` class. */}
+          <VStack gap={2} mt={6} pt={4} borderTop>
             {/* Edit action */}
             <Button
               variant='outline'
-              className='w-full'
               onClick={() => setEditOpen(true)}
               disabled={isCancelling}
               data-testid='edit-event-btn'
@@ -621,7 +626,6 @@ export function EventAttendeesSheet({
             {/* Reschedule action */}
             <Button
               variant='outline'
-              className='w-full'
               onClick={() => setRescheduleOpen(true)}
               disabled={isCancelling}
               data-testid='reschedule-event-btn'
@@ -632,19 +636,22 @@ export function EventAttendeesSheet({
             {/* Download .ics action */}
             <Button
               variant='outline'
-              className='w-full'
               onClick={handleDownloadIcs}
               disabled={isCancelling || isDownloading}
               data-testid='download-ics-btn'
             >
-              <Download className='h-4 w-4' />
+              <Download />
               {isDownloading ? 'Downloading…' : 'Download .ics'}
             </Button>
 
-            {/* Cancel action */}
+            {/* Cancel action.
+                className: the destructive tint uses alpha variants
+                (`border-destructive/30`, `hover:bg-destructive/10`) and a
+                :hover state — neither is expressible as a token prop, and
+                Button has no destructive-outline variant. */}
             <Button
               variant='outline'
-              className='text-destructive border-destructive/30 hover:bg-destructive/10 w-full'
+              className='text-destructive border-destructive/30 hover:bg-destructive/10'
               onClick={handleCancelClick}
               disabled={isCancelling}
             >
@@ -655,7 +662,6 @@ export function EventAttendeesSheet({
             <RoleGate role='admin'>
               <Button
                 variant='outline'
-                className='w-full'
                 onClick={() => setTransferOpen(true)}
                 disabled={isCancelling}
                 data-testid='transfer-event-btn'
@@ -663,7 +669,7 @@ export function EventAttendeesSheet({
                 Transfer event
               </Button>
             </RoleGate>
-          </div>
+          </VStack>
         </SheetContent>
       </Sheet>
 
@@ -674,14 +680,17 @@ export function EventAttendeesSheet({
             <AlertDialogTitle>Cancel event</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to cancel{' '}
-              <span className='font-medium'>{event.title}</span>? This action
-              cannot be undone.
+              <Text weight='medium'>{event.title}</Text>? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isCancelling}>
               Keep event
             </AlertDialogCancel>
+            {/* className: AlertDialogAction hardcodes the default button variant
+                and exposes no `variant` prop, so the destructive surface (and
+                its :hover alpha tint) can only be applied as classes. */}
             <AlertDialogAction
               onClick={handleConfirmCancel}
               disabled={isCancelling}

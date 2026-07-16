@@ -32,10 +32,14 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+} from 'vinta-schedule-design-system/ui/dialog';
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from 'vinta-schedule-design-system/ui/radio-group';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import { HStack, Text } from 'vinta-schedule-design-system/layout';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -122,33 +126,43 @@ export function ScopePromptDialog({
         <DialogHeader>
           <DialogTitle>{actionLabel} recurring event</DialogTitle>
           <DialogDescription>
-            <span className='font-medium'>{eventTitle}</span> is a recurring
-            event. Choose which occurrences to {actionLabel.toLowerCase()}.
+            <Text weight='medium'>{eventTitle}</Text> is a recurring event.
+            Choose which occurrences to {actionLabel.toLowerCase()}.
           </DialogDescription>
         </DialogHeader>
 
+        {/* RadioGroup is a Radix root: its grid layout + spacing have no token
+            props, so the utility classes stay on the shadcn component. */}
         <RadioGroup
           value={selected}
           onValueChange={(v) => setSelected(v as RecurringScope)}
           className='mt-2 grid gap-3'
         >
           {SCOPE_OPTIONS.map((opt) => (
-            <div key={opt.value} className='flex items-start gap-3'>
+            <HStack key={opt.value} align='start' gap={3}>
+              {/* mt-0.5 — a 2px optical nudge, below the 4px token scale. */}
               <RadioGroupItem
                 value={opt.value}
                 id={`scope-${opt.value}`}
                 className='mt-0.5'
               />
-              <Label
-                htmlFor={`scope-${opt.value}`}
-                className='cursor-pointer leading-snug'
-              >
-                <span className='font-medium'>{opt.label}</span>
-                <span className='text-muted-foreground mt-0.5 block text-sm font-normal'>
+              {/* cursor-pointer has no token prop on the shadcn Label. */}
+              <Label htmlFor={`scope-${opt.value}`} className='cursor-pointer'>
+                <Text weight='medium' leading='snug'>
+                  {opt.label}
+                </Text>
+                <Text
+                  display='block'
+                  size='sm'
+                  weight='normal'
+                  leading='snug'
+                  color='muted-foreground'
+                  mt={1}
+                >
                   {opt.description}
-                </span>
+                </Text>
               </Label>
-            </div>
+            </HStack>
           ))}
         </RadioGroup>
 

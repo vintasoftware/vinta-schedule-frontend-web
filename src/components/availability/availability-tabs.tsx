@@ -5,12 +5,18 @@
  * the URL (?tab=mine|available|blocked|colleague). Refreshing or deep-linking
  * lands on the same tab.
  *
- * Must render inside a <Suspense> boundary (useUrlState → useSearchParams).
+ * Must render inside a `<Suspense>` boundary (useUrlState → useSearchParams).
  */
 
 import * as React from 'react';
-import { Stack } from '@/components/layout/stack';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Box } from 'vinta-schedule-design-system/layout/box';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from 'vinta-schedule-design-system/ui/tabs';
 import { useUrlState } from '@/hooks/use-url-state';
 import { AvailabilityEditor } from './availability-editor';
 import { BlockedTimeForm } from './blocked-time-form';
@@ -29,27 +35,31 @@ export function AvailabilityTabs() {
   const value: TabValue = isTabValue(tabParam) ? tabParam : 'mine';
 
   return (
-    <Tabs value={value} onValueChange={setTab} className='w-full'>
-      <TabsList>
-        <TabsTrigger value='mine'>My availability</TabsTrigger>
-        <TabsTrigger value='available'>Available times</TabsTrigger>
-        <TabsTrigger value='blocked'>Blocked times</TabsTrigger>
-        <TabsTrigger value='colleague'>Colleague availability</TabsTrigger>
-      </TabsList>
-      <TabsContent value='mine'>
-        <MyAvailabilityView />
-      </TabsContent>
-      <TabsContent value='available'>
-        <AvailabilityEditor />
-      </TabsContent>
-      <TabsContent value='blocked'>
-        <BlockedTimeForm />
-      </TabsContent>
-      <TabsContent value='colleague'>
-        <Stack gap={3}>
-          <UserAvailabilityView />
-        </Stack>
-      </TabsContent>
-    </Tabs>
+    // Box's `as` is not generically typed, so it cannot carry Tabs' own props.
+    // Wrap instead — the Tabs root is a block element and fills the full width.
+    <Box width='full'>
+      <Tabs value={value} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value='mine'>My availability</TabsTrigger>
+          <TabsTrigger value='available'>Available times</TabsTrigger>
+          <TabsTrigger value='blocked'>Blocked times</TabsTrigger>
+          <TabsTrigger value='colleague'>Colleague availability</TabsTrigger>
+        </TabsList>
+        <TabsContent value='mine'>
+          <MyAvailabilityView />
+        </TabsContent>
+        <TabsContent value='available'>
+          <AvailabilityEditor />
+        </TabsContent>
+        <TabsContent value='blocked'>
+          <BlockedTimeForm />
+        </TabsContent>
+        <TabsContent value='colleague'>
+          <Stack gap={3}>
+            <UserAvailabilityView />
+          </Stack>
+        </TabsContent>
+      </Tabs>
+    </Box>
   );
 }

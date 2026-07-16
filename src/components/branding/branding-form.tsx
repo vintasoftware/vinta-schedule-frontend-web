@@ -7,11 +7,24 @@ import { z } from 'zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Stack, HStack, VStack, Heading, Text } from '@/components/layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Card } from '@/components/ui/card';
+import {
+  Box,
+  Flex,
+  Stack,
+  HStack,
+  VStack,
+  Heading,
+  Text,
+  FormLayout,
+} from 'vinta-schedule-design-system/layout';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from 'vinta-schedule-design-system/ui/alert';
+import { Card } from 'vinta-schedule-design-system/ui/card';
 import {
   Form,
   FormField,
@@ -20,7 +33,7 @@ import {
   FormControl,
   FormMessage,
   FormDescription,
-} from '@/components/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
 import { useUpdateBranding } from '@/hooks/branding/use-update-branding';
 import type { OrganizationBranding } from '@/client';
 import { BrandingPreview } from './branding-preview';
@@ -158,17 +171,15 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
   };
 
   return (
+    // TODO(ds-gap): the `@3xl:` container-query breakpoints have no prop form —
+    // Responsive<T> only covers the viewport breakpoints (base/sm/md/lg/xl).
     <HStack gap={8} align='start' className='flex-col @3xl:flex-row'>
       {/* ------------------------------------------------------------------ */}
       {/* Left column — form                                                  */}
       {/* ------------------------------------------------------------------ */}
-      <Stack gap={6} className='min-w-0 flex-1'>
+      <Stack gap={6} grow shrink basis={0} minWidth={0}>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-6'
-            noValidate
-          >
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={6} noValidate>
             {/* App Name */}
             <FormField
               control={form.control}
@@ -210,36 +221,44 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
             />
 
             {/* Colors */}
-            <HStack gap={4} className='flex-col sm:flex-row'>
-              <FormField
-                control={form.control}
-                name='primary_color'
-                render={({ field }) => (
-                  <FormItem className='flex-1'>
-                    <FormLabel>Primary color</FormLabel>
-                    <FormControl>
-                      <Input type='text' placeholder='#1B4DFF' {...field} />
-                    </FormControl>
-                    <FormDescription>#RRGGBB or #RRGGBBAA</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='secondary_color'
-                render={({ field }) => (
-                  <FormItem className='flex-1'>
-                    <FormLabel>Secondary color</FormLabel>
-                    <FormControl>
-                      <Input type='text' placeholder='#0D1F6B' {...field} />
-                    </FormControl>
-                    <FormDescription>#RRGGBB or #RRGGBBAA</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </HStack>
+            <Flex
+              gap={4}
+              align='center'
+              direction={{ base: 'column', sm: 'row' }}
+            >
+              <Box grow shrink basis={0} minWidth={0}>
+                <FormField
+                  control={form.control}
+                  name='primary_color'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Primary color</FormLabel>
+                      <FormControl>
+                        <Input type='text' placeholder='#1B4DFF' {...field} />
+                      </FormControl>
+                      <FormDescription>#RRGGBB or #RRGGBBAA</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </Box>
+              <Box grow shrink basis={0} minWidth={0}>
+                <FormField
+                  control={form.control}
+                  name='secondary_color'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Secondary color</FormLabel>
+                      <FormControl>
+                        <Input type='text' placeholder='#0D1F6B' {...field} />
+                      </FormControl>
+                      <FormDescription>#RRGGBB or #RRGGBBAA</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </Box>
+            </Flex>
 
             {/* Support Email */}
             <FormField
@@ -266,7 +285,7 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
             {/* Return URL Allowlist */}
             <VStack gap={3}>
               <Stack gap={1}>
-                <Text size='sm' className='leading-none font-medium'>
+                <Text size='sm' leading='none' weight='medium'>
                   Return URL allowlist
                 </Text>
                 <Text size='sm' color='muted-foreground'>
@@ -275,32 +294,35 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
               </Stack>
               {fields.map((field, index) => (
                 <HStack key={field.id} gap={2} align='start'>
-                  <FormField
-                    control={form.control}
-                    name={`return_url_allowlist.${index}.value`}
-                    render={({ field: inputField }) => (
-                      <FormItem className='flex-1'>
-                        <FormControl>
-                          <Input
-                            type='url'
-                            placeholder='https://example.com/auth/callback'
-                            {...inputField}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='icon'
-                    aria-label='Remove URL'
-                    onClick={() => remove(index)}
-                    className='mt-0.5 shrink-0'
-                  >
-                    <Trash2 className='h-4 w-4' />
-                  </Button>
+                  <Box grow shrink basis={0} minWidth={0}>
+                    <FormField
+                      control={form.control}
+                      name={`return_url_allowlist.${index}.value`}
+                      render={({ field: inputField }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              type='url'
+                              placeholder='https://example.com/auth/callback'
+                              {...inputField}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </Box>
+                  <Box shrink={0}>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      aria-label='Remove URL'
+                      onClick={() => remove(index)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </Box>
                 </HStack>
               ))}
               <Button
@@ -309,7 +331,7 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
                 size='sm'
                 onClick={() => append({ value: '' })}
               >
-                <Plus className='mr-1 h-4 w-4' />
+                <Plus />
                 Add URL
               </Button>
             </VStack>
@@ -326,18 +348,22 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
                 {updateBrandingMutation.isPending ? 'Saving…' : 'Save branding'}
               </Button>
             </HStack>
-          </form>
+          </FormLayout>
         </Form>
       </Stack>
 
       {/* ------------------------------------------------------------------ */}
       {/* Right column — live preview                                         */}
       {/* ------------------------------------------------------------------ */}
+      {/* TODO(ds-gap): `@3xl:` container-query width/shrink have no prop form.
+          `w-full` must stay a class too — an inline `width` style would beat the
+          `@3xl:w-80` class. */}
       <Stack gap={3} className='w-full @3xl:w-80 @3xl:shrink-0'>
         <Heading level={3} size='sm'>
           Live preview
         </Heading>
-        <Card className='overflow-hidden p-0'>
+        {/* Card (shadcn) has no overflow prop; it clips the preview's corners. */}
+        <Card padding={0} className='overflow-hidden'>
           <BrandingPreview
             appName={watchedAppName || 'Your App'}
             logoUrl={watchedLogoUrl || undefined}

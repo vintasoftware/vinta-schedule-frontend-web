@@ -32,10 +32,7 @@ import type { Calendar, PaginatedCalendarList } from '@/client';
 // Fixtures
 // ---------------------------------------------------------------------------
 
-function resource(
-  id: number,
-  visibility: Calendar['visibility']
-): Calendar {
+function resource(id: number, visibility: Calendar['visibility']): Calendar {
   return {
     id,
     name: `Resource ${id}`,
@@ -69,8 +66,11 @@ function makeWrapper() {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return ({ children }: { children: ReactNode }) =>
-    createElement(QueryClientProvider, { client: qc }, children);
+  // Named (not an anonymous arrow) so React can report it in warnings/traces.
+  function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client: qc }, children);
+  }
+  return Wrapper;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,9 +1,29 @@
 import * as React from 'react';
 import type { Preview } from '@storybook/nextjs-vite';
 import { withThemeByClassName } from '@storybook/addon-themes';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { sb } from 'storybook/test';
 import { DM_Sans, Geist_Mono } from 'next/font/google';
 
+// Stories that stub a data hook need it mocked at the module boundary — an ESM
+// namespace can't be spied on in the browser. `spy: true` keeps the real
+// implementation, so only stories that call `.mockReturnValue()` see a stub.
+sb.mock(import('../src/hooks/availability/use-blocked-times.ts'), {
+  spy: true,
+});
+
+import { patchFocus } from './patch-focus';
 import '../src/app/globals.css';
+
+// Retries would leave stories stuck in a loading state for seconds whenever a
+// hook's request fails (there is no API behind Storybook).
+const createStoryQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
 
 // Device frames for the built-in viewport toolbar (Storybook 9/10 core).
 // Stories opt in per-story via `globals: { viewport: { value: 'mobile' } }`.
@@ -41,13 +61,22 @@ const geistMono = Geist_Mono({
 });
 
 const preview: Preview = {
+  // Runs after the core annotations' loaders, i.e. after `storybook/test` has
+  // installed the focus accessor this guards against. See ./patch-focus.ts.
+  loaders: [() => patchFocus()],
   parameters: {
     controls: {
       matchers: {
-        color: /(background|color)$/i,
+        // No `color` matcher: our token props (`color`, `background`) are unions
+        // of token names, not CSS colors, and a color-picker control on them
+        // renders broken ("Control of type color only supports string").
         date: /Date$/i,
       },
     },
+    // Components reaching for `useRouter`/`usePathname` from `next/navigation`
+    // need the App Router context; without this the framework only mocks the
+    // Pages router and they throw "invariant expected app router to be mounted".
+    nextjs: { appDirectory: true },
     backgrounds: { disable: true },
     a11y: { test: 'todo' },
     viewport: { options: VIEWPORTS },
@@ -65,6 +94,14 @@ const preview: Preview = {
       themes: { light: '', dark: 'dark' },
       defaultTheme: 'light',
     }),
+    // Anything rendering a data hook needs a QueryClient. A fresh client per
+    // story keeps cache from leaking between them; stories that need seeded data
+    // still wrap themselves in their own provider.
+    (Story) => (
+      <QueryClientProvider client={createStoryQueryClient()}>
+        <Story />
+      </QueryClientProvider>
+    ),
     (Story, context) => {
       const fullscreen = context.parameters.layout === 'fullscreen';
       return (

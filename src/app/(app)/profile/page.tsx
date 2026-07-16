@@ -5,18 +5,30 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Loader2, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
-import { PageHeader } from '@/components/layout/page-header';
-import { Stack } from '@/components/layout/stack';
-import { HStack } from '@/components/layout/flex';
-import { Text } from '@/components/layout/text';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
+import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
+import { Box } from 'vinta-schedule-design-system/layout/box';
+import { HStack } from 'vinta-schedule-design-system/layout/flex';
+import { FormLayout } from 'vinta-schedule-design-system/layout/form-layout';
+import { Text } from 'vinta-schedule-design-system/layout/text';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from 'vinta-schedule-design-system/ui/card';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from 'vinta-schedule-design-system/ui/avatar';
+import { Progress } from 'vinta-schedule-design-system/ui/progress';
 import {
   Form,
   FormField,
@@ -24,7 +36,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
 
 import { useProfile } from '@/hooks/users/use-profile';
 import { useUpdateProfile } from '@/hooks/users/use-update-profile';
@@ -64,9 +76,13 @@ export default function ProfilePage() {
   const { uploadProfilePicture } = useUploadProfilePicture();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = React.useState<number | null>(
+    null
+  );
   const [isUploading, setIsUploading] = React.useState(false);
-  const [pendingPictureUrl, setPendingPictureUrl] = React.useState<string | null>(null);
+  const [pendingPictureUrl, setPendingPictureUrl] = React.useState<
+    string | null
+  >(null);
 
   const form = useForm<ProfileSchema>({
     resolver: zodResolver(profileSchema),
@@ -108,7 +124,9 @@ export default function ProfilePage() {
     setIsUploading(true);
 
     try {
-      const s3Url = await uploadProfilePicture(file, (pct) => setUploadProgress(pct));
+      const s3Url = await uploadProfilePicture(file, (pct) =>
+        setUploadProgress(pct)
+      );
       setPendingPictureUrl(s3Url);
     } catch (err) {
       if (err instanceof UploadValidationError) {
@@ -134,83 +152,97 @@ export default function ProfilePage() {
         description='Update your name and profile details.'
       />
 
-      {/* Profile picture */}
-      <Card className='max-w-lg'>
-        <CardHeader>
-          <CardTitle className='text-base'>Profile picture</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <HStack gap={4} align='center'>
-              <Skeleton className='size-16 rounded-full' />
-              <Skeleton className='h-9 w-32' />
-            </HStack>
-          ) : (
-            <HStack gap={4} align='center'>
-              <Avatar className='size-16'>
-                <AvatarImage
-                  src={previewUrl ?? profile?.profile_picture ?? undefined}
-                  alt='Profile picture'
-                />
-                <AvatarFallback className='bg-teal-100 text-teal-700 text-lg'>
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-              <Stack gap={2}>
-                <input
-                  ref={fileInputRef}
-                  type='file'
-                  accept='image/jpeg,image/png,image/webp,image/gif'
-                  className='hidden'
-                  onChange={onFileChange}
-                />
-                <Button
-                  variant='outline'
-                  size='sm'
-                  disabled={isUploading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className='size-4 animate-spin' />
-                      Uploading…
-                    </>
+      {/* Profile picture. The Box caps the card width — Card itself exposes no
+          sizing props. `max-w-lg` = 32rem = 512px. */}
+      <Box maxWidth={512}>
+        <Card>
+          <CardHeader>
+            {/* `text-base` — CardTitle exposes no size prop. */}
+            <CardTitle className='text-base'>Profile picture</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <HStack gap={4} align='center'>
+                <Skeleton shape='circle' width={64} height={64} />
+                <Skeleton width={128} height={36} />
+              </HStack>
+            ) : (
+              <HStack gap={4} align='center'>
+                {/* `size-16` — Avatar's size is a shadcn internal with no prop. */}
+                <Avatar className='size-16'>
+                  <AvatarImage
+                    src={previewUrl ?? profile?.profile_picture ?? undefined}
+                    alt='Profile picture'
+                  />
+                  {/* AvatarFallback takes no color/size props — the teal tint
+                      and text size have to stay as classes.
+                      TODO(ds-gap): token props on AvatarFallback. */}
+                  <AvatarFallback className='bg-teal-100 text-lg text-teal-700'>
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <Stack gap={2}>
+                  {/* The file input is driven programmatically by the button
+                      below; it stays display:none (NOT sr-only — an sr-only
+                      input would be an unlabeled control for screen readers).
+                      Input exposes no display prop. */}
+                  <Input
+                    ref={fileInputRef}
+                    type='file'
+                    accept='image/jpeg,image/png,image/webp,image/gif'
+                    className='hidden'
+                    onChange={onFileChange}
+                  />
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    disabled={isUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Spinner label='' />
+                        Uploading…
+                      </>
+                    ) : (
+                      <>
+                        <Upload />
+                        Change photo
+                      </>
+                    )}
+                  </Button>
+                  {uploadProgress !== null ? (
+                    // Progress exposes no size props (shadcn internal).
+                    <Progress value={uploadProgress} className='h-1.5 w-32' />
                   ) : (
-                    <>
-                      <Upload className='size-4' />
-                      Change photo
-                    </>
+                    <Text size='xs' color='muted-foreground'>
+                      JPEG, PNG, WebP or GIF · max 5 MB
+                    </Text>
                   )}
-                </Button>
-                {uploadProgress !== null ? (
-                  <Progress value={uploadProgress} className='h-1.5 w-32' />
-                ) : (
-                  <Text size='xs' color='muted-foreground'>
-                    JPEG, PNG, WebP or GIF · max 5 MB
-                  </Text>
-                )}
-              </Stack>
-            </HStack>
-          )}
-        </CardContent>
-      </Card>
+                </Stack>
+              </HStack>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
 
       {/* Personal information */}
-      <Card className='max-w-lg'>
-        <CardHeader>
-          <CardTitle className='text-base'>Personal information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <Stack gap={4}>
-              <Skeleton className='h-9 w-full' />
-              <Skeleton className='h-9 w-full' />
-              <Skeleton className='h-9 w-24' />
-            </Stack>
-          ) : (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                <Stack gap={4}>
+      <Box maxWidth={512}>
+        <Card>
+          <CardHeader>
+            {/* `text-base` — CardTitle exposes no size prop. */}
+            <CardTitle className='text-base'>Personal information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Stack gap={4}>
+                <Skeleton width='full' height={36} />
+                <Skeleton width='full' height={36} />
+                <Skeleton width={96} height={36} />
+              </Stack>
+            ) : (
+              <Form {...form}>
+                <FormLayout gap={4} onSubmit={form.handleSubmit(onSubmit)}>
                   <FormField
                     control={form.control}
                     name='first_name'
@@ -237,19 +269,24 @@ export default function ProfilePage() {
                       </FormItem>
                     )}
                   />
-                  <Button
-                    type='submit'
-                    disabled={updateProfileMutation.isPending || isUploading}
-                    className='self-start'
-                  >
-                    {updateProfileMutation.isPending ? 'Saving…' : 'Save changes'}
-                  </Button>
-                </Stack>
-              </form>
-            </Form>
-          )}
-        </CardContent>
-      </Card>
+                  {/* The Box keeps the submit button at its intrinsic width
+                      (the `self-start` idiom) inside the stretched form column. */}
+                  <Box>
+                    <Button
+                      type='submit'
+                      disabled={updateProfileMutation.isPending || isUploading}
+                    >
+                      {updateProfileMutation.isPending
+                        ? 'Saving…'
+                        : 'Save changes'}
+                    </Button>
+                  </Box>
+                </FormLayout>
+              </Form>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
     </Stack>
   );
 }

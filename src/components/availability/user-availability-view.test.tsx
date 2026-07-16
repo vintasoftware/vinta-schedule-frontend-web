@@ -99,10 +99,10 @@ function makeWrapper() {
 }
 
 /** Selects the colleague and fills the date range so "Check availability" enables. */
-async function selectColleagueAndDates(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(
-    screen.getByRole('combobox', { name: /^colleague$/i })
-  );
+async function selectColleagueAndDates(
+  user: ReturnType<typeof userEvent.setup>
+) {
+  await user.click(screen.getByRole('combobox', { name: /^colleague$/i }));
   await user.click(await screen.findByText('Casey Colleague'));
   await user.type(screen.getByLabelText(/start date/i), '2025-06-01');
   await user.type(screen.getByLabelText(/end date/i), '2025-06-07');
@@ -250,7 +250,11 @@ describe('UserAvailabilityView', () => {
     vi.mocked(useColleagueCalendars).mockReturnValue({
       calendars: [
         FIXTURE_CALENDAR,
-        { id: 8, name: 'Secondary', calendar_type: 'personal' } as unknown as Calendar,
+        {
+          id: 8,
+          name: 'Secondary',
+          calendar_type: 'personal',
+        } as unknown as Calendar,
       ],
       isLoading: false,
       isError: false,
@@ -260,9 +264,7 @@ describe('UserAvailabilityView', () => {
     const Wrapper = makeWrapper();
     render(<UserAvailabilityView />, { wrapper: Wrapper });
 
-    await user.click(
-      screen.getByRole('combobox', { name: /^colleague$/i })
-    );
+    await user.click(screen.getByRole('combobox', { name: /^colleague$/i }));
     await user.click(await screen.findByText('Casey Colleague'));
 
     expect(

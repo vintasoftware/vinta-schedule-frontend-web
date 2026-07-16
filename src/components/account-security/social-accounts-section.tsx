@@ -9,10 +9,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+} from 'vinta-schedule-design-system/ui/card';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +22,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { VStack, HStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
 import { SocialProviderIcon } from '@/components/authentication/social-provider-icon';
 
 import { ProviderAccount } from '@/auth-client';
@@ -105,8 +105,8 @@ export function SocialAccountsSection() {
       <CardContent>
         {isLoading ? (
           <VStack gap={3}>
-            <Skeleton className='h-10 w-full' />
-            <Skeleton className='h-10 w-full' />
+            <Skeleton height={40} width='full' />
+            <Skeleton height={40} width='full' />
           </VStack>
         ) : (
           <VStack gap={3}>
@@ -141,7 +141,7 @@ export function SocialAccountsSection() {
                       justify='between'
                       align='center'
                       gap={4}
-                      className='pl-6'
+                      pl={6}
                     >
                       <Text size='sm' color='muted-foreground'>
                         {account.display}

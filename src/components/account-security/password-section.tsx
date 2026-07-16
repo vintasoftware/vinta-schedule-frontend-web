@@ -5,15 +5,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from 'vinta-schedule-design-system/ui/card';
 import {
   Form,
   FormControl,
@@ -21,8 +21,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { Flex, VStack, FormLayout } from 'vinta-schedule-design-system/layout';
 
 import { useAuthUser } from '@/hooks/authentication/use-auth-user';
 import { useChangePassword } from '@/hooks/authentication/use-change-password';
@@ -102,8 +102,8 @@ export function PasswordSection() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <VStack gap={4} className='max-w-sm'>
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)}>
+            <VStack gap={4} maxWidth={384}>
               {hasPassword && (
                 <FormField
                   control={form.control}
@@ -160,15 +160,18 @@ export function PasswordSection() {
                   </FormItem>
                 )}
               />
-              <Button
-                type='submit'
-                className='self-start'
-                disabled={changePasswordMutation.isPending || isLoading}
-              >
-                {changePasswordMutation.isPending ? 'Saving…' : title}
-              </Button>
+              {/* Row wrapper keeps the button at its natural width (the stack
+                  would otherwise stretch it edge to edge). */}
+              <Flex>
+                <Button
+                  type='submit'
+                  disabled={changePasswordMutation.isPending || isLoading}
+                >
+                  {changePasswordMutation.isPending ? 'Saving…' : title}
+                </Button>
+              </Flex>
             </VStack>
-          </form>
+          </FormLayout>
         </Form>
       </CardContent>
       <ReauthenticateDialog request={reauthenticationRequest} />

@@ -9,10 +9,17 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { VStack, HStack, Box, Text, Divider } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import {
+  VStack,
+  HStack,
+  Box,
+  Text,
+  Divider,
+} from 'vinta-schedule-design-system/layout';
 import { formatDateTime } from '@/lib/utils/date-utils';
 import {
   STATUS_LABELS,
@@ -67,15 +74,14 @@ function ValueRow({
         {label}
       </Text>
       <HStack gap={2} align='center'>
+        {/* The struck-through "before" value: neither line-through nor an
+            opacity tint has a prop form. */}
         <Text size='sm' className={changed ? 'line-through opacity-70' : ''}>
           {before}
         </Text>
         {showProposed && (
           <>
-            <ArrowRight
-              className='text-muted-foreground size-3.5 shrink-0'
-              aria-hidden
-            />
+            <Icon icon={ArrowRight} size='sm' color='muted-foreground' />
             <Text size='sm' weight={changed ? 'medium' : 'normal'}>
               {after}
             </Text>
@@ -138,11 +144,12 @@ export function ChangeRequestDetailDialog({
 
           {showProposed && (
             <HStack gap={2} align='center'>
-              <Text size='xs' color='muted-foreground' className='flex-1'>
+              <Text size='xs' color='muted-foreground' grow basis={0}>
                 Current
               </Text>
-              <Box className='w-3.5 shrink-0' />
-              <Text size='xs' color='muted-foreground' className='flex-1'>
+              {/* Reserves the width of the arrow glyph in the value rows. */}
+              <Box width={16} shrink={0} />
+              <Text size='xs' color='muted-foreground' grow basis={0}>
                 Proposed
               </Text>
             </HStack>

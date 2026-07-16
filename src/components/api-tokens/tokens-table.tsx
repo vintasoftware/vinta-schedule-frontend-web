@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +17,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Flex, VStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import { Flex, VStack, Text } from 'vinta-schedule-design-system/layout';
 import { usePublicApiTokens } from '@/hooks/api-tokens/use-public-api-tokens';
 import type { SystemUserToken } from '@/hooks/api-tokens/use-public-api-tokens';
 import { useRevokePublicApiToken } from '@/hooks/api-tokens/use-revoke-public-api-token';
@@ -58,7 +59,7 @@ function createColumns(
             </Text>
           ) : (
             row.original.available_resources.map((r) => (
-              <Badge key={r} variant='secondary' className='text-xs'>
+              <Badge key={r} variant='secondary'>
                 {r}
               </Badge>
             ))
@@ -125,12 +126,12 @@ function RevokeButton({ token, isLoading, onRevoke }: RevokeButtonProps) {
       >
         {isLoading ? (
           <>
-            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            <Icon icon={RotateCw} spin />
             Revoking…
           </>
         ) : (
           <>
-            <Trash2 className='mr-1 size-4' aria-hidden />
+            <Trash2 aria-hidden />
             Revoke
           </>
         )}
@@ -142,8 +143,8 @@ function RevokeButton({ token, isLoading, onRevoke }: RevokeButtonProps) {
             <AlertDialogTitle>Revoke token</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to revoke{' '}
-              <span className='font-medium'>{token.integration_name}</span>?
-              This action cannot be undone.
+              <Text weight='medium'>{token.integration_name}</Text>? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -151,7 +152,7 @@ function RevokeButton({ token, isLoading, onRevoke }: RevokeButtonProps) {
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={isLoading}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              variant='destructive'
             >
               Revoke
             </AlertDialogAction>

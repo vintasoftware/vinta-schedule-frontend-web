@@ -9,7 +9,7 @@
  *   time-range entries (start/end HH:MM). Clicking "Add" appends a row;
  *   clicking the remove button deletes it. On Save the form serialises
  *   each non-empty weekday's ranges to AvailableTimeWritable entries with
- *   rrule_string = "FREQ=WEEKLY;BYDAY=<DAY>" and start_time/end_time as
+ *   rrule_string = "FREQ=WEEKLY;BYDAY=`<DAY>`" and start_time/end_time as
  *   ISO datetimes anchored to the UNIX epoch date (2024-01-01) in the
  *   user's local timezone. The backend interprets the time portion and the
  *   RRULE byday to determine when the member is available each week.
@@ -37,9 +37,9 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
 import {
   Form,
   FormField,
@@ -47,8 +47,16 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { HStack, Stack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import {
+  Box,
+  Divider,
+  FormLayout,
+  HStack,
+  Stack,
+  Text,
+  VisuallyHidden,
+} from 'vinta-schedule-design-system/layout';
 import { weekdayMatrix, type WeekdayEntry } from '@/lib/datetime/index';
 import { useAvailableTimes } from '@/hooks/availability/use-available-times';
 import type {
@@ -293,62 +301,70 @@ function WeekdayRow({
 
   return (
     <Stack gap={2}>
-      <HStack gap={3} className='items-start'>
+      <HStack gap={3} align='start'>
         <Text
           size='sm'
           weight='medium'
-          className='w-10 shrink-0 pt-2'
+          width={40}
+          shrink={0}
+          pt={2}
           color='foreground'
         >
           {weekday.short}
         </Text>
-        <Stack gap={2} className='flex-1'>
+        <Stack gap={2} grow basis={0}>
           {fields.length === 0 ? (
-            <Text size='sm' color='muted-foreground' className='py-2'>
+            <Text size='sm' color='muted-foreground' py={2}>
               No availability set
             </Text>
           ) : (
             fields.map((field, rangeIdx) => (
-              <HStack key={field.id} gap={2} className='items-start'>
-                <FormField
-                  control={form.control}
-                  name={`weekdays.${weekdayIndex}.ranges.${rangeIdx}.startTime`}
-                  render={({ field: f }) => (
-                    <FormItem className='flex-1'>
-                      <FormLabel className='sr-only'>Start time</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='time'
-                          {...f}
-                          disabled={disabled}
-                          aria-label={`${weekday.label} window ${rangeIdx + 1} start time`}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Text size='sm' color='muted-foreground' className='pt-2'>
+              <HStack key={field.id} gap={2} align='start'>
+                <Box grow basis={0}>
+                  <FormField
+                    control={form.control}
+                    name={`weekdays.${weekdayIndex}.ranges.${rangeIdx}.startTime`}
+                    render={({ field: f }) => (
+                      <FormItem>
+                        <VisuallyHidden as={FormLabel}>
+                          Start time
+                        </VisuallyHidden>
+                        <FormControl>
+                          <Input
+                            type='time'
+                            {...f}
+                            disabled={disabled}
+                            aria-label={`${weekday.label} window ${rangeIdx + 1} start time`}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </Box>
+                <Text size='sm' color='muted-foreground' pt={2}>
                   –
                 </Text>
-                <FormField
-                  control={form.control}
-                  name={`weekdays.${weekdayIndex}.ranges.${rangeIdx}.endTime`}
-                  render={({ field: f }) => (
-                    <FormItem className='flex-1'>
-                      <FormLabel className='sr-only'>End time</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='time'
-                          {...f}
-                          disabled={disabled}
-                          aria-label={`${weekday.label} window ${rangeIdx + 1} end time`}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <Box grow basis={0}>
+                  <FormField
+                    control={form.control}
+                    name={`weekdays.${weekdayIndex}.ranges.${rangeIdx}.endTime`}
+                    render={({ field: f }) => (
+                      <FormItem>
+                        <VisuallyHidden as={FormLabel}>End time</VisuallyHidden>
+                        <FormControl>
+                          <Input
+                            type='time'
+                            {...f}
+                            disabled={disabled}
+                            aria-label={`${weekday.label} window ${rangeIdx + 1} end time`}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </Box>
                 <Button
                   type='button'
                   variant='ghost'
@@ -357,22 +373,23 @@ function WeekdayRow({
                   disabled={disabled}
                   aria-label={`Remove ${weekday.label} window ${rangeIdx + 1}`}
                 >
-                  <Trash2 className='h-4 w-4' />
+                  <Trash2 />
                 </Button>
               </HStack>
             ))
           )}
-          <Button
-            type='button'
-            variant='outline'
-            size='sm'
-            onClick={() => append({ startTime: '09:00', endTime: '17:00' })}
-            disabled={disabled}
-            className='w-fit'
-          >
-            <Plus className='mr-1 h-3 w-3' />
-            Add
-          </Button>
+          <HStack>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              onClick={() => append({ startTime: '09:00', endTime: '17:00' })}
+              disabled={disabled}
+            >
+              <Plus />
+              Add
+            </Button>
+          </HStack>
         </Stack>
       </HStack>
     </Stack>
@@ -401,64 +418,70 @@ function AdHocSection({ form, disabled }: AdHocSectionProps) {
         </Text>
       )}
       {fields.map((field, idx) => (
-        <HStack key={field.id} gap={2} className='items-start'>
-          <FormField
-            control={form.control}
-            name={`adHoc.${idx}.date`}
-            render={({ field: f }) => (
-              <FormItem className='flex-1'>
-                <FormLabel className='sr-only'>Date</FormLabel>
-                <FormControl>
-                  <Input
-                    type='date'
-                    {...f}
-                    disabled={disabled}
-                    aria-label={`Ad-hoc window ${idx + 1} date`}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`adHoc.${idx}.startTime`}
-            render={({ field: f }) => (
-              <FormItem className='flex-1'>
-                <FormLabel className='sr-only'>Start time</FormLabel>
-                <FormControl>
-                  <Input
-                    type='time'
-                    {...f}
-                    disabled={disabled}
-                    aria-label={`Ad-hoc window ${idx + 1} start time`}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Text size='sm' color='muted-foreground' className='pt-2'>
+        <HStack key={field.id} gap={2} align='start'>
+          <Box grow basis={0}>
+            <FormField
+              control={form.control}
+              name={`adHoc.${idx}.date`}
+              render={({ field: f }) => (
+                <FormItem>
+                  <VisuallyHidden as={FormLabel}>Date</VisuallyHidden>
+                  <FormControl>
+                    <Input
+                      type='date'
+                      {...f}
+                      disabled={disabled}
+                      aria-label={`Ad-hoc window ${idx + 1} date`}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </Box>
+          <Box grow basis={0}>
+            <FormField
+              control={form.control}
+              name={`adHoc.${idx}.startTime`}
+              render={({ field: f }) => (
+                <FormItem>
+                  <VisuallyHidden as={FormLabel}>Start time</VisuallyHidden>
+                  <FormControl>
+                    <Input
+                      type='time'
+                      {...f}
+                      disabled={disabled}
+                      aria-label={`Ad-hoc window ${idx + 1} start time`}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </Box>
+          <Text size='sm' color='muted-foreground' pt={2}>
             –
           </Text>
-          <FormField
-            control={form.control}
-            name={`adHoc.${idx}.endTime`}
-            render={({ field: f }) => (
-              <FormItem className='flex-1'>
-                <FormLabel className='sr-only'>End time</FormLabel>
-                <FormControl>
-                  <Input
-                    type='time'
-                    {...f}
-                    disabled={disabled}
-                    aria-label={`Ad-hoc window ${idx + 1} end time`}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <Box grow basis={0}>
+            <FormField
+              control={form.control}
+              name={`adHoc.${idx}.endTime`}
+              render={({ field: f }) => (
+                <FormItem>
+                  <VisuallyHidden as={FormLabel}>End time</VisuallyHidden>
+                  <FormControl>
+                    <Input
+                      type='time'
+                      {...f}
+                      disabled={disabled}
+                      aria-label={`Ad-hoc window ${idx + 1} end time`}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </Box>
           <Button
             type='button'
             variant='ghost'
@@ -467,27 +490,28 @@ function AdHocSection({ form, disabled }: AdHocSectionProps) {
             disabled={disabled}
             aria-label={`Remove ad-hoc window ${idx + 1}`}
           >
-            <Trash2 className='h-4 w-4' />
+            <Trash2 />
           </Button>
         </HStack>
       ))}
-      <Button
-        type='button'
-        variant='outline'
-        size='sm'
-        onClick={() =>
-          append({
-            date: '',
-            startTime: '09:00',
-            endTime: '17:00',
-          })
-        }
-        disabled={disabled}
-        className='w-fit'
-      >
-        <Plus className='mr-1 h-3 w-3' />
-        Add specific date
-      </Button>
+      <HStack>
+        <Button
+          type='button'
+          variant='outline'
+          size='sm'
+          onClick={() =>
+            append({
+              date: '',
+              startTime: '09:00',
+              endTime: '17:00',
+            })
+          }
+          disabled={disabled}
+        >
+          <Plus />
+          Add specific date
+        </Button>
+      </HStack>
     </Stack>
   );
 }
@@ -592,7 +616,7 @@ export function AvailabilityEditor({
     return (
       <Stack gap={3} aria-label='Loading availability'>
         {[1, 2, 3, 4].map((n) => (
-          <Skeleton key={n} className='h-10 w-full rounded-md' />
+          <Skeleton key={n} height={40} width='full' radius='md' />
         ))}
       </Stack>
     );
@@ -600,56 +624,52 @@ export function AvailabilityEditor({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Stack gap={6}>
-          {/* Weekly section */}
-          <Stack gap={4}>
-            <Text size='sm' weight='medium' color='foreground'>
-              Weekly availability
-            </Text>
-            <Text size='sm' color='muted-foreground'>
-              Set recurring time windows by day of the week. These repeat every
-              week.
-            </Text>
-            <Stack gap={3}>
-              {weekdays.map((weekday, idx) => (
-                <React.Fragment key={weekday.byday}>
-                  <WeekdayRow
-                    weekday={weekday}
-                    weekdayIndex={idx}
-                    form={form}
-                    disabled={isPending}
-                  />
-                  {idx < weekdays.length - 1 && (
-                    <div className='border-border my-1 border-t' />
-                  )}
-                </React.Fragment>
-              ))}
-            </Stack>
+      <FormLayout gap={6} onSubmit={form.handleSubmit(onSubmit)}>
+        {/* Weekly section */}
+        <Stack gap={4}>
+          <Text size='sm' weight='medium' color='foreground'>
+            Weekly availability
+          </Text>
+          <Text size='sm' color='muted-foreground'>
+            Set recurring time windows by day of the week. These repeat every
+            week.
+          </Text>
+          <Stack gap={3}>
+            {weekdays.map((weekday, idx) => (
+              <React.Fragment key={weekday.byday}>
+                <WeekdayRow
+                  weekday={weekday}
+                  weekdayIndex={idx}
+                  form={form}
+                  disabled={isPending}
+                />
+                {idx < weekdays.length - 1 && <Divider spacing={1} />}
+              </React.Fragment>
+            ))}
           </Stack>
-
-          {/* Ad-hoc section */}
-          <div className='border-border border-t' />
-          <AdHocSection form={form} disabled={isPending} />
-
-          {/* Footer */}
-          <HStack gap={3} className='justify-end'>
-            <Button
-              type='button'
-              variant='outline'
-              onClick={() =>
-                form.reset(buildDefaultsFromAvailableTimes(availableTimes))
-              }
-              disabled={isPending}
-            >
-              Reset
-            </Button>
-            <Button type='submit' disabled={isPending}>
-              {isPending ? 'Saving…' : 'Save availability'}
-            </Button>
-          </HStack>
         </Stack>
-      </form>
+
+        {/* Ad-hoc section */}
+        <Divider />
+        <AdHocSection form={form} disabled={isPending} />
+
+        {/* Footer */}
+        <HStack gap={3} justify='end'>
+          <Button
+            type='button'
+            variant='outline'
+            onClick={() =>
+              form.reset(buildDefaultsFromAvailableTimes(availableTimes))
+            }
+            disabled={isPending}
+          >
+            Reset
+          </Button>
+          <Button type='submit' disabled={isPending}>
+            {isPending ? 'Saving…' : 'Save availability'}
+          </Button>
+        </HStack>
+      </FormLayout>
     </Form>
   );
 }

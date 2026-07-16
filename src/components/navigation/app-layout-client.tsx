@@ -14,6 +14,7 @@ import {
   Webhook,
   GitPullRequestArrow,
   ShieldCheck,
+  Palette,
 } from 'lucide-react';
 
 import { CreateOrganizationDialog } from '@/components/organizations/create-organization-dialog';
@@ -26,16 +27,16 @@ import { useActiveOrganization } from '@/hooks/organizations/use-active-organiza
 import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
 import { useProfile } from '@/hooks/users/use-profile';
 import { useLogout } from '@/hooks/authentication/use-logout';
-import { AppShell } from '@/components/layout/app-shell';
+import { AppShell } from 'vinta-schedule-design-system/layout/app-shell';
 import {
   AppSidebar,
   type SidebarNavGroup,
   type SidebarNavItem,
-} from '@/components/layout/app-sidebar';
-import { AppTopbar } from '@/components/layout/app-topbar';
+} from '@/components/navigation/app-sidebar';
+import { AppTopbar } from 'vinta-schedule-design-system/layout/app-topbar';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
-import { Center } from '@/components/layout/center';
-import { Text } from '@/components/layout/text';
+import { Center } from 'vinta-schedule-design-system/layout/center';
+import { Text } from 'vinta-schedule-design-system/layout/text';
 import { RoleProvider } from '@/components/navigation/role-gate';
 import type { RoleEnum } from '@/client';
 
@@ -114,11 +115,27 @@ const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
   },
 ];
 
-function buildNavGroups(role: RoleEnum | null): SidebarNavGroup[] {
+// Reseller capability: only orgs flagged `can_invite_organizations` get the
+// white-label branding console. Rendered as its own group so it stays visible
+// independent of the member/admin role split.
+const RESELLER_NAV_ITEMS: SidebarNavItem[] = [
+  { id: 'branding', label: 'Branding', icon: Palette, href: '/branding' },
+];
+
+function buildNavGroups(
+  role: RoleEnum | null,
+  canInviteOrganizations: boolean
+): SidebarNavGroup[] {
   const groups: SidebarNavGroup[] = [{ items: MEMBER_NAV_ITEMS }];
 
   if (role === 'admin') {
     groups.push({ label: 'Admin', items: ADMIN_ONLY_NAV_ITEMS });
+  }
+
+  // Only reseller orgs see the branding link. The /branding endpoint is
+  // independently server-gated (403) as a backstop for direct URL access.
+  if (canInviteOrganizations) {
+    groups.push({ label: 'Reseller', items: RESELLER_NAV_ITEMS });
   }
 
   return groups;
@@ -349,7 +366,14 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
         : 'Organization'
       : 'Organization';
 
-  const navGroups = buildNavGroups(role);
+  // Reseller flag lives on the nested organization (opaque {[key]: unknown}),
+  // exposed read-only by OrganizationSerializer on GET /organizations/current.
+  const canInviteOrganizations =
+    isOnboarded && membership?.organization
+      ? membership.organization.can_invite_organizations === true
+      : false;
+
+  const navGroups = buildNavGroups(role, canInviteOrganizations);
 
   const sessionUser = session?.data?.user;
   const userEmail =

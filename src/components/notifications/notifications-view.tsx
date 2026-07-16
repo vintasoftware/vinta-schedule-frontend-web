@@ -4,12 +4,21 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { CheckCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { HStack } from '@/components/layout/flex';
-import { Stack } from '@/components/layout/stack';
-import { Text } from '@/components/layout/text';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Box,
+  HStack,
+  Stack,
+  Text,
+  VStack,
+} from 'vinta-schedule-design-system/layout';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { List, ListItem } from 'vinta-schedule-design-system/ui/list';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from 'vinta-schedule-design-system/ui/tabs';
 import { useUrlState } from '@/hooks/use-url-state';
 import { useNotifications } from '@/hooks/notifications/use-notifications';
 import { useMarkNotificationRead } from '@/hooks/notifications/use-mark-notification-read';
@@ -25,6 +34,12 @@ const FILTER_LABELS: Record<NotificationFilter, string> = {
 };
 const PAGE_SIZE = 20;
 
+// TODO(ds-gap): <List> has no between-items rule (the old `divide-y`), so the
+// separator rides in as an inline token value on every row after the first.
+const ROW_RULE_STYLE: React.CSSProperties = {
+  borderTop: '1px solid var(--border)',
+};
+
 function isFilter(value: string): value is NotificationFilter {
   return (FILTERS as string[]).includes(value);
 }
@@ -32,7 +47,7 @@ function isFilter(value: string): value is NotificationFilter {
 /**
  * NotificationsView — full notifications list with a read/unread/all filter and
  * pagination. Filter + page live in the URL (deep-linkable, survives refresh),
- * so this must render inside a <Suspense> boundary (useUrlState reads search
+ * so this must render inside a `<Suspense>` boundary (useUrlState reads search
  * params).
  */
 export function NotificationsView() {
@@ -91,44 +106,40 @@ export function NotificationsView() {
           onClick={handleMarkAll}
           disabled={loadedUnreadIds.length === 0 || bulkMutation.isPending}
         >
-          <CheckCheck className='mr-1 h-4 w-4' />
+          <CheckCheck />
           Mark all as read
         </Button>
       </HStack>
 
-      <div className='overflow-hidden rounded-md border'>
+      <Box overflow='hidden' radius='md' border borderColor='border'>
         {isLoading ? (
-          <div className='space-y-3 p-4'>
+          <VStack gap={3} p={4}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className='h-12 w-full' />
+              <Skeleton key={i} height={48} width='full' />
             ))}
-          </div>
+          </VStack>
         ) : isError ? (
-          <Text
-            size='sm'
-            color='muted-foreground'
-            className='px-4 py-8 text-center'
-          >
-            Could not load notifications. Please try again.
-          </Text>
+          <Box px={4} py={8}>
+            <Text as='p' size='sm' color='muted-foreground' align='center'>
+              Could not load notifications. Please try again.
+            </Text>
+          </Box>
         ) : notifications.length === 0 ? (
-          <Text
-            size='sm'
-            color='muted-foreground'
-            className='px-4 py-12 text-center'
-          >
-            No notifications to show.
-          </Text>
+          <Box px={4} py={12}>
+            <Text as='p' size='sm' color='muted-foreground' align='center'>
+              No notifications to show.
+            </Text>
+          </Box>
         ) : (
-          <ul className='divide-y'>
-            {notifications.map((n) => (
-              <li key={n.id}>
+          <List variant='plain' gap={0}>
+            {notifications.map((n, i) => (
+              <ListItem key={n.id} style={i > 0 ? ROW_RULE_STYLE : undefined}>
                 <NotificationListItem notification={n} onMarkRead={markRead} />
-              </li>
+              </ListItem>
             ))}
-          </ul>
+          </List>
         )}
-      </div>
+      </Box>
 
       {totalCount > pageSize ? (
         <HStack justify='between' align='center' gap={3}>
@@ -142,7 +153,7 @@ export function NotificationsView() {
               disabled={!hasPrev}
               onClick={() => setPageParam(String(page - 1))}
             >
-              <ChevronLeft className='mr-1 h-4 w-4' />
+              <ChevronLeft />
               Previous
             </Button>
             <Button
@@ -152,7 +163,7 @@ export function NotificationsView() {
               onClick={() => setPageParam(String(page + 1))}
             >
               Next
-              <ChevronRight className='ml-1 h-4 w-4' />
+              <ChevronRight />
             </Button>
           </HStack>
         </HStack>

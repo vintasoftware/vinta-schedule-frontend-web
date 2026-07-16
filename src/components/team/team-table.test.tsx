@@ -541,7 +541,8 @@ describe('TeamTable change-role action', () => {
       ).toBeGreaterThan(0);
     });
 
-    const call = vi.mocked(organizationMembersUpdateRoleCreate).mock.calls[0][0];
+    const call = vi.mocked(organizationMembersUpdateRoleCreate).mock
+      .calls[0][0];
     expect(call?.path).toEqual({ user_id: '2' });
     expect(call?.body).toEqual({ role: 'admin' });
   });

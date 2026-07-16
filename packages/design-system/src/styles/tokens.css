@@ -1,0 +1,281 @@
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================================
+   Vinta Schedule — Colors & Type Foundations
+   Token architecture follows shadcn/ui (Radix-style). Three layers:
+     1. Primitive scales  --vinta-*, --slate-*, --teal-* (raw, theme-agnostic)
+     2. Semantic tokens   --background, --primary, --border … (shadcn contract)
+     3. Type + spacing     --text-*, --space-*, --radius-*
+   Source of truth: "Vinta Schedule Design System/colors_and_type.css".
+   ========================================================================== */
+
+:root {
+  /* ---- Layer 1 · Primitive color scales ---------------------------------- */
+
+  /* Vinta Blue — the wordmark color, primary brand ramp (hue ~263) */
+  --vinta-50: oklch(0.971 0.014 264);
+  --vinta-100: oklch(0.945 0.03 264);
+  --vinta-200: oklch(0.895 0.06 264);
+  --vinta-300: oklch(0.82 0.105 264);
+  --vinta-400: oklch(0.715 0.17 264);
+  --vinta-500: oklch(0.62 0.225 264);
+  --vinta-600: oklch(0.545 0.258 264); /* #1B4DFF — primary */
+  --vinta-700: oklch(0.48 0.245 264);
+  --vinta-800: oklch(0.41 0.198 265);
+  --vinta-900: oklch(0.345 0.15 266);
+  --vinta-950: oklch(0.255 0.098 267);
+
+  /* Slate — cool neutral ramp for surfaces, text, borders */
+  --slate-50: oklch(0.985 0.002 264);
+  --slate-100: oklch(0.968 0.004 264);
+  --slate-200: oklch(0.929 0.007 264);
+  --slate-300: oklch(0.872 0.011 264);
+  --slate-400: oklch(0.71 0.018 264);
+  --slate-500: oklch(0.566 0.021 264);
+  --slate-600: oklch(0.456 0.022 264);
+  --slate-700: oklch(0.376 0.022 265);
+  --slate-800: oklch(0.279 0.022 266);
+  --slate-900: oklch(0.213 0.022 267);
+  --slate-950: oklch(0.151 0.02 268);
+
+  /* Teal — secondary "availability" accent used in scheduling states */
+  --teal-100: oklch(0.945 0.045 188);
+  --teal-300: oklch(0.82 0.11 188);
+  --teal-500: oklch(0.7 0.13 188);
+  --teal-600: oklch(0.61 0.118 189);
+  --teal-700: oklch(0.52 0.1 190);
+
+  /* Semantic status hues */
+  --green-100: oklch(0.95 0.045 150);
+  --green-500: oklch(0.68 0.165 150);
+  --green-600: oklch(0.6 0.155 150);
+  --amber-100: oklch(0.96 0.05 85);
+  --amber-500: oklch(0.79 0.15 80);
+  --amber-600: oklch(0.72 0.155 70);
+  --red-100: oklch(0.945 0.035 25);
+  --red-500: oklch(0.637 0.225 25);
+  --red-600: oklch(0.577 0.225 27);
+
+  /* ---- Layer 2 · Semantic tokens (LIGHT theme · shadcn contract) ---------- */
+  --background: var(--slate-50);
+  --foreground: var(--slate-950);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--slate-950);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--slate-950);
+  --primary: var(--vinta-600);
+  --primary-foreground: oklch(0.99 0.01 264);
+  --secondary: var(--slate-100);
+  --secondary-foreground: var(--slate-900);
+  --muted: var(--slate-100);
+  --muted-foreground: var(--slate-500);
+  --accent: var(--vinta-50);
+  --accent-foreground: var(--vinta-700);
+  --destructive: var(--red-600);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: var(--green-600);
+  --warning: var(--amber-600);
+  --border: var(--slate-200);
+  --input: var(--slate-200);
+  --ring: var(--vinta-600);
+
+  /* Chart palette */
+  --chart-1: var(--vinta-600);
+  --chart-2: var(--teal-600);
+  --chart-3: var(--amber-500);
+  --chart-4: var(--vinta-300);
+  --chart-5: var(--slate-400);
+
+  /* Sidebar (app shell) */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: var(--slate-800);
+  --sidebar-primary: var(--vinta-600);
+  --sidebar-primary-foreground: oklch(0.99 0.01 264);
+  --sidebar-accent: var(--slate-100);
+  --sidebar-accent-foreground: var(--slate-900);
+  --sidebar-border: var(--slate-200);
+  --sidebar-ring: var(--vinta-600);
+
+  /* ---- Layer 3 · Radius ------------------------------------------------- */
+  --radius: 0.625rem; /* 10px — base control radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+
+  /* ---- Layer 3 · Elevation (soft, cool-tinted) -------------------------- */
+  --shadow-xs: 0 1px 2px 0 oklch(0.213 0.022 267 / 0.05);
+  --shadow-sm:
+    0 1px 3px 0 oklch(0.213 0.022 267 / 0.08),
+    0 1px 2px -1px oklch(0.213 0.022 267 / 0.06);
+  --shadow-md:
+    0 4px 12px -2px oklch(0.213 0.022 267 / 0.1),
+    0 2px 6px -2px oklch(0.213 0.022 267 / 0.06);
+  --shadow-lg:
+    0 12px 28px -6px oklch(0.213 0.022 267 / 0.14),
+    0 4px 10px -4px oklch(0.213 0.022 267 / 0.08);
+  --shadow-xl: 0 24px 48px -12px oklch(0.213 0.022 267 / 0.18);
+
+  /* ---- Layer 3 · Typography --------------------------------------------- */
+  /* Families injected by next/font (see app/layout.tsx & .storybook/preview). */
+  --font-sans:
+    var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --font-mono:
+    'Geist Mono', 'Geist Mono Fallback', ui-monospace, monospace, ui-monospace,
+    'SF Mono', 'Cascadia Code', monospace;
+  --font-display: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---- Layer 2 · DARK theme overrides ------------------------------------- */
+.dark {
+  --background: var(--slate-950);
+  --foreground: var(--slate-50);
+  --card: var(--slate-900);
+  --card-foreground: var(--slate-50);
+  --popover: var(--slate-900);
+  --popover-foreground: var(--slate-50);
+  --primary: var(--vinta-500);
+  --primary-foreground: oklch(0.16 0.02 267);
+  --secondary: var(--slate-800);
+  --secondary-foreground: var(--slate-100);
+  --muted: var(--slate-800);
+  --muted-foreground: var(--slate-400);
+  --accent: oklch(0.3 0.08 265);
+  --accent-foreground: var(--vinta-200);
+  --destructive: var(--red-500);
+  --destructive-foreground: oklch(0.16 0.02 267);
+  --success: var(--green-500);
+  --warning: var(--amber-500);
+  --border: oklch(1 0 0 / 0.1);
+  --input: oklch(1 0 0 / 0.14);
+  --ring: var(--vinta-500);
+
+  --chart-1: var(--vinta-500);
+  --chart-2: var(--teal-500);
+  --chart-3: var(--amber-500);
+  --chart-4: var(--vinta-300);
+  --chart-5: var(--slate-400);
+
+  --sidebar: var(--slate-900);
+  --sidebar-foreground: var(--slate-200);
+  --sidebar-primary: var(--vinta-500);
+  --sidebar-primary-foreground: oklch(0.16 0.02 267);
+  --sidebar-accent: var(--slate-800);
+  --sidebar-accent-foreground: var(--slate-100);
+  --sidebar-border: oklch(1 0 0 / 0.1);
+  --sidebar-ring: var(--vinta-500);
+
+  --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.3);
+  --shadow-sm:
+    0 1px 3px 0 oklch(0 0 0 / 0.4), 0 1px 2px -1px oklch(0 0 0 / 0.3);
+  --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.45);
+  --shadow-lg: 0 12px 28px -6px oklch(0 0 0 / 0.55);
+  --shadow-xl: 0 24px 48px -12px oklch(0 0 0 / 0.6);
+}
+
+/* ---- Tailwind theme mapping — expose tokens as utilities ----------------- */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Brand + scheduling accents — exposes bg-vinta-600, text-teal-700, etc. */
+  --color-vinta-50: var(--vinta-50);
+  --color-vinta-100: var(--vinta-100);
+  --color-vinta-200: var(--vinta-200);
+  --color-vinta-300: var(--vinta-300);
+  --color-vinta-400: var(--vinta-400);
+  --color-vinta-500: var(--vinta-500);
+  --color-vinta-600: var(--vinta-600);
+  --color-vinta-700: var(--vinta-700);
+  --color-vinta-800: var(--vinta-800);
+  --color-vinta-900: var(--vinta-900);
+  --color-vinta-950: var(--vinta-950);
+  --color-teal-100: var(--teal-100);
+  --color-teal-300: var(--teal-300);
+  --color-teal-500: var(--teal-500);
+  --color-teal-600: var(--teal-600);
+  --color-teal-700: var(--teal-700);
+
+  /* Soft status tints — backgrounds for badges / scheduling chips */
+  --color-green-100: var(--green-100);
+  --color-amber-100: var(--amber-100);
+  --color-red-100: var(--red-100);
+
+  --font-sans: 'Geist', 'Geist Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', ui-monospace, monospace;
+  --font-display: var(--font-display);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Faint 32px grid — marketing hero / CTA backdrops. */
+  .grid-bg {
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}

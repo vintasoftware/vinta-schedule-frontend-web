@@ -6,8 +6,9 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +18,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { VStack, Text, HStack } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { VStack, Text, HStack } from 'vinta-schedule-design-system/layout';
 import { useTeamMembers, type TeamMember } from '@/hooks/team/use-team-members';
 import {
   useDisableUser,
@@ -164,12 +165,12 @@ function DisableButton({ member, isLoading, onDisable }: DisableButtonProps) {
       >
         {isLoading ? (
           <>
-            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            <Spinner label='' />
             Disabling…
           </>
         ) : (
           <>
-            <UserX className='mr-1 size-4' aria-hidden />
+            <UserX aria-hidden />
             Disable
           </>
         )}
@@ -181,8 +182,8 @@ function DisableButton({ member, isLoading, onDisable }: DisableButtonProps) {
             <AlertDialogTitle>Disable user</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to disable{' '}
-              <span className='font-medium'>{member.name}</span>? This user will
-              lose access to the application on their next request.
+              <Text weight='medium'>{member.name}</Text>? This user will lose
+              access to the application on their next request.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -190,7 +191,7 @@ function DisableButton({ member, isLoading, onDisable }: DisableButtonProps) {
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={isLoading}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              variant='destructive'
             >
               Disable
             </AlertDialogAction>
@@ -244,17 +245,17 @@ function ChangeRoleButton({
       >
         {isLoading ? (
           <>
-            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            <Spinner label='' />
             Updating…
           </>
         ) : promoting ? (
           <>
-            <ShieldCheck className='mr-1 size-4' aria-hidden />
+            <ShieldCheck aria-hidden />
             Make admin
           </>
         ) : (
           <>
-            <ShieldMinus className='mr-1 size-4' aria-hidden />
+            <ShieldMinus aria-hidden />
             Make member
           </>
         )}
@@ -270,14 +271,14 @@ function ChangeRoleButton({
               {promoting ? (
                 <>
                   Are you sure you want to make{' '}
-                  <span className='font-medium'>{member.name}</span> an admin?
-                  Admins can manage members, billing, and organization settings.
+                  <Text weight='medium'>{member.name}</Text> an admin? Admins
+                  can manage members, billing, and organization settings.
                 </>
               ) : (
                 <>
                   Are you sure you want to change{' '}
-                  <span className='font-medium'>{member.name}</span> to a member?
-                  They will lose admin permissions.
+                  <Text weight='medium'>{member.name}</Text> to a member? They
+                  will lose admin permissions.
                 </>
               )}
             </AlertDialogDescription>
@@ -327,12 +328,12 @@ function ReactivateButton({
       >
         {isLoading ? (
           <>
-            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            <Spinner label='' />
             Enabling…
           </>
         ) : (
           <>
-            <RotateCw className='mr-1 size-4' aria-hidden />
+            <RotateCw aria-hidden />
             Re-enable
           </>
         )}
@@ -344,8 +345,8 @@ function ReactivateButton({
             <AlertDialogTitle>Re-enable user</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to re-enable{' '}
-              <span className='font-medium'>{member.name}</span>? This user will
-              regain access to the application.
+              <Text weight='medium'>{member.name}</Text>? This user will regain
+              access to the application.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

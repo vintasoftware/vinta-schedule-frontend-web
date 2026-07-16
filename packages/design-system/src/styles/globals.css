@@ -1,0 +1,9 @@
+/* Entry stylesheet for the design-system Storybook. Consuming apps should
+   import tailwindcss + tw-animate-css themselves and pull in ./tokens.css
+   (see the app's src/app/globals.css). */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './tokens.css';
+
+/* Scan the package sources so utilities used by components are generated. */
+@source '../';

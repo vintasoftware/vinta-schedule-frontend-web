@@ -39,10 +39,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Textarea } from 'vinta-schedule-design-system/ui/textarea';
 import {
   Form,
   FormField,
@@ -50,8 +50,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { FormLayout, VStack } from 'vinta-schedule-design-system/layout';
 import { ScopePromptDialog } from '@/components/bookings/scope-prompt-dialog';
 import type { RecurringScope } from '@/components/bookings/scope-prompt-dialog';
 import { useEditOccurrence } from '@/hooks/bookings/use-edit-occurrence';
@@ -257,9 +257,9 @@ export function EditEventDialog({
           </DialogHeader>
 
           <Form {...form}>
-            <form
+            <FormLayout
+              gap={4}
               onSubmit={form.handleSubmit(onSubmit)}
-              className='flex flex-col gap-4'
               data-testid='edit-event-form'
             >
               <VStack gap={4}>
@@ -398,7 +398,7 @@ export function EditEventDialog({
                   {isPending ? 'Saving…' : 'Save changes'}
                 </Button>
               </DialogFooter>
-            </form>
+            </FormLayout>
           </Form>
         </DialogContent>
       </Dialog>

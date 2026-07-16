@@ -13,10 +13,18 @@
  */
 
 import { Clock, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { HStack, VStack, Stack, Text, Heading } from '@/components/layout';
+import { Alert, AlertDescription } from 'vinta-schedule-design-system/ui/alert';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import {
+  Box,
+  HStack,
+  VStack,
+  Stack,
+  Text,
+  Heading,
+} from 'vinta-schedule-design-system/layout';
 import type { AvailableTimeWindow } from '@/client';
 
 // ---------------------------------------------------------------------------
@@ -75,7 +83,7 @@ function LoadingSkeleton() {
   return (
     <VStack gap={2}>
       {[1, 2, 3].map((n) => (
-        <Skeleton key={n} className='h-12 w-full rounded-md' />
+        <Skeleton key={n} height={48} width='full' radius='md' />
       ))}
     </VStack>
   );
@@ -124,7 +132,7 @@ export function FreeBusyList({
   if (isError) {
     return (
       <Alert variant='destructive'>
-        <AlertCircle className='h-4 w-4' />
+        <Icon icon={AlertCircle} />
         <AlertDescription>
           Failed to load availability. Please try again.
         </AlertDescription>
@@ -134,7 +142,7 @@ export function FreeBusyList({
 
   if (totalWindows === 0) {
     return (
-      <Text color='muted-foreground' className='py-4 text-center'>
+      <Text color='muted-foreground' py={4} align='center'>
         No availability windows found for this range.
       </Text>
     );
@@ -145,14 +153,26 @@ export function FreeBusyList({
       {calendarLabel && (
         <Heading size='sm'>Free/busy for {calendarLabel}</Heading>
       )}
-      <HStack gap={4} className='text-sm'>
+      <HStack gap={4}>
         <HStack gap={1}>
-          <span className='inline-block h-3 w-3 rounded-sm bg-green-500' />
-          <Text>Free ({freeWindows.length})</Text>
+          <Box
+            display='inline-block'
+            width={12}
+            height={12}
+            radius='sm'
+            bg='green-500'
+          />
+          <Text size='sm'>Free ({freeWindows.length})</Text>
         </HStack>
         <HStack gap={1}>
-          <span className='inline-block h-3 w-3 rounded-sm bg-red-500' />
-          <Text>Busy ({busyWindows.length})</Text>
+          <Box
+            display='inline-block'
+            width={12}
+            height={12}
+            radius='sm'
+            bg='red-500'
+          />
+          <Text size='sm'>Busy ({busyWindows.length})</Text>
         </HStack>
       </HStack>
 
@@ -161,13 +181,19 @@ export function FreeBusyList({
           <HStack
             key={idx}
             gap={3}
-            className={[
-              'rounded-md border px-4 py-3',
+            px={4}
+            py={3}
+            radius='md'
+            /* Free/busy tints need a light + dark pair (`dark:` variants), which
+               no token prop can express — the DS `border`/`bg` props emit a
+               single inline value. */
+            className={
               w.kind === 'free'
-                ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'
-                : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950',
-            ].join(' ')}
+                ? 'border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'
+                : 'border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950'
+            }
           >
+            {/* shrink-0: Badge is a shadcn atom with no flex-item prop. */}
             <Badge
               variant={w.kind === 'free' ? 'success' : 'danger'}
               className='shrink-0'
@@ -175,19 +201,19 @@ export function FreeBusyList({
               {w.kind === 'free' ? 'Free' : 'Busy'}
             </Badge>
             <Stack gap={0}>
-              <Text className='text-sm font-medium'>
+              <Text size='sm' weight='medium'>
                 {formatDate(w.start_time)}
               </Text>
-              <HStack gap={1} className='text-muted-foreground text-xs'>
-                <Clock className='h-3 w-3' />
-                <span>
+              <HStack gap={1}>
+                <Icon icon={Clock} size='xs' color='muted-foreground' />
+                <Text size='xs' color='muted-foreground'>
                   {formatTime(w.start_time)} – {formatTime(w.end_time)}
-                </span>
+                </Text>
               </HStack>
             </Stack>
             {/* Busy windows show reason_description (a system label), never private event titles */}
             {w.kind === 'busy' && w.reason_description && (
-              <Text color='muted-foreground' className='ml-auto text-xs'>
+              <Text color='muted-foreground' size='xs' ml='auto'>
                 {w.reason_description}
               </Text>
             )}

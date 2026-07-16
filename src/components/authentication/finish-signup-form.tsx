@@ -4,15 +4,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { AuthLayout } from '@/components/layout/auth-layout';
-import { Heading, Text, HStack } from '@/components/layout';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { Checkbox } from 'vinta-schedule-design-system/ui/checkbox';
+import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
+import {
+  Box,
+  FormLayout,
+  Heading,
+  Text,
+  HStack,
+  VStack,
+} from 'vinta-schedule-design-system/layout';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from 'vinta-schedule-design-system/ui/alert';
 import {
   Form,
   FormField,
@@ -20,7 +32,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
 import { useProviderInfo } from '@/hooks/authentication/use-provider-info';
 import { useProviderSignup } from '@/hooks/authentication/use-provider-signup';
 import type { ErrorResponse, ProviderSignup } from '@/auth-client';
@@ -190,19 +202,24 @@ export function FinishSignupForm({
   if (sessionExpired) {
     return (
       <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>
-        <Card className='flex w-full max-w-md flex-col items-center gap-6 p-8'>
-          <Alert variant='destructive' className='w-full'>
-            <AlertTitle className='text-xl font-bold'>
-              Sign-in expired
-            </AlertTitle>
-            <AlertDescription>
-              Your sign-in session expired before you finished creating your
-              account. Please start the sign-in again.
-            </AlertDescription>
-          </Alert>
-          <Button asChild variant='default' className='w-full'>
-            <a href='/auth/login'>Restart sign-in</a>
-          </Button>
+        <Card padding={8}>
+          <VStack align='center' gap={6}>
+            <Alert variant='destructive'>
+              <AlertTitle>
+                <Text size='xl' weight='bold'>
+                  Sign-in expired
+                </Text>
+              </AlertTitle>
+              <AlertDescription>
+                Your sign-in session expired before you finished creating your
+                account. Please start the sign-in again.
+              </AlertDescription>
+            </Alert>
+            {/* `w-full`: <Button> exposes no width prop. */}
+            <Button asChild variant='default' fullWidth>
+              <a href='/auth/login'>Restart sign-in</a>
+            </Button>
+          </VStack>
         </Card>
       </AuthLayout>
     );
@@ -213,180 +230,193 @@ export function FinishSignupForm({
       navbar={<AuthNavbar branding={branding} />}
       variant='two-column'
     >
-      <Card className='w-full max-w-xl p-8'>
-        <BackLink href='/auth/signup' label='Back to signup' />
-        <Heading level={1} size='2xl' className='mt-4 mb-4'>
-          Finish creating your account
-        </Heading>
-        <Text as='p' size='sm' color='muted-foreground' className='mb-6'>
-          We got some details from your social provider. Add the missing
-          information below to finish signing up.
-        </Text>
-        {isLoading && <div className='mb-4'>Loading provider info...</div>}
-        {isError && (
-          <Alert variant='destructive' className='mb-4'>
-            <AlertTitle>Provider info error</AlertTitle>
-            <AlertDescription>
-              {(error as { message?: string } | null)?.message ||
-                'Could not fetch provider info.'}
-            </AlertDescription>
-          </Alert>
-        )}
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-          >
-            <FormField
-              control={form.control}
-              name='first_name'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>First Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='text'
-                      autoComplete='given-name'
-                      placeholder='First name'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='last_name'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Last Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='text'
-                      autoComplete='family-name'
-                      placeholder='Last name'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='email'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='email'
-                      autoComplete='email'
-                      placeholder='Email'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='phone'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='tel'
-                      autoComplete='tel'
-                      placeholder='+14155552671'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='accepted_terms'
-              render={({ field }) => (
-                <FormItem>
-                  <HStack gap={2} align='start'>
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        data-testid='accepted-terms-checkbox'
-                      />
-                    </FormControl>
-                    <FormLabel className='mb-0 leading-snug font-normal'>
-                      I agree to the{' '}
-                      <Link
-                        href='/privacy'
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='text-primary hover:underline'
-                      >
-                        Privacy Policy
-                      </Link>{' '}
-                      and{' '}
-                      <Link
-                        href='/terms'
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='text-primary hover:underline'
-                      >
-                        Terms of Use
-                      </Link>
-                      .
-                    </FormLabel>
-                  </HStack>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='accepted_sms_consent'
-              render={({ field }) => (
-                <FormItem>
-                  <HStack gap={2} align='start'>
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        data-testid='accepted-sms-consent-checkbox'
-                      />
-                    </FormControl>
-                    <FormLabel className='mb-0 leading-snug font-normal'>
-                      I agree to receive SMS text messages (e.g. verification
-                      codes) at the phone number I provide. Msg &amp; data rates
-                      may apply.
-                    </FormLabel>
-                  </HStack>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {formError && (
+      <Box maxWidth={576} mx='auto'>
+        <Card padding={8}>
+          <BackLink href='/auth/signup' label='Back to signup' />
+          <Heading level={1} size='2xl' mt={4} mb={4}>
+            Finish creating your account
+          </Heading>
+          <Text as='p' size='sm' color='muted-foreground' mb={6}>
+            We got some details from your social provider. Add the missing
+            information below to finish signing up.
+          </Text>
+          {isLoading && (
+            <Text as='div' mb={4}>
+              Loading provider info...
+            </Text>
+          )}
+          {isError && (
+            <Box mb={4}>
               <Alert variant='destructive'>
-                <AlertTitle>Signup failed</AlertTitle>
-                <AlertDescription>{formError}</AlertDescription>
+                <AlertTitle>Provider info error</AlertTitle>
+                <AlertDescription>
+                  {(error as { message?: string } | null)?.message ||
+                    'Could not fetch provider info.'}
+                </AlertDescription>
               </Alert>
-            )}
-            <Button
-              type='submit'
-              className='mt-2 w-full'
-              disabled={providerSignupMutation.isPending}
-            >
-              {providerSignupMutation.isPending ? 'Signing up...' : 'Sign Up'}
-            </Button>
-          </form>
-        </Form>
-      </Card>
+            </Box>
+          )}
+          <Form {...form}>
+            <FormLayout gap={4} onSubmit={form.handleSubmit(onSubmit)}>
+              <FormField
+                control={form.control}
+                name='first_name'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='text'
+                        autoComplete='given-name'
+                        placeholder='First name'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='last_name'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='text'
+                        autoComplete='family-name'
+                        placeholder='Last name'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='email'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='email'
+                        autoComplete='email'
+                        placeholder='Email'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='phone'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='tel'
+                        autoComplete='tel'
+                        placeholder='+14155552671'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='accepted_terms'
+                render={({ field }) => (
+                  <FormItem>
+                    <HStack gap={2} align='start'>
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid='accepted-terms-checkbox'
+                        />
+                      </FormControl>
+                      {/* FormLabel is shadcn's <Label>: it exposes no weight /
+                        leading / margin props, so the checkbox-row typography
+                        override stays a class. */}
+                      <FormLabel className='mb-0 leading-snug font-normal'>
+                        I agree to the{' '}
+                        <TextLink asChild>
+                          <Link
+                            href='/privacy'
+                            target='_blank'
+                            rel='noopener noreferrer'
+                          >
+                            Privacy Policy
+                          </Link>
+                        </TextLink>{' '}
+                        and{' '}
+                        <TextLink asChild>
+                          <Link
+                            href='/terms'
+                            target='_blank'
+                            rel='noopener noreferrer'
+                          >
+                            Terms of Use
+                          </Link>
+                        </TextLink>
+                        .
+                      </FormLabel>
+                    </HStack>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='accepted_sms_consent'
+                render={({ field }) => (
+                  <FormItem>
+                    <HStack gap={2} align='start'>
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid='accepted-sms-consent-checkbox'
+                        />
+                      </FormControl>
+                      {/* FormLabel is shadcn's <Label>: no weight / leading /
+                        margin props. */}
+                      <FormLabel className='mb-0 leading-snug font-normal'>
+                        I agree to receive SMS text messages (e.g. verification
+                        codes) at the phone number I provide. Msg &amp; data
+                        rates may apply.
+                      </FormLabel>
+                    </HStack>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {formError && (
+                <Alert variant='destructive'>
+                  <AlertTitle>Signup failed</AlertTitle>
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              )}
+              {/* `mt-2 w-full`: <Button> exposes no margin/width props. */}
+              <Button
+                type='submit'
+                className='mt-2 w-full'
+                disabled={providerSignupMutation.isPending}
+              >
+                {providerSignupMutation.isPending ? 'Signing up...' : 'Sign Up'}
+              </Button>
+            </FormLayout>
+          </Form>
+        </Card>
+      </Box>
     </AuthLayout>
   );
 }

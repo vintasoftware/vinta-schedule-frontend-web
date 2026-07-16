@@ -1,6 +1,8 @@
 name: Deploy Storybook (GitHub Pages)
 
-# Builds the Storybook static site and publishes it to GitHub Pages.
+# Builds both Storybook static sites — the app catalog (feature stories) and
+# the design-system catalog (packages/design-system) — and publishes them to
+# GitHub Pages: app at /<repo>/, design system at /<repo>/design-system/.
 # Runs on pushes to main; can also be triggered manually.
 on:
   push:
@@ -25,25 +27,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Reads the pnpm version from the packageManager field in package.json.
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      - name: Build Storybook
+      - name: Build app Storybook
         # GitHub Pages serves project sites under /<repo>/, so the built
         # assets are referenced relative to that base path.
         env:
           STORYBOOK_BASE_PATH: /${{ github.event.repository.name }}/
-        run: npm run build-storybook
+        run: pnpm run build-storybook
+
+      - name: Build design-system Storybook
+        env:
+          STORYBOOK_BASE_PATH: /${{ github.event.repository.name }}/design-system/
+        run: pnpm run build-storybook:ds
+
+      - name: Assemble Pages site
+        run: |
+          mkdir -p site
+          cp -R storybook-static/. site/
+          mkdir -p site/design-system
+          cp -R packages/design-system/storybook-static/. site/design-system/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: storybook-static
+          path: site
 
   deploy:
     needs: build

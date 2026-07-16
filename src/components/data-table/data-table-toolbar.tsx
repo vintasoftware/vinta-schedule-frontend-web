@@ -2,9 +2,10 @@
 
 import * as React from 'react';
 import { Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils/index';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import { Box, Flex, HStack } from 'vinta-schedule-design-system/layout';
 
 // ---------------------------------------------------------------------------
 // DataTableToolbar
@@ -78,40 +79,59 @@ export function DataTableToolbar({
   if (!showSearch && !actions) return null;
 
   return (
-    <div
+    <Flex
       data-slot='data-table-toolbar'
-      className={cn('flex items-center justify-between gap-2 py-2', className)}
+      align='center'
+      justify='between'
+      gap={2}
+      py={2}
+      className={className}
     >
       {showSearch ? (
-        <div className='relative flex w-full max-w-sm items-center'>
-          <Search className='text-muted-foreground absolute left-2.5 size-4' />
+        <Flex
+          position='relative'
+          align='center'
+          width='full'
+          maxWidth={384} // max-w-sm
+        >
+          <Box position='absolute' left={10} display='flex'>
+            <Icon icon={Search} size='sm' color='muted-foreground' />
+          </Box>
           <Input
             aria-label='Search'
             placeholder='Search…'
             value={inputValue}
             onChange={handleChange}
+            // Input has no padding prop — the inset keeps the text clear of the
+            // search glyph and the clear button.
             className='pr-8 pl-8'
           />
           {inputValue && (
-            <Button
-              type='button'
-              variant='ghost'
-              size='icon'
-              aria-label='Clear search'
-              onClick={handleClear}
-              className='absolute right-1 size-6'
-            >
-              <X className='size-4' />
-            </Button>
+            <Box position='absolute' right={4} display='flex'>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon'
+                aria-label='Clear search'
+                onClick={handleClear}
+                // No 24px icon-button size token exists; `icon` is 36px, which
+                // would overflow the 36px-tall input.
+                className='size-6'
+              >
+                <X />
+              </Button>
+            </Box>
           )}
-        </div>
+        </Flex>
       ) : (
         // Spacer so actions slot stays right-aligned even without a search box.
-        <div />
+        <Box />
       )}
       {actions && (
-        <div className='flex shrink-0 items-center gap-2'>{actions}</div>
+        <HStack gap={2} shrink={0}>
+          {actions}
+        </HStack>
       )}
-    </div>
+    </Flex>
   );
 }

@@ -1,7 +1,12 @@
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AuthLayout } from '@/components/layout/auth-layout';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from 'vinta-schedule-design-system/ui/alert';
+import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
+import { Divider, Text, VStack } from 'vinta-schedule-design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { fetchBrandingForTenant } from '@/lib/branding-server';
 
@@ -22,20 +27,25 @@ export default async function SocialLoginErrorPage({
 
   return (
     <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>
-      <Card className='flex w-full max-w-md flex-col items-center gap-6 p-8'>
-        <Alert variant='destructive' className='w-full'>
-          <AlertTitle className='text-xl font-bold'>
-            Social Login Failed
-          </AlertTitle>
-          <AlertDescription>
-            We couldn&apos;t log you in using your social account. Please try
-            again or use another login method.
-          </AlertDescription>
-        </Alert>
-        <div className='border-border my-2 w-full border-t' />
-        <Button asChild variant='default' className='w-full'>
-          <a href='/auth/login'>Back to Login</a>
-        </Button>
+      <Card padding={8}>
+        <VStack align='center' gap={6}>
+          <Alert variant='destructive'>
+            <AlertTitle>
+              <Text size='xl' weight='bold'>
+                Social Login Failed
+              </Text>
+            </AlertTitle>
+            <AlertDescription>
+              We couldn&apos;t log you in using your social account. Please try
+              again or use another login method.
+            </AlertDescription>
+          </Alert>
+          <Divider spacing={2} />
+          {/* `w-full`: <Button> exposes no width prop (see DS gap in report). */}
+          <Button asChild variant='default' fullWidth>
+            <a href='/auth/login'>Back to Login</a>
+          </Button>
+        </VStack>
       </Card>
     </AuthLayout>
   );

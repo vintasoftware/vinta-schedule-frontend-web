@@ -1,16 +1,16 @@
 'use client';
 
 import * as React from 'react';
-import { Stack } from '@/components/layout/stack';
-import { PageHeader } from '@/components/layout/page-header';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
+import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 import { RoomsSyncSettingsForm } from '@/components/sync/rooms-sync-settings-form';
 import { ExternalEventUpdatePolicyForm } from '@/components/sync/external-event-update-policy-form';
 import { TriggerRoomsSyncButton } from '@/components/sync/trigger-rooms-sync-button';
 import { TriggerOrgCalendarSyncButton } from '@/components/sync/trigger-org-calendar-sync-button';
 import { ServiceAccountCard } from '@/components/sync/service-account-card';
 import { useRequireRole } from '@/components/navigation/role-gate';
-import { Box } from '@/components/layout/box';
-import { HStack, Text } from '@/components/layout';
+import { Box } from 'vinta-schedule-design-system/layout/box';
+import { HStack, Text } from 'vinta-schedule-design-system/layout';
 
 /**
  * SyncSettingsPage — admin-only view for configuring sync settings.
@@ -46,7 +46,7 @@ export default function SyncSettingsPage() {
       <RoomsSyncSettingsForm />
 
       {/* External event update policy — how inbound provider edits are handled */}
-      <Box className='border-border border-t pt-6'>
+      <Box borderTop pt={6}>
         <Stack gap={3}>
           <Text weight='semibold'>External event updates</Text>
           <Text size='sm' color='muted-foreground'>
@@ -58,7 +58,7 @@ export default function SyncSettingsPage() {
       </Box>
 
       {/* Service Account — configure Google Calendar service account for rooms sync */}
-      <Box className='border-border border-t pt-6'>
+      <Box borderTop pt={6}>
         <Stack gap={3}>
           <Text weight='semibold'>Service account</Text>
           <Text size='sm' color='muted-foreground'>
@@ -69,7 +69,7 @@ export default function SyncSettingsPage() {
       </Box>
 
       {/* Sync triggers — fire-and-toast actions */}
-      <Box className='border-border border-t pt-6'>
+      <Box borderTop pt={6}>
         <Stack gap={3}>
           <Text weight='semibold'>Manual sync</Text>
           <Text size='sm' color='muted-foreground'>

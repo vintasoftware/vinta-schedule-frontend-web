@@ -12,11 +12,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+} from 'vinta-schedule-design-system/ui/card';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
 import {
   Form,
   FormControl,
@@ -34,8 +34,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack, HStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import {
+  Box,
+  VStack,
+  HStack,
+  Text,
+  FormLayout,
+  VisuallyHidden,
+} from 'vinta-schedule-design-system/layout';
 
 import { useAccountEmails } from '@/hooks/authentication/use-account-emails';
 import { useAddEmail } from '@/hooks/authentication/use-add-email';
@@ -129,8 +136,8 @@ export function EmailsSection() {
       <CardContent>
         {isLoading ? (
           <VStack gap={3}>
-            <Skeleton className='h-10 w-full' />
-            <Skeleton className='h-10 w-full' />
+            <Skeleton height={40} width='full' />
+            <Skeleton height={40} width='full' />
           </VStack>
         ) : isError ? (
           <Text size='sm' color='destructive'>
@@ -145,10 +152,10 @@ export function EmailsSection() {
                   justify='between'
                   align='center'
                   gap={4}
-                  className='flex-wrap'
+                  wrap
                 >
-                  <HStack align='center' gap={2} className='min-w-0'>
-                    <Text size='sm' className='truncate'>
+                  <HStack align='center' gap={2} minWidth={0}>
+                    <Text size='sm' truncate>
                       {emailAddress.email}
                     </Text>
                     {emailAddress.primary && <Badge>Primary</Badge>}
@@ -194,33 +201,35 @@ export function EmailsSection() {
             </VStack>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onAddEmail)}>
-                <HStack gap={2} align='start' className='max-w-md'>
-                  <FormField
-                    control={form.control}
-                    name='email'
-                    render={({ field }) => (
-                      <FormItem className='flex-1'>
-                        <FormLabel className='sr-only'>
-                          New email address
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type='email'
-                            placeholder='new-address@example.com'
-                            autoComplete='email'
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <FormLayout onSubmit={form.handleSubmit(onAddEmail)}>
+                <HStack gap={2} align='start' maxWidth={448}>
+                  <Box grow shrink basis={0} minWidth={0}>
+                    <FormField
+                      control={form.control}
+                      name='email'
+                      render={({ field }) => (
+                        <FormItem>
+                          <VisuallyHidden as={FormLabel}>
+                            New email address
+                          </VisuallyHidden>
+                          <FormControl>
+                            <Input
+                              type='email'
+                              placeholder='new-address@example.com'
+                              autoComplete='email'
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </Box>
                   <Button type='submit' disabled={addEmailMutation.isPending}>
                     {addEmailMutation.isPending ? 'Adding…' : 'Add email'}
                   </Button>
                 </HStack>
-              </form>
+              </FormLayout>
             </Form>
           </VStack>
         )}

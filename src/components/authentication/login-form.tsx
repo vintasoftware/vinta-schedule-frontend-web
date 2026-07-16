@@ -2,14 +2,28 @@
 
 import { useRouter } from 'next/navigation';
 import { useLogin } from '@/hooks/authentication/use-login';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { AuthLayout } from '@/components/layout/auth-layout';
-import { Box, Stack, HStack, VStack, Heading, Text } from '@/components/layout';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
+import {
+  Box,
+  Flex,
+  FormLayout,
+  Stack,
+  HStack,
+  VStack,
+  Heading,
+  Text,
+} from 'vinta-schedule-design-system/layout';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { BackLink } from '@/components/authentication/back-link';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from 'vinta-schedule-design-system/ui/alert';
 import {
   Form,
   FormField,
@@ -17,7 +31,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -115,131 +129,140 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
 
   return (
     <AuthLayout navbar={<AuthNavbar />} variant='two-column'>
-      <Card className='flex w-full max-w-3xl flex-col overflow-hidden p-0 md:flex-row'>
-        {/* Left column: Info and Social */}
-        <VStack
-          grow={1}
-          justify='center'
-          gap={8}
-          p={8}
-          className='border-b md:border-r md:border-b-0'
+      <Card>
+        <Flex
+          direction={{ base: 'column', md: 'row' }}
+          overflow='hidden'
+          radius='xl'
         >
-          <BackLink href='/' label='Back to home' />
-          <Stack gap={4}>
-            <Heading level={1} size='3xl'>
-              Welcome back
-            </Heading>
-            <Text size='sm' color='muted-foreground'>
-              Sign in to your account
-            </Text>
-          </Stack>
-          {/* Social login buttons */}
-          <Box>
-            {socialProviders.length > 0 ? (
-              <VStack gap={2} mt={4}>
-                {socialProviders.map((provider) => (
-                  <Button
-                    key={provider.id}
-                    onClick={async () => {
-                      const { redirect_url: redirectUrl } = await providerLogin(
-                        {
-                          provider: provider.id,
-                          callbackUrl: `${window.location.origin}/auth/social/${provider.id}/callback`,
-                          process: 'login',
-                        }
-                      );
-                      window.location.href = redirectUrl;
-                    }}
-                    disabled={
-                      loginMutation.isPending || providerLoginMutation.isPending
-                    }
-                    className='w-full'
-                  >
-                    <SocialProviderIcon provider={provider} />
-                    Sign in with {provider.name}
-                  </Button>
-                ))}
-              </VStack>
-            ) : null}
-          </Box>
-        </VStack>
-        {/* Right column: Form */}
-        <VStack grow={1} justify='center' p={8}>
-          {/* Only show the separator if there are social providers */}
-          {socialProviders.length > 0 && (
-            <HStack align='center' mb={8} className='sm:hidden'>
-              <Box grow={1} className='border-border border-t' />
-              <Text size='xs' color='muted-foreground' className='mx-2'>
-                or
+          {/* Left column: Info and Social */}
+          <VStack
+            grow={1}
+            justify='center'
+            gap={8}
+            p={8}
+            // TODO(ds-gap): per-side borders (borderBottom/borderRight) are not
+            // responsive — the "rule below on mobile, rule to the right on md"
+            // split cannot be expressed with the DS box props today.
+            className='border-b md:border-r md:border-b-0'
+          >
+            <BackLink href='/' label='Back to home' />
+            <Stack gap={4}>
+              <Heading level={1} size='3xl'>
+                Welcome back
+              </Heading>
+              <Text size='sm' color='muted-foreground'>
+                Sign in to your account
               </Text>
-              <Box grow={1} className='border-border border-t' />
-            </HStack>
-          )}
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className='flex flex-col gap-4'
-            >
-              <FormField
-                control={form.control}
-                name='login'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email or Phone</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='text'
-                        autoComplete='username'
-                        placeholder='Email or phone'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='password'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='password'
-                        autoComplete='current-password'
-                        placeholder='••••••••'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {error && (
-                <Alert variant='destructive'>
-                  <AlertTitle>Login failed</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              <Button
-                type='submit'
-                className='w-full'
-                disabled={loginMutation.isPending}
+            </Stack>
+            {/* Social login buttons */}
+            <Box>
+              {socialProviders.length > 0 ? (
+                <VStack gap={2} mt={4}>
+                  {socialProviders.map((provider) => (
+                    <Button
+                      key={provider.id}
+                      onClick={async () => {
+                        const { redirect_url: redirectUrl } =
+                          await providerLogin({
+                            provider: provider.id,
+                            callbackUrl: `${window.location.origin}/auth/social/${provider.id}/callback`,
+                            process: 'login',
+                          });
+                        window.location.href = redirectUrl;
+                      }}
+                      disabled={
+                        loginMutation.isPending ||
+                        providerLoginMutation.isPending
+                      }
+                      // `w-full`: <Button> exposes no width prop.
+                      className='w-full'
+                    >
+                      <SocialProviderIcon provider={provider} />
+                      Sign in with {provider.name}
+                    </Button>
+                  ))}
+                </VStack>
+              ) : null}
+            </Box>
+          </VStack>
+          {/* Right column: Form */}
+          <VStack grow={1} justify='center' p={8}>
+            {/* Only show the separator if there are social providers */}
+            {socialProviders.length > 0 && (
+              <HStack
+                align='center'
+                mb={8}
+                display={{ base: 'flex', sm: 'hidden' }}
               >
-                {loginMutation.isPending ? 'Logging in...' : 'Login'}
-              </Button>
-              <Text as='div' size='sm' align='center' className='mt-2'>
-                <a
-                  href='/auth/request-password-reset'
-                  className='text-primary hover:underline'
+                <Box grow={1} borderTop />
+                <Text size='xs' color='muted-foreground' mx={2}>
+                  or
+                </Text>
+                <Box grow={1} borderTop />
+              </HStack>
+            )}
+            <Form {...form}>
+              <FormLayout gap={4} onSubmit={form.handleSubmit(onSubmit)}>
+                <FormField
+                  control={form.control}
+                  name='login'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email or Phone</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='text'
+                          autoComplete='username'
+                          placeholder='Email or phone'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='password'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='password'
+                          autoComplete='current-password'
+                          placeholder='••••••••'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {error && (
+                  <Alert variant='destructive'>
+                    <AlertTitle>Login failed</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                {/* `w-full`: <Button> exposes no width prop. */}
+                <Button
+                  type='submit'
+                  className='w-full'
+                  disabled={loginMutation.isPending}
                 >
-                  Forgot your password?
-                </a>
-              </Text>
-            </form>
-          </Form>
-        </VStack>
+                  {loginMutation.isPending ? 'Logging in...' : 'Login'}
+                </Button>
+                <Text as='div' size='sm' align='center' mt={2}>
+                  <TextLink href='/auth/request-password-reset'>
+                    Forgot your password?
+                  </TextLink>
+                </Text>
+              </FormLayout>
+            </Form>
+          </VStack>
+        </Flex>
       </Card>
     </AuthLayout>
   );

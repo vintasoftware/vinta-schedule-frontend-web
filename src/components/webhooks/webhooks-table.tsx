@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { Trash2, RotateCw, Pencil } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +18,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { HStack, VStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { HStack, VStack, Text } from 'vinta-schedule-design-system/layout';
 import {
   useWebhookConfigurations,
   useDeleteWebhookConfiguration,
@@ -55,7 +56,11 @@ function createColumns(
       header: 'Payload URL',
       enableSorting: false,
       cell: ({ row }) => (
-        <Text className='font-mono text-sm break-all'>{row.original.url}</Text>
+        // `break-all` (word-break) has no prop form in BoxStyleProps — a long
+        // URL must wrap inside the cell instead of blowing the column out.
+        <Text family='mono' size='sm' className='break-all'>
+          {row.original.url}
+        </Text>
       ),
     },
     {
@@ -107,7 +112,7 @@ function RowActions({
         disabled={isLoading}
         aria-label={`Edit webhook ${configuration.url}`}
       >
-        <Pencil className='mr-1 size-4' aria-hidden />
+        <Pencil aria-hidden />
         Edit
       </Button>
 
@@ -120,12 +125,12 @@ function RowActions({
       >
         {isLoading ? (
           <>
-            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            <Spinner label='' />
             Deleting…
           </>
         ) : (
           <>
-            <Trash2 className='mr-1 size-4' aria-hidden />
+            <Trash2 aria-hidden />
             Delete
           </>
         )}
@@ -137,9 +142,9 @@ function RowActions({
             <AlertDialogTitle>Delete webhook</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete the webhook for{' '}
-              <span className='font-medium'>
+              <Text weight='medium'>
                 {eventTypeLabel(configuration.event_type)}
-              </span>
+              </Text>
               ? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -148,7 +153,7 @@ function RowActions({
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={isLoading}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              variant='destructive'
             >
               Delete
             </AlertDialogAction>

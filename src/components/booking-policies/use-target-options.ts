@@ -14,7 +14,7 @@
  */
 
 import * as React from 'react';
-import type { ComboboxOption } from '@/components/ui/combobox';
+import type { ComboboxOption } from 'vinta-schedule-design-system/ui/combobox';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useCalendarGroups } from '@/hooks/calendar-groups/use-calendar-groups';
 import { useTeamMembers } from '@/hooks/team/use-team-members';
@@ -67,11 +67,11 @@ export function useTargetOptions() {
     (type: BookingPolicyTargetType, id: number | null): string => {
       if (id == null) return '—';
       const lookup: Partial<Record<BookingPolicyTargetType, ComboboxOption[]>> =
-        {
-          calendar: calendarOptions,
-          calendar_group: groupOptions,
-          membership: memberOptions,
-        };
+      {
+        calendar: calendarOptions,
+        calendar_group: groupOptions,
+        membership: memberOptions,
+      };
       const options = lookup[type];
       const match = options?.find((o) => o.value === String(id));
       if (match) return match.label;

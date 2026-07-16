@@ -3,11 +3,16 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { AuthLayout } from '@/components/layout/auth-layout';
-import { Stack, Heading, Text } from '@/components/layout';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
+import {
+  Stack,
+  VStack,
+  Heading,
+  Text,
+} from 'vinta-schedule-design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { useActiveOrganization } from '@/hooks/organizations/use-active-organization';
 
@@ -72,7 +77,7 @@ export default function SelectOrganizationPage() {
   if (isLoading || isError || isGated || !needsSelection) {
     return (
       <AuthLayout navbar={<AuthNavbar />} variant='single'>
-        <Card className='flex w-full max-w-md flex-col gap-8 p-8'>
+        <Card padding={8}>
           <Text color='muted-foreground'>Loading…</Text>
         </Card>
       </AuthLayout>
@@ -81,36 +86,41 @@ export default function SelectOrganizationPage() {
 
   return (
     <AuthLayout navbar={<AuthNavbar />} variant='single'>
-      <Card className='flex w-full max-w-md flex-col gap-8 p-8'>
-        <Stack gap={4}>
-          <Heading level={1} size='3xl'>
-            Choose an organization
-          </Heading>
-          <Text size='sm' color='muted-foreground'>
-            You belong to multiple organizations. Select one to continue.
-          </Text>
-        </Stack>
+      <Card padding={8}>
+        <VStack gap={8}>
+          <Stack gap={4}>
+            <Heading level={1} size='3xl'>
+              Choose an organization
+            </Heading>
+            <Text size='sm' color='muted-foreground'>
+              You belong to multiple organizations. Select one to continue.
+            </Text>
+          </Stack>
 
-        <Stack gap={3}>
-          {memberships.map((membership) => (
-            <Button
-              key={membership.organization.id}
-              variant='outline'
-              className='flex h-auto w-full items-center justify-between px-4 py-3 text-left'
-              onClick={() => handleSelect(membership.organization.id)}
-              aria-pressed={
-                activeMembership?.organization.id === membership.organization.id
-              }
-            >
-              <span className='font-medium'>
-                {membership.organization.name}
-              </span>
-              <Badge variant='secondary' className='ml-2 shrink-0 capitalize'>
-                {membership.role}
-              </Badge>
-            </Button>
-          ))}
-        </Stack>
+          <Stack gap={3}>
+            {memberships.map((membership) => (
+              <Button
+                key={membership.organization.id}
+                variant='outline'
+                // <Button> exposes no width/height/padding/justify props, so the
+                // "full-width row" shape can only be expressed as classes here.
+                className='flex h-auto w-full items-center justify-between px-4 py-3 text-left'
+                onClick={() => handleSelect(membership.organization.id)}
+                aria-pressed={
+                  activeMembership?.organization.id ===
+                  membership.organization.id
+                }
+              >
+                <Text weight='medium'>{membership.organization.name}</Text>
+                {/* <Badge> exposes no margin/shrink props, and `capitalize` has
+                    no Text equivalent (only `uppercase`). */}
+                <Badge variant='secondary' className='ml-2 shrink-0 capitalize'>
+                  {membership.role}
+                </Badge>
+              </Button>
+            ))}
+          </Stack>
+        </VStack>
       </Card>
     </AuthLayout>
   );

@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { HStack } from 'vinta-schedule-design-system/layout';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 
 export function BackLink({
   href,
@@ -9,12 +12,13 @@ export function BackLink({
   label?: string;
 }) {
   return (
-    <Link
-      href={href}
-      className='text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5 text-sm transition-colors'
-    >
-      <ArrowLeft className='h-4 w-4' />
-      {label}
-    </Link>
+    <TextLink asChild variant='muted' underline='none' size='md'>
+      <Link href={href}>
+        <HStack as='span' inline gap={2}>
+          <Icon icon={ArrowLeft} size='sm' />
+          {label}
+        </HStack>
+      </Link>
+    </TextLink>
   );
 }

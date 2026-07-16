@@ -1,0 +1,9 @@
+/* Same families as the app shell (app/layout.tsx), loaded from Google Fonts
+   because this package has no Next.js runtime (the app uses next/font).
+   The variables mirror the names next/font injects so tokens.css works 1:1. */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --font-dm-sans: 'DM Sans';
+  --font-geist-mono: 'Geist Mono';
+}

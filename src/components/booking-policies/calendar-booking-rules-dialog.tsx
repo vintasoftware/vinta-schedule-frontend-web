@@ -27,10 +27,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Form, FormField } from '@/components/ui/form';
-import { Spacer, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Form, FormField } from 'vinta-schedule-design-system/ui/form';
+import { Spacer, Text, FormLayout } from 'vinta-schedule-design-system/layout';
 import {
   useCreateBookingPolicy,
   useUpdateBookingPolicy,
@@ -144,9 +144,9 @@ export function CalendarBookingRulesDialog({
         <DialogHeader>
           <DialogTitle>Booking rules</DialogTitle>
           <DialogDescription>
-            Guardrails for <span className='font-medium'>{calendarName}</span> —
-            lead time, booking horizon, and buffers around existing events. Set
-            any rule to 0 to leave it unconstrained.
+            Guardrails for <Text weight='medium'>{calendarName}</Text> — lead
+            time, booking horizon, and buffers around existing events. Set any
+            rule to 0 to leave it unconstrained.
           </DialogDescription>
         </DialogHeader>
 
@@ -156,9 +156,9 @@ export function CalendarBookingRulesDialog({
           </Text>
         ) : (
           <Form {...form}>
-            <form
+            <FormLayout
               onSubmit={form.handleSubmit(onSubmit)}
-              className='flex flex-col gap-4'
+              gap={4}
               noValidate
             >
               {RULE_FIELDS.map((rule) => (
@@ -176,6 +176,7 @@ export function CalendarBookingRulesDialog({
                 />
               ))}
 
+              {/* shadcn DialogFooter is a bare flex row with no align prop. */}
               <DialogFooter className='items-center'>
                 {hasPolicy && (
                   <Button
@@ -183,6 +184,8 @@ export function CalendarBookingRulesDialog({
                     variant='outline'
                     onClick={onRemove}
                     disabled={isPending}
+                    // A destructive *outline* button: Button's `destructive`
+                    // variant is solid-filled, and the :hover lock has no prop.
                     className='text-destructive hover:text-destructive'
                   >
                     Remove rules
@@ -205,7 +208,7 @@ export function CalendarBookingRulesDialog({
                   {isPending ? 'Saving…' : 'Save rules'}
                 </Button>
               </DialogFooter>
-            </form>
+            </FormLayout>
           </Form>
         )}
       </DialogContent>

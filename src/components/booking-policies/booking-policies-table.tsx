@@ -14,12 +14,13 @@
  */
 
 import * as React from 'react';
-import { Trash2, RotateCw, Pencil } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Button } from '@/components/ui/button';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,8 +30,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { HStack, VStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { HStack, VStack, Text } from 'vinta-schedule-design-system/layout';
 import {
   useBookingPolicies,
   useDeleteBookingPolicy,
@@ -165,7 +166,7 @@ function RowActions({
         disabled={isLoading}
         aria-label={`Edit policy for ${targetLabel}`}
       >
-        <Pencil className='mr-1 size-4' aria-hidden />
+        <Pencil aria-hidden />
         Edit
       </Button>
 
@@ -178,12 +179,12 @@ function RowActions({
       >
         {isLoading ? (
           <>
-            <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
+            <Spinner label='' />
             Deleting…
           </>
         ) : (
           <>
-            <Trash2 className='mr-1 size-4' aria-hidden />
+            <Trash2 aria-hidden />
             Delete
           </>
         )}
@@ -195,8 +196,8 @@ function RowActions({
             <AlertDialogTitle>Delete booking policy</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete the booking policy for{' '}
-              <span className='font-medium'>{targetLabel}</span>? Slot discovery
-              and booking will fall through to the next resolution layer.
+              <Text weight='medium'>{targetLabel}</Text>? Slot discovery and
+              booking will fall through to the next resolution layer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -204,7 +205,7 @@ function RowActions({
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={isLoading}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              variant='destructive'
             >
               Delete
             </AlertDialogAction>

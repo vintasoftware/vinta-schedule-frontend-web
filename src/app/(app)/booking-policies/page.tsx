@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Stack, PageHeader } from '@/components/layout';
-import { Button } from '@/components/ui/button';
+import { Stack, PageHeader } from 'vinta-schedule-design-system/layout';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Plus } from 'lucide-react';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { BookingPoliciesTable } from '@/components/booking-policies/booking-policies-table';
@@ -32,7 +32,7 @@ export default function BookingPoliciesPage() {
       onClick={() => setNewPolicyDialogOpen(true)}
       data-testid='new-booking-policy-button'
     >
-      <Plus className='mr-1 h-4 w-4' />
+      <Plus />
       New policy
     </Button>
   );

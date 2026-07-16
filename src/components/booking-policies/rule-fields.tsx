@@ -11,22 +11,22 @@
 
 import * as React from 'react';
 import { z } from 'zod';
-import { Input } from '@/components/ui/input';
+import { Input } from 'vinta-schedule-design-system/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from 'vinta-schedule-design-system/ui/select';
 import {
   FormItem,
   FormLabel,
   FormControl,
   FormDescription,
   FormMessage,
-} from '@/components/ui/form';
-import { HStack } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { Box, HStack } from 'vinta-schedule-design-system/layout';
 import {
   DURATION_UNIT_OPTIONS,
   secondsToDuration,
@@ -146,43 +146,48 @@ export function DurationFormField({
     <FormItem>
       <FormLabel>{label}</FormLabel>
       <HStack gap={2} align='start'>
-        <FormControl>
-          <Input
-            type='number'
-            min={0}
-            step={1}
-            inputMode='numeric'
-            className='w-28'
-            disabled={disabled}
-            aria-label={`${label} value`}
-            value={Number.isNaN(field.value.value) ? '' : field.value.value}
-            onChange={(e) =>
-              field.onChange({
-                ...field.value,
-                value:
-                  e.target.value === '' ? Number.NaN : Number(e.target.value),
-              })
+        {/* Input and SelectTrigger are `w-full` shadcn atoms with no width prop
+            — a Box sizes them instead of a `w-28` / `w-32` class. */}
+        <Box width={112}>
+          <FormControl>
+            <Input
+              type='number'
+              min={0}
+              step={1}
+              inputMode='numeric'
+              disabled={disabled}
+              aria-label={`${label} value`}
+              value={Number.isNaN(field.value.value) ? '' : field.value.value}
+              onChange={(e) =>
+                field.onChange({
+                  ...field.value,
+                  value:
+                    e.target.value === '' ? Number.NaN : Number(e.target.value),
+                })
+              }
+            />
+          </FormControl>
+        </Box>
+        <Box width={128}>
+          <Select
+            value={field.value.unit}
+            onValueChange={(unit) =>
+              field.onChange({ ...field.value, unit: unit as DurationUnit })
             }
-          />
-        </FormControl>
-        <Select
-          value={field.value.unit}
-          onValueChange={(unit) =>
-            field.onChange({ ...field.value, unit: unit as DurationUnit })
-          }
-          disabled={disabled}
-        >
-          <SelectTrigger className='w-32' aria-label={`${label} unit`}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {DURATION_UNIT_OPTIONS.map((u) => (
-              <SelectItem key={u.value} value={u.value}>
-                {u.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            disabled={disabled}
+          >
+            <SelectTrigger aria-label={`${label} unit`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DURATION_UNIT_OPTIONS.map((u) => (
+                <SelectItem key={u.value} value={u.value}>
+                  {u.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Box>
       </HStack>
       <FormDescription>{description}</FormDescription>
       <FormMessage />

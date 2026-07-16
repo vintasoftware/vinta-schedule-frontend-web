@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { VStack, Text, Heading } from '@/components/layout';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { VStack, Text, Heading } from 'vinta-schedule-design-system/layout';
 
 import { useVerifyEmail } from '@/hooks/authentication/use-verify-email';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
@@ -57,7 +57,8 @@ export function VerifyEmailByKey({ verificationKey }: VerifyEmailByKeyProps) {
   }, [verificationKey]);
 
   return (
-    <Card className='w-full max-w-sm space-y-6 p-8'>
+    // Card exposes only `padding`; width/max-width have no prop (shadcn internal).
+    <Card padding={8} className='w-full max-w-sm'>
       <VStack gap={4} align='center'>
         <Heading level={1} size='2xl' align='center'>
           Email verification

@@ -11,10 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Alert, AlertDescription } from 'vinta-schedule-design-system/ui/alert';
 import {
   Form,
   FormField,
@@ -22,8 +22,8 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { VStack, Text, FormLayout } from 'vinta-schedule-design-system/layout';
 import { useCreateInvitation } from '@/hooks/invitations/use-create-invitation';
 import { useResendInvitation } from '@/hooks/invitations/use-resend-invitation';
 import { invitationsList } from '@/client/sdk.gen';
@@ -33,14 +33,8 @@ import { invitationsList } from '@/client/sdk.gen';
 // ---------------------------------------------------------------------------
 
 const inviteMemberSchema = z.object({
-  firstName: z
-    .string()
-    .trim()
-    .min(1, { message: 'First name is required' }),
-  lastName: z
-    .string()
-    .trim()
-    .min(1, { message: 'Last name is required' }),
+  firstName: z.string().trim().min(1, { message: 'First name is required' }),
+  lastName: z.string().trim().min(1, { message: 'Last name is required' }),
   // .trim() normalises whitespace before validation so leading/trailing spaces
   // can't cause a false "new" invite when the same address was already invited.
   email: z
@@ -227,11 +221,7 @@ export function InviteMemberDialog({
         <Form {...form}>
           {/* noValidate: zod (via react-hook-form) owns all validation; the
               browser's native constraint validation must not intercept submit. */}
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-            noValidate
-          >
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             <FormField
               control={form.control}
               name='firstName'
@@ -333,7 +323,7 @@ export function InviteMemberDialog({
                   : 'Send invitation'}
               </Button>
             </DialogFooter>
-          </form>
+          </FormLayout>
         </Form>
       </DialogContent>
     </Dialog>

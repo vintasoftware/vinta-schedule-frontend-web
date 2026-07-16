@@ -12,10 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Checkbox } from 'vinta-schedule-design-system/ui/checkbox';
 import {
   Form,
   FormField,
@@ -23,8 +23,16 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack, HStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { Alert, AlertDescription } from 'vinta-schedule-design-system/ui/alert';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import {
+  VStack,
+  HStack,
+  Text,
+  FormLayout,
+} from 'vinta-schedule-design-system/layout';
 import type { AvailableResourcesEnum } from '@/client';
 import { useCreatePublicApiToken } from '@/hooks/api-tokens/use-public-api-tokens';
 
@@ -185,25 +193,20 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
             </DialogHeader>
 
             <VStack gap={4}>
-              <HStack
-                gap={2}
-                className='border-warning bg-warning/10 rounded-md border p-3'
-              >
-                <TriangleAlert
-                  className='text-warning mt-0.5 h-4 w-4 shrink-0'
-                  aria-hidden='true'
-                />
-                <Text size='sm' className='text-warning-foreground'>
+              <Alert variant='warning'>
+                <Icon icon={TriangleAlert} size='sm' />
+                <AlertDescription>
                   Copy this token now. You will not be able to see it again
                   after closing this dialog.
-                </Text>
-              </HStack>
+                </AlertDescription>
+              </Alert>
 
               <VStack gap={1}>
                 <Text size='sm' color='muted-foreground'>
                   Token secret
                 </Text>
                 <HStack gap={2}>
+                  {/* Input (shadcn) has no font-family prop. */}
                   <Input
                     readOnly
                     value={onceSecret}
@@ -218,11 +221,7 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
                     aria-label='Copy token to clipboard'
                     data-testid='copy-token-button'
                   >
-                    {copied ? (
-                      <CheckCheck className='h-4 w-4' />
-                    ) : (
-                      <Copy className='h-4 w-4' />
-                    )}
+                    {copied ? <CheckCheck /> : <Copy />}
                   </Button>
                 </HStack>
               </VStack>
@@ -248,9 +247,9 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
             </DialogHeader>
 
             <Form {...form}>
-              <form
+              <FormLayout
                 onSubmit={form.handleSubmit(onSubmit)}
-                className='flex flex-col gap-4'
+                gap={4}
                 noValidate
               >
                 <FormField
@@ -278,7 +277,7 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Scopes</FormLabel>
-                      <VStack gap={2} className='max-h-60 overflow-y-auto'>
+                      <VStack gap={2} maxHeight={240} overflow='auto'>
                         {ALL_SCOPES.map((scope) => {
                           const checked = field.value.includes(scope);
                           return (
@@ -297,12 +296,13 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
                                 }}
                                 data-testid={`scope-checkbox-${scope}`}
                               />
-                              <label
+                              {/* Label (shadcn) has no cursor / font-family prop. */}
+                              <Label
                                 htmlFor={`scope-${scope}`}
-                                className='cursor-pointer font-mono text-sm'
+                                className='cursor-pointer font-mono'
                               >
                                 {scope}
-                              </label>
+                              </Label>
                             </HStack>
                           );
                         })}
@@ -329,7 +329,7 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
                     {isPending ? 'Creating…' : 'Create token'}
                   </Button>
                 </DialogFooter>
-              </form>
+              </FormLayout>
             </Form>
           </>
         )}

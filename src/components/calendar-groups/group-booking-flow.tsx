@@ -31,14 +31,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Combobox } from '@/components/ui/combobox';
-import { VStack, HStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import { Checkbox } from 'vinta-schedule-design-system/ui/checkbox';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from 'vinta-schedule-design-system/ui/alert';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import { VStack, HStack, Text } from 'vinta-schedule-design-system/layout';
 import { useCalendarGroups } from '@/hooks/calendar-groups/use-calendar-groups';
 import {
   useGroupBooking,
@@ -427,6 +432,7 @@ export function GroupBookingFlow({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* shadcn internal: DialogContent exposes no size/scroll props. */}
       <DialogContent className='max-h-[90vh] overflow-y-auto sm:max-w-lg'>
         <DialogHeader>
           <DialogTitle>Book a group</DialogTitle>
@@ -436,11 +442,13 @@ export function GroupBookingFlow({
           {/* Race-condition alert — shown inline above the slot pickers so the
               member can see the refreshed availability immediately below it. */}
           {raceDetected && (
+            // TODO(ds-gap): Alert has no `warning` variant — the warning border
+            // is the only way to tint it today.
             <Alert
               className='border-warning bg-background'
               data-testid='race-alert'
             >
-              <RefreshCw className='text-warning h-4 w-4' />
+              <Icon icon={RefreshCw} color='warning' />
               <AlertTitle>A slot became busy while booking</AlertTitle>
               <AlertDescription>
                 Availability was refreshed below — review the updated slot
@@ -496,7 +504,7 @@ export function GroupBookingFlow({
             />
           </VStack>
           <HStack gap={3}>
-            <VStack gap={2} className='flex-1'>
+            <VStack gap={2} grow shrink basis='0%'>
               <Label htmlFor='group-start'>Start time</Label>
               <Input
                 id='group-start'
@@ -508,7 +516,7 @@ export function GroupBookingFlow({
                 }}
               />
             </VStack>
-            <VStack gap={2} className='flex-1'>
+            <VStack gap={2} grow shrink basis='0%'>
               <Label htmlFor='group-end'>End time</Label>
               <Input
                 id='group-end'
@@ -542,7 +550,7 @@ export function GroupBookingFlow({
           {selectedGroup && (
             <VStack gap={2}>
               <HStack gap={2} align='center' justify='between'>
-                <Text size='sm' className='font-medium'>
+                <Text size='sm' weight='medium'>
                   Suggested times
                 </Text>
                 <Button
@@ -556,7 +564,7 @@ export function GroupBookingFlow({
                 </Button>
               </HStack>
               {suggestions.length > 0 && (
-                <HStack gap={2} className='flex-wrap'>
+                <HStack gap={2} wrap>
                   {suggestions.slice(0, 8).map((p) => (
                     <Button
                       key={`${p.start_time}-${p.end_time}`}
@@ -587,11 +595,12 @@ export function GroupBookingFlow({
 
           {/* Unsatisfiable warning */}
           {unsatisfiable && (
+            // TODO(ds-gap): Alert has no `warning` variant — see above.
             <Alert
               className='border-warning bg-background'
               data-testid='unsatisfiable-alert'
             >
-              <TriangleAlert className='text-warning h-4 w-4' />
+              <Icon icon={TriangleAlert} color='warning' />
               <AlertTitle>One or more slots can&apos;t be filled</AlertTitle>
               <AlertDescription>
                 At this time, some slots don&apos;t have enough free calendars
@@ -660,7 +669,7 @@ function SlotPicker({ view, selected, onToggle }: SlotPickerProps) {
       data-testid={`slot-picker-${view.slotId}`}
     >
       <HStack gap={2} align='center' justify='between'>
-        <Text size='sm' className='font-medium'>
+        <Text size='sm' weight='medium'>
           {view.name}
         </Text>
         <Text
@@ -693,6 +702,8 @@ function SlotPicker({ view, selected, onToggle }: SlotPickerProps) {
               />
               <Label
                 htmlFor={`slot-${view.slotId}-cal-${cal.id}`}
+                // shadcn internal: Label takes no token props, and
+                // user-select / cursor have no design-system equivalent.
                 className={cn(
                   'select-none',
                   isFree ? 'cursor-pointer' : 'text-muted-foreground'

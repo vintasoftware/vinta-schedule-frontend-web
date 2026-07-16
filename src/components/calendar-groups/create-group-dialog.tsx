@@ -33,10 +33,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Combobox } from '@/components/ui/combobox';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
+import { Label } from 'vinta-schedule-design-system/ui/label';
 import {
   Form,
   FormField,
@@ -44,8 +45,13 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
-import { VStack, HStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import {
+  FormLayout,
+  VStack,
+  HStack,
+  Text,
+} from 'vinta-schedule-design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useCreateCalendarGroup } from '@/hooks/calendar-groups/use-create-calendar-group';
 
@@ -173,17 +179,14 @@ export function CreateGroupDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* shadcn internal: DialogContent exposes no size/scroll props. */}
       <DialogContent className='max-h-[90vh] overflow-y-auto sm:max-w-lg'>
         <DialogHeader>
           <DialogTitle>New calendar group</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-            noValidate
-          >
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             {/* Group name */}
             <FormField
               control={form.control}
@@ -227,7 +230,7 @@ export function CreateGroupDialog({
             {/* Slots */}
             <VStack gap={3}>
               <HStack gap={2} align='center' justify='between'>
-                <Text size='sm' className='font-medium'>
+                <Text size='sm' weight='medium'>
                   Slots
                 </Text>
                 <Button
@@ -237,7 +240,7 @@ export function CreateGroupDialog({
                   onClick={() => append({ ...DEFAULT_SLOT })}
                   disabled={isPending}
                 >
-                  <Plus className='mr-1 h-4 w-4' />
+                  <Plus />
                   Add slot
                 </Button>
               </HStack>
@@ -286,7 +289,7 @@ export function CreateGroupDialog({
                 {isPending ? 'Creating…' : 'Create group'}
               </Button>
             </DialogFooter>
-          </form>
+          </FormLayout>
         </Form>
       </DialogContent>
     </Dialog>
@@ -331,7 +334,7 @@ function SlotEditor({
     >
       {/* Slot header row */}
       <HStack gap={2} align='center' justify='between'>
-        <Text size='sm' className='font-semibold'>
+        <Text size='sm' weight='semibold'>
           Slot {index + 1}
         </Text>
         {canRemove && (
@@ -343,7 +346,7 @@ function SlotEditor({
             onClick={onRemove}
             disabled={isPending}
           >
-            <Trash2 className='h-4 w-4' />
+            <Trash2 />
           </Button>
         )}
       </HStack>
@@ -395,12 +398,7 @@ function SlotEditor({
 
       {/* Calendar pool (multi-select combobox) */}
       <VStack gap={2}>
-        <label
-          htmlFor={`slot-${index}-calendar-pool`}
-          className='text-sm leading-none font-medium'
-        >
-          Calendar pool
-        </label>
+        <Label htmlFor={`slot-${index}-calendar-pool`}>Calendar pool</Label>
 
         <Combobox
           id={`slot-${index}-calendar-pool`}

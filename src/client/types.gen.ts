@@ -810,6 +810,10 @@ export type Organization = {
     readonly google_service_account: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Whether this organization can invite/create other organizations. DB/Django-admin only — never exposed via any API. Enables the whole reseller capability bundle.
+     */
+    readonly can_invite_organizations: boolean;
     readonly created: string;
     readonly modified: string;
 };
@@ -1277,6 +1281,10 @@ export type PatchedOrganization = {
     readonly google_service_account?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Whether this organization can invite/create other organizations. DB/Django-admin only — never exposed via any API. Enables the whole reseller capability bundle.
+     */
+    readonly can_invite_organizations?: boolean;
     readonly created?: string;
     readonly modified?: string;
 };

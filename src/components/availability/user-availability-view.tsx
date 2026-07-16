@@ -29,12 +29,18 @@
 
 import * as React from 'react';
 import { Calendar, Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Combobox } from '@/components/ui/combobox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { HStack, VStack, Stack, Text } from '@/components/layout';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Label } from 'vinta-schedule-design-system/ui/label';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
+import { Alert, AlertDescription } from 'vinta-schedule-design-system/ui/alert';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import {
+  HStack,
+  VStack,
+  Stack,
+  Text,
+} from 'vinta-schedule-design-system/layout';
 import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
 import { useColleagueCalendars } from '@/hooks/availability/use-colleague-calendars';
 import {
@@ -83,9 +89,7 @@ export function UserAvailabilityView() {
     debouncedMemberSearch
   );
 
-  const selectedMember = members.find(
-    (m) => String(m.id) === selectedUserId
-  );
+  const selectedMember = members.find((m) => String(m.id) === selectedUserId);
 
   // ---- Colleague → calendar resolution -------------------------------------
 
@@ -142,7 +146,7 @@ export function UserAvailabilityView() {
     <Stack gap={6}>
       {/* Resolution notice */}
       <Alert>
-        <Info className='h-4 w-4' />
+        <Icon icon={Info} />
         <AlertDescription>
           Search for a colleague to check their availability. Resolving a
           colleague&apos;s calendars requires organization admin access; if no
@@ -152,7 +156,7 @@ export function UserAvailabilityView() {
 
       {/* Input form */}
       <Stack gap={4}>
-        <Stack gap={2}>
+        <Stack gap={2} maxWidth={320}>
           <Label htmlFor='colleague-picker'>Colleague</Label>
           <Combobox
             id='colleague-picker'
@@ -173,13 +177,12 @@ export function UserAvailabilityView() {
                 ? 'No members found.'
                 : 'Type to search members.'
             }
-            className='max-w-xs'
           />
         </Stack>
 
         {/* Calendar picker — only when the colleague has more than one. */}
         {showCalendarPicker && (
-          <Stack gap={2}>
+          <Stack gap={2} maxWidth={320}>
             <Label htmlFor='colleague-calendar-picker'>Calendar</Label>
             <Combobox
               id='colleague-calendar-picker'
@@ -192,7 +195,6 @@ export function UserAvailabilityView() {
               onValueChange={setSelectedCalendarId}
               placeholder='Select a calendar…'
               searchPlaceholder='Search calendars…'
-              className='max-w-xs'
             />
           </Stack>
         )}
@@ -204,7 +206,7 @@ export function UserAvailabilityView() {
           </Text>
         )}
         {selectedUserId && !calendarsLoading && calendarsError && (
-          <Text size='sm' className='text-destructive'>
+          <Text size='sm' color='destructive'>
             Could not resolve this colleague&apos;s calendars.
           </Text>
         )}
@@ -217,33 +219,33 @@ export function UserAvailabilityView() {
             </Text>
           )}
 
-        <HStack gap={4} className='flex-wrap'>
-          <Stack gap={2}>
+        <HStack gap={4} wrap>
+          <Stack gap={2} width={176}>
             <Label htmlFor='colleague-start-date'>Start date</Label>
             <Input
               id='colleague-start-date'
               type='date'
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className='w-44'
             />
           </Stack>
-          <Stack gap={2}>
+          <Stack gap={2} width={176}>
             <Label htmlFor='colleague-end-date'>End date</Label>
             <Input
               id='colleague-end-date'
               type='date'
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className='w-44'
             />
           </Stack>
         </HStack>
 
-        <Button onClick={handleCheck} disabled={!canCheck} className='w-fit'>
-          <Calendar className='mr-2 h-4 w-4' />
-          {isLoading ? 'Loading…' : 'Check availability'}
-        </Button>
+        <HStack>
+          <Button onClick={handleCheck} disabled={!canCheck}>
+            <Calendar />
+            {isLoading ? 'Loading…' : 'Check availability'}
+          </Button>
+        </HStack>
       </Stack>
 
       {/* Results — only shown after submitting */}

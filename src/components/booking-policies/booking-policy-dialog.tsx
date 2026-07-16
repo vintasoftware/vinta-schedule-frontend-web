@@ -29,16 +29,16 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from 'vinta-schedule-design-system/ui/select';
 import {
   Form,
   FormField,
@@ -47,8 +47,8 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from '@/components/ui/form';
-import { Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/form';
+import { VStack, Text, FormLayout } from 'vinta-schedule-design-system/layout';
 import {
   useCreateBookingPolicy,
   useUpdateBookingPolicy,
@@ -220,11 +220,7 @@ export function BookingPolicyDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col gap-4'
-            noValidate
-          >
+          <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             <FormField
               control={form.control}
               name='targetType'
@@ -293,12 +289,14 @@ export function BookingPolicyDialog({
               />
             )}
 
-            <Text weight='semibold' size='sm' className='mt-2'>
-              Rules
-            </Text>
-            <Text size='sm' color='muted-foreground' className='-mt-2'>
-              Set any rule to 0 to leave it unconstrained.
-            </Text>
+            <VStack gap={2} mt={2}>
+              <Text weight='semibold' size='sm'>
+                Rules
+              </Text>
+              <Text size='sm' color='muted-foreground'>
+                Set any rule to 0 to leave it unconstrained.
+              </Text>
+            </VStack>
 
             {RULE_FIELDS.map((rule) => (
               <FormField
@@ -338,7 +336,7 @@ export function BookingPolicyDialog({
                     : 'Create policy'}
               </Button>
             </DialogFooter>
-          </form>
+          </FormLayout>
         </Form>
       </DialogContent>
     </Dialog>

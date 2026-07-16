@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 
 import type { PolicyDocument } from '@/client';
-import { Box, Heading, Stack, Text } from '@/components/layout';
+import { Box, Heading, Stack, Text } from 'vinta-schedule-design-system/layout';
 import { renderMarkdownToSafeHtml } from '@/lib/render-markdown';
 
 export interface PolicyDocumentViewProps {
@@ -25,7 +25,7 @@ export async function PolicyDocumentView({
 }: PolicyDocumentViewProps) {
   if (!document) {
     return (
-      <Stack gap={4} className='py-12 text-center'>
+      <Stack gap={4} py={12} textAlign='center'>
         <Heading level={1}>Nothing published yet</Heading>
         <Text color='muted-foreground'>
           This document hasn&apos;t been published yet. Please check back later.
@@ -46,8 +46,11 @@ export async function PolicyDocumentView({
           ? ` · Last updated ${publishedAt.toLocaleString(DateTime.DATE_MED)}`
           : null}
       </Text>
+      {/* Prose styles for the sanitized markdown HTML — descendant selectors on
+          injected elements are the one thing a prop API cannot express. */}
       <Box
-        className='[&_a]:text-primary mt-4 [&_a]:underline [&_a]:underline-offset-2 [&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mt-5 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_ol]:list-decimal [&_ol]:py-1 [&_p]:py-1 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:py-1'
+        mt={4}
+        className='[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mt-5 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_ol]:list-decimal [&_ol]:py-1 [&_p]:py-1 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:py-1'
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </Stack>

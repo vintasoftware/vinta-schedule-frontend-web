@@ -226,7 +226,9 @@ describe('CreateResourceCalendarDialog', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /creating/i })).toBeDisabled();
+        expect(
+          screen.getByRole('button', { name: /creating/i })
+        ).toBeDisabled();
       });
     });
   });

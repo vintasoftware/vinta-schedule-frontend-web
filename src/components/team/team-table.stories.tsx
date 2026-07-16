@@ -5,7 +5,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { DataTable } from '@/components/data-table/data-table';
 import type { DataTableQuery } from '@/components/data-table/types';
 import { DEFAULT_DATA_TABLE_QUERY } from '@/components/data-table/types';
-import { VStack, Text } from '@/components/layout';
+import { VStack, Text } from 'vinta-schedule-design-system/layout';
 import type { TeamMember } from '@/hooks/team/use-team-members';
 // Import canonical columns/variants from the component so they can't drift.
 import { createColumns } from './team-table';

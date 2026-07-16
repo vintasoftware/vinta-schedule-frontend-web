@@ -9,10 +9,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { VStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/dialog';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
+import {
+  Grid,
+  GridItem,
+  VStack,
+  Text,
+} from 'vinta-schedule-design-system/layout';
 
 import { useRecoveryCodes } from '@/hooks/authentication/use-recovery-codes';
 import { useRegenerateRecoveryCodes } from '@/hooks/authentication/use-regenerate-recovery-codes';
@@ -64,25 +69,28 @@ export function RecoveryCodesDialog({
           </DialogDescription>
         </DialogHeader>
         {isLoading ? (
-          <Skeleton className='h-32 w-full' />
+          <Skeleton height={128} width='full' />
         ) : isError ? (
           <Text size='sm' color='destructive'>
             Could not load your recovery codes.
           </Text>
         ) : (
           <VStack gap={3}>
-            <div className='bg-muted grid grid-cols-2 gap-2 rounded-md p-4 font-mono text-sm'>
+            <Grid columns={2} gap={2} p={4} radius='md' bg='muted'>
               {codes.map((code) => (
-                <span key={code} className='select-all'>
+                // `select-all` (user-select) has no prop form — kept as a class.
+                <Text key={code} size='sm' family='mono' className='select-all'>
                   {code}
-                </span>
+                </Text>
               ))}
               {codes.length === 0 && (
-                <Text size='sm' color='muted-foreground' className='col-span-2'>
-                  No unused codes left — regenerate a new set.
-                </Text>
+                <GridItem span={2}>
+                  <Text size='sm' color='muted-foreground'>
+                    No unused codes left — regenerate a new set.
+                  </Text>
+                </GridItem>
               )}
-            </div>
+            </Grid>
             <Text size='sm' color='muted-foreground'>
               {codes.length} unused code{codes.length === 1 ? '' : 's'}{' '}
               remaining.

@@ -12,7 +12,7 @@
 import * as React from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { CalendarScopePicker } from './calendar-scope-picker';
-import { VStack } from '@/components/layout';
+import { VStack } from 'vinta-schedule-design-system/layout';
 
 // ---------------------------------------------------------------------------
 // Fixture calendars

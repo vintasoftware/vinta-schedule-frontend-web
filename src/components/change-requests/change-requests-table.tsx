@@ -1,20 +1,21 @@
 'use client';
 
 import * as React from 'react';
-import { Check, X, RotateCw, Eye } from 'lucide-react';
+import { Check, X, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from '@/components/ui/select';
+} from 'vinta-schedule-design-system/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,8 +25,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { HStack, VStack, Text } from '@/components/layout';
+} from 'vinta-schedule-design-system/ui/alert-dialog';
+import { Box, HStack, VStack, Text } from 'vinta-schedule-design-system/layout';
 import { formatDateTime } from '@/lib/utils/date-utils';
 import {
   useChangeRequests,
@@ -71,7 +72,9 @@ export function createColumns(
       header: 'Event',
       enableSorting: false,
       cell: ({ row }) => (
-        <Text className='font-mono text-sm'>#{row.original.event_id}</Text>
+        <Text family='mono' size='sm'>
+          #{row.original.event_id}
+        </Text>
       ),
     },
     {
@@ -164,7 +167,7 @@ function RowActions({
         onClick={() => onView(changeRequest)}
         aria-label={`View change request ${changeRequest.id}`}
       >
-        <Eye className='mr-1 size-4' aria-hidden />
+        <Eye aria-hidden />
         View
       </Button>
 
@@ -177,11 +180,7 @@ function RowActions({
             disabled={isLoading}
             aria-label={`Approve change request ${changeRequest.id}`}
           >
-            {isLoading ? (
-              <RotateCw className='mr-1 size-4 animate-spin' aria-hidden />
-            ) : (
-              <Check className='mr-1 size-4' aria-hidden />
-            )}
+            {isLoading ? <Spinner label='' /> : <Check aria-hidden />}
             Approve
           </Button>
 
@@ -192,7 +191,7 @@ function RowActions({
             disabled={isLoading}
             aria-label={`Reject change request ${changeRequest.id}`}
           >
-            <X className='mr-1 size-4' aria-hidden />
+            <X aria-hidden />
             Reject
           </Button>
         </>
@@ -246,13 +245,14 @@ function StatusFilter({ value, onChange }: StatusFilterProps) {
         onChange(next as ExternalEventChangeRequestStatusEnum)
       }
     >
-      <SelectTrigger
-        className='w-40'
-        aria-label='Filter by status'
-        data-testid='status-filter'
-      >
-        <SelectValue />
-      </SelectTrigger>
+      <Box width={160}>
+        <SelectTrigger
+          aria-label='Filter by status'
+          data-testid='status-filter'
+        >
+          <SelectValue />
+        </SelectTrigger>
+      </Box>
       <SelectContent>
         {STATUS_FILTER_OPTIONS.map((status) => (
           <SelectItem key={status} value={status}>

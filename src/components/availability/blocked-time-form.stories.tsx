@@ -2,11 +2,12 @@
  * Storybook stories for BlockedTimeForm.
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { vi } from 'vitest';
+import { fn, mocked } from 'storybook/test';
 import { BlockedTimeForm } from './blocked-time-form';
-import * as useBlockedTimesModule from '@/hooks/availability/use-blocked-times';
+// Mocked in .storybook/preview.tsx via `sb.mock(...)`; `mocked()` just types it.
+import { useBlockedTimes } from '@/hooks/availability/use-blocked-times';
 
 const meta = {
   title: 'Availability/BlockedTimeForm',
@@ -44,7 +45,7 @@ export const Default: Story = {
   args: {},
   decorators: [
     (Story) => {
-      vi.spyOn(useBlockedTimesModule, 'useBlockedTimes').mockReturnValue({
+      mocked(useBlockedTimes).mockReturnValue({
         blockedTimes: [],
         isLoading: false,
         isError: false,
@@ -52,8 +53,8 @@ export const Default: Story = {
         blockedTimesQuery: {
           data: { results: [] },
         } as unknown as never,
-        createBlockedTime: vi.fn().mockResolvedValue(undefined),
-        createRecurringBlockedTime: vi.fn().mockResolvedValue(undefined),
+        createBlockedTime: fn().mockResolvedValue(undefined),
+        createRecurringBlockedTime: fn().mockResolvedValue(undefined),
         bulkCreateMutation: {} as unknown as never,
         isPending: false,
       });
@@ -69,7 +70,7 @@ export const Loading: Story = {
   args: {},
   decorators: [
     (Story) => {
-      vi.spyOn(useBlockedTimesModule, 'useBlockedTimes').mockReturnValue({
+      mocked(useBlockedTimes).mockReturnValue({
         blockedTimes: [],
         isLoading: false,
         isError: false,
@@ -77,8 +78,8 @@ export const Loading: Story = {
         blockedTimesQuery: {
           data: { results: [] },
         } as unknown as never,
-        createBlockedTime: vi.fn(),
-        createRecurringBlockedTime: vi.fn(),
+        createBlockedTime: fn(),
+        createRecurringBlockedTime: fn(),
         bulkCreateMutation: {} as unknown as never,
         isPending: true,
       });
@@ -96,7 +97,7 @@ export const WithCalendarId: Story = {
   },
   decorators: [
     (Story) => {
-      vi.spyOn(useBlockedTimesModule, 'useBlockedTimes').mockReturnValue({
+      mocked(useBlockedTimes).mockReturnValue({
         blockedTimes: [],
         isLoading: false,
         isError: false,
@@ -104,8 +105,8 @@ export const WithCalendarId: Story = {
         blockedTimesQuery: {
           data: { results: [] },
         } as unknown as never,
-        createBlockedTime: vi.fn().mockResolvedValue(undefined),
-        createRecurringBlockedTime: vi.fn().mockResolvedValue(undefined),
+        createBlockedTime: fn().mockResolvedValue(undefined),
+        createRecurringBlockedTime: fn().mockResolvedValue(undefined),
         bulkCreateMutation: {} as unknown as never,
         isPending: false,
       });

@@ -4,9 +4,9 @@ import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authent
 import { useCurrentAuthSession } from '@/hooks/authentication/use-current-auth-session';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { AuthLayout } from '@/components/layout/auth-layout';
-import { Text } from '@/components/layout';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
+import { Text, VStack } from 'vinta-schedule-design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { setMemoryAccessToken } from '@/lib/token-storage-strategy.client';
 import type { TenantBranding } from '@/lib/branding-shared';
@@ -69,13 +69,15 @@ export function SocialSuccess({
 
   return (
     <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>
-      <Card className='flex flex-col items-center gap-2 p-8 text-center'>
-        <Text as='div' size='lg' weight='semibold'>
-          Connecting…
-        </Text>
-        <Text as='div' size='sm' color='muted-foreground'>
-          Please wait while we finish your social login.
-        </Text>
+      <Card padding={8}>
+        <VStack align='center' gap={2} textAlign='center'>
+          <Text as='div' size='lg' weight='semibold'>
+            Connecting…
+          </Text>
+          <Text as='div' size='sm' color='muted-foreground'>
+            Please wait while we finish your social login.
+          </Text>
+        </VStack>
       </Card>
     </AuthLayout>
   );

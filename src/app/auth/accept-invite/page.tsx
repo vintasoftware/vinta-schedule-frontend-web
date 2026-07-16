@@ -6,13 +6,24 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Suspense, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { AuthLayout } from '@/components/layout/auth-layout';
-import { Stack, Heading, Text } from '@/components/layout';
+import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Card } from 'vinta-schedule-design-system/ui/card';
+import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
+import {
+  FormLayout,
+  Stack,
+  VStack,
+  Heading,
+  Text,
+} from 'vinta-schedule-design-system/layout';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from 'vinta-schedule-design-system/ui/alert';
 import {
   Form,
   FormField,
@@ -20,7 +31,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from '@/components/ui/form';
+} from 'vinta-schedule-design-system/ui/form';
 import {
   useAcceptInvitation,
   getAcceptInvitationErrorMessage,
@@ -65,76 +76,76 @@ function AcceptInviteContent() {
 
   return (
     <AuthLayout navbar={<AuthNavbar />} variant='single'>
-      <Card className='flex w-full max-w-md flex-col gap-8 p-8'>
-        <Stack gap={4}>
-          <Heading level={1} size='3xl'>
-            Accept invitation
-          </Heading>
-          <Text size='sm' color='muted-foreground'>
-            Enter your invitation token to join the organization.
-          </Text>
-        </Stack>
-        {alreadyMember ? (
-          <Alert variant='destructive'>
-            <AlertTitle>
-              You&apos;re already a member of this organization
-            </AlertTitle>
-            <AlertDescription>
-              You already belong to this organization, so the invite cannot be
-              accepted again. Your memberships are unchanged.{' '}
-              <Link href='/' className='underline'>
-                Go to the app
-              </Link>
-              .
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className='flex flex-col gap-4'
-            >
-              <FormField
-                control={form.control}
-                name='token'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Invitation token</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='text'
-                        placeholder='Paste your invitation token'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+      <Card padding={8}>
+        <VStack gap={8}>
+          <Stack gap={4}>
+            <Heading level={1} size='3xl'>
+              Accept invitation
+            </Heading>
+            <Text size='sm' color='muted-foreground'>
+              Enter your invitation token to join the organization.
+            </Text>
+          </Stack>
+          {alreadyMember ? (
+            <Alert variant='destructive'>
+              <AlertTitle>
+                You&apos;re already a member of this organization
+              </AlertTitle>
+              <AlertDescription>
+                You already belong to this organization, so the invite cannot be
+                accepted again. Your memberships are unchanged.{' '}
+                <TextLink asChild variant='inherit' underline='always'>
+                  <Link href='/'>Go to the app</Link>
+                </TextLink>
+                .
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Form {...form}>
+              <FormLayout gap={4} onSubmit={form.handleSubmit(onSubmit)}>
+                <FormField
+                  control={form.control}
+                  name='token'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Invitation token</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='text'
+                          placeholder='Paste your invitation token'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {error && (
+                  <Alert variant='destructive'>
+                    <AlertTitle>Could not accept invitation</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
                 )}
-              />
-              {error && (
-                <Alert variant='destructive'>
-                  <AlertTitle>Could not accept invitation</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              <Button
-                type='submit'
-                className='mt-2 w-full'
-                disabled={acceptInvitationMutation.isPending}
-              >
-                {acceptInvitationMutation.isPending
-                  ? 'Accepting...'
-                  : 'Accept invitation'}
-              </Button>
-            </form>
-          </Form>
-        )}
-        <Text as='div' size='sm' align='center' color='muted-foreground'>
-          No invitation?{' '}
-          <a href='/auth/onboarding' className='text-primary hover:underline'>
-            Create your own organization
-          </a>
-        </Text>
+                {/* `mt-2 w-full`: <Button> exposes no margin/width props. */}
+                <Button
+                  type='submit'
+                  className='mt-2 w-full'
+                  disabled={acceptInvitationMutation.isPending}
+                >
+                  {acceptInvitationMutation.isPending
+                    ? 'Accepting...'
+                    : 'Accept invitation'}
+                </Button>
+              </FormLayout>
+            </Form>
+          )}
+          <Text as='div' size='sm' align='center' color='muted-foreground'>
+            No invitation?{' '}
+            <TextLink href='/auth/onboarding'>
+              Create your own organization
+            </TextLink>
+          </Text>
+        </VStack>
       </Card>
     </AuthLayout>
   );
