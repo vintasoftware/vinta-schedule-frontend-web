@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { DocsProse } from '@/components/docs/docs-prose';
 import { renderDocMarkdownToSafeHtml } from '@/lib/docs/render-doc-markdown';
+import { gettingStartedContent } from './content';
 
 export const metadata: Metadata = {
   title: 'Getting Started',
@@ -14,20 +13,15 @@ export const metadata: Metadata = {
  * Getting Started guide — how to mint a public-API token and make the first
  * authenticated call to the GraphQL API.
  *
- * Content is sourced from a committed markdown file. The markdown is rendered
- * through the docs pipeline (rehype-highlight + rehype-sanitize) at build time
- * to safe HTML, then injected into DocsProse.
+ * Content is sourced from a colocated TS module (a plain markdown string),
+ * so it is bundled like any other import rather than read from disk via
+ * `process.cwd()` at request/build time. The markdown is rendered through
+ * the docs pipeline (rehype-highlight + rehype-sanitize) at build time to
+ * safe HTML, then injected into DocsProse.
  */
 export default async function GettingStartedPage() {
-  // Read the markdown file at build time
-  const markdownPath = join(
-    process.cwd(),
-    'src/lib/docs/getting-started-content.md'
-  );
-  const markdown = readFileSync(markdownPath, 'utf-8');
-
   // Render to safe HTML with syntax highlighting
-  const html = await renderDocMarkdownToSafeHtml(markdown);
+  const html = await renderDocMarkdownToSafeHtml(gettingStartedContent);
 
   return <DocsProse html={html} />;
 }
