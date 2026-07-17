@@ -85,15 +85,26 @@ type NewTokenSchema = z.infer<typeof newTokenSchema>;
 //
 // Two-phase dialog:
 //   Phase 1 (form view): collect integration_name + scope selection.
-//   Phase 2 (secret view): show the one-time plaintext token with copy +
-//     warning. The secret is held ONLY in local state; it is cleared from
+//   Phase 2 (credential view): show the one-time API credential with copy +
+//     warning. The credential is held ONLY in local state; it is cleared from
 //     memory when the dialog closes (onOpenChange false triggers reset).
 //
+// The credential is `${system_user_id}:${token}` — the two halves the
+// `Authorization: Bearer <system_user_id>:<token>` header needs, composed
+// into one string at display time. The backend never needs them apart (the
+// middleware splits on the first `:` itself), so the UI never shows them
+// apart either.
+//
 // SECURITY invariants enforced here:
-//   - The secret is stored in `onceSecret` local state ONLY.
-//   - `onceSecret` is reset to '' when the dialog closes (onOpenChange false).
-//   - The secret is never logged (no console.log calls).
-//   - The secret is never placed in the query cache, localStorage, or global state.
+//   - The credential is composed into `onceCredential` local state immediately
+//     after a successful create and displayed in the credential view.
+//   - `onceCredential` is cleared to '' when the dialog closes (onOpenChange false).
+//   - The mutation state (createPublicApiTokenMutation.data) is also reset on close
+//     to drop the retained SystemUserTokenResponse from the QueryClient's in-memory cache.
+//   - Without this reset, the full credential (id:token) would remain readable from
+//     the mutation's data property via React DevTools, even after the dialog closes.
+//   - The credential is never logged (no console.log calls).
+//   - The credential is never persisted to localStorage or sessionStorage.
 // ---------------------------------------------------------------------------
 
 interface NewTokenDialogProps {
@@ -114,28 +125,44 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
   });
 
   // ---------------------------------------------------------------------------
-  // SECURITY: one-time plaintext secret — local state only.
+  // SECURITY: one-time plaintext credential — local state only.
   // Cleared when dialog closes (see the useEffect below).
   // Never logged. Never cached. Never persisted.
   // ---------------------------------------------------------------------------
-  const [onceSecret, setOnceSecret] = React.useState('');
+  const [onceCredential, setOnceCredential] = React.useState('');
   const [copied, setCopied] = React.useState(false);
 
   // Reset all local state when the dialog closes.
+  //
+  // The dependency array uses `createPublicApiTokenMutation.reset` rather
+  // than the mutation object itself. TanStack Query returns a new mutation
+  // object on every render, but `reset` is bound once when the mutation
+  // observer is created and keeps the same identity for the component's
+  // lifetime. Depending on the whole object would re-run this effect on
+  // every render (because `reset()` itself changes mutation state, which
+  // triggers a re-render, which produces a new object), looping forever.
+  const resetMutation = createPublicApiTokenMutation.reset;
   React.useEffect(() => {
     if (!open) {
       form.reset();
-      // Clear the one-time secret from memory when the dialog closes.
-      setOnceSecret('');
+      // Clear the one-time credential from memory when the dialog closes.
+      setOnceCredential('');
       setCopied(false);
+      // Reset the mutation state to drop the retained credential data from the
+      // query cache. Without this, createPublicApiTokenMutation.data would
+      // retain the full SystemUserTokenResponse (including id and token) in
+      // memory even though the local onceCredential state is cleared, making it
+      // accessible via React DevTools as long as the component is mounted.
+      resetMutation();
     }
-  }, [open, form]);
+  }, [open, form, resetMutation]);
 
   const isPending = createPublicApiTokenMutation.isPending;
-  const isSecretView = onceSecret !== '';
+  const isCredentialView = onceCredential !== '';
 
   // -------------------------------------------------------------------------
-  // onSubmit — create the token; capture the secret in local state only.
+  // onSubmit — create the token; compose and capture the credential in local
+  // state only.
   // -------------------------------------------------------------------------
 
   const onSubmit = async (values: NewTokenSchema) => {
@@ -144,10 +171,12 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
         integration_name: values.integration_name,
         available_resources: values.available_resources,
       });
-      // Capture the one-time plaintext secret in local state.
+      // Compose the one-time credential (`<system_user_id>:<token>`) — this
+      // is the exact string that goes after `Bearer ` in the Authorization
+      // header. Capture it in local state only.
       // This is the ONLY place in the application where `result.token` is held.
       // It will be cleared when the dialog closes.
-      setOnceSecret(result.token);
+      setOnceCredential(`${result.id}:${result.token}`);
     } catch (err) {
       toast.error('Failed to create API token', {
         description:
@@ -157,22 +186,22 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
   };
 
   // -------------------------------------------------------------------------
-  // handleCopy — copy the secret to the clipboard.
-  // Never logs the secret.
+  // handleCopy — copy the credential to the clipboard.
+  // Never logs the credential.
   // -------------------------------------------------------------------------
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(onceSecret);
+      await navigator.clipboard.writeText(onceCredential);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Failed to copy token to clipboard.');
+      toast.error('Failed to copy credential to clipboard.');
     }
   };
 
   // -------------------------------------------------------------------------
-  // handleClose — clear the secret and close the dialog.
+  // handleClose — clear the credential and close the dialog.
   // -------------------------------------------------------------------------
 
   const handleClose = () => {
@@ -182,10 +211,11 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        {isSecretView ? (
+        {isCredentialView ? (
           // -----------------------------------------------------------------
-          // Secret view: show the token once with copy + warning.
-          // The secret is in `onceSecret` local state only; cleared on close.
+          // Credential view: show the composed `<system_user_id>:<token>`
+          // credential once, with copy + warning. The credential is in
+          // `onceCredential` local state only; cleared on close.
           // -----------------------------------------------------------------
           <>
             <DialogHeader>
@@ -196,29 +226,36 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
               <Alert variant='warning'>
                 <Icon icon={TriangleAlert} size='sm' />
                 <AlertDescription>
-                  Copy this token now. You will not be able to see it again
+                  Copy this credential now. You will not be able to see it again
                   after closing this dialog.
                 </AlertDescription>
               </Alert>
 
               <VStack gap={1}>
                 <Text size='sm' color='muted-foreground'>
-                  Token secret
+                  API credential
+                </Text>
+                <Text size='sm' color='muted-foreground'>
+                  Paste this whole string after{' '}
+                  <Text as='span' family='mono'>
+                    Bearer
+                  </Text>{' '}
+                  in the Authorization header.
                 </Text>
                 <HStack gap={2}>
                   {/* Input (shadcn) has no font-family prop. */}
                   <Input
                     readOnly
-                    value={onceSecret}
+                    value={onceCredential}
                     className='font-mono text-sm'
-                    data-testid='token-secret-input'
+                    data-testid='token-credential-input'
                   />
                   <Button
                     type='button'
                     variant='outline'
                     size='icon'
                     onClick={handleCopy}
-                    aria-label='Copy token to clipboard'
+                    aria-label='Copy credential to clipboard'
                     data-testid='copy-token-button'
                   >
                     {copied ? <CheckCheck /> : <Copy />}

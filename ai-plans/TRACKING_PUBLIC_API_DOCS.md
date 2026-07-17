@@ -56,15 +56,50 @@ Open NITs deferred (not blocking): sidebar has no `position='sticky'` and will s
 
 **Gates.** `pnpm run typecheck` green (both workspaces). Full suite green: 1045 app tests / 118 files, 82 design-system tests / 11 files. `next build` emits `/docs` as a static route. Prettier clean on all phase files. Main checkout clean — no stray writes. No AI co-author trailers.
 
+### Phase 1 — Getting-started + auth guide ✅
+
+- **Status**: complete, reviewed, pushed
+- **Branch**: `plan/public-api-docs/phase-1` (base: `plan/public-api-docs/phase-0`)
+- **Models**: implementer `claude-haiku-4-5` (plan Tier 2). Reviewer `claude-sonnet-4-6` (Tier 3), run twice — a second focused pass covered the api-tokens change no reviewer had seen. Fixers: `claude-haiku-4-5` (Tier 2) for the trivial ones, **escalated to `claude-sonnet-4-6`** for the sanitize pipeline and the loop regression after Haiku demonstrated a clear capability gap on both.
+- **E2E**: none (`run_e2e = false`)
+- **New dependency**: `rehype-highlight@^7.0.2` — SPDX **MIT**, cleared against the forbidden list.
+
+**Summary.** Adds `/docs/getting-started`, the docs markdown pipeline with syntax highlighting, and — by user decision — a change to the api-tokens dialog that makes the documented auth flow actually completable.
+
+- `src/lib/render-markdown.ts` now exports `createMarkdownProcessor()` and `extendSanitizeSchema()`. Both the policy pipeline and the docs pipeline share them, so sanitization is configured in exactly one place.
+- `src/lib/docs/render-doc-markdown.ts` adds `rehype-highlight` and extends the schema to permit only the classes that plugin emits: `code: [['className', /^(language-|hljs)/]]`, `span: [['className', /^hljs-/]]`. It does not touch the wildcard entry.
+- `src/app/docs/getting-started/content.ts` — the guide, as a template-string module. **Phases 2–5 should copy this shape** for their own content: a `.ts` module import is bundled normally, with no `process.cwd()`-relative `fs` read for Next's file tracing to miss.
+- `src/components/api-tokens/new-token-dialog.tsx` — shows `${result.id}:${result.token}` as one credential string, which is exactly what goes after `Bearer `.
+
+**Key decisions.**
+- **The auth header is `Bearer <system_user_id>:<token>`, confirmed against the backend** (`public_api/middlewares.py:23-42` splits on the first `:`, `int()`-parses the left half; `services.py:40` looks it up via `SystemUser.original_manager.get(id=...)`). It is NOT `<organization_id>:<token>` — a `SystemUser` is organization-scoped but its `id` is its own PK.
+- **The dialog composes the credential rather than surfacing the id separately** (user's call). The two halves are never useful apart, and the middleware splits them back. This expanded scope beyond the plan's Phase 1 touch list into `src/components/api-tokens/`, deliberately and with user approval — without it, the guide documented a flow no reader could complete, because the dialog discarded `result.id`.
+
+**Review — this phase needed real work. Findings, all fixed:**
+1. **BLOCKER — the pipeline copy-pasted `render-markdown.ts` instead of extending it**, duplicating security-critical sanitization. The implementer's report claimed "no deviations", which was false. Now shares one chain.
+2. **BLOCKER — the sanitize schema was silently corrupted.** `JSON.parse(JSON.stringify(defaultSchema))` turned `defaultSchema.attributes.code`'s RegExp (`/^language-./`) into `{}`, matching nothing, so `<code>` rendered `class=""` and lost all highlighting. The workaround for that symptom had been to allow `className` on `*` — every element — which would have been inherited by Phase 3's semi-trusted backend content. Replaced with a spread-based merge that leaves the RegExp entries untouched, scoped to `code`/`span`.
+3. **BLOCKER — 3 of 4 sanitize tests were vacuous**: they passed identically with `rehype-sanitize` deleted, because `remark-rehype` drops raw HTML before the sanitizer ever runs. Rewritten to inject hast trees directly through the schema; each was proven to fail with the sanitizer removed.
+4. **BLOCKER — the mutation example was invalid** against the live schema (`createCalendarGroupEvent` returns a `CalendarGroupEventResult`; the fields only exist under `event { ... }`). Fixed.
+5. **SHOULD-FIX — the example id was non-numeric** (`user-123`), which `int()` would reject. Now `42`.
+6. **SHOULD-FIX — the query omitted the required `search_window_end`.** Fixed in the docs.
+7. **SHOULD-FIX — the guide never mentioned selecting scopes**, though the dialog's zod schema requires `available_resources.min(1)`. Found by a fixer reading past its assignment.
+8. **SHOULD-FIX — the composed credential stayed readable after the dialog closed** via the retained TanStack mutation `data`, contradicting the file's own "never in global state" comment. Now calls `reset()` on close.
+9. **Regression caught in review, not shipped**: the fix for (8) put the mutation object in a `useEffect` dep array. `useMutation` returns a new identity every render, so the effect looped and exhausted the heap — the api-tokens suite crashed at 10/19 after 253s. That fixer misread the truncated output as a pass. Fixed by depending on the stable bound `reset` method, with a `Profiler`-based regression test proven to hang when the fix is reverted.
+
+**Carried forward — needs action outside this phase.**
+- **`marketing-home.tsx`'s showcase query is also invalid**: `src/components/home-page/marketing-home.tsx:448-460` calls `calendarGroupBookableSlots` without the required `searchWindowEnd`. Left untouched (Phase 6 owns that file), but **Phase 6 should fix it** — it's a public-facing sample that would fail validation.
+- Known, accepted: the raw `Mutation` entry survives in `QueryClient`'s `MutationCache` until its 5-minute `gcTime`, independent of `reset()`. A property of TanStack Query, not this component; visible only via Query DevTools.
+
+**Gates.** typecheck green. Full suite green: 1056 app tests / 119 files, 82 design-system / 11 files. `next build` emits `/docs/getting-started` static. Prettier clean on phase files. Main checkout and the backend repo both clean — no stray writes. No AI co-author trailers.
+
 ## Current Phase
 
-Phase 1 — Getting-started + auth guide (next).
+Phase 2 — GraphQL schema reference from live introspection (next).
 
 ## Remaining Phases
 
 | Phase | Title | Tier | Notes |
 | --- | --- | --- | --- |
-| 1 | Getting-started + auth guide | 2 | Adds the syntax highlighter to a docs markdown pipeline (`rehype-highlight` per the plan's Open Questions default). Sanitize must stay in the chain. |
 | 2 | GraphQL schema reference from live introspection | 3 | Build-time introspection with committed-snapshot fallback. Backend is not deployed, so the live fetch will fail and the snapshot path is what actually runs — see Deferred. |
 | 3 | Concept guides fetched from backend | 3 | Depends on the Phase 2b endpoint, which is deferred. Snapshot fallback path is what will run. |
 | 4 | Webhooks reference | 2 | Hand-authored enum of seven webhook event types. |
