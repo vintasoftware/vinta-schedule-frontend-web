@@ -524,6 +524,30 @@ export type CalendarSyncStatusEnum = 'success' | 'failed' | 'in_progress' | 'not
 export type CalendarTypeEnum = 'personal' | 'resource' | 'virtual' | 'bundle';
 
 /**
+ * Read-only representation of a single concept doc's full content.
+ *
+ * Plain ``Serializer`` over a :class:`public_api.docs_content.ConceptDoc` dict —
+ * there is no model backing this. Returns raw markdown; the frontend owns
+ * rendering and sanitization.
+ */
+export type ConceptDoc = {
+    readonly slug: string;
+    readonly title: string;
+    readonly markdown: string;
+};
+
+/**
+ * Read-only manifest entry for a concept doc (list view).
+ *
+ * Plain ``Serializer`` over a :class:`public_api.docs_content.ConceptDocSummary`
+ * dict — there is no model backing this.
+ */
+export type ConceptDocSummary = {
+    readonly slug: string;
+    readonly title: string;
+};
+
+/**
  * Validates the input for the authenticated consent-record endpoint (OAuth step).
  *
  * ``document_type`` is required — the consenting user comes from the
@@ -1743,6 +1767,18 @@ export type WebhookEvent = {
     readonly send_after: string | null;
     readonly created: string;
     readonly modified: string;
+};
+
+/**
+ * Read-only catalog entry for a single ``WebhookEventType`` member.
+ *
+ * Plain ``Serializer`` over a dict built from the enum and
+ * ``webhooks.constants.WEBHOOK_EVENT_DESCRIPTIONS`` — there is no model backing this.
+ */
+export type WebhookEventDoc = {
+    readonly value: string;
+    readonly label: string;
+    readonly description: string;
 };
 
 /**
@@ -8336,6 +8372,107 @@ export type ProfileProfilePictureUploadParamsFormattedCreateResponses = {
 };
 
 export type ProfileProfilePictureUploadParamsFormattedCreateResponse = ProfileProfilePictureUploadParamsFormattedCreateResponses[keyof ProfileProfilePictureUploadParamsFormattedCreateResponses];
+
+export type PublicApiDocsListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/public-api-docs/';
+};
+
+export type PublicApiDocsListResponses = {
+    200: Array<ConceptDocSummary>;
+};
+
+export type PublicApiDocsListResponse = PublicApiDocsListResponses[keyof PublicApiDocsListResponses];
+
+export type PublicApiDocsFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/public-api-docs{format}';
+};
+
+export type PublicApiDocsFormattedListResponses = {
+    200: Array<ConceptDocSummary>;
+};
+
+export type PublicApiDocsFormattedListResponse = PublicApiDocsFormattedListResponses[keyof PublicApiDocsFormattedListResponses];
+
+export type PublicApiDocsRetrieveData = {
+    body?: never;
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/public-api-docs/{slug}/';
+};
+
+export type PublicApiDocsRetrieveErrors = {
+    /**
+     * Unknown slug (including any traversal attempt)
+     */
+    404: unknown;
+};
+
+export type PublicApiDocsRetrieveResponses = {
+    200: ConceptDoc;
+};
+
+export type PublicApiDocsRetrieveResponse = PublicApiDocsRetrieveResponses[keyof PublicApiDocsRetrieveResponses];
+
+export type PublicApiDocsFormattedRetrieveData = {
+    body?: never;
+    path: {
+        format: '.json';
+        slug: string;
+    };
+    query?: never;
+    url: '/public-api-docs/{slug}{format}';
+};
+
+export type PublicApiDocsFormattedRetrieveErrors = {
+    /**
+     * Unknown slug (including any traversal attempt)
+     */
+    404: unknown;
+};
+
+export type PublicApiDocsFormattedRetrieveResponses = {
+    200: ConceptDoc;
+};
+
+export type PublicApiDocsFormattedRetrieveResponse = PublicApiDocsFormattedRetrieveResponses[keyof PublicApiDocsFormattedRetrieveResponses];
+
+export type PublicApiDocsWebhookEventsListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/public-api-docs/webhook-events/';
+};
+
+export type PublicApiDocsWebhookEventsListResponses = {
+    200: Array<WebhookEventDoc>;
+};
+
+export type PublicApiDocsWebhookEventsListResponse = PublicApiDocsWebhookEventsListResponses[keyof PublicApiDocsWebhookEventsListResponses];
+
+export type PublicApiDocsWebhookEventsFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/public-api-docs/webhook-events{format}';
+};
+
+export type PublicApiDocsWebhookEventsFormattedListResponses = {
+    200: Array<WebhookEventDoc>;
+};
+
+export type PublicApiDocsWebhookEventsFormattedListResponse = PublicApiDocsWebhookEventsFormattedListResponses[keyof PublicApiDocsWebhookEventsFormattedListResponses];
 
 export type PublicApiTokensListData = {
     body?: never;
