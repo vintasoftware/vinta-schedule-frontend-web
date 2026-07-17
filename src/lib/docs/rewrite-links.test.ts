@@ -91,6 +91,14 @@ describe('rehypeRewriteConceptLinks', () => {
     );
     expect(html).toContain('href="/docs/getting-started"');
   });
+
+  it('neutralizes a protocol-relative link instead of leaving it as an off-origin link', async () => {
+    const html = await renderWithLinkRewrite('[Click here](//evil.com/x)');
+    expect(html).not.toContain('href=');
+    expect(html).not.toContain('<a');
+    expect(html).not.toContain('evil.com');
+    expect(html).toContain('Click here');
+  });
 });
 
 describe('classifyConceptLink', () => {
@@ -122,6 +130,15 @@ describe('classifyConceptLink', () => {
   it('classifies an external URL as leave', () => {
     expect(classifyConceptLink('https://example.com', slugs)).toEqual({
       type: 'leave',
+    });
+  });
+
+  it('classifies a protocol-relative URL as neutralize, not leave', () => {
+    // Regression: `//evil.com/x` starts with `/` but is NOT a site-root-
+    // relative path — it resolves off-origin. Must not be classified as
+    // `leave` (which would render it as an ordinary-looking in-page link).
+    expect(classifyConceptLink('//evil.com/x', slugs)).toEqual({
+      type: 'neutralize',
     });
   });
 });

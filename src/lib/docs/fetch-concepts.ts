@@ -141,6 +141,17 @@ async function fetchDoc(
       return null;
     }
 
+    if (doc.slug !== slug) {
+      // A backend bug could serve the wrong doc body for a requested slug.
+      // Treat that as a failed fetch, same as a missing field, so it
+      // triggers the whole-or-nothing snapshot fallback instead of silently
+      // rendering the wrong content under this slug's route.
+      console.warn(
+        `[docs] concept doc response from ${endpoint} had slug "${doc.slug}", expected "${slug}"`
+      );
+      return null;
+    }
+
     return doc as ConceptDoc;
   } catch (error) {
     if (error instanceof Error && error.name === 'TimeoutError') {

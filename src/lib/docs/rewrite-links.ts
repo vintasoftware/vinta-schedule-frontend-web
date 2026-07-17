@@ -12,7 +12,9 @@
  * Classification rule (see `classifyConceptLink`):
  * - Same-page anchors (`#section`), absolute URLs with a protocol
  *   (`https://…`, `mailto:…`), and already site-relative paths (`/docs/…`)
- *   are left untouched.
+ *   are left untouched. Protocol-relative paths (`//evil.com/x`) are NOT
+ *   treated as site-relative — they resolve off-origin — and are
+ *   neutralized instead (see `classifyConceptLink`).
  * - A relative link whose path ends in `.md`/`.mdx` AND whose basename
  *   (extension stripped) is a known concept slug is rewritten to
  *   `/docs/concepts/<slug>`, preserving any `#anchor`. A `.md` link whose
@@ -69,6 +71,18 @@ export function classifyConceptLink(
     return { type: 'leave' };
   }
 
+  if (href.startsWith('//')) {
+    // Protocol-relative (`//evil.com/x`) — this is NOT a site-root-relative
+    // path even though it starts with `/`: browsers resolve the `//` prefix
+    // against the current protocol and navigate off-origin. None of the
+    // backend-authored concept docs use this shape (they use markdown
+    // relative links or full `https://` links), so it's almost certainly a
+    // mistake if it ever appears. Neutralize rather than `leave` — we can't
+    // vouch for where it points, and leaving it would render as an
+    // ordinary-looking in-page link that actually navigates off-site.
+    return { type: 'neutralize' };
+  }
+
   if (href.startsWith('/')) {
     // Already a site-root-relative path (a real frontend route).
     return { type: 'leave' };
@@ -81,6 +95,14 @@ export function classifyConceptLink(
   const match = MARKDOWN_LINK_RE.exec(path);
   if (match) {
     const slug = match[1];
+    // Case-sensitive on purpose: `MARKDOWN_LINK_RE`'s captured basename is
+    // compared to `conceptSlugs` as-is, so e.g. `Calendar-Bundles.md` won't
+    // match `calendar-bundles`, and a query-suffixed `x.md?foo=1` won't
+    // match either (the regex requires `.md`/`.mdx` at the end of `path`).
+    // Both shapes fall through to neutralize below, which is fail-closed
+    // (a mismatch is treated as "not a known in-docs route" rather than
+    // guessed at) — deliberate, not a bug to "fix" into case-insensitive or
+    // query-stripping matching. No real concept doc uses either shape.
     if (conceptSlugs.has(slug)) {
       return { type: 'rewrite', href: `/docs/concepts/${slug}${hash}` };
     }

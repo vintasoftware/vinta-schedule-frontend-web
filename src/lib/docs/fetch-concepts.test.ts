@@ -6,6 +6,7 @@ import {
   getConcepts,
   loadSnapshotConcepts,
 } from './fetch-concepts';
+import conceptsManifest from './__generated__/concepts-manifest.json';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -78,6 +79,31 @@ describe('fetch-concepts', () => {
     expect(result.source).toBe('snapshot');
   });
 
+  it('falls back to the snapshot when a doc response has a mismatched slug', async () => {
+    const manifest = [{ slug: 'calendar-groups', title: 'Calendar Groups' }];
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (String(url).endsWith('/public-api-docs/')) {
+        return Promise.resolve(jsonResponse(manifest));
+      }
+      // Wrong slug in the body — the backend served the wrong doc.
+      return Promise.resolve(
+        jsonResponse({
+          slug: 'events',
+          title: 'Events',
+          markdown: '# Events',
+        })
+      );
+    });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const result = await getConcepts();
+
+    expect(result.source).toBe('snapshot');
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('had slug "events", expected "calendar-groups"')
+    );
+  });
+
   it('uses the live docs when every fetch succeeds', async () => {
     const manifest = [{ slug: 'calendar-groups', title: 'Calendar Groups' }];
     const doc = {
@@ -146,5 +172,20 @@ describe('fetch-concepts', () => {
       'events',
       'recurrence',
     ]);
+  });
+
+  it('keeps the nav manifest snapshot in sync with the full concepts snapshot', () => {
+    // `nav.ts`'s sidebar is built from `concepts-manifest.json`, never a
+    // live fetch (see the comment there) — so the two committed snapshots
+    // must always describe the same set of docs. If someone hand-edits one
+    // file, or only runs `docs:refresh-concepts-snapshot` partway, this
+    // catches the drift: a slug present in one file but not the other would
+    // otherwise mean a dead sidebar link or a doc missing from the sidebar.
+    const manifestSlugs = conceptsManifest.map((doc) => doc.slug).sort();
+    const snapshotSlugs = loadSnapshotConcepts()
+      .map((doc) => doc.slug)
+      .sort();
+
+    expect(manifestSlugs).toEqual(snapshotSlugs);
   });
 });
