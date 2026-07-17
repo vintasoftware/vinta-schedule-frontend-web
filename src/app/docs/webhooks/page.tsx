@@ -1,8 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { Heading, Stack, Text } from 'vinta-schedule-design-system/layout';
+import {
+  Box,
+  Flex,
+  Heading,
+  Stack,
+  Text,
+} from 'vinta-schedule-design-system/layout';
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { List, ListItem } from 'vinta-schedule-design-system/ui/list';
 import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 import { getWebhookEvents } from '@/lib/docs/fetch-webhook-events';
 
@@ -30,62 +37,64 @@ export default async function WebhooksPage() {
       </Stack>
 
       <Stack gap={4}>
-        <div>
-          <Heading level={2} className='mb-4'>
-            Event Types
-          </Heading>
-          <Text color='muted-foreground' className='mb-6'>
+        <Stack gap={4}>
+          <Heading level={2}>Event Types</Heading>
+          <Text color='muted-foreground'>
             Your integration can register webhooks to receive these events via
-            HTTP POST. Events are delivered in chronological order, but at least
-            once (deduplication is your responsibility).
+            HTTP POST. Events are delivered at least once: failed deliveries are
+            retried automatically (up to 5 attempts, with exponential backoff)
+            and ordering is not guaranteed, so a retry can arrive after the
+            first attempt at a later event. Dedupe using the id field on the
+            payload envelope, which stays the same across the original delivery
+            and every retry of it.
           </Text>
 
           <Stack gap={6}>
             {events.map((event) => (
-              <div key={event.value} className='border-border border-l-2 pl-4'>
-                <div className='mb-2 flex items-baseline gap-2'>
-                  <Badge variant='outline' className='font-mono text-xs'>
+              <Box key={event.value} borderLeft={2} pl={4}>
+                <Flex align='baseline' gap={2} mb={2}>
+                  <Badge variant='outline' className='font-mono'>
                     {event.value}
                   </Badge>
-                  <Text className='text-muted-foreground text-sm'>
+                  <Text size='sm' color='muted-foreground'>
                     {event.label}
                   </Text>
-                </div>
-                <Text className='text-sm'>{event.description}</Text>
-              </div>
+                </Flex>
+                <Text size='sm'>{event.description}</Text>
+              </Box>
             ))}
           </Stack>
-        </div>
+        </Stack>
 
-        <div className='border-border border-t pt-6'>
-          <Heading level={2} className='mb-4'>
-            Configuration
-          </Heading>
-          <Text color='muted-foreground' className='mb-4'>
-            Use the GraphQL API to manage webhook subscriptions. See the types
-            below for details:
-          </Text>
+        <Box borderTop pt={6}>
+          <Stack gap={4}>
+            <Heading level={2}>Configuration</Heading>
+            <Text color='muted-foreground'>
+              Use the GraphQL API to manage webhook subscriptions. See the types
+              below for details:
+            </Text>
 
-          <ul className='list-inside list-disc space-y-2 text-sm'>
-            <li>
-              <TextLink asChild>
-                <Link href='/docs/reference/types/WebhookConfigurationGraphQLType'>
-                  WebhookConfigurationGraphQLType
-                </Link>
-              </TextLink>
-              — Represents a webhook endpoint configuration and its subscribed
-              events.
-            </li>
-            <li>
-              <TextLink asChild>
-                <Link href='/docs/reference/types/WebhookEventGraphQLType'>
-                  WebhookEventGraphQLType
-                </Link>
-              </TextLink>
-              — Represents a single delivered webhook event and its status.
-            </li>
-          </ul>
-        </div>
+            <List variant='bullet' gap={2}>
+              <ListItem>
+                <TextLink asChild>
+                  <Link href='/docs/reference/types/WebhookConfigurationGraphQLType'>
+                    WebhookConfigurationGraphQLType
+                  </Link>
+                </TextLink>
+                — Represents a webhook endpoint configuration and its subscribed
+                events.
+              </ListItem>
+              <ListItem>
+                <TextLink asChild>
+                  <Link href='/docs/reference/types/WebhookEventGraphQLType'>
+                    WebhookEventGraphQLType
+                  </Link>
+                </TextLink>
+                — Represents a single delivered webhook event and its status.
+              </ListItem>
+            </List>
+          </Stack>
+        </Box>
       </Stack>
     </Stack>
   );
