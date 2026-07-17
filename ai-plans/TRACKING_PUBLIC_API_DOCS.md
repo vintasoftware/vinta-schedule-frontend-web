@@ -189,9 +189,35 @@ Plus a NIT taken: `fetchDoc` verifies the returned `doc.slug` matches the reques
 
 **Gates.** typecheck green. Docs scope deterministically green (90/90). Full suite 1129 app / 128 files + 82 design-system — note the repo has a **known intermittent timer-based flake** (`phone-verify-dialog.test.tsx` and similar) unrelated to this change; it failed 1 of 3 full-suite runs and passed the other two, while the docs scope is 90/90 every run. Build passes with and without a backend. Prettier clean. Main checkout and backend repo clean. No AI trailers.
 
+### Phase 5 — Embedded GraphiQL explorer ✅
+
+- **Status**: complete, reviewed, pushed
+- **Branch**: `plan/public-api-docs/phase-5` (base: `plan/public-api-docs/phase-4`)
+- **Models**: implementer `claude-sonnet-4-6` (plan Tier 3). Reviewer `claude-sonnet-4-6` (Tier 3). Fixer `claude-sonnet-4-6`.
+- **E2E**: none (`run_e2e = false`)
+- **New dependencies**: `graphiql@^5.2.4`, `@graphiql/toolkit@^0.12.1`, `graphql@^17.0.2` — all SPDX **MIT**, cleared. (`@graphiql/react` was added then removed as a dead direct dep — it's pulled in transitively by `graphiql`.)
+
+**Summary.** `/docs/explorer` is a live GraphiQL console that runs queries against `/graphql/` with a user-pasted `<system_user_id>:<token>` credential.
+
+- `src/components/docs/graphql-explorer.tsx` — a `'use client'` component. `<GraphiQL>` is loaded via `next/dynamic({ ssr: false })` so it and its ~2500-line CSS stay off every other route. The credential lives only in React state, injected into the fetcher's `Authorization: Bearer <credential>` header via `useMemo`.
+- `src/app/docs/explorer/page.tsx` — the host page with a session-only / org-admin-scoped preamble linking to `/api-tokens`.
+
+**Token safety — the binding requirement, verified against the real library.** The reviewer read GraphiQL 5.x's internals in `node_modules` and confirmed: its `StorageAPI` only falls back to `window.localStorage` when the passed `storage` is falsy, and the History plugin sources from the same context. The component passes a `Map`-backed in-memory `storage` (always truthy), sets `isHeadersEditorEnabled={false}` and `shouldPersistHeaders={false}`, and keeps the credential out of persisted state entirely — so the live token never reaches disk. A test spies on `Storage.prototype.setItem` and asserts it's never called; the implementer proved it fails when the mechanism is reverted. A "Clear token" button exists, and the input is `type='password'` + `autoComplete='new-password'` + `data-lpignore`/`data-1password-ignore` so browser credential managers don't offer to save it either.
+
+**Build.** `/docs/explorer` builds `○` (static shell + client-hydrated widget); no other docs route was demoted. An SSR-safety fix was needed during implementation — `createGraphiQLFetcher` throws if `window` is undefined during the server render pass, fixed by passing `fetch: globalThis.fetch` explicitly (the fetcher is still only invoked client-side).
+
+**Review.** No BLOCKERs — notably, the token-safety mechanism held up under adversarial scrutiny of the real GraphiQL internals, not just the mocked test. Three SHOULD-FIX, all fixed:
+1. The Storybook story mounted real GraphiQL against `localhost:8000`; since the app Storybook deploys to public GitHub Pages, that would break for every visitor (and be mixed-content blocked). Now uses a stubbed non-networked fetcher, matching an existing repo story pattern.
+2. `@graphiql/react` was a dead direct dependency — removed (still present transitively).
+3. Password-manager defense-in-depth added to the credential input.
+
+**Backend dependency.** Phase 1b (CORS + introspection) shipped, so the explorer's browser-side cross-origin calls work against the running dev backend now, and against production once `schedule.vintasoftware.com` / `schedule-staging.vintasoftware.com` are added to the backend's `CORS_ALLOWED_ORIGINS` env (a Render env edit — see the backend plan).
+
+**Gates.** typecheck green. Docs scope deterministically green (31/31). Full suite 1135 app / 129 files + 82 design-system (the known intermittent timer flake in unrelated files appeared in ~2 of 7 full runs across phases 4–5 and never reproduced; docs scope green every run). Build passes; `/docs/explorer` static, siblings unaffected. Prettier clean. Main checkout clean. No AI trailers.
+
 ## Current Phase
 
-Phase 5 — Embedded GraphiQL explorer (next). Adds GraphiQL (check SPDX license before install); token is session-only, not persisted to localStorage; needs backend CORS (shipped) for real cross-origin calls.
+Phase 6 — Wire landing-page links to `/docs` (next, final in-repo phase). Mechanical href edits in `marketing-home.tsx`, **plus** fixing the invalid `calendarGroupBookableSlots` query there (missing required `searchWindowEnd`) — see the Phase 6 row in Remaining Phases.
 
 ## Remaining Phases
 
