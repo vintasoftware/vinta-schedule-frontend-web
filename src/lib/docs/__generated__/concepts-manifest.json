@@ -1,0 +1,26 @@
+[
+  {
+    "slug": "availability",
+    "title": "Availability — `AvailableTime` and `BlockedTime`"
+  },
+  {
+    "slug": "calendar-bundles",
+    "title": "Calendar Bundles"
+  },
+  {
+    "slug": "calendar-groups",
+    "title": "Calendar Groups, Slots, and Slot Selections"
+  },
+  {
+    "slug": "calendars",
+    "title": "Calendars"
+  },
+  {
+    "slug": "events",
+    "title": "Events, Attendances, and Resource Allocations"
+  },
+  {
+    "slug": "recurrence",
+    "title": "Recurrence"
+  }
+]
