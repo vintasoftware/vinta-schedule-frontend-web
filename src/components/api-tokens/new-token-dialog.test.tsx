@@ -186,7 +186,7 @@ describe('NewTokenDialog', () => {
       screen.getByText(/you will not be able to see it again/i)
     ).toBeInTheDocument();
 
-    // The form inputs should NOT be visible (we're in secret view)
+    // The form inputs should NOT be visible (we're in credential view)
     expect(
       screen.queryByPlaceholderText('My integration')
     ).not.toBeInTheDocument();

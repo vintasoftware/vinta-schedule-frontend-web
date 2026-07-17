@@ -96,10 +96,15 @@ type NewTokenSchema = z.infer<typeof newTokenSchema>;
 // apart either.
 //
 // SECURITY invariants enforced here:
-//   - The credential is stored in `onceCredential` local state ONLY.
-//   - `onceCredential` is reset to '' when the dialog closes (onOpenChange false).
+//   - The credential is composed into `onceCredential` local state immediately
+//     after a successful create and displayed in the credential view.
+//   - `onceCredential` is cleared to '' when the dialog closes (onOpenChange false).
+//   - The mutation state (createPublicApiTokenMutation.data) is also reset on close
+//     to drop the retained SystemUserTokenResponse from the QueryClient's in-memory cache.
+//   - Without this reset, the full credential (id:token) would remain readable from
+//     the mutation's data property via React DevTools, even after the dialog closes.
 //   - The credential is never logged (no console.log calls).
-//   - The credential is never placed in the query cache, localStorage, or global state.
+//   - The credential is never persisted to localStorage or sessionStorage.
 // ---------------------------------------------------------------------------
 
 interface NewTokenDialogProps {
@@ -134,8 +139,14 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
       // Clear the one-time credential from memory when the dialog closes.
       setOnceCredential('');
       setCopied(false);
+      // Reset the mutation state to drop the retained credential data from the
+      // query cache. Without this, createPublicApiTokenMutation.data would
+      // retain the full SystemUserTokenResponse (including id and token) in
+      // memory even though the local onceCredential state is cleared, making it
+      // accessible via React DevTools as long as the component is mounted.
+      createPublicApiTokenMutation.reset();
     }
-  }, [open, form]);
+  }, [open, form, createPublicApiTokenMutation]);
 
   const isPending = createPublicApiTokenMutation.isPending;
   const isCredentialView = onceCredential !== '';

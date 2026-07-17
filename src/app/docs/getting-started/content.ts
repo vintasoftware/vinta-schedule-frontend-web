@@ -29,7 +29,7 @@ An API token is a credential that grants your integration access to the API. Onl
 4. Select the scopes your integration needs
 5. Copy the credential shown — it is shown only once. Store it securely (e.g., in an environment variable)
 
-The credential is a single string in the form \`<system_user_id>:<secret_token>\`. The dialog composes both halves for you — copy the whole string as-is; there is nothing to assemble yourself.
+The credential is a single string in the form \`<system_user_id>:<token>\`. The dialog composes both halves for you — copy the whole string as-is; there is nothing to assemble yourself.
 
 For example: \`42:sk_live_abc123xyz...\`
 
@@ -38,7 +38,7 @@ For example: \`42:sk_live_abc123xyz...\`
 Every API request must include an \`Authorization\` header with your credential in this exact format:
 
 \`\`\`
-Authorization: Bearer <system_user_id>:<secret_token>
+Authorization: Bearer <system_user_id>:<token>
 \`\`\`
 
 For example:
@@ -47,7 +47,7 @@ For example:
 Authorization: Bearer 42:sk_live_abc123xyz...
 \`\`\`
 
-The \`Bearer\` prefix and the colon separating \`system_user_id\` and \`secret_token\` are required. The backend middleware validates this exact format.
+The \`Bearer\` prefix and the colon separating \`system_user_id\` and \`token\` are required. The backend middleware validates this exact format.
 
 ## Step 3: Make Your First Request
 
