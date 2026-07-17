@@ -92,19 +92,66 @@ Open NITs deferred (not blocking): sidebar has no `position='sticky'` and will s
 
 **Gates.** typecheck green. Full suite green: 1056 app tests / 119 files, 82 design-system / 11 files. `next build` emits `/docs/getting-started` static. Prettier clean on phase files. Main checkout and the backend repo both clean — no stray writes. No AI co-author trailers.
 
+### Phase 2 — GraphQL schema reference from live introspection ✅
+
+- **Status**: complete, reviewed, pushed
+- **Branch**: `plan/public-api-docs/phase-2` (base: `plan/public-api-docs/phase-1`)
+- **Models**: implementer `claude-sonnet-4-6` (plan Tier 3). Reviewer `claude-sonnet-4-6` (Tier 3). Fixer **escalated to `claude-sonnet-4-6`** from the configured Tier 2 — Haiku had already misread test counts and shipped an infinite loop earlier in this run.
+- **E2E**: none (`run_e2e = false`)
+- **New dependency**: none. The introspection query and its TS types are hand-rolled; `graphql` was deliberately not added.
+
+**Summary.** `/docs/reference` renders the public GraphQL schema — an index of all queries and mutations plus 137 per-type detail pages, fully static.
+
+- `src/lib/docs/__generated__/graphql-schema.json` — the committed snapshot, generated for real against the live local backend. Verified genuine: 151 types, `Query`/`Mutation` roots, contains both `calendarGroupBookableSlots` and `createCalendarGroupEvent`.
+- `scripts/refresh-graphql-schema-snapshot.mjs` (`pnpm run docs:refresh-schema-snapshot`) — regenerates the snapshot deliberately, failing loudly on error.
+- `src/lib/docs/introspect-schema.ts` — attempts one live fetch (memoized per build so ~140 pages share it), falls back to the committed snapshot with a warning.
+- `src/lib/docs/parse-schema.ts` — introspection JSON → `GraphQLSchemaModel`.
+- `src/app/docs/reference/[[...slug]]/page.tsx` + three components under `src/components/docs/`.
+
+**Key decisions.**
+- **The build does NOT write the snapshot**, contrary to the plan's literal step 1. A mid-build write into `src/` doesn't persist on Vercel and the module graph is already bundled by render time, so it would silently no-op in production while appearing to work locally. Instead the snapshot is a committed artifact refreshed by an explicit script, and the build only reads it. The reviewer independently validated this reasoning.
+- **`generateStaticParams` is filtered**: drops `__`-prefixed meta types, the five built-in scalars, and the `Query`/`Mutation` roots; keeps OBJECT/INPUT_OBJECT/ENUM → 137 pages. INTERFACE/UNION have zero occurrences in this schema and are not supported, but now warn loudly if one ever appears.
+- **Queries and mutations render in full on the index**, not as 82 separate routes. "Per-type detail" was read as applying to types only.
+- **The backend was reachable locally during this phase** (`localhost:8000` answered introspection), so the live path was genuinely exercised, not just the fallback.
+
+**Review.** No BLOCKERs. Four SHOULD-FIX, all fixed:
+1. **The live-fetch `try/catch` swallowed everything into one generic "unreachable" warning.** This pattern had already hidden one real bug (below), and would misreport a future code defect as an infra problem while docs silently froze at snapshot state forever. Now logs distinguishable messages per failure mode — non-2xx, malformed JSON, GraphQL errors, missing `__schema`, timeout, and a catch-all that dumps the actual error.
+2. **`defaultValue` was parsed but never rendered** — non-null in 149 places in the real schema, so readers couldn't learn that e.g. `limit` defaults to `100` without reading backend source. Now rendered.
+3. INTERFACE/UNION types would have been dropped silently. Now warned.
+4. `schema-field-list.tsx` had no test; its deprecated-badge path was covered by no test anywhere. Added, and **every new test was proven able to fail** by temporarily breaking the branch it covers.
+
+**Caught during implementation, worth remembering.** The first draft passed `cache: 'no-store'` to the introspection fetch. Next's static-generation-patched `fetch` throws `DYNAMIC_SERVER_USAGE` for that inside a prerendered page — which the broad `try/catch` swallowed as "backend unreachable", so it *always* used the snapshot even with the backend up, and demoted the whole route from static to dynamic-per-request. Removed. This is why finding 1 above mattered.
+
+**Fallback verified by the conductor, not just reported**: `NEXT_PUBLIC_API_BASE_URL=http://localhost:59999 pnpm run build` → exit 0, warning emitted, route still `●` (fully static), built output still contains the real operations from the snapshot. This is the path production takes today, since the backend is not deployed.
+
+**Open NIT deferred**: the three "Schema Reference" sub-nav children are hash-fragment links (`/docs/reference#queries`), which can never match `DocsSidebar`'s `isActive` check since `usePathname()` never contains a hash. Cosmetic; links navigate correctly.
+
+**Gates.** typecheck green. Full suite green: 1089 app tests / 124 files, 82 design-system / 11 files. Build passes with and without a reachable backend. Prettier clean on phase files. Main checkout and backend repo clean. No AI co-author trailers.
+
 ## Current Phase
 
-Phase 2 — GraphQL schema reference from live introspection (next).
+Phase 3 — Concept guides fetched from backend (next).
 
 ## Remaining Phases
 
 | Phase | Title | Tier | Notes |
 | --- | --- | --- | --- |
-| 2 | GraphQL schema reference from live introspection | 3 | Build-time introspection with committed-snapshot fallback. Backend is not deployed, so the live fetch will fail and the snapshot path is what actually runs — see Deferred. |
-| 3 | Concept guides fetched from backend | 3 | Depends on the Phase 2b endpoint, which is deferred. Snapshot fallback path is what will run. |
-| 4 | Webhooks reference | 2 | Hand-authored enum of seven webhook event types. |
-| 5 | Embedded GraphiQL explorer | 3 | Adds GraphiQL. Check its SPDX license before installing — the repo blocks GPL-2.0-only / GPL-3.0-only / AGPL-3.0-only / SSPL-1.0. |
-| 6 | Wire landing-page links to `/docs` | 1 | Mechanical href edits in `marketing-home.tsx`. |
+| 3 | Concept guides fetched from backend | 3 | **Depends on the Phase 2b endpoint, which is deferred and does not exist.** The live fetch cannot succeed, so the committed snapshot is the only path — and unlike Phase 2, there is no live source to generate that snapshot from. Decide deliberately where the initial `concepts.json` comes from: the backend repo's `docs/concepts/*.md` can be read directly off disk at `~/Workspaces/vinta-schedule/docs/concepts/` to seed it. Reuse Phase 2's fetch/snapshot/fallback shape. |
+| 4 | Webhooks reference | 2 | Hand-authored enum of seven webhook event types. Source of truth: the backend's `webhooks/constants.py` + `webhooks/graphql.py` — verify the list against it, do not trust the plan's copy. Author content as a `.md` file (see the markdown pattern note below), not a template string. |
+| 5 | Embedded GraphiQL explorer | 3 | Adds GraphiQL. **Check its SPDX license before installing** — the repo blocks GPL-2.0-only / GPL-3.0-only / AGPL-3.0-only / SSPL-1.0. Also honor the plan's token-safety note: do not persist the token to localStorage by default; offer a visible "clear token" affordance. |
+| 6 | Wire landing-page links to `/docs` | 1 | Mechanical href edits in `marketing-home.tsx`. **Also fix the invalid query there** — see Carried Forward under Phase 1. |
+
+## Patterns later phases must follow
+
+- **Authored prose lives in a real `.md` file**, imported with `?raw`, NOT a `.ts` template string. See `src/app/docs/getting-started/content.md` + `page.tsx`. The import needs Next's inline-loader import attributes and the ambient declaration in `raw-md.d.ts`:
+  ```ts
+  import content from './content.md?raw' with { turbopackLoader: 'raw-loader', turbopackAs: '*.js' };
+  ```
+  **Do not** use bare `./x.md?raw` (Turbopack: `Unknown module type`) and **do not** use a `turbopack.rules` `type: 'raw'` rule — that one builds successfully but silently resolves to `undefined`, giving an empty page with no error. Both were verified empirically. Vitest resolves `?raw` natively and ignores the `with {...}` attribute, so one import statement serves both toolchains.
+- **Markdown rendering** goes through `renderDocMarkdownToSafeHtml` from `src/lib/docs/render-doc-markdown.ts` (sanitized + highlighted), rendered via `DocsProse`'s `html` prop. Never re-declare a unified pipeline; the shared chain is exported from `src/lib/render-markdown.ts`.
+- **Fetch + snapshot + fallback**: follow `src/lib/docs/introspect-schema.ts`. Live fetch with an explicit timeout, memoized per build, distinguishable per-failure-mode warnings, never throws, never breaks the build. Snapshot is a committed artifact refreshed by an explicit script — the build reads, it does not write.
+- **Do not pass `cache: 'no-store'`** to a fetch inside a prerendered page — it throws `DYNAMIC_SERVER_USAGE` and demotes the route from static to dynamic.
+- **Tests must be able to fail.** Verify each new test by temporarily breaking the branch it covers. This plan has already shipped one batch of tests that passed with the code under test deleted.
 
 ## Deferred Phases
 
