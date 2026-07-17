@@ -22,7 +22,6 @@ describe('MarketingHome', () => {
 
   it('renders the footer "Webhooks" link pointing to /docs/webhooks', () => {
     render(<MarketingHome />);
-    const webhooksLink = screen.getByRole('link', { name: /webhooks/i });
     // There might be multiple, get the footer one (not the main nav)
     const allWebhooksLinks = screen.getAllByRole('link', { name: /webhooks/i });
     const footerWebhooksLink = allWebhooksLinks.find(
@@ -51,6 +50,8 @@ describe('MarketingHome', () => {
     const statusLinks = links.filter(
       (link) => link.textContent?.trim() === 'Status'
     );
+    // Verify we found the expected Status links before asserting their href
+    expect(statusLinks).toHaveLength(2);
     // All Status links should point to #
     statusLinks.forEach((link) => {
       expect(link).toHaveAttribute('href', '#');
