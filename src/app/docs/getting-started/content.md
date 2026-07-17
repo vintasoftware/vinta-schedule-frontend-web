@@ -1,15 +1,4 @@
-/**
- * Getting Started guide content, as a markdown string.
- *
- * Colocated with the route it feeds (rather than living in `src/lib/docs/`,
- * which is reserved for auth token storage, fetch interceptors, and utils
- * per AGENTS.md) and shipped as a plain TS module (rather than read from disk
- * at request time via `fs.readFileSync`) so it is bundled like any other
- * import — no `process.cwd()`-relative path, and nothing for Next's
- * file-tracing to miss once later phases add `generateStaticParams` + ISR to
- * sibling routes that copy this pattern.
- */
-export const gettingStartedContent = `# Getting Started with Vinta Schedule API
+# Getting Started with Vinta Schedule API
 
 Welcome to the Vinta Schedule GraphQL API. This guide will get you from zero to your first authenticated API call in minutes.
 
@@ -29,45 +18,45 @@ An API token is a credential that grants your integration access to the API. Onl
 4. Select the scopes your integration needs
 5. Copy the credential shown — it is shown only once. Store it securely (e.g., in an environment variable)
 
-The credential is a single string in the form \`<system_user_id>:<token>\`. The dialog composes both halves for you — copy the whole string as-is; there is nothing to assemble yourself.
+The credential is a single string in the form `<system_user_id>:<token>`. The dialog composes both halves for you — copy the whole string as-is; there is nothing to assemble yourself.
 
-For example: \`42:sk_live_abc123xyz...\`
+For example: `42:sk_live_abc123xyz...`
 
 ## Step 2: Send the Authorization Header
 
-Every API request must include an \`Authorization\` header with your credential in this exact format:
+Every API request must include an `Authorization` header with your credential in this exact format:
 
-\`\`\`
+```
 Authorization: Bearer <system_user_id>:<token>
-\`\`\`
+```
 
 For example:
 
-\`\`\`
+```
 Authorization: Bearer 42:sk_live_abc123xyz...
-\`\`\`
+```
 
-The \`Bearer\` prefix and the colon separating \`system_user_id\` and \`token\` are required. The backend middleware validates this exact format.
+The `Bearer` prefix and the colon separating `system_user_id` and `token` are required. The backend middleware validates this exact format.
 
 ## Step 3: Make Your First Request
 
 Let's query the API for available booking slots in a calendar group. Here's a curl example:
 
-\`\`\`bash
-curl -X POST \\
-  -H "Authorization: Bearer <system_user_id>:<token>" \\
-  -H "Content-Type: application/json" \\
-  https://api.example.com/graphql/ \\
+```bash
+curl -X POST \
+  -H "Authorization: Bearer <system_user_id>:<token>" \
+  -H "Content-Type: application/json" \
+  https://api.example.com/graphql/ \
   -d '{
-    "query": "query { calendarGroupBookableSlots(groupId: 42, searchWindowStart: \\"2026-06-17T09:00:00-07:00\\", searchWindowEnd: \\"2026-06-24T09:00:00-07:00\\", durationSeconds: 1800) { startTime endTime } }"
+    "query": "query { calendarGroupBookableSlots(groupId: 42, searchWindowStart: \"2026-06-17T09:00:00-07:00\", searchWindowEnd: \"2026-06-24T09:00:00-07:00\", durationSeconds: 1800) { startTime endTime } }"
   }'
-\`\`\`
+```
 
-Replace \`<system_user_id>:<token>\` with your actual credential and \`api.example.com\` with your API base URL.
+Replace `<system_user_id>:<token>` with your actual credential and `api.example.com` with your API base URL.
 
 ### GraphQL Example: Query for Bookable Slots
 
-\`\`\`graphql
+```graphql
 query {
   calendarGroupBookableSlots(
     groupId: 42
@@ -79,15 +68,15 @@ query {
     endTime
   }
 }
-\`\`\`
+```
 
-This query searches a calendar group (groupId: 42) for slots of 30 minutes (1800 seconds) within the given search window (\`searchWindowStart\` through \`searchWindowEnd\`).
+This query searches a calendar group (groupId: 42) for slots of 30 minutes (1800 seconds) within the given search window (`searchWindowStart` through `searchWindowEnd`).
 
 ### GraphQL Example: Create a Booking
 
 Once you've identified an available slot, confirm the booking:
 
-\`\`\`graphql
+```graphql
 mutation {
   createCalendarGroupEvent(
     input: {
@@ -110,9 +99,9 @@ mutation {
     }
   }
 }
-\`\`\`
+```
 
-This mutation books the selected slot across every calendar in the group, writes it to all connected providers (Google Calendar, Exchange, etc.), and returns \`success\` plus the created event details under \`event\`. If the booking could not be made, \`success\` is \`false\` and \`event\` is \`null\` — check \`success\` before reading \`event\`.
+This mutation books the selected slot across every calendar in the group, writes it to all connected providers (Google Calendar, Exchange, etc.), and returns `success` plus the created event details under `event`. If the booking could not be made, `success` is `false` and `event` is `null` — check `success` before reading `event`.
 
 ## What's Next?
 
@@ -126,4 +115,3 @@ This mutation books the selected slot across every calendar in the group, writes
 For API issues, questions, or feature requests, reach out to the Vinta team or check the [concepts](/docs/concepts) for in-depth domain documentation.
 
 Happy coding!
-`;
