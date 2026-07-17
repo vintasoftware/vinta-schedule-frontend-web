@@ -41,6 +41,12 @@ const GraphiQL = dynamic(() => import('graphiql').then((mod) => mod.GraphiQL), {
 // factory returns an object satisfying `@graphiql/toolkit`'s `Storage`
 // interface, backed by an in-memory `Map` that lives only as long as the
 // component instance. `window.localStorage` is never referenced.
+//
+// This redirection is verified (see graphql-explorer.test.tsx) against
+// `graphiql@5.2.4` / `@graphiql/react@0.37.7`'s actual internals — a future
+// GraphiQL version bump could add a new default plugin with its own storage
+// path that bypasses the `storage` prop here, so re-verify the no-localStorage
+// guarantee whenever `graphiql` is upgraded.
 // ---------------------------------------------------------------------------
 function createInMemoryStorage(): NonNullable<GraphiQLProps['storage']> {
   const store = new Map<string, string>();
@@ -123,11 +129,13 @@ export function GraphqlExplorer({ apiBaseUrl }: GraphqlExplorerProps) {
           <Input
             id='graphql-explorer-credential'
             type='password'
-            autoComplete='off'
+            autoComplete='new-password'
+            data-lpignore='true'
+            data-1password-ignore='true'
             placeholder='<system_user_id>:<token>'
             value={credential}
             onChange={(e) => setCredential(e.target.value)}
-            className='font-mono text-sm'
+            className='font-mono'
             data-testid='explorer-credential-input'
           />
           <Button
