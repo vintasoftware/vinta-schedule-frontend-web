@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "openapi-ts": "openapi-ts",
     "openapi-ts-auth": "openapi-ts -i ./schema-auth.yml -o ./src/auth-client",
+    "docs:refresh-schema-snapshot": "node scripts/refresh-graphql-schema-snapshot.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "storybook:ds": "pnpm --filter vinta-schedule-design-system storybook",

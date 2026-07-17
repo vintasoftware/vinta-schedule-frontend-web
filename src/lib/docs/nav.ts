@@ -43,6 +43,20 @@ export const DOCS_NAV: DocsNavSection[] = [
     href: '/docs/reference',
     description:
       'Every query, mutation, and type in the public GraphQL schema.',
+    // Generated section is grouped by kind, not enumerated per query/mutation/
+    // type — the live schema has 82 operations and 140+ types, so a flat
+    // per-item sub-nav would make the sidebar unusable. Each entry anchors
+    // into the corresponding section of the index page; "Types" links to the
+    // types table, from which every individual type page is reachable.
+    children: [
+      { title: 'Queries', slug: 'queries', href: '/docs/reference#queries' },
+      {
+        title: 'Mutations',
+        slug: 'mutations',
+        href: '/docs/reference#mutations',
+      },
+      { title: 'Types', slug: 'types', href: '/docs/reference#types' },
+    ],
   },
   {
     title: 'Concepts',
