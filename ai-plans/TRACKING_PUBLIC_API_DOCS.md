@@ -162,9 +162,36 @@ Plus a NIT taken: `fetchDoc` verifies the returned `doc.slug` matches the reques
 
 **Gates.** typecheck green. Full suite green: 1119 app tests / 126 files, 82 design-system / 11 files. Build passes with and without a reachable backend. Prettier clean. Main checkout and backend repo clean. No AI trailers.
 
+### Phase 4 — Webhooks reference ✅
+
+- **Status**: complete, reviewed, pushed
+- **Branch**: `plan/public-api-docs/phase-4` (base: `plan/public-api-docs/phase-3`)
+- **Models**: implementer `claude-haiku-4-5` (plan Tier 2). Reviewer `claude-sonnet-4-6` (Tier 3). Fixer `claude-sonnet-4-6` (escalated from Tier 2 — the BLOCKER needed the delivery semantics stated correctly against the backend).
+- **E2E**: none (`run_e2e = false`)
+- **New dependency**: none.
+
+**Summary.** `/docs/webhooks` documents the seven outbound webhook event types, fetched from the backend catalog (not hand-authored — the decision reversed once the backend gained descriptions), and links to the webhook GraphQL config types in the Phase 2 reference.
+
+- `src/lib/docs/fetch-webhook-events.ts` — fetches `GET /public-api-docs/webhook-events/`, mirroring Phase 3's resiliency shape exactly (8s timeout, memoized, per-failure warnings, whole-or-nothing, never throws).
+- `src/lib/docs/__generated__/webhook-events.json` — committed snapshot, generated from the live endpoint (7 events).
+- `scripts/refresh-webhook-events-snapshot.mjs` (`pnpm run docs:refresh-webhook-events-snapshot`).
+- `src/app/docs/webhooks/page.tsx` — the reference page; links to `WebhookConfigurationGraphQLType` and `WebhookEventGraphQLType` (both verified present in the schema snapshot, so the links resolve).
+
+**Decision reversed from the plan.** The plan hand-authored the list; the backend now serves it with real descriptions, so this fetches it. Descriptions are plain prose, rendered as text (no markdown pipeline needed, no HTML injection). The frontend plan body still says "hand-author" — it should be amended via `amend-plan`, or the divergence is at least recorded here and in the PR.
+
+**Review — one BLOCKER, caught and fixed.**
+1. **BLOCKER: the page invented a delivery guarantee the backend does not provide.** It stated "Events are delivered in chronological order", but the backend dispatches each event independently via Celery with exponential-backoff retries (up to 5) — out-of-order delivery is by design. An integrator trusting this would skip ordering/dedup logic against a false promise. The fixer verified against `webhook_service.py`/`tasks.py`, traced the `main_event` chain to confirm the envelope `id` is stable across retries, and rewrote it to state only what's true: at-least-once, retried with backoff, no ordering guarantee, dedupe on the envelope `id`. Conductor re-read the corrected wording.
+2. **SHOULD-FIX: DESIGN.md violations** — the page hand-rolled raw `<div>`/`<ul>`/`<li>` with Tailwind utility classes instead of design-system primitives (the pattern Phase 0 flagged). Migrated to `Box`/`Stack`/`Flex`/`List`/`ListItem` with confirmed (not guessed) token prop names. Plus a NIT (redundant `text-xs` on a Badge).
+
+**Process note.** The implementer staged its work but never ran `git commit`, reporting "ready for review" with the changes only in the index. The conductor verified the staged work (gate green) and committed it. Worth watching for in future phases.
+
+**Fallback verified by the conductor**: `NEXT_PUBLIC_API_BASE_URL=http://localhost:59999 pnpm run build` → exit 0, webhook-specific warning, `/docs/webhooks` renders `○` with all 7 events from the snapshot. Content survival through the DS-primitive refactor was grep-confirmed in the built HTML.
+
+**Gates.** typecheck green. Docs scope deterministically green (90/90). Full suite 1129 app / 128 files + 82 design-system — note the repo has a **known intermittent timer-based flake** (`phone-verify-dialog.test.tsx` and similar) unrelated to this change; it failed 1 of 3 full-suite runs and passed the other two, while the docs scope is 90/90 every run. Build passes with and without a backend. Prettier clean. Main checkout and backend repo clean. No AI trailers.
+
 ## Current Phase
 
-Phase 4 — Webhooks reference (next). **The decision changed: the backend now serves the webhook catalog with descriptions (`GET /public-api-docs/webhook-events/`), so Phase 4 fetches it instead of hand-authoring the list — see Remaining Phases.**
+Phase 5 — Embedded GraphiQL explorer (next). Adds GraphiQL (check SPDX license before install); token is session-only, not persisted to localStorage; needs backend CORS (shipped) for real cross-origin calls.
 
 ## Remaining Phases
 
