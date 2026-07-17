@@ -405,9 +405,11 @@ function ApiShowcase() {
               </List>
             </Box>
             <Box pt={3}>
-              <Button variant='outline'>
-                <BookOpen />
-                Read the API docs
+              <Button asChild variant='outline'>
+                <Link href='/docs'>
+                  <BookOpen />
+                  Read the API docs
+                </Link>
               </Button>
             </Box>
           </VStack>
@@ -453,6 +455,11 @@ function ApiShowcase() {
                   &quot;2026-06-17T09:00:00-07:00&quot;
                 </Text>
                 ,{'\n'}
+                {'    '}searchWindowEnd:{' '}
+                <Text as='span' color='teal-300'>
+                  &quot;2026-06-24T09:00:00-07:00&quot;
+                </Text>
+                ,{'\n'}
                 {'    '}durationSeconds: 1800){' { '}
                 <Text as='span' color='vinta-300'>
                   startTime endTime
@@ -460,7 +467,8 @@ function ApiShowcase() {
                 {' }\n}'}
                 {'\n\n'}
                 <Text as='span' color='slate-500'>
-                  # → confirm — books the slot across every calendar in the group
+                  # → confirm — books the slot across every calendar in the
+                  group
                 </Text>
                 {'\n'}
                 <Text as='span' color='vinta-300'>
@@ -496,8 +504,8 @@ function ApiShowcase() {
                   &quot;2026-06-17T11:00:00-07:00&quot;
                 </Text>
                 ,{'\n'}
-                {'    '}slotSelections: [{'{ '}slotId: 5, calendarIds: [128]{' }'}]
-                {'\n'}
+                {'    '}slotSelections: [{'{ '}slotId: 5, calendarIds: [128]
+                {' }'}]{'\n'}
                 {'  }'}){' { '}
                 <Text as='span' color='vinta-300'>
                   success event {'{ '}id{' }'}
@@ -895,22 +903,41 @@ function Footer() {
     {
       h: 'Product',
       links: [
-        'Overview',
-        'Calendar Groups',
-        'Booking API',
-        'Integrations',
-        'Pricing',
+        { label: 'Overview' },
+        { label: 'Calendar Groups' },
+        { label: 'Booking API', href: '/docs/reference' },
+        { label: 'Integrations' },
+        { label: 'Pricing' },
       ],
     },
     {
       h: 'Developers',
-      links: ['API docs', 'SDKs', 'Webhooks', 'Status', 'Changelog'],
+      links: [
+        { label: 'API docs', href: '/docs' },
+        { label: 'SDKs' },
+        { label: 'Webhooks', href: '/docs/webhooks' },
+        { label: 'Status' },
+        { label: 'Changelog' },
+      ],
     },
     {
       h: 'Company',
-      links: ['About', 'Careers', 'Blog', 'Contact'],
+      links: [
+        { label: 'About' },
+        { label: 'Careers' },
+        { label: 'Blog' },
+        { label: 'Contact' },
+      ],
     },
-    { h: 'Trust', links: ['Security', 'Privacy', 'Terms', 'Status'] },
+    {
+      h: 'Trust',
+      links: [
+        { label: 'Security' },
+        { label: 'Privacy' },
+        { label: 'Terms' },
+        { label: 'Status' },
+      ],
+    },
   ];
   const social = [
     { key: 'globe', Glyph: Globe },
@@ -970,14 +997,14 @@ function Footer() {
               </Text>
               <List variant='plain' gap={2}>
                 {c.links.map((l) => (
-                  <ListItem key={l}>
+                  <ListItem key={l.label}>
                     <TextLink
-                      href='#'
+                      href={l.href ?? '#'}
                       variant='muted'
                       underline='none'
                       size='md'
                     >
-                      {l}
+                      {l.label}
                     </TextLink>
                   </ListItem>
                 ))}
