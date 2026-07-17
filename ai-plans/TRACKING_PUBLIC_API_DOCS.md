@@ -3,7 +3,7 @@
 **Feature**: Public API Documentation Site
 **Plan**: [ai-plans/2026-07-16-PUBLIC_API_DOCS_IMPLEMENTATION_PLAN.md](2026-07-16-PUBLIC_API_DOCS_IMPLEMENTATION_PLAN.md)
 **Started**: 2026-07-16
-**Last updated**: 2026-07-16
+**Last updated**: 2026-07-17
 **Feature flag**: none — the plan deliberately ships without one (purely additive public surface; see the plan's Risk & Rollout Notes).
 
 ## Run options
@@ -128,18 +128,51 @@ Open NITs deferred (not blocking): sidebar has no `position='sticky'` and will s
 
 **Gates.** typecheck green. Full suite green: 1089 app tests / 124 files, 82 design-system / 11 files. Build passes with and without a reachable backend. Prettier clean on phase files. Main checkout and backend repo clean. No AI co-author trailers.
 
+### Schema sync — backend contract refresh ✅
+
+- **Status**: complete, pushed as PR #71 (base `main`)
+- **Branch**: `plan/public-api-docs/schema-sync`
+
+The backend (`~/Workspaces/vinta-schedule`) shipped Phase 1b, 2b, and the webhook-events endpoint (backend plan PRs #186, #187, #188). This branch refreshes the tracked `schema.yml` from the backend and regenerates `src/client`. The `schema.yml` diff is huge (~13.8k lines) but almost entirely a YAML-emitter reindentation from a backend drf-spectacular/PyYAML bump — the real generated-client change is 344 lines, all six new `public_api_docs_*` operations. The docs site consumes those endpoints via plain `fetch`, not the generated client, so the operations are carried only to keep the contract in sync. Phase 3 stacks on this branch.
+
+### Phase 3 — Concept guides fetched from backend ✅
+
+- **Status**: complete, reviewed, pushed
+- **Branch**: `plan/public-api-docs/phase-3` (base: `plan/public-api-docs/schema-sync`)
+- **Models**: implementer `claude-sonnet-4-6` (plan Tier 3). Reviewer `claude-sonnet-4-6` (Tier 3). Fixer `claude-sonnet-4-6` (escalated from Tier 2 for the security-relevant link classifier).
+- **E2E**: none (`run_e2e = false`)
+- **New dependency**: none.
+
+**Summary.** `/docs/concepts/<slug>` renders the six backend concept guides, fetched at build time with the same resiliency shape as Phase 2.
+
+- `src/lib/docs/fetch-concepts.ts` — mirrors `introspect-schema.ts`: explicit 8s timeout, memoized per build, per-failure-mode warnings, whole-or-nothing (a single failed doc fetch discards the whole live result for the snapshot, so a partial set can't 404 a nav link), never throws.
+- `src/lib/docs/rewrite-links.ts` — the rehype pass that rewrites in-docs `.md` cross-links to `/docs/concepts/<slug>` and neutralizes everything else (backend source files, unported docs, protocol-relative URLs) to a plain `<span>`. Threaded into the shared pipeline (rewrite → highlight → sanitize → stringify), not forked.
+- `src/lib/docs/__generated__/concepts.json` + `concepts-manifest.json` — committed snapshots generated from the live endpoint. Split so `nav.ts` (bundled into the client `DocsSidebar`) imports a markdown-free manifest, keeping ~40KB of prose out of the client bundle.
+- `scripts/refresh-concepts-snapshot.mjs` (`pnpm run docs:refresh-concepts-snapshot`) — regenerates both snapshots.
+- `src/app/docs/concepts/[slug]/page.tsx` + `src/app/docs/concepts/page.tsx` (index) — the index closes a Phase 0 gap where the "Concepts" nav entry pointed at a route that 404'd.
+
+**The backend endpoint was live for this phase** — the user built it in the backend repo first, then had the conductor start the backend (`make up`), so the live fetch path was genuinely exercised, not just the snapshot. Both paths verified.
+
+**Review.** No BLOCKERs. Two SHOULD-FIX, both fixed:
+1. **Protocol-relative URLs (`//evil.com`) misclassified as `leave`** — they passed the site-relative branch, and rehype-sanitize doesn't strip protocol-relative URLs, so a `//host` link in a concept doc would have rendered as a working off-origin link disguised as in-page. Not reachable with today's six docs, but wrong on semi-trusted content. Now neutralized; conductor re-verified independently.
+2. **Sidebar manifest and content snapshot could drift** — documented the asymmetry in `nav.ts` and added a regression test asserting the two committed snapshots have identical slug sets.
+Plus a NIT taken: `fetchDoc` verifies the returned `doc.slug` matches the requested slug, treating a mismatch as a failed fetch → snapshot fallback.
+
+**Fallback verified against real build output**: `NEXT_PUBLIC_API_BASE_URL=http://localhost:59999 pnpm run build` → exit 0, both snapshots warn and kick in, `/docs/concepts/[slug]` renders `●` with real content, cross-links rewritten, no dead source `<a>` links.
+
+**Gates.** typecheck green. Full suite green: 1119 app tests / 126 files, 82 design-system / 11 files. Build passes with and without a reachable backend. Prettier clean. Main checkout and backend repo clean. No AI trailers.
+
 ## Current Phase
 
-Phase 3 — Concept guides fetched from backend (next).
+Phase 4 — Webhooks reference (next). **The decision changed: the backend now serves the webhook catalog with descriptions (`GET /public-api-docs/webhook-events/`), so Phase 4 fetches it instead of hand-authoring the list — see Remaining Phases.**
 
 ## Remaining Phases
 
 | Phase | Title | Tier | Notes |
 | --- | --- | --- | --- |
-| 3 | Concept guides fetched from backend | 3 | **Depends on the Phase 2b endpoint, which is deferred and does not exist.** The live fetch cannot succeed, so the committed snapshot is the only path — and unlike Phase 2, there is no live source to generate that snapshot from. Decide deliberately where the initial `concepts.json` comes from: the backend repo's `docs/concepts/*.md` can be read directly off disk at `~/Workspaces/vinta-schedule/docs/concepts/` to seed it. Reuse Phase 2's fetch/snapshot/fallback shape. |
-| 4 | Webhooks reference | 2 | Hand-authored enum of seven webhook event types. Source of truth: the backend's `webhooks/constants.py` + `webhooks/graphql.py` — verify the list against it, do not trust the plan's copy. Author content as a `.md` file (see the markdown pattern note below), not a template string. |
-| 5 | Embedded GraphiQL explorer | 3 | Adds GraphiQL. **Check its SPDX license before installing** — the repo blocks GPL-2.0-only / GPL-3.0-only / AGPL-3.0-only / SSPL-1.0. Also honor the plan's token-safety note: do not persist the token to localStorage by default; offer a visible "clear token" affordance. |
-| 6 | Wire landing-page links to `/docs` | 1 | Mechanical href edits in `marketing-home.tsx`. **Also fix the invalid query there** — see Carried Forward under Phase 1. |
+| 4 | Webhooks reference | 2 | **Decision reversed from the plan.** The plan hand-authored the seven event types; the backend now serves them with real descriptions at `GET /public-api-docs/webhook-events/` → `[{value, label, description}]` (backend PR #188, live at localhost:8000, 7 events, verified). **Fetch it** with the same fetch/snapshot/fallback shape as Phase 3 (a `webhook-events.json` snapshot + a refresh script), instead of hard-coding the list. The generated client already has `WebhookEventDoc` + `publicApiDocsWebhookEventsList` from the schema sync. This diverges from the plan body and its Open Questions default — the plan file itself should be amended (via `amend-plan`) to match, or at least this divergence noted in the Phase 4 PR. |
+| 5 | Embedded GraphiQL explorer | 3 | Adds GraphiQL. **Check its SPDX license before installing** — the repo blocks GPL-2.0-only / GPL-3.0-only / AGPL-3.0-only / SSPL-1.0. Honor the plan's token-safety note: do not persist the token to localStorage by default; offer a visible "clear token" affordance. Backend Phase 1b (CORS + introspection) shipped, so the explorer's cross-origin calls work against the running dev backend now, and against prod once `schedule.vintasoftware.com` / `schedule-staging.vintasoftware.com` are added to the backend's `CORS_ALLOWED_ORIGINS` env (backend plan Risk notes — a Render env edit, not code). |
+| 6 | Wire landing-page links to `/docs` | 1 | Mechanical href edits in `marketing-home.tsx`. **Also fix the invalid query there** — `marketing-home.tsx:448-460` calls `calendarGroupBookableSlots` without the required `searchWindowEnd`; see Carried Forward under Phase 1. |
 
 ## Patterns later phases must follow
 

@@ -6,6 +6,18 @@
  * concept sub-nav in Phase 3) or add new top-level sections. The component
  * that renders this never needs to change shape.
  */
+// The Concepts sidebar below is always built from this committed manifest
+// snapshot, never a live fetch — unlike `fetch-concepts.ts`'s `getConcepts()`,
+// which tries a live fetch first and only falls back to its own snapshot.
+// That means the sidebar can lag the live backend: if a concept doc is
+// added or removed there without someone re-running
+// `pnpm run docs:refresh-concepts-snapshot` before the next deploy, the
+// sidebar won't show the new doc (or will still link to the removed one)
+// even on a build where the page content itself fetched live. Keep
+// `concepts-manifest.json` and `concepts.json` in sync by refreshing both
+// together — see `fetch-concepts.test.ts` for the regression test that
+// checks their slug sets match.
+import conceptsManifest from './__generated__/concepts-manifest.json';
 
 export interface DocsNavItem {
   /** Title as rendered in the sidebar. */
@@ -64,6 +76,17 @@ export const DOCS_NAV: DocsNavSection[] = [
     href: '/docs/concepts',
     description:
       'How Calendar Groups, Events, Availability, and Bundles fit together.',
+    // Generated from the committed concept-docs manifest snapshot (`{ slug,
+    // title }` only — no markdown), refreshed by
+    // `pnpm run docs:refresh-concepts-snapshot`. Deliberately not the full
+    // `concepts.json` (which carries every doc's full markdown): this
+    // module is imported by the client-side `DocsSidebar`, so keeping the
+    // manifest markdown-free keeps that content out of the client bundle.
+    children: conceptsManifest.map((doc) => ({
+      title: doc.title,
+      slug: doc.slug,
+      href: `/docs/concepts/${doc.slug}`,
+    })),
   },
   {
     title: 'Webhooks',

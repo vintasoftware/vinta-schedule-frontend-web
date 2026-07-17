@@ -152,6 +152,49 @@ curl -X POST \\
     });
   });
 
+  describe('concept-link rewriting', () => {
+    it('rewrites a concept cross-link when conceptSlugs is passed', async () => {
+      const markdown = 'See [Calendar Bundles](calendar-bundles.md) for more.';
+      const html = await renderDocMarkdownToSafeHtml(markdown, {
+        conceptSlugs: ['calendar-bundles', 'calendar-groups'],
+      });
+      expect(html).toContain('href="/docs/concepts/calendar-bundles"');
+    });
+
+    it('neutralizes a backend source link and still sanitizes/highlights the rest of the doc', async () => {
+      const markdown = `# Calendar Groups
+
+Source: [calendar_integration/models.py](../../calendar_integration/models.py).
+
+\`\`\`javascript
+const x = 1;
+\`\`\`
+`;
+      const html = await renderDocMarkdownToSafeHtml(markdown, {
+        conceptSlugs: ['calendar-groups'],
+      });
+      expect(html).not.toContain('href="../../calendar_integration/models.py"');
+      expect(html).toContain('calendar_integration/models.py');
+      expect(html).toContain('class="hljs'); // highlighting still runs after the rewrite pass
+    });
+
+    it('is a no-op when conceptSlugs is omitted (e.g. the getting-started guide)', async () => {
+      const markdown = '[API tokens](/api-tokens)';
+      const html = await renderDocMarkdownToSafeHtml(markdown);
+      expect(html).toContain('href="/api-tokens"');
+    });
+
+    it('still strips javascript: URLs when concept-link rewriting is active', async () => {
+      const markdown =
+        '[click me](javascript:alert("XSS")) — a dangerous link should be stripped';
+      const html = await renderDocMarkdownToSafeHtml(markdown, {
+        conceptSlugs: ['calendar-groups'],
+      });
+      expect(html).not.toContain('javascript:');
+      expect(html).toContain('click me');
+    });
+  });
+
   describe('content preservation', () => {
     it('preserves markdown formatting with highlighting', async () => {
       const markdown = `# Getting Started
