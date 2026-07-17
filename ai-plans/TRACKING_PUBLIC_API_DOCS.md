@@ -130,7 +130,21 @@ Open NITs deferred (not blocking): sidebar has no `position='sticky'` and will s
 
 ## Current Phase
 
-Phase 3 — Concept guides fetched from backend (next).
+**PAUSED at Phase 3 — waiting on the Phase 2b backend endpoint.** (Paused 2026-07-16, at the user's direction.)
+
+Phase 3 fetches concept docs from `GET /public-api-docs/`, which is Phase 2b's deliverable in `~/Workspaces/vinta-schedule`. That endpoint does not exist yet — a live probe returns **404**. The user chose to build it before Phase 3 runs, so the fetch path can be exercised for real rather than shipped untested behind a snapshot that is the only code path anyone ever runs. (Phase 2's `cache: 'no-store'` bug is the precedent: an unexercised fetch path silently always-fell-back, and nobody would have noticed.)
+
+**State when paused.** Phases 0, 1, 2 are complete. 0 and 1 are merged to `main` (PRs #67, #68). Phase 2 is open as PR #69, based on `main`. The worktree at `.claude/worktrees/plan-public-api-docs` is intact with `plan/public-api-docs/phase-2` checked out.
+
+**What Phase 3 needs from 2b**, per the plan's API Design section:
+- `GET /public-api-docs/` → `200` `[{ "slug": "calendar-groups", "title": "Calendar Groups, Slots, and Slot Selections" }, ...]` — the manifest, one entry per `docs/concepts/*.md`. Title derived from each file's first `# ` heading.
+- `GET /public-api-docs/{slug}/` → `200` `{ "slug": "...", "title": "...", "markdown": "..." }`. `404` on unknown slug.
+- Public, read-only, unauthenticated. Bounded allow-list over `docs/concepts/` — a traversal slug like `../settings` must be rejected.
+- CORS is not required for this one (the frontend fetches it at build time, server-side), but Phase 1b's CORS work IS required for the browser-side Explorer in Phase 5.
+
+**The six concept files that exist today** at `~/Workspaces/vinta-schedule/docs/concepts/`: `availability.md`, `calendar-bundles.md`, `calendar-groups.md`, `calendars.md`, `events.md`, `recurrence.md` — matching the set the plan names.
+
+**To resume**: re-invoke `implement-plan` against this plan. It will read this file, skip the completed phases, and pick up at Phase 3. Do not re-answer the Step 0 options — they are recorded above. Verify the worktree still exists and re-probe `sandbox_tier`.
 
 ## Remaining Phases
 
