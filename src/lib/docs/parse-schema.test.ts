@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { fixtureIntrospectionSchema } from './parse-schema.fixtures';
 import { parseSchema } from './parse-schema';
@@ -22,6 +22,15 @@ describe('parseSchema', () => {
         type: 'ID!',
         typeName: 'ID',
       }),
+    ]);
+  });
+
+  it('parses an arg default value (e.g. `limit: 100`)', () => {
+    const model = parseSchema(fixtureIntrospectionSchema);
+
+    const query = model.queries.find((q) => q.name === 'searchBookableSlots');
+    expect(query?.args).toEqual([
+      expect.objectContaining({ name: 'limit', defaultValue: '100' }),
     ]);
   });
 
@@ -96,5 +105,43 @@ describe('parseSchema', () => {
     expect(names).not.toContain('Query');
     expect(names).not.toContain('Mutation');
     expect(names.some((n) => n.startsWith('__'))).toBe(false);
+  });
+
+  describe('unhandled INTERFACE/UNION kinds', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('warns when the schema contains an INTERFACE or UNION type', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const schemaWithInterface = {
+        ...fixtureIntrospectionSchema,
+        types: [
+          ...fixtureIntrospectionSchema.types,
+          {
+            kind: 'INTERFACE',
+            name: 'Bookable',
+            description: null,
+            fields: [],
+            inputFields: null,
+            interfaces: null,
+            enumValues: null,
+            possibleTypes: [],
+          },
+        ],
+      };
+
+      parseSchema(schemaWithInterface);
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Bookable'));
+    });
+
+    it('does not warn for a schema with no INTERFACE/UNION types', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      parseSchema(fixtureIntrospectionSchema);
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
   });
 });

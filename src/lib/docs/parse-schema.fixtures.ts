@@ -56,6 +56,21 @@ export const fixtureIntrospectionSchema: IntrospectionSchema = {
           isDeprecated: false,
           deprecationReason: null,
         },
+        {
+          name: 'searchBookableSlots',
+          description: 'Searches bookable slots with pagination.',
+          args: [
+            {
+              name: 'limit',
+              description: 'Max results to return.',
+              type: scalarRef('Int'),
+              defaultValue: '100',
+            },
+          ],
+          type: listOfNonNull('BookableSlot'),
+          isDeprecated: false,
+          deprecationReason: null,
+        },
       ],
       inputFields: null,
       interfaces: [],

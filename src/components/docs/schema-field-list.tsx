@@ -111,6 +111,16 @@ export function SchemaFieldList({
                           typeName={arg.typeName}
                           documentedTypeNames={documentedTypeNames}
                         />
+                        {arg.defaultValue !== null ? (
+                          <Text
+                            as='code'
+                            family='mono'
+                            size='sm'
+                            color='muted-foreground'
+                          >
+                            = {arg.defaultValue}
+                          </Text>
+                        ) : null}
                         {arg.description ? (
                           <Text size='xs' color='muted-foreground'>
                             {arg.description}

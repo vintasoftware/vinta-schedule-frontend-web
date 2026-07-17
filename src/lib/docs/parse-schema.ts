@@ -34,6 +34,9 @@ const BUILTIN_SCALARS = new Set(['ID', 'String', 'Int', 'Float', 'Boolean']);
 
 const DOCUMENTED_TYPE_KINDS = new Set(['OBJECT', 'INPUT_OBJECT', 'ENUM']);
 
+/** Kinds this module deliberately doesn't render a detail page for (see module docstring) — used only to warn if the schema starts using one. */
+const UNHANDLED_TYPE_KINDS = new Set(['INTERFACE', 'UNION']);
+
 export type GraphQLSchemaTypeKind = 'OBJECT' | 'INPUT_OBJECT' | 'ENUM';
 
 export interface GraphQLSchemaArg {
@@ -162,6 +165,16 @@ function parseInputField(field: IntrospectionInputValue): GraphQLSchemaField {
 
 /** Normalizes raw introspection JSON into the `GraphQLSchemaModel` reference pages render. */
 export function parseSchema(schema: IntrospectionSchema): GraphQLSchemaModel {
+  for (const t of schema.types) {
+    if (UNHANDLED_TYPE_KINDS.has(t.kind) && !isIntrospectionTypeName(t.name)) {
+      console.warn(
+        `[docs] schema type "${t.name}" has kind ${t.kind}, which this reference ` +
+          "doesn't render a detail page for (see parse-schema.ts) — it will be " +
+          'silently dropped from any field that returns it.'
+      );
+    }
+  }
+
   const queryTypeName = schema.queryType?.name ?? null;
   const mutationTypeName = schema.mutationType?.name ?? null;
 

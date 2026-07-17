@@ -47,7 +47,9 @@ export interface SchemaIntrospectionResult {
  * Attempt one live introspection request against
  * `NEXT_PUBLIC_API_BASE_URL/graphql/`. Never throws — any failure (network
  * error, timeout, non-2xx, GraphQL errors, malformed body) resolves `null`
- * so the caller can fall back to the snapshot.
+ * so the caller can fall back to the snapshot. Each failure mode logs its
+ * own `console.warn` (with the underlying error for the catch-all branch)
+ * so a genuine bug is distinguishable in build logs from a down backend.
  */
 export async function fetchLiveIntrospection(
   baseUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -76,20 +78,57 @@ export async function fetchLiveIntrospection(
     });
 
     if (!response.ok) {
+      console.warn(
+        `[docs] live introspection request to ${endpoint} failed: HTTP ${response.status} ${response.statusText}`
+      );
       return null;
     }
 
-    const json = (await response.json()) as {
+    let json: {
       data?: { __schema?: IntrospectionSchema };
       errors?: unknown;
     };
+    try {
+      json = await response.json();
+    } catch (parseError) {
+      console.warn(
+        `[docs] live introspection response from ${endpoint} was not valid JSON:`,
+        parseError
+      );
+      return null;
+    }
 
-    if (json.errors || !json.data?.__schema) {
+    if (json.errors) {
+      console.warn(
+        `[docs] live introspection request to ${endpoint} returned GraphQL errors:`,
+        json.errors
+      );
+      return null;
+    }
+
+    if (!json.data?.__schema) {
+      console.warn(
+        `[docs] live introspection response from ${endpoint} was missing ` +
+          '`data.__schema` despite a 2xx response'
+      );
       return null;
     }
 
     return json.data.__schema;
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      console.warn(
+        `[docs] live introspection request to ${endpoint} timed out after ${LIVE_FETCH_TIMEOUT_MS}ms`
+      );
+    } else {
+      // A real network error (backend down/unreachable) and a programming
+      // error (e.g. a bad Next.js fetch caching interaction) both land here
+      // — log the error itself so the two are distinguishable in build logs.
+      console.warn(
+        `[docs] live introspection request to ${endpoint} threw:`,
+        error
+      );
+    }
     return null;
   }
 }
