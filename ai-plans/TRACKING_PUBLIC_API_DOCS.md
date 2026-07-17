@@ -215,9 +215,35 @@ Plus a NIT taken: `fetchDoc` verifies the returned `doc.slug` matches the reques
 
 **Gates.** typecheck green. Docs scope deterministically green (31/31). Full suite 1135 app / 129 files + 82 design-system (the known intermittent timer flake in unrelated files appeared in ~2 of 7 full runs across phases 4–5 and never reproduced; docs scope green every run). Build passes; `/docs/explorer` static, siblings unaffected. Prettier clean. Main checkout clean. No AI trailers.
 
-## Current Phase
+### Phase 6 — Wire landing-page links to `/docs` ✅
 
-Phase 6 — Wire landing-page links to `/docs` (next, final in-repo phase). Mechanical href edits in `marketing-home.tsx`, **plus** fixing the invalid `calendarGroupBookableSlots` query there (missing required `searchWindowEnd`) — see the Phase 6 row in Remaining Phases.
+- **Status**: complete, reviewed, pushed — **final in-repo phase**
+- **Branch**: `plan/public-api-docs/phase-6` (base: `plan/public-api-docs/phase-5`)
+- **Models**: implementer `claude-haiku-4-5` (plan Tier 1). Reviewer `claude-sonnet-4-6` (Tier 3). Fixer `claude-haiku-4-5` (test hygiene only).
+- **E2E**: none (`run_e2e = false`)
+- **New dependency**: none.
+
+**Summary.** The landing page's dead `href='#'` API-docs placeholders now resolve to the real docs routes, and the showcase GraphQL query is valid.
+
+- `src/components/home-page/marketing-home.tsx`: "Read the API docs" button → `/docs`; footer Developers "API docs" → `/docs`, "Webhooks" → `/docs/webhooks`; footer Product "Booking API" → `/docs/reference`. `SDKs`, `Status`, `Changelog`, and all other footer links stay `#` placeholders per the plan. The footer's `cols` data went from `string[]` to `{ label, href? }[]`, rendering `href ?? '#'`.
+- Fixed the invalid `calendarGroupBookableSlots` sample — added the required `searchWindowEnd` argument (the bug carried over from Phase 1, where the docs copied this sample and I flagged the landing-page original).
+- New `src/components/home-page/marketing-home.test.tsx` asserts the four wired links resolve to `/docs*` and the placeholders stay `#`.
+
+**Review.** No BLOCKERs. The reviewer raised the query/mutation samples for schema-correctness:
+- The `searchWindowEnd` query fix was **confirmed correct** against the live backend.
+- The reviewer flagged the **mutation sample** as broken (wrong mutation name, invalid input fields) — this was a **false positive**. The conductor verified against ground truth: `createCalendarGroupEvent` exists in the introspection snapshot with `organizationId`/`groupId` on its input, and POSTing the exact sample to the live backend returns **no validation errors**. The reviewer had reasoned from backend source that diverged from the deployed contract. No change made — "fixing" a valid showcase would have broken it. (This is why reviewer findings on this plan are verified before a fixer is dispatched.)
+- Two real test-hygiene findings fixed: a placeholder-link assertion that would pass vacuously if the set were empty (now asserts `toHaveLength(2)`), and a dead variable.
+
+**Gates.** typecheck green. Full suite 1142 app / 130 files + 82 design-system. No stray writes. No AI trailers.
+
+## Plan complete
+
+All six in-repo phases (0–6, no Phase 5-numbering gap — the plan's 1b/2b were cross-repo) plus the schema-sync contract refresh are implemented, reviewed, and pushed. The two backend phases (1b CORS/introspection, 2b concept-docs endpoint) and the webhook-events endpoint were built in the `vinta-schedule` repo via a separate backend plan (`ai-plans/2026-07-16-PUBLIC_API_DOCS_BACKEND_IMPLEMENTATION_PLAN.md`, backend PRs #186–#188) and are live.
+
+**Remaining human follow-ups** (not code this plan produces):
+- **`amend-plan` the frontend plan's Phase 4** to record that webhooks are fetched from the backend, not hand-authored (the plan body still says hand-author).
+- **Backend CORS env** on Render: add `schedule.vintasoftware.com` + `schedule-staging.vintasoftware.com` to `CORS_ALLOWED_ORIGINS` so the explorer's cross-origin calls work in production (dev already works).
+- **Merge the stacked PRs in order** (see the final report).
 
 ## Remaining Phases
 
