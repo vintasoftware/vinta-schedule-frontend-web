@@ -133,6 +133,15 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
   const [copied, setCopied] = React.useState(false);
 
   // Reset all local state when the dialog closes.
+  //
+  // The dependency array uses `createPublicApiTokenMutation.reset` rather
+  // than the mutation object itself. TanStack Query returns a new mutation
+  // object on every render, but `reset` is bound once when the mutation
+  // observer is created and keeps the same identity for the component's
+  // lifetime. Depending on the whole object would re-run this effect on
+  // every render (because `reset()` itself changes mutation state, which
+  // triggers a re-render, which produces a new object), looping forever.
+  const resetMutation = createPublicApiTokenMutation.reset;
   React.useEffect(() => {
     if (!open) {
       form.reset();
@@ -144,9 +153,9 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
       // retain the full SystemUserTokenResponse (including id and token) in
       // memory even though the local onceCredential state is cleared, making it
       // accessible via React DevTools as long as the component is mounted.
-      createPublicApiTokenMutation.reset();
+      resetMutation();
     }
-  }, [open, form, createPublicApiTokenMutation]);
+  }, [open, form, resetMutation]);
 
   const isPending = createPublicApiTokenMutation.isPending;
   const isCredentialView = onceCredential !== '';

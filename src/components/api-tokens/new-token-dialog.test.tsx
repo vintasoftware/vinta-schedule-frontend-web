@@ -13,6 +13,7 @@ import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Profiler } from 'react';
 import type { ReactNode } from 'react';
 
 // ---------------------------------------------------------------------------
@@ -245,6 +246,70 @@ describe('NewTokenDialog', () => {
     ).not.toBeInTheDocument();
 
     void currentOpen; // suppress unused warning
+  });
+
+  it('does not re-render in a loop when the dialog-close effect resets the mutation', async () => {
+    // Regression test for the bug where the close effect depended on the
+    // whole mutation object (a new identity every render) instead of the
+    // stable `reset` function. That caused: close -> reset() -> state
+    // change -> re-render -> new mutation object -> effect re-runs ->
+    // reset() again -> ... forever. We count commits of the dialog subtree
+    // with a Profiler and assert the count stays small and stable after
+    // close, instead of climbing without bound.
+    const user = userEvent.setup();
+    const token = makeToken(7);
+    vi.mocked(publicApiTokensCreate).mockResolvedValueOnce(
+      makeCreateResponse(token, ONE_TIME_SECRET)
+    );
+
+    let commitCount = 0;
+    const onRender = () => {
+      commitCount += 1;
+    };
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    let currentOpen = true;
+    const handleOpenChange = vi.fn((val: boolean) => {
+      currentOpen = val;
+    });
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <Profiler id='new-token-dialog' onRender={onRender}>
+          <NewTokenDialog open={currentOpen} onOpenChange={handleOpenChange} />
+        </Profiler>
+      </QueryClientProvider>
+    );
+
+    await user.type(
+      screen.getByPlaceholderText('My integration'),
+      'Integration 7'
+    );
+    await user.click(screen.getByTestId('scope-checkbox-calendar'));
+    await user.click(screen.getByTestId('create-token-submit'));
+    await screen.findByText('API token created');
+
+    await user.click(screen.getByTestId('done-button'));
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <Profiler id='new-token-dialog' onRender={onRender}>
+          <NewTokenDialog open={false} onOpenChange={handleOpenChange} />
+        </Profiler>
+      </QueryClientProvider>
+    );
+
+    const countRightAfterClose = commitCount;
+
+    // Give any runaway effect loop a chance to keep committing. A healthy
+    // close effect runs once and stops; a looping effect keeps scheduling
+    // new commits for as long as we wait.
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    expect(commitCount).toBe(countRightAfterClose);
   });
 
   it('credential does NOT appear in the refetched token list (list returns metadata only)', async () => {
