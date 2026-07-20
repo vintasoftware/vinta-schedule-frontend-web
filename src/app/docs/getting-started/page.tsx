@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { DocsContainer } from '@/components/docs/docs-container';
 import { DocsProse } from '@/components/docs/docs-prose';
 import { renderDocMarkdownToSafeHtml } from '@/lib/docs/render-doc-markdown';
 import gettingStartedContent from './content.md?raw' with {
@@ -31,5 +32,9 @@ export default async function GettingStartedPage() {
   // Render to safe HTML with syntax highlighting
   const html = await renderDocMarkdownToSafeHtml(gettingStartedContent);
 
-  return <DocsProse html={html} />;
+  return (
+    <DocsContainer>
+      <DocsProse html={html} />
+    </DocsContainer>
+  );
 }

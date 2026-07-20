@@ -1,41 +1,60 @@
 import Link from 'next/link';
 
-import { Box, Heading, Stack, Text } from 'vinta-schedule-design-system/layout';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from 'vinta-schedule-design-system/ui/table';
-import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
-import { Badge } from 'vinta-schedule-design-system/ui/badge';
+  Box,
+  Flex,
+  Heading,
+  Stack,
+  Text,
+} from 'vinta-schedule-design-system/layout';
+import { Card } from 'vinta-schedule-design-system/ui/card';
 import type { GraphQLSchemaModel } from '@/lib/docs/parse-schema';
-import { SchemaFieldList } from './schema-field-list';
-
-const KIND_LABEL: Record<string, string> = {
-  OBJECT: 'Object',
-  INPUT_OBJECT: 'Input',
-  ENUM: 'Enum',
-};
 
 export interface SchemaReferenceIndexProps {
   model: GraphQLSchemaModel;
 }
 
+interface Section {
+  href: string;
+  title: string;
+  count: number;
+  noun: string;
+  blurb: string;
+}
+
 /**
- * `/docs/reference` — the schema reference index. Lists every query and
- * mutation with full detail (args, return type, description) inline, plus a
- * browsable table of every documented type. Fetched from a single build-time
- * introspection snapshot (`getSchemaIntrospection`) shared with the per-type
- * detail pages.
+ * `/docs/reference` — the schema reference overview. Rather than dumping every
+ * query, mutation, and type on one page, it links to a dedicated page for each
+ * so the sections stay browsable. Built from a single build-time introspection
+ * snapshot (`getSchemaIntrospection`) shared with those pages.
  */
 export function SchemaReferenceIndex({ model }: SchemaReferenceIndexProps) {
-  const documentedTypeNames = new Set(model.types.map((t) => t.name));
+  const sections: Section[] = [
+    {
+      href: '/docs/reference/queries',
+      title: 'Queries',
+      count: model.queries.length,
+      noun: 'queries',
+      blurb: 'Read data — bookable slots, calendars, events, and more.',
+    },
+    {
+      href: '/docs/reference/mutations',
+      title: 'Mutations',
+      count: model.mutations.length,
+      noun: 'mutations',
+      blurb: 'Write data — create, update, and delete through the API.',
+    },
+    {
+      href: '/docs/reference/types',
+      title: 'Types',
+      count: model.types.length,
+      noun: 'types',
+      blurb: 'Every object, input, and enum the operations refer to.',
+    },
+  ];
 
   return (
-    <Stack gap={10}>
+    <Stack gap={8}>
       <Stack gap={2}>
         <Heading level={1}>Schema Reference</Heading>
         <Text color='muted-foreground'>
@@ -48,88 +67,36 @@ export function SchemaReferenceIndex({ model }: SchemaReferenceIndexProps) {
         </Text>
       </Stack>
 
-      <Box as='section' id='queries'>
-        <Stack gap={4}>
-          <Heading level={2}>Queries</Heading>
-          <SchemaFieldList
-            fields={model.queries}
-            documentedTypeNames={documentedTypeNames}
-            emptyLabel='This schema has no queries.'
-          />
-        </Stack>
-      </Box>
-
-      <Box as='section' id='mutations'>
-        <Stack gap={4}>
-          <Heading level={2}>Mutations</Heading>
-          <SchemaFieldList
-            fields={model.mutations}
-            documentedTypeNames={documentedTypeNames}
-            emptyLabel='This schema has no mutations.'
-          />
-        </Stack>
-      </Box>
-
-      <Box as='section' id='types'>
-        <Stack gap={4}>
-          <Heading level={2}>Types</Heading>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Kind</TableHead>
-                <TableHead>Description</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {model.types.map((type) => (
-                <TableRow key={type.name}>
-                  <TableCell>
-                    <TextLink asChild size='sm'>
-                      <Link href={`/docs/reference/types/${type.slug}`}>
-                        <Text as='code' family='mono' size='sm'>
-                          {type.name}
-                        </Text>
-                      </Link>
-                    </TextLink>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant='secondary'>{KIND_LABEL[type.kind]}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Text size='sm' color='muted-foreground'>
-                      {type.description ?? '—'}
+      <Flex direction={{ base: 'column', sm: 'row' }} gap={4} wrap>
+        {sections.map((section) => (
+          <Box key={section.href} grow={1} basis={0} minWidth={220}>
+            <Link href={section.href}>
+              <Card
+                padding={5}
+                className='hover:border-primary h-full transition-colors'
+              >
+                <Stack gap={3}>
+                  <Stack gap={1}>
+                    <Heading level={2}>{section.title}</Heading>
+                    <Text
+                      size='xs'
+                      weight='medium'
+                      color='muted-foreground'
+                      uppercase
+                      tracking='wide'
+                    >
+                      {section.count} {section.noun}
                     </Text>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Stack>
-      </Box>
-
-      {model.scalars.length > 0 ? (
-        <Box as='section' id='scalars'>
-          <Stack gap={4}>
-            <Heading level={2}>Custom Scalars</Heading>
-            <Stack gap={2}>
-              {model.scalars.map((scalar) => (
-                <Text key={scalar.name} size='sm'>
-                  <Text as='code' family='mono' weight='medium'>
-                    {scalar.name}
+                  </Stack>
+                  <Text size='sm' color='muted-foreground'>
+                    {section.blurb}
                   </Text>
-                  {scalar.description ? (
-                    <Text as='span' color='muted-foreground'>
-                      {' '}
-                      — {scalar.description}
-                    </Text>
-                  ) : null}
-                </Text>
-              ))}
-            </Stack>
-          </Stack>
-        </Box>
-      ) : null}
+                </Stack>
+              </Card>
+            </Link>
+          </Box>
+        ))}
+      </Flex>
     </Stack>
   );
 }

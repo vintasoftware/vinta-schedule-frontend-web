@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import {
-  Sidebar,
+  Box,
   SidebarGroup,
   SidebarItem,
   VStack,
@@ -15,9 +15,14 @@ import { DOCS_NAV } from '@/lib/docs/nav';
 export type DocsSidebarProps = React.HTMLAttributes<HTMLElement>;
 
 /**
- * Public docs sidebar — renders the static `DOCS_NAV` config and highlights
- * whichever section/child matches the current route. No dynamic discovery;
- * later phases only add entries to `DOCS_NAV`, this component doesn't change.
+ * Public docs navigation — renders the static `DOCS_NAV` config and highlights
+ * whichever section/child matches the current route.
+ *
+ * Unlike the app's `AppSidebar` (a filled rail anchored to the viewport edge),
+ * this is a floating card: the docs body is centered inside a `contained`
+ * Container to line up with the marketing nav, so the nav reads as a rounded
+ * panel with space around it rather than an edge-to-edge rail. The sticky
+ * behavior and the space above it live on the layout wrapper.
  */
 function DocsSidebarInner(
   props: DocsSidebarProps,
@@ -31,8 +36,24 @@ function DocsSidebarInner(
     pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <Sidebar ref={ref} aria-label='Docs navigation' {...props}>
+    <Box
+      as='nav'
+      ref={ref}
+      aria-label='Docs navigation'
+      width={256}
+      bg='card'
+      border
+      radius='xl'
+      shadow='sm'
+      p={3}
+      {...props}
+    >
       <SidebarGroup>
+        {/* Exact match only — every docs route starts with `/docs`, so the
+            prefix rule below would keep Overview highlighted everywhere. */}
+        <SidebarItem asChild label='Overview' active={pathname === '/docs'}>
+          <Link href='/docs' />
+        </SidebarItem>
         {DOCS_NAV.map((section) => (
           <VStack key={section.slug} gap={1}>
             <SidebarItem
@@ -59,7 +80,7 @@ function DocsSidebarInner(
           </VStack>
         ))}
       </SidebarGroup>
-    </Sidebar>
+    </Box>
   );
 }
 

@@ -23,14 +23,34 @@ import {
   VStack,
 } from 'vinta-schedule-design-system/layout';
 
-const GraphiQL = dynamic(() => import('graphiql').then((mod) => mod.GraphiQL), {
-  ssr: false,
-  loading: () => (
-    <Flex height={700} border radius='lg' p={4} align='center' justify='center'>
-      <Text color='muted-foreground'>Loading explorer…</Text>
-    </Flex>
-  ),
-});
+const GraphiQL = dynamic(
+  async () => {
+    // GraphiQL 5 renders with the Monaco editor, which needs its web workers
+    // registered on `globalThis.MonacoEnvironment` before the editor mounts —
+    // without it Monaco throws "You must define MonacoEnvironment.getWorker".
+    // GraphiQL ships that registration for webpack/Turbopack (Next.js);
+    // importing it here, inside the client-only dynamic loader and before the
+    // widget itself, sets the workers up while keeping it all off the server.
+    await import('graphiql/setup-workers/webpack');
+    const mod = await import('graphiql');
+    return mod.GraphiQL;
+  },
+  {
+    ssr: false,
+    loading: () => (
+      <Flex
+        height={700}
+        border
+        radius='lg'
+        p={4}
+        align='center'
+        justify='center'
+      >
+        <Text color='muted-foreground'>Loading explorer…</Text>
+      </Flex>
+    ),
+  }
+);
 
 // ---------------------------------------------------------------------------
 // Storage: GraphiQL persists query/variable/header/tab state to `localStorage`
@@ -120,47 +140,59 @@ export function GraphqlExplorer({ apiBaseUrl }: GraphqlExplorerProps) {
   const handleClear = () => setCredential('');
 
   return (
-    <VStack gap={4}>
-      <VStack gap={2}>
-        <Label htmlFor='graphql-explorer-credential'>
-          Authorization credential
-        </Label>
-        <HStack gap={2}>
-          <Input
-            id='graphql-explorer-credential'
-            type='password'
-            autoComplete='new-password'
-            data-lpignore='true'
-            data-1password-ignore='true'
-            placeholder='<system_user_id>:<token>'
-            value={credential}
-            onChange={(e) => setCredential(e.target.value)}
-            className='font-mono'
-            data-testid='explorer-credential-input'
-          />
-          <Button
-            type='button'
-            variant='outline'
-            onClick={handleClear}
-            disabled={!credential}
-            data-testid='explorer-clear-token-button'
-          >
-            <X aria-hidden='true' />
-            Clear token
-          </Button>
-        </HStack>
-        <Text size='sm' color='muted-foreground'>
-          Sent as{' '}
-          <Text as='span' family='mono'>
-            Authorization: Bearer {'<value>'}
-          </Text>{' '}
-          on every request below. Session-only — kept in memory for this tab and
-          never written to local or session storage. Reload the page or use
-          Clear token to remove it.
-        </Text>
-      </VStack>
+    <VStack gap={4} align='stretch'>
+      {/* The credential field + note stay at the page reading measure so they
+          line up with the copy above; only the editor below runs full width. */}
+      <Box mx='auto' width='full' maxWidth={840}>
+        <VStack gap={2}>
+          <Label htmlFor='graphql-explorer-credential'>
+            Authorization credential
+          </Label>
+          <HStack gap={2}>
+            <Input
+              id='graphql-explorer-credential'
+              type='password'
+              autoComplete='new-password'
+              data-lpignore='true'
+              data-1password-ignore='true'
+              placeholder='<system_user_id>:<token>'
+              value={credential}
+              onChange={(e) => setCredential(e.target.value)}
+              className='font-mono'
+              data-testid='explorer-credential-input'
+            />
+            <Button
+              type='button'
+              variant='outline'
+              onClick={handleClear}
+              disabled={!credential}
+              data-testid='explorer-clear-token-button'
+            >
+              <X aria-hidden='true' />
+              Clear token
+            </Button>
+          </HStack>
+          <Text size='sm' color='muted-foreground'>
+            Sent as{' '}
+            <Text as='span' family='mono'>
+              Authorization: Bearer {'<value>'}
+            </Text>{' '}
+            on every request below. Session-only — kept in memory for this tab
+            and never written to local or session storage. Reload the page or
+            use Clear token to remove it.
+          </Text>
+        </VStack>
+      </Box>
 
-      <Box height={700} border radius='lg' overflow='hidden'>
+      <Box
+        mx='auto'
+        width='full'
+        maxWidth={1400}
+        height={700}
+        border
+        radius='lg'
+        overflow='hidden'
+      >
         <GraphiQL
           fetcher={fetcher}
           storage={storage}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Heading, Stack, Text } from 'vinta-schedule-design-system/layout';
 import { Alert, AlertDescription } from 'vinta-schedule-design-system/ui/alert';
 import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
+import { DocsContainer } from '@/components/docs/docs-container';
 import { GraphqlExplorer } from '@/components/docs/graphql-explorer';
 
 export const metadata: Metadata = {
@@ -23,32 +24,40 @@ export default function ExplorerPage() {
 
   return (
     <Stack gap={6}>
-      <Stack gap={2}>
-        <Heading level={1}>Explorer</Heading>
-        <Text color='muted-foreground'>
-          A live GraphiQL console for the public GraphQL API. Queries and
-          mutations you run here hit the real{' '}
-          <Text as='span' family='mono'>
-            /graphql/
-          </Text>{' '}
-          endpoint.
-        </Text>
-      </Stack>
+      {/* Intro + credential note stay at the readable measure… */}
+      <DocsContainer>
+        <Stack gap={6}>
+          <Stack gap={2}>
+            <Heading level={1}>Explorer</Heading>
+            <Text color='muted-foreground'>
+              A live GraphiQL console for the public GraphQL API. Queries and
+              mutations you run here hit the real{' '}
+              <Text as='span' family='mono'>
+                /graphql/
+              </Text>{' '}
+              endpoint.
+            </Text>
+          </Stack>
 
-      <Alert>
-        <AlertDescription>
-          Paste an API credential to authenticate requests. Mint one from the{' '}
-          <TextLink asChild>
-            <Link href='/api-tokens'>API tokens page</Link>
-          </TextLink>{' '}
-          — tokens are scoped to whichever resources an org admin selected when
-          creating them. The credential is held only in this tab&apos;s memory
-          for the duration of the session: it is never written to local or
-          session storage, and it is cleared as soon as you reload the page or
-          press &quot;Clear token&quot;.
-        </AlertDescription>
-      </Alert>
+          <Alert>
+            <AlertDescription>
+              Paste an API credential to authenticate requests. Mint one from
+              the{' '}
+              <TextLink asChild>
+                <Link href='/api-tokens'>API tokens page</Link>
+              </TextLink>{' '}
+              — tokens are scoped to whichever resources an org admin selected
+              when creating them. The credential is held only in this tab&apos;s
+              memory for the duration of the session: it is never written to
+              local or session storage, and it is cleared as soon as you reload
+              the page or press &quot;Clear token&quot;.
+            </AlertDescription>
+          </Alert>
+        </Stack>
+      </DocsContainer>
 
+      {/* …the console spans the full content-column width. It caps its own
+          credential field to the reading measure internally. */}
       <GraphqlExplorer apiBaseUrl={apiBaseUrl} />
     </Stack>
   );

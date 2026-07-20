@@ -318,7 +318,7 @@ function AppSidebarInner(
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href='/security'>
+            <Link href='/account/security'>
               <Shield />
               Account security
             </Link>

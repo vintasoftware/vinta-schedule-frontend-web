@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Heading, Stack, Text } from 'vinta-schedule-design-system/layout';
 import { List, ListItem } from 'vinta-schedule-design-system/ui/list';
 import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
+import { DocsContainer } from '@/components/docs/docs-container';
 import { getConcepts } from '@/lib/docs/fetch-concepts';
 
 export const metadata: Metadata = {
@@ -24,24 +25,26 @@ export default async function ConceptsIndexPage() {
   const { docs } = await getConcepts();
 
   return (
-    <Stack gap={6}>
-      <Stack gap={2}>
-        <Heading level={1}>Concepts</Heading>
-        <Text color='muted-foreground'>
-          Domain guides ported from the backend — how Calendar Groups, Events,
-          Availability, Recurrence, Bundles, and Calendars fit together.
-        </Text>
-      </Stack>
+    <DocsContainer>
+      <Stack gap={6}>
+        <Stack gap={2}>
+          <Heading level={1}>Concepts</Heading>
+          <Text color='muted-foreground'>
+            Domain guides ported from the backend — how Calendar Groups, Events,
+            Availability, Recurrence, Bundles, and Calendars fit together.
+          </Text>
+        </Stack>
 
-      <List variant='plain' gap={4}>
-        {docs.map((doc) => (
-          <ListItem key={doc.slug}>
-            <TextLink asChild size='lg'>
-              <Link href={`/docs/concepts/${doc.slug}`}>{doc.title}</Link>
-            </TextLink>
-          </ListItem>
-        ))}
-      </List>
-    </Stack>
+        <List variant='plain' gap={4}>
+          {docs.map((doc) => (
+            <ListItem key={doc.slug}>
+              <TextLink asChild size='lg'>
+                <Link href={`/docs/concepts/${doc.slug}`}>{doc.title}</Link>
+              </TextLink>
+            </ListItem>
+          ))}
+        </List>
+      </Stack>
+    </DocsContainer>
   );
 }

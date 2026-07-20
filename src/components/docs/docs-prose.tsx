@@ -8,8 +8,23 @@ import { cn } from '@/lib/utils/index';
  * `PolicyDocumentView` so every docs content page (getting-started, concepts,
  * reference, …) shares one prose styling surface instead of re-inlining it.
  */
-const PROSE_CLASSNAME =
-  '[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mt-5 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_ol]:list-decimal [&_ol]:py-1 [&_p]:py-1 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:py-1';
+const PROSE_CLASSNAME = [
+  // links + headings
+  '[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2',
+  '[&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:font-semibold',
+  '[&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold',
+  '[&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold',
+  // paragraphs + lists
+  '[&_li]:ml-5 [&_ol]:list-decimal [&_ol]:py-1 [&_p]:py-1 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:py-1',
+  // inline code + fenced blocks
+  '[&_:not(pre)>code]:bg-muted [&_:not(pre)>code]:text-foreground [&_:not(pre)>code]:rounded [&_:not(pre)>code]:px-1.5 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:text-[0.85em]',
+  '[&_pre]:bg-muted [&_pre]:border-border [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:p-4 [&_pre]:text-sm',
+  // tables — the raw GFM output has no styling; make it a readable, scrollable grid
+  '[&_table]:my-6 [&_table]:block [&_table]:w-max [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-sm',
+  '[&_thead]:border-border [&_thead]:border-b',
+  '[&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:align-top [&_th]:font-semibold',
+  '[&_td]:border-border [&_td]:border-t [&_td]:px-3 [&_td]:py-2 [&_td]:align-top',
+].join(' ');
 
 type BaseProps = Omit<BoxProps, 'dangerouslySetInnerHTML' | 'children'>;
 

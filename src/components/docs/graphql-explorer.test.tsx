@@ -35,6 +35,11 @@ vi.mock('graphiql', () => ({
 
 vi.mock('graphiql/style.css', () => ({}));
 
+// The Monaco worker setup is a browser-only side effect (it registers
+// `globalThis.MonacoEnvironment`); stub it so the test never processes worker
+// bundles in jsdom.
+vi.mock('graphiql/setup-workers/webpack', () => ({}));
+
 interface CapturedFetcherOptions {
   url: string;
   headers?: Record<string, string>;

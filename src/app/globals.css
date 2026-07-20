@@ -18,3 +18,49 @@
 /* The design-system components ship as source; scan them so the utilities
    they use are generated in the app bundle. */
 @source '../../packages/design-system/src';
+
+/* Syntax highlighting for docs code blocks. `rehype-highlight` emits `hljs-*`
+   token classes but ships no theme; these rules map the common tokens to design
+   tokens, so highlighting follows light/dark automatically. */
+.hljs {
+  color: var(--foreground);
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+.hljs-punctuation,
+.hljs-meta {
+  color: var(--muted-foreground);
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section {
+  color: var(--primary);
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--success);
+}
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--warning);
+}
+.hljs-type,
+.hljs-built_in,
+.hljs-title,
+.hljs-name,
+.hljs-attr,
+.hljs-attribute {
+  color: var(--teal-600);
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 600;
+}

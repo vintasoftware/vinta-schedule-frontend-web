@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { DocsContainer } from '@/components/docs/docs-container';
 import { DocsProse } from '@/components/docs/docs-prose';
 import { getConcepts } from '@/lib/docs/fetch-concepts';
 import { renderDocMarkdownToSafeHtml } from '@/lib/docs/render-doc-markdown';
@@ -58,5 +59,9 @@ export default async function ConceptDocPage({
     conceptSlugs,
   });
 
-  return <DocsProse html={html} />;
+  return (
+    <DocsContainer>
+      <DocsProse html={html} />
+    </DocsContainer>
+  );
 }

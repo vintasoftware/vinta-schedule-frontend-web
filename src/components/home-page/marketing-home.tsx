@@ -8,11 +8,8 @@ import {
   CalendarCheck,
   CalendarSync,
   Check,
-  Globe,
-  Mail,
   Play,
   Plug,
-  Rss,
   Server,
   ShieldCheck,
   UsersRound,
@@ -22,9 +19,7 @@ import {
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Badge, BadgeDot } from 'vinta-schedule-design-system/ui/badge';
 import { Icon } from 'vinta-schedule-design-system/ui/icon';
-import { Image } from 'vinta-schedule-design-system/ui/image';
 import { List, ListItem } from 'vinta-schedule-design-system/ui/list';
-import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 import {
   Box,
   Center,
@@ -38,85 +33,13 @@ import {
   Text,
   VStack,
 } from 'vinta-schedule-design-system/layout';
-import { Navbar, BrandMark } from 'vinta-schedule-design-system/layout/navbar';
-import { ThemeToggle } from '@/components/navigation/theme-toggle';
+import { MarketingNav } from '@/components/navigation/marketing-nav';
+import { MarketingFooter } from '@/components/navigation/marketing-footer';
+import { Eyebrow } from '@/components/marketing/marketing-ui';
 
 /** White — not a design token; passed through as a raw CSS color. */
 const WHITE = '#fff';
 const WHITE_85 = 'rgb(255 255 255 / 0.85)';
-
-function Eyebrow({
-  dot,
-  align = 'start',
-  children,
-}: {
-  /** Leading status dot (hero eyebrow). */
-  dot?: boolean;
-  align?: 'start' | 'center';
-  children: React.ReactNode;
-}) {
-  return (
-    <Flex justify={align}>
-      <Badge variant='info'>
-        {dot ? <BadgeDot /> : null}
-        <Text size='xs' weight='semibold' tracking='wider' uppercase>
-          {children}
-        </Text>
-      </Badge>
-    </Flex>
-  );
-}
-
-/* ---------------------------------------------------------------- Nav */
-function MarketingNav() {
-  const links = ['Product', 'Calendar Groups', 'Developers', 'Pricing'];
-
-  // Authenticated visitors see a "Dashboard" link instead of sign-in/up.
-  // Resolved after mount to avoid an SSR/client hydration mismatch (localStorage
-  // is client-only); defaults to the signed-out actions until then.
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-  React.useEffect(() => {
-    setIsAuthenticated(
-      document.cookie.split('; ').some((c) => c.startsWith('sessionActive='))
-    );
-  }, []);
-
-  return (
-    <Navbar
-      brand={
-        <Link href='/'>
-          <BrandMark />
-        </Link>
-      }
-      links={links.map((l) => (
-        <TextLink key={l} href='#' variant='muted' underline='none' size='md'>
-          <Text weight='medium'>{l}</Text>
-        </TextLink>
-      ))}
-      actions={
-        <>
-          <ThemeToggle />
-          {isAuthenticated ? (
-            <Button asChild size='sm'>
-              <Link href='/dashboard'>Dashboard</Link>
-            </Button>
-          ) : (
-            <>
-              <Box display={{ base: 'hidden', sm: 'inline-flex' }}>
-                <Button asChild variant='ghost' size='sm'>
-                  <Link href='/auth/login'>Sign in</Link>
-                </Button>
-              </Box>
-              <Button asChild size='sm'>
-                <Link href='/auth/signup'>Sign up</Link>
-              </Button>
-            </>
-          )}
-        </>
-      }
-    />
-  );
-}
 
 /* ---------------------------------------------------------------- Hero */
 function Hero() {
@@ -897,146 +820,6 @@ function CTA() {
   );
 }
 
-/* ---------------------------------------------------------------- Footer */
-function Footer() {
-  const cols = [
-    {
-      h: 'Product',
-      links: [
-        { label: 'Overview' },
-        { label: 'Calendar Groups' },
-        { label: 'Booking API', href: '/docs/reference' },
-        { label: 'Integrations' },
-        { label: 'Pricing' },
-      ],
-    },
-    {
-      h: 'Developers',
-      links: [
-        { label: 'API docs', href: '/docs' },
-        { label: 'SDKs' },
-        { label: 'Webhooks', href: '/docs/webhooks' },
-        { label: 'Status' },
-        { label: 'Changelog' },
-      ],
-    },
-    {
-      h: 'Company',
-      links: [
-        { label: 'About' },
-        { label: 'Careers' },
-        { label: 'Blog' },
-        { label: 'Contact' },
-      ],
-    },
-    {
-      h: 'Trust',
-      links: [
-        { label: 'Security' },
-        { label: 'Privacy' },
-        { label: 'Terms' },
-        { label: 'Status' },
-      ],
-    },
-  ];
-  const social = [
-    { key: 'globe', Glyph: Globe },
-    { key: 'mail', Glyph: Mail },
-    { key: 'rss', Glyph: Rss },
-  ];
-  return (
-    <Box as='footer' bg='card'>
-      <Container>
-        {/* TODO(ds-gap): Grid `columns` takes a template string OR a responsive
-            object of counts — not a responsive template. The md: track sizing
-            has to stay a utility class (columns={{ base: 1 }} keeps the inline
-            grid-template-columns off, so the class can win). */}
-        <Grid
-          columns={{ base: 1 }}
-          gap={10}
-          py={12}
-          className='md:grid-cols-[1.4fr_repeat(4,1fr)]'
-        >
-          <VStack gap={4}>
-            <Image
-              src='/vinta-wordmark.svg'
-              alt='Vinta Schedule'
-              height={18}
-              width='auto'
-              fit='contain'
-              // TODO(ds-gap): Image has no dark-mode inversion prop.
-              className='dark:brightness-0 dark:invert'
-            />
-            <Box maxWidth='15rem'>
-              <Text as='p' size='sm' color='muted-foreground' leading='relaxed'>
-                Calendar aggregation &amp; booking infrastructure for
-                healthcare. Building tech the human way.
-              </Text>
-            </Box>
-            <HStack gap={2} color='muted-foreground'>
-              {social.map(({ key, Glyph }) => (
-                <Button key={key} asChild variant='outline' size='icon'>
-                  <Link href='#'>
-                    <Glyph />
-                  </Link>
-                </Button>
-              ))}
-            </HStack>
-          </VStack>
-          {cols.map((c) => (
-            <VStack key={c.h} gap={3}>
-              <Text
-                as='div'
-                size='xs'
-                weight='semibold'
-                tracking='wider'
-                uppercase
-                color='muted-foreground'
-              >
-                {c.h}
-              </Text>
-              <List variant='plain' gap={2}>
-                {c.links.map((l) => (
-                  <ListItem key={l.label}>
-                    <TextLink
-                      href={l.href ?? '#'}
-                      variant='muted'
-                      underline='none'
-                      size='md'
-                    >
-                      {l.label}
-                    </TextLink>
-                  </ListItem>
-                ))}
-              </List>
-            </VStack>
-          ))}
-        </Grid>
-      </Container>
-      <Divider />
-      <Container>
-        <Flex
-          direction={{ base: 'column', sm: 'row' }}
-          align='center'
-          justify='between'
-          gap={3}
-          py={5}
-        >
-          <Text size='xs' color='muted-foreground'>
-            © 2026 Vinta Schedule. All rights reserved.
-          </Text>
-          <HStack gap={2}>
-            <Icon icon={CalendarSync} size='xs' color='primary' />
-            <Text size='xs' color='muted-foreground'>
-              Two-way sync for every connected calendar
-            </Text>
-          </HStack>
-        </Flex>
-      </Container>
-    </Box>
-  );
-}
-
 export function MarketingHome() {
   return (
     <Box bg='card'>
@@ -1052,7 +835,7 @@ export function MarketingHome() {
       <Pricing />
       <CTA />
       <Divider />
-      <Footer />
+      <MarketingFooter />
     </Box>
   );
 }

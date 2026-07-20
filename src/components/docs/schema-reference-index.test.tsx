@@ -1,6 +1,6 @@
 /**
- * SchemaReferenceIndex — the `/docs/reference` index: queries, mutations,
- * and a types table.
+ * SchemaReferenceIndex — the `/docs/reference` overview: counts and linked
+ * section cards for queries, mutations, and types, plus custom scalars.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -13,15 +13,7 @@ const model: GraphQLSchemaModel = {
     {
       name: 'calendarGroupBookableSlots',
       description: 'Lists bookable slots for a calendar group.',
-      args: [
-        {
-          name: 'calendarGroupId',
-          description: 'The calendar group to check.',
-          type: 'ID!',
-          typeName: 'ID',
-          defaultValue: null,
-        },
-      ],
+      args: [],
       type: '[BookableSlot!]!',
       typeName: 'BookableSlot',
       isDeprecated: false,
@@ -32,15 +24,7 @@ const model: GraphQLSchemaModel = {
     {
       name: 'createCalendarGroupEvent',
       description: 'Creates an event across every calendar in a group.',
-      args: [
-        {
-          name: 'input',
-          description: 'The event to create.',
-          type: 'CreateCalendarGroupEventInput!',
-          typeName: 'CreateCalendarGroupEventInput',
-          defaultValue: null,
-        },
-      ],
+      args: [],
       type: 'CalendarEvent!',
       typeName: 'CalendarEvent',
       isDeprecated: false,
@@ -62,44 +46,28 @@ const model: GraphQLSchemaModel = {
 };
 
 describe('SchemaReferenceIndex', () => {
-  it('renders queries with their args', () => {
+  it('links to the queries, mutations, and types pages', () => {
     render(<SchemaReferenceIndex model={model} />);
 
-    expect(screen.getByText('calendarGroupBookableSlots')).toBeInTheDocument();
-    expect(screen.getByText('calendarGroupId:')).toBeInTheDocument();
-  });
-
-  it('renders mutations with their args', () => {
-    render(<SchemaReferenceIndex model={model} />);
-
-    expect(screen.getByText('createCalendarGroupEvent')).toBeInTheDocument();
-    expect(screen.getByText('input:')).toBeInTheDocument();
-  });
-
-  it('renders the types table with a link to the type detail page', () => {
-    render(<SchemaReferenceIndex model={model} />);
-
-    const typeLink = screen.getByRole('link', { name: 'BookableSlot' });
-    expect(typeLink).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Queries/ })).toHaveAttribute(
       'href',
-      '/docs/reference/types/BookableSlot'
+      '/docs/reference/queries'
+    );
+    expect(screen.getByRole('link', { name: /Mutations/ })).toHaveAttribute(
+      'href',
+      '/docs/reference/mutations'
+    );
+    expect(screen.getByRole('link', { name: /Types/ })).toHaveAttribute(
+      'href',
+      '/docs/reference/types'
     );
   });
 
-  it('links a query return type that resolves to a documented type', () => {
+  it('shows a per-section count', () => {
     render(<SchemaReferenceIndex model={model} />);
 
-    const links = screen.getAllByRole('link', { name: '[BookableSlot!]!' });
-    expect(links[0]).toHaveAttribute(
-      'href',
-      '/docs/reference/types/BookableSlot'
-    );
-  });
-
-  it('renders custom scalars', () => {
-    render(<SchemaReferenceIndex model={model} />);
-
-    expect(screen.getByText('DateTime')).toBeInTheDocument();
-    expect(screen.getByText(/ISO-8601 date-time/)).toBeInTheDocument();
+    expect(screen.getByText('1 queries')).toBeInTheDocument();
+    expect(screen.getByText('1 mutations')).toBeInTheDocument();
+    expect(screen.getByText('1 types')).toBeInTheDocument();
   });
 });

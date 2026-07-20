@@ -56,7 +56,7 @@ export function ProviderConnectCallback() {
       // The user aborted (or the provider errored) mid-connect — a
       // dismissal, not an app failure.
       toast.info('Social account connection was cancelled.');
-      router.replace('/security');
+      router.replace('/account/security');
       return;
     }
     if (mode.kind !== 'connect') return;
@@ -76,11 +76,11 @@ export function ProviderConnectCallback() {
             result.message ?? 'Could not connect the social account.'
           );
         }
-        router.replace('/security');
+        router.replace('/account/security');
       })
       .catch(() => {
         toast.error('Could not connect the social account.');
-        router.replace('/security');
+        router.replace('/account/security');
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
