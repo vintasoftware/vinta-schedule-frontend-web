@@ -36,34 +36,15 @@ describe('MarketingHome', () => {
     expect(bookingApiLink).toHaveAttribute('href', '/docs/reference');
   });
 
-  it('keeps placeholder links (SDKs) pointing to #', () => {
+  it('renders footer Status links pointing to the status page', () => {
     render(<MarketingHome />);
-    const links = screen.getAllByRole('link');
-    const sdksLink = links.find((link) => link.textContent?.trim() === 'SDKs');
-    expect(sdksLink).toHaveAttribute('href', '#');
-  });
-
-  it('keeps placeholder links (Status in Developers) pointing to #', () => {
-    render(<MarketingHome />);
-    const links = screen.getAllByRole('link');
-    // Filter for Status links (there are two: one in Developers, one in Trust)
-    const statusLinks = links.filter(
-      (link) => link.textContent?.trim() === 'Status'
-    );
-    // Verify we found the expected Status links before asserting their href
+    const statusLinks = screen.getAllByRole('link', { name: /^status$/i });
     expect(statusLinks).toHaveLength(2);
-    // All Status links should point to #
     statusLinks.forEach((link) => {
-      expect(link).toHaveAttribute('href', '#');
+      expect(link).toHaveAttribute(
+        'href',
+        'https://status.schedule.vintasoftware.com/'
+      );
     });
-  });
-
-  it('keeps placeholder links (Changelog) pointing to #', () => {
-    render(<MarketingHome />);
-    const links = screen.getAllByRole('link');
-    const changelogLink = links.find(
-      (link) => link.textContent?.trim() === 'Changelog'
-    );
-    expect(changelogLink).toHaveAttribute('href', '#');
   });
 });
