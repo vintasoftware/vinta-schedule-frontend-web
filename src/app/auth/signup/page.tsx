@@ -105,6 +105,7 @@ function SignupPageContent() {
   const authenticationFlowControl = useAuthenticationFlowControl(router);
   const { signUp, signUpMutation } = useSignUp();
   const [error, setError] = useState<string | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const { providerLogin, providerLoginMutation } = useProviderLogin();
 
@@ -211,13 +212,22 @@ function SignupPageContent() {
                     <Button
                       key={provider.id}
                       onClick={async () => {
-                        const { redirect_url: redirectUrl } =
-                          await providerLogin({
-                            provider: provider.id,
-                            callbackUrl: `${window.location.origin}/auth/social/${provider.id}/callback`,
-                            process: 'login',
-                          });
-                        window.location.href = redirectUrl;
+                        setSocialError(null);
+                        try {
+                          const { redirect_url: redirectUrl } =
+                            await providerLogin({
+                              provider: provider.id,
+                              callbackUrl: `${window.location.origin}/auth/social/${provider.id}/callback`,
+                              process: 'login',
+                            });
+                          window.location.href = redirectUrl;
+                        } catch (err) {
+                          setSocialError(
+                            err instanceof Error
+                              ? err.message
+                              : 'Could not start social sign-in. Please try again.'
+                          );
+                        }
                       }}
                       disabled={
                         signUpMutation.isPending ||
@@ -230,6 +240,12 @@ function SignupPageContent() {
                       Sign in with {provider.name}
                     </Button>
                   ))}
+                  {socialError && (
+                    <Alert variant='destructive'>
+                      <AlertTitle>Social sign-in failed</AlertTitle>
+                      <AlertDescription>{socialError}</AlertDescription>
+                    </Alert>
+                  )}
                 </VStack>
               ) : null}
             </Box>
