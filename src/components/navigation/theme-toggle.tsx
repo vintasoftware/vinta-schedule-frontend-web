@@ -26,17 +26,12 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
-  // Prevent hydration mismatch by not rendering until mounted
+  // Reserve icon-button space until `next-themes` resolves on the client. Avoid
+  // `disabled` on the placeholder — React 19 SSR can emit `disabled=""` in HTML
+  // while the server fiber records `disabled={null}`, which triggers hydration
+  // warnings when the client re-renders with `disabled={true}`.
   if (!mounted) {
-    return (
-      <Button size='icon' disabled>
-        <Box width='1.2rem' height='1.2rem' />
-        {/* TODO(ds-gap): no VisuallyHidden primitive — `sr-only` has no prop. */}
-        <Text as='span' className='sr-only'>
-          Toggle theme
-        </Text>
-      </Button>
-    );
+    return <Box width='2.25rem' height='2.25rem' aria-hidden />;
   }
 
   const toggleTheme = () => {
