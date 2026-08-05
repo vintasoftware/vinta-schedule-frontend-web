@@ -86,22 +86,22 @@ import type { CurrentMembership, MyMembership } from '@/client';
 
 const MEMBER_MEMBERSHIP: CurrentMembership = {
   role: 'member',
-  organization: { id: 1, name: 'Test Org' },
   can_manage_branding: false,
+  organization: { id: 1, name: 'Test Org' },
 };
 
 const ADMIN_MEMBERSHIP: CurrentMembership = {
   role: 'admin',
-  organization: { id: 1, name: 'Test Org' },
   can_manage_branding: false,
+  organization: { id: 1, name: 'Test Org' },
 };
 
 // Reseller org: flagged can_invite_organizations. Only these orgs surface the
 // Branding link in the sidebar.
 const RESELLER_ADMIN_MEMBERSHIP: CurrentMembership = {
   role: 'admin',
-  organization: { id: 1, name: 'Test Org', can_invite_organizations: true },
   can_manage_branding: true,
+  organization: { id: 1, name: 'Test Org', can_invite_organizations: true },
 };
 
 function mockOrgSuccess(membership: CurrentMembership) {
@@ -337,8 +337,9 @@ describe('AppLayout (integration)', () => {
       // activeMembership becomes non-null and the recovery effect can fire.
       mockMineList([
         {
-          organization: { id: 1, name: 'Test Org' },
+          organization: { id: 1, name: 'Test Org', slug: null },
           role: 'member',
+          can_manage_branding: false,
         } as MyMembership,
       ]);
       renderLayout(<div>page content</div>);
@@ -366,8 +367,9 @@ describe('AppLayout (integration)', () => {
       mockOrg403();
       mockMineList([
         {
-          organization: { id: 2, name: 'Org B' },
+          organization: { id: 2, name: 'Org B', slug: null },
           role: 'member',
+          can_manage_branding: false,
         } as MyMembership,
       ]);
       renderLayout(<div>page content</div>);

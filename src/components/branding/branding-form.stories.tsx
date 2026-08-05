@@ -51,7 +51,7 @@ export const Prefilled: Story = {
       primary_color: '#1B4DFF',
       secondary_color: '#0D1F6B',
       support_email: 'support@myscheduler.example.com',
-      redirect_url: 'https://myscheduler.example.com/auth/callback',
+      redirect_url: 'https://myscheduler.example.com/dashboard',
     },
   },
 };

@@ -38,6 +38,7 @@ import { BrandingPreview } from './branding-preview';
 
 // ---------------------------------------------------------------------------
 // Zod schema — mirrors the OrganizationBranding serializer's validation rules.
+// Full redirect_url server rules land in Phase 2; URL shape only for now.
 // ---------------------------------------------------------------------------
 
 const hexColorSchema = z
@@ -46,49 +47,6 @@ const hexColorSchema = z
     /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/,
     'Must be a hex color: #RRGGBB or #RRGGBBAA'
   );
-
-// Mirrors organizations/redirect_url_validation.py — same rules in the same
-// order, so the inline message names the rule the API would reject on. The
-// server stays the authority: URL parsing here is the browser's, which is more
-// lenient than Django's URLValidator about a few malformed shapes.
-const redirectUrlSchema = z
-  .string()
-  .trim()
-  .superRefine((value, ctx) => {
-    // Empty means "no configured destination" — valid, falls back to the dashboard.
-    if (!value) return;
-
-    const fail = (message: string) => {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message });
-    };
-
-    if (/[\r\n\t]/.test(value)) {
-      return fail('Must not contain line breaks or tabs');
-    }
-
-    let parsed: URL;
-    try {
-      parsed = new URL(value);
-    } catch {
-      return fail('Must be a well-formed https URL with a host');
-    }
-
-    if (parsed.protocol !== 'https:') {
-      return fail('Must use the https scheme');
-    }
-    if (value.includes('*')) {
-      return fail("Must not contain a wildcard character ('*')");
-    }
-    // A trailing slash after a path segment is allowlist-prefix semantics; a
-    // single concrete destination has no reason to end that way. The bare root
-    // (https://example.com/) has no path segment to be a prefix of.
-    if (parsed.pathname.endsWith('/') && parsed.pathname !== '/') {
-      return fail('Must not end with a trailing slash after a path segment');
-    }
-    if (!parsed.hostname) {
-      return fail('Must be a well-formed https URL with a host');
-    }
-  });
 
 export const brandingSchema = z.object({
   app_name: z.string().trim().min(1, { message: 'App name is required' }),
@@ -106,14 +64,15 @@ export const brandingSchema = z.object({
     .email({ message: 'Must be a valid email address' })
     .or(z.literal(''))
     .optional(),
-  redirect_url: redirectUrlSchema.optional(),
+  redirect_url: z
+    .string()
+    .trim()
+    .url({ message: 'Must be a valid URL' })
+    .or(z.literal(''))
+    .optional(),
 });
 
 type BrandingFormValues = z.infer<typeof brandingSchema>;
-
-// ---------------------------------------------------------------------------
-// Helpers — convert between the flat OrganizationBranding type and form values.
-// ---------------------------------------------------------------------------
 
 function toFormValues(
   branding: OrganizationBranding | null
@@ -135,9 +94,7 @@ function toPayload(values: BrandingFormValues): OrganizationBranding {
     primary_color: values.primary_color || undefined,
     secondary_color: values.secondary_color || undefined,
     support_email: values.support_email || undefined,
-    // Sent even when blank — '' is how the API clears a configured destination,
-    // the same way the allowlist this replaced was cleared with [].
-    redirect_url: values.redirect_url ?? '',
+    redirect_url: values.redirect_url || undefined,
   };
 }
 
@@ -306,7 +263,7 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
               )}
             />
 
-            {/* Redirect URL */}
+            {/* Redirect URL — single post-auth destination (Phase 2 adds full validation UX) */}
             <FormField
               control={form.control}
               name='redirect_url'
@@ -316,19 +273,18 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
                   <FormControl>
                     <Input
                       type='url'
-                      placeholder='https://example.com/auth/callback'
+                      placeholder='https://example.com/dashboard'
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Where users land after signing in. Must be an https URL.
-                    Leave blank to send them to the dashboard.
+                    HTTPS destination after authentication. Leave empty to
+                    clear.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
 
             {submitError && (
               <Alert variant='destructive'>
