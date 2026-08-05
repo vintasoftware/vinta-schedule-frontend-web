@@ -135,16 +135,3 @@ describe('fetchBrandingForTenant', () => {
     expect(result).toEqual(VINTA_DEFAULT_BRANDING);
   });
 });
-
-// ---------------------------------------------------------------------------
-// Client-driven return-URL validation removal
-// ---------------------------------------------------------------------------
-
-describe('branding-server module surface', () => {
-  it('no longer exports the removed GraphQL return-URL validator — post-login navigation is server-resolved via the OAuth callback `destination` field', async () => {
-    const brandingServer = await import('./branding-server');
-    expect(
-      (brandingServer as Record<string, unknown>)['fetchValidatedReturnUrl']
-    ).toBeUndefined();
-  });
-});

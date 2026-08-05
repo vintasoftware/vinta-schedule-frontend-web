@@ -173,9 +173,13 @@ describe('handleProviderLoginCallback — destination-based redirect', () => {
     const result = await handleProviderLoginCallback('google', {
       code: 'abc',
       tenant_id: 'tenant-99',
+      // Adversarial: a client-sent `next` must never be used as a redirect
+      // target — only the backend-resolved `destination` field can be.
+      next: 'https://evil.com/phish',
     });
 
     expect(result.url).toBe('/auth/social/google/success?tenant_id=tenant-99');
+    expect(result.url).not.toContain('evil.com');
   });
 
   it('falls back to the success interstitial when destination is an empty string', async () => {
@@ -189,24 +193,19 @@ describe('handleProviderLoginCallback — destination-based redirect', () => {
     expect(result.url).toBe('/auth/social/google/success?tenant_id=tenant-99');
   });
 
-  it('never imports or calls the removed fetchValidatedReturnUrl / client next-allowlist logic', async () => {
+  it('uses the backend-resolved destination even when a client-sent next is also present', async () => {
     mockCallbackJson({
       ...AUTHENTICATED_200,
       destination: 'https://app.reseller.com/dashboard',
     });
 
-    await handleProviderLoginCallback('google', {
+    const result = await handleProviderLoginCallback('google', {
       code: 'abc',
       tenant_id: 'tenant-99',
       next: 'https://evil.com/phish',
     });
 
-    // The function no longer exists on the module at all — it can't have
-    // been called if it was never imported.
-    const brandingServer = await import('@/lib/branding-server');
-    expect(
-      (brandingServer as Record<string, unknown>).fetchValidatedReturnUrl
-    ).toBeUndefined();
+    expect(result.url).toBe('https://app.reseller.com/dashboard');
   });
 });
 
@@ -214,7 +213,7 @@ describe('handleProviderLoginCallback — destination-based redirect', () => {
 // POST / GET handlers — absolute URL must NOT be prefixed with request origin
 // ---------------------------------------------------------------------------
 
-// Guard against the open-redirect-concat bug class: an absolute sanitizedUrl
+// Guard against the open-redirect-concat bug class: an absolute destination
 // returned by the backend (e.g. "https://app.reseller.com/dashboard") must be
 // used as-is in the HTTP redirect — it must NOT be prepended with the request
 // origin to produce garbage like "https://localhost...https://app.reseller.com".

@@ -1,4 +1,3 @@
-import type { Page, TestInfo } from '@playwright/test';
 import { BasePage } from './base-page';
 
 /**
@@ -10,10 +9,6 @@ import { BasePage } from './base-page';
  * the blocker note in `e2e/tests/app/PR044-oauth-destination.spec.ts`.
  */
 export class LoginPage extends BasePage {
-  constructor(page: Page, testInfo: TestInfo) {
-    super(page, testInfo);
-  }
-
   async open(): Promise<void> {
     await this.goto('/auth/login');
   }

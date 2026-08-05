@@ -22,13 +22,13 @@ export async function POST(
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
 
   const requestBaseUrl = `${protocol}://${host}`;
-  // Only prefix the base URL for relative (path) URLs; absolute external URLs
-  // (allowlisted reseller return URLs) are used as-is to avoid producing a
+  // Only prefix the base URL for relative (path) URLs; absolute
+  // backend-resolved `destination` URLs are used as-is to avoid producing a
   // garbage host like "https://vinta.comhttps://app.reseller.com/...".
-  const destination = /^https?:\/\//i.test(url)
+  const redirectUrl = /^https?:\/\//i.test(url)
     ? url
     : `${requestBaseUrl}${url}`;
-  const response = NextResponse.redirect(destination);
+  const response = NextResponse.redirect(redirectUrl);
   cookiesToSet?.forEach(({ name, value, options }) => {
     response.cookies.set(name, value, options);
   });
@@ -54,13 +54,13 @@ export async function GET(
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
 
   const requestBaseUrl = `${protocol}://${host}`;
-  // Only prefix the base URL for relative (path) URLs; absolute external URLs
-  // (allowlisted reseller return URLs) are used as-is to avoid producing a
+  // Only prefix the base URL for relative (path) URLs; absolute
+  // backend-resolved `destination` URLs are used as-is to avoid producing a
   // garbage host like "https://vinta.comhttps://app.reseller.com/...".
-  const destination = /^https?:\/\//i.test(url)
+  const redirectUrl = /^https?:\/\//i.test(url)
     ? url
     : `${requestBaseUrl}${url}`;
-  const response = NextResponse.redirect(destination);
+  const response = NextResponse.redirect(redirectUrl);
   cookiesToSet?.forEach(({ name, value, options }) => {
     response.cookies.set(name, value, options);
   });
@@ -76,6 +76,14 @@ type CookieOptions = {
   sameSite?: 'lax' | 'strict' | 'none';
   // Add other cookie options if needed
 };
+
+// A backend-resolved `destination` must be either an absolute http(s) URL or
+// a same-origin relative path (a single leading `/`, not `//…`, which browsers
+// treat as protocol-relative to an arbitrary host). Anything else is rejected
+// and falls back to the interstitial rather than being used as a redirect.
+function isSafeDestination(destination: string): boolean {
+  return /^https?:\/\//i.test(destination) || /^\/(?!\/)/.test(destination);
+}
 
 type CallbackResult = {
   url: string;
@@ -216,7 +224,9 @@ export async function handleProviderLoginCallback(
 
     // Read `destination` before the type guard narrows `response` to the
     // generated `AuthenticatedResponse` shape, which doesn't know about it.
-    const destination = response.destination;
+    // Trim so a whitespace-only value falls through to the interstitial
+    // instead of being treated as a truthy destination.
+    const destination = response.destination?.trim() || null;
 
     if (isAuthenticatedResponse(response)) {
       if (!response.meta?.access_token) {
@@ -290,8 +300,9 @@ export async function handleProviderLoginCallback(
       // destination"). An absent/empty `destination` falls back to the
       // success interstitial.
       let successUrl: string;
-      if (destination) {
-        // `destination` is always an absolute URL — no origin prefix needed.
+      if (destination && isSafeDestination(destination)) {
+        // `destination` is either an absolute URL or a same-origin relative
+        // path — no origin prefix needed either way.
         successUrl = destination;
       } else {
         const base = `/auth/social/${provider}/success`;

@@ -34,14 +34,9 @@ import { LoginPage } from '../../page-objects/login-page';
  */
 
 test.describe('PR044 — OAuth destination navigation', () => {
-  test('member completes social login and lands on the resolved destination', async ({
+  test.skip('member completes social login and lands on the resolved destination', async ({
     memberPage,
   }, testInfo) => {
-    test.skip(
-      true,
-      'No automatable identity provider in this harness — see the file-header doc comment for the blocker and the unit-test merge gate.'
-    );
-
     // Scaffolding for when a testable IdP becomes available.
     const loginPage = new LoginPage(memberPage, testInfo);
     await loginPage.open();
