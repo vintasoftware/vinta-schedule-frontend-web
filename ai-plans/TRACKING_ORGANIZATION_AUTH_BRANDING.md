@@ -32,10 +32,12 @@
 
 ### Phase 1 — Honor OAuth `destination`; delete `validateReturnUrl` ✅
 
-- **Status**: review PASS (SHOULD-FIX fixed); integrating
+- **Status**: published
 - **Model**: implementer `claude-sonnet-5-thinking-high` (plan Tier 3); reviewer `claude-opus-5-thinking-high` (phase override Tier 4); fixer `claude-sonnet-5-thinking-high` (agent_models.fixer Tier 2)
 - **Branch**: `plan/organization-auth-branding/phase-1`
 - **Base**: `plan/organization-auth-branding/phase-0`
+- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/78
+- **PR-context**: `.vinta-ai-workflows/prs-context/organization-auth-branding/phase-1.md` (`status: published`)
 - **E2E**: PR044 present, `test.skip` (no automatable IdP); Playwright not run (`run_e2e = false`)
 - **Summary**: Callback uses server `destination` (hand-typed); removed `fetchValidatedReturnUrl` + allowlist/`next` landing logic. Hardened with trim + absolute/relative shape guard; adversarial leftover-`next` tests restored. Pending flows unchanged. Only remaining `validateReturnUrl` string in `src/` is the GraphQL introspection snapshot under `__generated__/`.
 
