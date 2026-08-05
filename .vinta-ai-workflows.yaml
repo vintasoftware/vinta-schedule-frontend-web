@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=./node_modules/vinta-ai-workflows/schemas/vinta-ai-workflows-config.v1.schema.json
 
 schema_version: 1
-vinta_ai_workflows_version: 0.2.0
-last_synced_at: 2026-07-16T00:00:00Z
+vinta_ai_workflows_version: 0.5.0
+last_synced_at: 2026-08-05T00:00:00Z
 
 project:
   name: vinta-schedule-frontend-web
@@ -65,6 +65,7 @@ foundation_skills:
   thermo-nuclear-code-quality-review: enabled
   deslop-comments: enabled
   handoff: enabled
+  write-unit-test: enabled
   add-one-off-script: disabled
   handoff-to-client: disabled
 
@@ -105,3 +106,26 @@ skills:
     # No database in this repo — the frontend talks to an external API. This value is inert.
     test_db_strategy: fork-on-schema-change
     summary_dir: .vinta-ai-workflows/worktrees
+    # No docker-compose file in this repo, so Step 4a's compose-isolation pass never runs and
+    # there is no volume to exempt. Empty is also the safe default: fork every leaky volume.
+    shared_volumes: []
+  write-unit-test:
+    # Confirmed 2026-08-05 against the 146-file Vitest suite.
+    # Defer to the Vitest pack; the suite groups cases in a top-level describe() per unit.
+    test_style: framework-default
+    # Local builder helpers in the test file; promote to *.fixtures.ts only when shared.
+    data_setup: inline
+    assertion_style: plain-assert
+    # No database — isolation here means resetting module mocks and client-side state.
+    db_isolation: framework-default
+    additional_conventions:
+      - Colocate the test as *.test.ts / *.test.tsx next to the source file; the repo has no
+        __tests__/ directories and both Vitest projects glob **/*.{test,spec}.{ts,tsx}.
+      - Two Vitest projects — the root config covers src/**, packages/design-system has its own
+        vitest.config.ts and vitest.setup.ts. `pnpm run test` runs both; scope with
+        `pnpm vitest run <path-or-pattern>` or `pnpm --filter vinta-schedule-design-system test`.
+      - Mock with vi.mock at module scope, then vi.clearAllMocks() in beforeEach. Mock only
+        genuine externals at the boundary (sonner, the generated API client, next/navigation).
+      - Global cleanup already runs in the root vitest.setup.ts afterEach — Testing Library
+        cleanup(), localStorage.clear(), and cookie expiry, plus jsdom polyfills for
+        ResizeObserver / elementFromPoint / scrollIntoView. Don't re-implement it.
