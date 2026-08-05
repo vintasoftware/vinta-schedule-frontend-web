@@ -78,11 +78,10 @@ test`.
 `pnpm run test`, and `pnpm run format` all clean. Add/update a Storybook story for visual
 components and a test for logic.
 
-> **No CI job runs lint, typecheck, test, or e2e.** The only workflows in
-> `.github/workflows/` are deploy workflows (`deploy-production.yml`,
-> `deploy-storybook.yml`). The definition of done above is enforced by convention — by
-> agents and humans — not by a gate. Do not assume CI will catch a failure you didn't run
-> locally.
+> **PR CI runs lint, typecheck, and unit tests** via `.github/workflows/ci.yml`. Format
+> check and Playwright e2e are not in CI — run `pnpm run format` and `npx playwright test`
+> locally before merge. Deploy workflows (`deploy-production.yml`, `deploy-storybook.yml`)
+> are separate.
 
 ## Code Style
 
@@ -194,7 +193,7 @@ src/
   stories/              # app-level Storybook stories (page layouts)
 e2e/                    # Playwright suite (see Testing → E2E)
 .storybook/             # app Storybook (nextjs-vite) — feature stories
-.github/workflows/      # deploy-only: production (Vercel), storybook (Pages)
+.github/workflows/      # CI (PRs), production deploy (Vercel), storybook (Pages)
 ai-plans/               # implementation plans + specs
 ```
 

@@ -701,11 +701,12 @@ describe('BookingFormDialog', () => {
       expect(startTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
       expect(endTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
 
-      // Availability check must have used the OFFSET form (with timezone info).
+      // Availability check must have used the offset form (with timezone info).
+      // Luxon emits `Z` for UTC and `±HH:MM` otherwise — both are valid.
       const checkCall = vi.mocked(calendarUnavailableWindowsList).mock
         .calls[0][0];
       const checkStart = checkCall.query?.start_datetime as string;
-      expect(checkStart).toMatch(/[+-]\d{2}:\d{2}$/);
+      expect(checkStart).toMatch(/([+-]\d{2}:\d{2}|Z)$/);
     });
 
     it('override rejected: error toast shown and no close when calendarEventsCreate rejects', async () => {

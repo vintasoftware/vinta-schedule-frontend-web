@@ -503,11 +503,12 @@ describe('RescheduleDialog', () => {
       expect(startTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
       expect(endTime).not.toMatch(/[+-]\d{2}:\d{2}|Z$/);
 
-      // Availability check must still receive the OFFSET form.
+      // Availability check must still receive the offset form.
+      // Luxon emits `Z` for UTC and `±HH:MM` otherwise — both are valid.
       const checkCall = vi.mocked(calendarUnavailableWindowsList).mock
         .calls[0][0];
       const checkStart = checkCall.query?.start_datetime as string;
-      expect(checkStart).toMatch(/[+-]\d{2}:\d{2}$/);
+      expect(checkStart).toMatch(/([+-]\d{2}:\d{2}|Z)$/);
     });
   });
 });
