@@ -21,10 +21,12 @@
 
 ### Phase 0 — Sync schemas and regenerate clients ✅
 
-- **Status**: review PASS; integrating
+- **Status**: published
 - **Model**: implementer `composer-2.5-fast` (plan Tier 1); reviewer `claude-sonnet-5-thinking-high` (agent_models.reviewer Tier 3); fixer n/a
 - **Branch**: `plan/organization-auth-branding/phase-0`
 - **Base**: `main`
+- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/77
+- **PR-context**: `.vinta-ai-workflows/prs-context/organization-auth-branding/phase-0.md` (`status: published`)
 - **E2E**: skipped (`run_e2e = false`)
 - **Summary**: Copied backend `schema.yml`, regenerated REST client. Types now have `redirect_url` on branding and `can_manage_branding` on memberships; `OrganizationBrief.slug` is `string | null`. Minimal compile fixes: branding form allowlist → single `redirect_url` input (Phase 2 owns full validation); fixture updates; `KindEnum` → `ExternalEventChangeRequestKindEnum`. `schema-auth.yml` unchanged vs HEAD — no `destination` field (Phase 1 hand-extends). Typecheck + scoped tests green.
 
