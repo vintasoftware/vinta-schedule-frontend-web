@@ -41,13 +41,21 @@
 - **E2E**: PR044 present, `test.skip` (no automatable IdP); Playwright not run (`run_e2e = false`)
 - **Summary**: Callback uses server `destination` (hand-typed); removed `fetchValidatedReturnUrl` + allowlist/`next` landing logic. Hardened with trim + absolute/relative shape guard; adversarial leftover-`next` tests restored. Pending flows unchanged. Only remaining `validateReturnUrl` string in `src/` is the GraphQL introspection snapshot under `__generated__/`.
 
+### Phase 2 — Branding form: `redirect_url` replaces allowlist ✅
+
+- **Status**: published (pending PR open)
+- **Model**: implementer `composer-2.5-fast`; reviewer `cursor-grok-4.5-high`; fixer `composer-2.5-fast` (Cursor models per user request)
+- **Branch**: `plan/organization-auth-branding/phase-2`
+- **Base**: `plan/organization-auth-branding/phase-1`
+- **E2E**: n/a
+- **Summary**: Full Zod for five handoff rules; label/help copy; page reseller wording updated. Fixer corrected empty-clear to send `""` in PUT body (not omit). 27 branding unit tests green.
+
 ## Current phase
 
-Paused after Phase 1 — awaiting user confirmation before Phase 2.
+Paused after Phase 2 — awaiting user confirmation before Phase 3.
 
 ## Remaining phases
 
-- Phase 2 — Branding form: `redirect_url` replaces allowlist
 - Phase 3 — Gate Branding on `can_manage_branding`
 - Phase 4 — Slug field on the branding page
 - Phase 5 — Distinguishable branding write 403 UIs
