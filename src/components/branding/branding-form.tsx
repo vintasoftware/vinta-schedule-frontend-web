@@ -154,7 +154,7 @@ function toPayload(values: BrandingFormValues): OrganizationBranding {
     primary_color: values.primary_color || undefined,
     secondary_color: values.secondary_color || undefined,
     support_email: values.support_email || undefined,
-    redirect_url: values.redirect_url || undefined,
+    redirect_url: values.redirect_url ?? '',
   };
 }
 

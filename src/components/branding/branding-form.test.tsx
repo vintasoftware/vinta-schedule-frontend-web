@@ -316,7 +316,7 @@ describe('BrandingForm', () => {
       expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
     });
 
-    it('accepts empty redirect_url and omits it from the PUT body', async () => {
+    it('accepts empty redirect_url and sends empty string in the PUT body to clear', async () => {
       const user = userEvent.setup();
       vi.mocked(brandingUpdate).mockResolvedValue(
         makeBrandingResponse({ app_name: 'TestApp' })
@@ -332,8 +332,32 @@ describe('BrandingForm', () => {
       });
 
       const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
-      expect(callArgs?.body?.redirect_url).toBeUndefined();
+      expect(callArgs?.body?.redirect_url).toBe('');
       expect(Array.isArray(callArgs?.body?.redirect_url)).toBe(false);
+    });
+
+    it('clears a prefilled redirect_url when the input is emptied and saved', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({ app_name: 'TestApp' })
+      );
+
+      renderForm({
+        app_name: 'TestApp',
+        redirect_url: 'https://example.com/dashboard',
+      });
+
+      const redirectInput = screen.getByLabelText(redirectUrlLabel);
+      await user.clear(redirectInput);
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.redirect_url).toBe('');
     });
 
     it('accepts a valid redirect_url and sends it as a string in the PUT body', async () => {
@@ -448,11 +472,12 @@ describe('BrandingForm', () => {
       const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
       // Optional fields with empty strings are stripped from the payload (mapped
       // to undefined in toPayload so JSON.stringify omits them entirely).
+      // redirect_url is the exception — empty string clears the configured destination.
       expect(callArgs?.body?.logo_url).toBeUndefined();
       expect(callArgs?.body?.primary_color).toBeUndefined();
       expect(callArgs?.body?.secondary_color).toBeUndefined();
       expect(callArgs?.body?.support_email).toBeUndefined();
-      expect(callArgs?.body?.redirect_url).toBeUndefined();
+      expect(callArgs?.body?.redirect_url).toBe('');
     });
 
     it('includes redirect_url in the payload when set', async () => {
