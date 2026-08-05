@@ -13,12 +13,6 @@ vi.mock('@/addicional-auth-client/provider-login-callback-json', () => ({
     postCallback(...args),
 }));
 
-const mockFetchValidatedReturnUrl = vi.fn();
-vi.mock('@/lib/branding-server', () => ({
-  fetchValidatedReturnUrl: (...args: unknown[]) =>
-    mockFetchValidatedReturnUrl(...args),
-}));
-
 import { handleProviderLoginCallback, GET, POST } from './route';
 
 // The exact 401 body the headless callback returns for a brand-new Google user
@@ -144,7 +138,7 @@ describe('handleProviderLoginCallback — returning user (200)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleProviderLoginCallback — `next` param + validateReturnUrl
+// handleProviderLoginCallback — server-resolved `destination`
 // ---------------------------------------------------------------------------
 
 const AUTHENTICATED_200 = {
@@ -153,57 +147,28 @@ const AUTHENTICATED_200 = {
   meta: { access_token: 'acc-token', refresh_token: 'ref-token' },
 };
 
-describe('handleProviderLoginCallback — next param redirect', () => {
+describe('handleProviderLoginCallback — destination-based redirect', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getCookie.mockReturnValue({ value: 'incoming-session-token' });
-    mockFetchValidatedReturnUrl.mockResolvedValue(null);
   });
 
-  it('redirects to the validated absolute URL when fetchValidatedReturnUrl resolves one', async () => {
-    mockCallbackJson(AUTHENTICATED_200);
-    mockFetchValidatedReturnUrl.mockResolvedValue(
-      'https://app.reseller.com/dashboard'
-    );
+  it('redirects to the backend-resolved destination when present', async () => {
+    mockCallbackJson({
+      ...AUTHENTICATED_200,
+      destination: 'https://app.reseller.com/dashboard',
+    });
 
     const result = await handleProviderLoginCallback('google', {
       code: 'abc',
       tenant_id: 'tenant-99',
-      next: 'https://app.reseller.com/dashboard',
     });
 
     expect(result.url).toBe('https://app.reseller.com/dashboard');
   });
 
-  it('falls back to the success interstitial when fetchValidatedReturnUrl returns null', async () => {
+  it('falls back to the success interstitial when destination is absent', async () => {
     mockCallbackJson(AUTHENTICATED_200);
-    mockFetchValidatedReturnUrl.mockResolvedValue(null);
-
-    const result = await handleProviderLoginCallback('google', {
-      code: 'abc',
-      tenant_id: 'tenant-99',
-      next: 'https://evil.com/phish',
-    });
-
-    expect(result.url).toBe('/auth/social/google/success?tenant_id=tenant-99');
-  });
-
-  it('threads tenant_id into the fallback success URL when next is off-allowlist', async () => {
-    mockCallbackJson(AUTHENTICATED_200);
-    mockFetchValidatedReturnUrl.mockResolvedValue(null);
-
-    const result = await handleProviderLoginCallback('google', {
-      code: 'abc',
-      tenant_id: 'tenant-99',
-      next: 'https://evil.com/phish',
-    });
-
-    expect(result.url).toContain('tenant_id=tenant-99');
-  });
-
-  it('falls back to success interstitial when no next param is present', async () => {
-    mockCallbackJson(AUTHENTICATED_200);
-    // fetchValidatedReturnUrl is not expected to be called (no next param)
 
     const result = await handleProviderLoginCallback('google', {
       code: 'abc',
@@ -211,6 +176,37 @@ describe('handleProviderLoginCallback — next param redirect', () => {
     });
 
     expect(result.url).toBe('/auth/social/google/success?tenant_id=tenant-99');
+  });
+
+  it('falls back to the success interstitial when destination is an empty string', async () => {
+    mockCallbackJson({ ...AUTHENTICATED_200, destination: '' });
+
+    const result = await handleProviderLoginCallback('google', {
+      code: 'abc',
+      tenant_id: 'tenant-99',
+    });
+
+    expect(result.url).toBe('/auth/social/google/success?tenant_id=tenant-99');
+  });
+
+  it('never imports or calls the removed fetchValidatedReturnUrl / client next-allowlist logic', async () => {
+    mockCallbackJson({
+      ...AUTHENTICATED_200,
+      destination: 'https://app.reseller.com/dashboard',
+    });
+
+    await handleProviderLoginCallback('google', {
+      code: 'abc',
+      tenant_id: 'tenant-99',
+      next: 'https://evil.com/phish',
+    });
+
+    // The function no longer exists on the module at all — it can't have
+    // been called if it was never imported.
+    const brandingServer = await import('@/lib/branding-server');
+    expect(
+      (brandingServer as Record<string, unknown>).fetchValidatedReturnUrl
+    ).toBeUndefined();
   });
 });
 
@@ -234,12 +230,14 @@ vi.mock('next/server', () => ({
   NextResponse: { redirect: (url: string) => mockRedirect(url) },
 }));
 
-describe('POST handler — absolute validated next URL is not origin-prefixed', () => {
+describe('POST handler — absolute destination URL is not origin-prefixed', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getCookie.mockReturnValue({ value: 'incoming-session-token' });
-    mockFetchValidatedReturnUrl.mockResolvedValue(RESELLER_ABSOLUTE_URL);
-    mockCallbackJson(AUTHENTICATED_200);
+    mockCallbackJson({
+      ...AUTHENTICATED_200,
+      destination: RESELLER_ABSOLUTE_URL,
+    });
   });
 
   it('redirects to exactly the absolute URL — no localhost prefix', async () => {
@@ -255,32 +253,32 @@ describe('POST handler — absolute validated next URL is not origin-prefixed', 
         body: JSON.stringify({
           code: 'abc',
           tenant_id: 'tenant-99',
-          next: RESELLER_ABSOLUTE_URL,
         }),
       }
     );
 
     await POST(request, { params: Promise.resolve({ provider: 'google' }) });
 
-    const destination: string = mockRedirect.mock.calls[0][0];
-    expect(destination).toBe(RESELLER_ABSOLUTE_URL);
-    expect(destination).not.toContain('localhost');
-    expect(destination).not.toMatch(/^https?:\/\/[^/]+https?:\/\//);
+    const redirectUrl: string = mockRedirect.mock.calls[0][0];
+    expect(redirectUrl).toBe(RESELLER_ABSOLUTE_URL);
+    expect(redirectUrl).not.toContain('localhost');
+    expect(redirectUrl).not.toMatch(/^https?:\/\/[^/]+https?:\/\//);
   });
 });
 
-describe('GET handler — absolute validated next URL is not origin-prefixed', () => {
+describe('GET handler — absolute destination URL is not origin-prefixed', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getCookie.mockReturnValue({ value: 'incoming-session-token' });
-    mockFetchValidatedReturnUrl.mockResolvedValue(RESELLER_ABSOLUTE_URL);
-    mockCallbackJson(AUTHENTICATED_200);
+    mockCallbackJson({
+      ...AUTHENTICATED_200,
+      destination: RESELLER_ABSOLUTE_URL,
+    });
   });
 
   it('redirects to exactly the absolute URL — no localhost prefix', async () => {
-    const encodedNext = encodeURIComponent(RESELLER_ABSOLUTE_URL);
     const request = new Request(
-      `http://localhost:3000/auth/social/google/callback?code=abc&tenant_id=tenant-99&next=${encodedNext}`,
+      `http://localhost:3000/auth/social/google/callback?code=abc&tenant_id=tenant-99`,
       {
         method: 'GET',
         headers: {
@@ -292,9 +290,9 @@ describe('GET handler — absolute validated next URL is not origin-prefixed', (
 
     await GET(request, { params: Promise.resolve({ provider: 'google' }) });
 
-    const destination: string = mockRedirect.mock.calls[0][0];
-    expect(destination).toBe(RESELLER_ABSOLUTE_URL);
-    expect(destination).not.toContain('localhost');
-    expect(destination).not.toMatch(/^https?:\/\/[^/]+https?:\/\//);
+    const redirectUrl: string = mockRedirect.mock.calls[0][0];
+    expect(redirectUrl).toBe(RESELLER_ABSOLUTE_URL);
+    expect(redirectUrl).not.toContain('localhost');
+    expect(redirectUrl).not.toMatch(/^https?:\/\/[^/]+https?:\/\//);
   });
 });

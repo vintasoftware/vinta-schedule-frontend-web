@@ -167,12 +167,20 @@ path when shipped.
 
 ---
 
+## OAuth Destination (Organization Auth-Area Branding — Phase 1)
+
+| ID    | Role   | Happy-path description                                                                                     | Spec path                                                                                                       |
+| ----- | ------ | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| PR044 | member | After a successful social-provider login, the browser lands on the org's server-resolved `destination` URL | `e2e/tests/app/PR044-oauth-destination.spec.ts` (skipped — no automatable IdP in this harness; see file header) |
+
+---
+
 ## Counts
 
 | Category      | Count  |
 | ------------- | ------ |
-| Member (`PR`) | 29     |
+| Member (`PR`) | 30     |
 | Admin (`PA`)  | 14     |
-| **Total**     | **43** |
+| **Total**     | **44** |
 
-_Foundation smoke (PR000) is not counted in the 43 use-cases — it is harness scaffolding. PR039–PR043 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–7._
+_Foundation smoke (PR000) is not counted in the 44 use-cases — it is harness scaffolding. PR039–PR043 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–7. PR044 has a spec file but is `test.skip`-ped — no identity provider in this harness can complete a real OAuth consent screen; the callback route's unit tests are the merge gate until a testable IdP exists._

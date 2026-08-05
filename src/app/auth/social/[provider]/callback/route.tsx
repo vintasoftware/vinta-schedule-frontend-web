@@ -7,7 +7,6 @@ import {
 } from '@/lib/authentication-response-type-checks';
 import { cookies } from 'next/headers';
 import type { AuthenticationResponse, Flow } from '@/auth-client';
-import { fetchValidatedReturnUrl } from '@/lib/branding-server';
 // Removed invalid import of CookieOptions
 
 export async function POST(
@@ -197,14 +196,9 @@ export async function handleProviderLoginCallback(
 
   // The tenant_id may be embedded in the OAuth state param (set by the
   // initiating page) or passed as a direct query param. If present, we use it
-  // to fetch tenant branding for interstitials and to validate the `next` URL.
+  // to fetch tenant branding for interstitials.
   const tenantId = params.tenant_id || null;
 
-  // The `next` / return-URL the reseller's app wants to send the user back to
-  // after login. MUST be validated server-side against the tenant's allowlist
-  // before use. An absent or off-allowlist URL falls back to the default
-  // dashboard (no open-redirect risk).
-  const nextParam = params.next || null;
   const cookiesToSet: Array<{
     name: string;
     value: string;
@@ -219,6 +213,10 @@ export async function handleProviderLoginCallback(
         sessionToken: incomingSessionToken,
       })
     ).json();
+
+    // Read `destination` before the type guard narrows `response` to the
+    // generated `AuthenticatedResponse` shape, which doesn't know about it.
+    const destination = response.destination;
 
     if (isAuthenticatedResponse(response)) {
       if (!response.meta?.access_token) {
@@ -284,21 +282,18 @@ export async function handleProviderLoginCallback(
         });
       }
 
-      // Determine the post-login redirect URL.
-      // If a `next` param was supplied, ask the backend to validate it against
-      // the tenant's return-URL allowlist. The backend performs ALL matching
-      // and scheme-guard logic and returns the sanitized URL only when allowed.
-      // An absent/invalid/off-allowlist URL falls back to the success
-      // interstitial (which then redirects to /dashboard). Fail closed.
-      const validatedNext = await fetchValidatedReturnUrl(tenantId, nextParam);
+      // Determine the post-login redirect URL. The backend resolves
+      // `destination` entirely server-side from the authenticated user's
+      // organization and its configured branding `redirect_url` — the SPA
+      // must not decide this from client-sent `next`/`callback_url` state
+      // (see the organization-auth-branding handoff, "Resolved post-auth
+      // destination"). An absent/empty `destination` falls back to the
+      // success interstitial.
       let successUrl: string;
-      if (validatedNext) {
-        // The backend confirmed the URL is allowed — redirect directly there.
-        // sanitizedUrl is an absolute URL so no origin prefix is needed.
-        successUrl = validatedNext;
+      if (destination) {
+        // `destination` is always an absolute URL — no origin prefix needed.
+        successUrl = destination;
       } else {
-        // Off-allowlist, failed validation, or no next param — use the
-        // standard success interstitial.
         const base = `/auth/social/${provider}/success`;
         successUrl = tenantId
           ? `${base}?tenant_id=${encodeURIComponent(tenantId)}`
