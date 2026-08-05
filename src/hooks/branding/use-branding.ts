@@ -27,9 +27,10 @@ export type BrandingResult =
  * - 403 → { status: 'forbidden' }  (org is not a reseller or user is not admin)
  * - else → throws so TanStack marks the query as isError
  */
-export function useBranding() {
+export function useBranding({ enabled = true }: { enabled?: boolean } = {}) {
   const brandingQuery = useQuery<BrandingResult>({
     queryKey: BRANDING_QUERY_KEY,
+    enabled,
     retry: false,
     queryFn: async ({ signal }) => {
       const { data, response } = await brandingRetrieve({
