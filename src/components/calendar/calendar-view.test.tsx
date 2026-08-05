@@ -77,12 +77,16 @@ const RAW_NY: CalendarEvent = {
   is_recurring_instance: false,
 };
 
-// Event in Australia/Sydney (UTC+10 AEST in June — no DST, southern hemisphere)
+// Event in Australia/Sydney (UTC+10 AEST in June — no DST, southern hemisphere).
+// 10:00+10 = 00:00Z on June 15 — deliberately after UTC midnight so the agenda
+// window starting at local startOf('day') for 2024-06-15T00:00:00Z still
+// includes this event when the runner's TZ is UTC (CI). 09:00+10 (=23:00Z on
+// the 14th) falls outside that window under TZ=UTC and flakes the agenda test.
 const RAW_SYD: CalendarEvent = {
   id: 2,
   title: 'Sydney Standup',
-  start_time: '2024-06-15T09:00:00+10:00',
-  end_time: '2024-06-15T09:30:00+10:00',
+  start_time: '2024-06-15T10:00:00+10:00',
+  end_time: '2024-06-15T10:30:00+10:00',
   timezone: 'Australia/Sydney',
   created: '2024-01-01T00:00:00Z',
   modified: '2024-01-01T00:00:00Z',
@@ -168,8 +172,8 @@ function renderCalendar({
   onDateChange = vi.fn(),
   eventRenderer,
 }: RenderCalendarOptions = {}) {
-  // Use a fixed date so the fixture events (June 2024) are in view for
-  // month and week, and agenda covers a future range from today.
+  // Fixed anchor so the June 2024 fixtures land in month/week/agenda.
+  // Midnight UTC: agenda buckets by local startOf('day') of this instant.
   const date = new Date('2024-06-15T00:00:00Z');
 
   return render(
