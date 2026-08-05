@@ -43,10 +43,12 @@
 
 ### Phase 2 — Branding form: `redirect_url` replaces allowlist ✅
 
-- **Status**: published (pending PR open)
+- **Status**: published
 - **Model**: implementer `composer-2.5-fast`; reviewer `cursor-grok-4.5-high`; fixer `composer-2.5-fast` (Cursor models per user request)
 - **Branch**: `plan/organization-auth-branding/phase-2`
 - **Base**: `plan/organization-auth-branding/phase-1`
+- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/81
+- **PR-context**: `.vinta-ai-workflows/prs-context/organization-auth-branding/phase-2.md` (`status: published`)
 - **E2E**: n/a
 - **Summary**: Full Zod for five handoff rules; label/help copy; page reseller wording updated. Fixer corrected empty-clear to send `""` in PUT body (not omit). 27 branding unit tests green.
 
