@@ -1,47 +1,46 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { __resetWebhookEventsCacheForTests } from '@/lib/docs/fetch-webhook-events';
+import webhookEventsSnapshot from '@/lib/docs/__generated__/webhook-events.json';
+import type { WebhookEventsResult } from '@/lib/docs/fetch-webhook-events';
+
+const getWebhookEvents = vi.fn();
+vi.mock('@/lib/docs/fetch-webhook-events', () => ({
+  getWebhookEvents: (...args: unknown[]) => getWebhookEvents(...args),
+}));
+
 import WebhooksPage from './page';
 
-// Mock the fetch function to avoid actual API calls in tests
-vi.mock('@/lib/docs/fetch-webhook-events', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/lib/docs/fetch-webhook-events')
-  >('@/lib/docs/fetch-webhook-events');
-  return {
-    ...actual,
-    getWebhookEvents: vi.fn(actual.getWebhookEvents),
-  };
-});
+const SNAPSHOT_RESULT: WebhookEventsResult = {
+  events: webhookEventsSnapshot,
+  source: 'snapshot',
+};
+
+const EVENT_VALUES = [
+  'calendar_event_created',
+  'calendar_event_updated',
+  'calendar_event_deleted',
+  'calendar_event_attendee_added',
+  'calendar_event_attendee_removed',
+  'calendar_event_attendee_updated',
+  'organization_member_created',
+] as const;
 
 describe('WebhooksPage', () => {
   beforeEach(() => {
-    __resetWebhookEventsCacheForTests();
+    getWebhookEvents.mockReset();
+    getWebhookEvents.mockResolvedValue(SNAPSHOT_RESULT);
   });
 
   it('renders all webhook events from the snapshot', async () => {
     render(await WebhooksPage());
 
-    // Check that the page renders with the event list
     expect(screen.getByText('Webhooks')).toBeInTheDocument();
 
-    // Verify all 7 events are rendered by checking for their values
-    const eventValues = [
-      'calendar_event_created',
-      'calendar_event_updated',
-      'calendar_event_deleted',
-      'calendar_event_attendee_added',
-      'calendar_event_attendee_removed',
-      'calendar_event_attendee_updated',
-      'organization_member_created',
-    ];
-
-    for (const value of eventValues) {
+    for (const value of EVENT_VALUES) {
       expect(screen.getByText(value)).toBeInTheDocument();
     }
 
-    // Verify that the Configuration section with GraphQL type links is rendered
     expect(screen.getByText('Configuration')).toBeInTheDocument();
     expect(
       screen.getByRole('link', {
@@ -61,18 +60,6 @@ describe('WebhooksPage', () => {
   it('renders the correct number of events by counting event values', async () => {
     render(await WebhooksPage());
 
-    // Verify all 7 event values are rendered - count by checking they all appear
-    const eventValues = [
-      'calendar_event_created',
-      'calendar_event_updated',
-      'calendar_event_deleted',
-      'calendar_event_attendee_added',
-      'calendar_event_attendee_removed',
-      'calendar_event_attendee_updated',
-      'organization_member_created',
-    ];
-
-    // All events should be present in the rendered output
-    expect(eventValues.every((val) => screen.getByText(val))).toBe(true);
+    expect(EVENT_VALUES.every((val) => screen.getByText(val))).toBe(true);
   });
 });
