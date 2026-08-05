@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -33,7 +33,7 @@ vi.mock('sonner', () => ({
 
 import { brandingUpdate } from '@/client/sdk.gen';
 import { toast } from 'sonner';
-import { BrandingForm } from './branding-form';
+import { BrandingForm, redirectUrlSchema } from './branding-form';
 import type { OrganizationBranding } from '@/client';
 
 // ---------------------------------------------------------------------------
@@ -168,30 +168,175 @@ describe('BrandingForm', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Validation — redirect_url
+  // Validation — redirect_url (schema unit + form integration)
   // -------------------------------------------------------------------------
 
   describe('redirect_url validation', () => {
-    it('rejects a non-URL redirect_url', async () => {
+    const redirectUrlLabel = /post-login redirect url/i;
+
+    describe('redirectUrlSchema', () => {
+      it('accepts empty string (clears configured destination)', () => {
+        expect(redirectUrlSchema.safeParse('').success).toBe(true);
+      });
+
+      it('accepts a valid HTTPS URL without a trailing slash on the path', () => {
+        expect(
+          redirectUrlSchema.safeParse('https://app.example.com/post-login')
+            .success
+        ).toBe(true);
+      });
+
+      it('accepts bare root URLs with or without a trailing slash', () => {
+        expect(redirectUrlSchema.safeParse('https://example.com').success).toBe(
+          true
+        );
+        expect(
+          redirectUrlSchema.safeParse('https://example.com/').success
+        ).toBe(true);
+      });
+
+      it('rejects http:// scheme', () => {
+        const result = redirectUrlSchema.safeParse(
+          'http://example.com/callback'
+        );
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects wildcard characters', () => {
+        const result = redirectUrlSchema.safeParse('https://example.com/*');
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a non-root path ending in /', () => {
+        const result = redirectUrlSchema.safeParse(
+          'https://example.com/callback/'
+        );
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects control characters', () => {
+        const result = redirectUrlSchema.safeParse(
+          'https://example.com/call\tback'
+        );
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects hostless https://', () => {
+        const result = redirectUrlSchema.safeParse('https://');
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects scheme-confusion https:evil.com', () => {
+        const result = redirectUrlSchema.safeParse('https:evil.com');
+        expect(result.success).toBe(false);
+      });
+    });
+
+    it('rejects http:// via the form', async () => {
       const user = userEvent.setup();
       renderForm();
 
       await user.type(screen.getByLabelText(/app name/i), 'TestApp');
       await user.type(
-        screen.getByLabelText(/redirect url/i),
-        'not-a-valid-url'
+        screen.getByLabelText(redirectUrlLabel),
+        'http://example.com/callback'
       );
 
       await user.click(screen.getByRole('button', { name: /save branding/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/must be a valid url/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/must be a valid https url/i)
+        ).toBeInTheDocument();
       });
 
       expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
     });
 
-    it('accepts a valid redirect_url', async () => {
+    it('rejects wildcard characters via the form', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.type(
+        screen.getByLabelText(redirectUrlLabel),
+        'https://example.com/*'
+      );
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/must not contain wildcard characters/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-root path ending in / via the form', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.type(
+        screen.getByLabelText(redirectUrlLabel),
+        'https://example.com/callback/'
+      );
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/url path must not end with a trailing slash/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('rejects control characters via the form', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      const redirectInput = screen.getByLabelText(redirectUrlLabel);
+      fireEvent.change(redirectInput, {
+        target: { value: 'https://example.com/call\tback' },
+      });
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/must not contain control characters/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('accepts empty redirect_url and omits it from the PUT body', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({ app_name: 'TestApp' })
+      );
+
+      renderForm();
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.redirect_url).toBeUndefined();
+      expect(Array.isArray(callArgs?.body?.redirect_url)).toBe(false);
+    });
+
+    it('accepts a valid redirect_url and sends it as a string in the PUT body', async () => {
       const user = userEvent.setup();
       vi.mocked(brandingUpdate).mockResolvedValue(
         makeBrandingResponse({
@@ -204,7 +349,7 @@ describe('BrandingForm', () => {
 
       await user.type(screen.getByLabelText(/app name/i), 'TestApp');
       await user.type(
-        screen.getByLabelText(/redirect url/i),
+        screen.getByLabelText(redirectUrlLabel),
         'https://example.com/dashboard'
       );
 
@@ -218,6 +363,8 @@ describe('BrandingForm', () => {
       expect(callArgs?.body?.redirect_url).toBe(
         'https://example.com/dashboard'
       );
+      expect(typeof callArgs?.body?.redirect_url).toBe('string');
+      expect(Array.isArray(callArgs?.body?.redirect_url)).toBe(false);
     });
   });
 
@@ -321,7 +468,7 @@ describe('BrandingForm', () => {
 
       await user.type(screen.getByLabelText(/app name/i), 'App');
       await user.type(
-        screen.getByLabelText(/redirect url/i),
+        screen.getByLabelText(/post-login redirect url/i),
         'https://example.com/dashboard'
       );
 

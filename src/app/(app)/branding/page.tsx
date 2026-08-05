@@ -16,12 +16,12 @@ import { BrandingForm } from '@/components/branding/branding-form';
 import { useBranding } from '@/hooks/branding/use-branding';
 
 /**
- * BrandingPage — reseller-admin branding console.
+ * BrandingPage — white-label branding console for eligible organizations.
  *
  * A normal internal (app) page: it renders inside the tenant AppShell. The
  * sidebar link to this route is shown only when the acting org is flagged
  * can_invite_organizations (see app-layout-client). Access is still API-driven
- * as a backstop: the backend returns 403 when the acting org is not a reseller
+ * as a backstop: the backend returns 403 when the acting org is not entitled
  * or the user is not an admin. The useBranding hook inspects the HTTP status
  * directly (throwOnError:false) and returns a discriminated result so each
  * state can be rendered correctly.
@@ -56,7 +56,7 @@ export default function BrandingPage() {
       <Stack gap={6}>
         <PageHeader
           title='Branding'
-          description='Customize authentication pages and emails for your reseller organization.'
+          description='Customize authentication pages and emails for your organization.'
         />
         <Alert variant='destructive'>
           <AlertTitle>Failed to load branding settings</AlertTitle>
@@ -80,13 +80,13 @@ export default function BrandingPage() {
       <Stack gap={6}>
         <PageHeader
           title='Branding'
-          description='Customize authentication pages and emails for your reseller organization.'
+          description='Customize authentication pages and emails for your organization.'
         />
         <Alert>
           <AlertTitle>Access not available</AlertTitle>
           <AlertDescription>
-            Branding customization is only available to reseller organizations.
-            Contact your Vinta administrator if you believe this is an error.
+            White-label branding is not available for this organization. Contact
+            your Vinta administrator if you believe this is an error.
           </AlertDescription>
         </Alert>
       </Stack>

@@ -38,7 +38,7 @@ import { BrandingPreview } from './branding-preview';
 
 // ---------------------------------------------------------------------------
 // Zod schema — mirrors the OrganizationBranding serializer's validation rules.
-// Full redirect_url server rules land in Phase 2; URL shape only for now.
+// redirect_url checks match organizations.redirect_url_validation (handoff order).
 // ---------------------------------------------------------------------------
 
 const hexColorSchema = z
@@ -47,6 +47,71 @@ const hexColorSchema = z
     /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/,
     'Must be a hex color: #RRGGBB or #RRGGBBAA'
   );
+
+/** Mirrors the five server redirect_url rules; empty string clears. */
+export const redirectUrlSchema = z
+  .string()
+  .superRefine((raw, ctx) => {
+    // 1. No control characters (CR, LF, tab) — checked before trim.
+    if (/[\r\n\t]/.test(raw)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must not contain control characters',
+      });
+      return;
+    }
+
+    const val = raw.trim();
+    if (val === '') return;
+
+    // 2. HTTPS only (also rejects scheme-confusion values like https:evil.com).
+    if (!/^https:\/\//i.test(val)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must be a valid HTTPS URL',
+      });
+      return;
+    }
+
+    // 3. No wildcard character.
+    if (val.includes('*')) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must not contain wildcard characters',
+      });
+      return;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(val);
+    } catch {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must be a valid HTTPS URL',
+      });
+      return;
+    }
+
+    // 4. No path-prefix pattern — non-root paths must not end with /.
+    const { pathname } = parsed;
+    if (pathname !== '/' && pathname.endsWith('/')) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'URL path must not end with a trailing slash',
+      });
+      return;
+    }
+
+    // 5. Well-formed URL with a host.
+    if (!parsed.hostname) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must include a valid host',
+      });
+    }
+  })
+  .transform((raw) => raw.trim());
 
 export const brandingSchema = z.object({
   app_name: z.string().trim().min(1, { message: 'App name is required' }),
@@ -64,12 +129,7 @@ export const brandingSchema = z.object({
     .email({ message: 'Must be a valid email address' })
     .or(z.literal(''))
     .optional(),
-  redirect_url: z
-    .string()
-    .trim()
-    .url({ message: 'Must be a valid URL' })
-    .or(z.literal(''))
-    .optional(),
+  redirect_url: redirectUrlSchema.optional(),
 });
 
 type BrandingFormValues = z.infer<typeof brandingSchema>;
@@ -263,23 +323,24 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
               )}
             />
 
-            {/* Redirect URL — single post-auth destination (Phase 2 adds full validation UX) */}
+            {/* Post-login redirect URL — single server-resolved destination */}
             <FormField
               control={form.control}
               name='redirect_url'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Redirect URL</FormLabel>
+                  <FormLabel>Post-login redirect URL</FormLabel>
                   <FormControl>
                     <Input
                       type='url'
-                      placeholder='https://example.com/dashboard'
+                      placeholder='https://app.example.com/dashboard'
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    HTTPS destination after authentication. Leave empty to
-                    clear.
+                    Concrete HTTPS URL where users land after signing in.
+                    Wildcards and path-prefix patterns are not allowed. Leave
+                    empty to clear.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
