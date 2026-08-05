@@ -24,7 +24,7 @@ export type BrandingResult =
  *
  * - 200 → { status: 'ok', branding }
  * - 404 → { status: 'not_configured', branding: null }  (first-write — not an error)
- * - 403 → { status: 'forbidden' }  (org is not a reseller or user is not admin)
+ * - 403 → { status: 'forbidden' }  (membership lacks branding read access)
  * - else → throws so TanStack marks the query as isError
  */
 export function useBranding({ enabled = true }: { enabled?: boolean } = {}) {

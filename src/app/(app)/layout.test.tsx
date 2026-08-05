@@ -103,6 +103,12 @@ const BRANDING_ADMIN_MEMBERSHIP: CurrentMembership = {
   organization: { id: 1, name: 'Test Org' },
 };
 
+const BRANDING_MEMBER_MEMBERSHIP: CurrentMembership = {
+  role: 'member',
+  can_manage_branding: true,
+  organization: { id: 1, name: 'Test Org' },
+};
+
 // Branding eligibility is independent of can_invite_organizations (reseller flag).
 const BRANDING_ADMIN_NON_RESELLER_MEMBERSHIP: CurrentMembership = {
   role: 'admin',
@@ -294,6 +300,17 @@ describe('AppLayout (integration)', () => {
       });
 
       expect(screen.getByText('Branding')).toBeInTheDocument();
+    });
+
+    it('does not show the Branding link for a member with can_manage_branding true', async () => {
+      mockOrgSuccess(BRANDING_MEMBER_MEMBERSHIP);
+      renderLayout();
+
+      await waitFor(() => {
+        expect(screen.getByAltText('Vinta')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText('Branding')).not.toBeInTheDocument();
     });
   });
 

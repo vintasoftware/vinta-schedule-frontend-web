@@ -70,6 +70,12 @@ const ELIGIBLE_MEMBERSHIP: CurrentMembership = {
   organization: { id: 1, name: 'Test Org' },
 };
 
+const MEMBER_WITH_BRANDING_MEMBERSHIP: CurrentMembership = {
+  role: 'member',
+  can_manage_branding: true,
+  organization: { id: 1, name: 'Test Org' },
+};
+
 const SAMPLE_BRANDING: OrganizationBranding = {
   app_name: 'My App',
   logo_url: '',
@@ -100,6 +106,19 @@ describe('BrandingPage', () => {
 
   it('redirects away and does not render the form when can_manage_branding is false', async () => {
     mockOrgSuccess(INELIGIBLE_MEMBERSHIP);
+    const { container } = renderPage();
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith('/');
+    });
+
+    expect(screen.queryByTestId('branding-form')).not.toBeInTheDocument();
+    expect(container.innerHTML).toBe('');
+    expect(brandingRetrieve).not.toHaveBeenCalled();
+  });
+
+  it('redirects away and does not render the form for a member with can_manage_branding true', async () => {
+    mockOrgSuccess(MEMBER_WITH_BRANDING_MEMBERSHIP);
     const { container } = renderPage();
 
     await waitFor(() => {

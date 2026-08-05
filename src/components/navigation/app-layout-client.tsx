@@ -133,9 +133,6 @@ function buildNavGroups(
       ? [...ADMIN_ONLY_NAV_ITEMS, BRANDING_NAV_ITEM]
       : ADMIN_ONLY_NAV_ITEMS;
     groups.push({ label: 'Admin', items: adminItems });
-  } else if (canManageBranding) {
-    // Non-admin with branding capability — show link outside the Admin group.
-    groups.push({ items: [BRANDING_NAV_ITEM] });
   }
 
   return groups;

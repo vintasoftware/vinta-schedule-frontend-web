@@ -22,15 +22,15 @@ import { useCurrentOrganization } from '@/hooks/organizations/use-current-organi
  * BrandingPage — white-label branding console for eligible organizations.
  *
  * A normal internal (app) page: it renders inside the tenant AppShell. The
- * sidebar link is shown only when `can_manage_branding` is true on the current
- * membership (see app-layout-client). Ineligible users who deep-link here are
- * redirected away — the page is absent, not merely refused.
+ * sidebar link is shown only for onboarded admins with `can_manage_branding`
+ * (see app-layout-client). Ineligible users who deep-link here are redirected
+ * away — the page is absent, not merely refused.
  *
  * GET 403 from `/branding/` remains a rare backstop when cache is stale or the
  * server rejects read access; useBranding surfaces that as a neutral alert.
  *
  * States:
- *   • Redirect — membership lacks `can_manage_branding`.
+ *   • Redirect — user is not an admin with `can_manage_branding`.
  *   • Loading — org or branding query in flight.
  *   • forbidden — 403 from API (stale entitlement / server backstop).
  *   • not_configured — 404: no branding row yet (first-write).
@@ -44,20 +44,22 @@ export default function BrandingPage() {
     isOnboarded,
     isLoading: isOrgLoading,
   } = useCurrentOrganization();
-  const canManageBranding =
-    isOnboarded && membership?.can_manage_branding === true;
+  const isEligibleBrandingAdmin =
+    isOnboarded &&
+    membership?.role === 'admin' &&
+    membership?.can_manage_branding === true;
 
   const { brandingQuery } = useBranding({
-    enabled: !isOrgLoading && canManageBranding,
+    enabled: !isOrgLoading && isEligibleBrandingAdmin,
   });
 
   useEffect(() => {
-    if (!isOrgLoading && isOnboarded && !canManageBranding) {
+    if (!isOrgLoading && isOnboarded && !isEligibleBrandingAdmin) {
       router.replace('/');
     }
-  }, [isOrgLoading, isOnboarded, canManageBranding, router]);
+  }, [isOrgLoading, isOnboarded, isEligibleBrandingAdmin, router]);
 
-  if (isOrgLoading || (isOnboarded && !canManageBranding)) {
+  if (isOrgLoading || (isOnboarded && !isEligibleBrandingAdmin)) {
     return null;
   }
 
