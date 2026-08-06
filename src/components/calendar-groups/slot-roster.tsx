@@ -25,6 +25,7 @@ import { useCanEditCalendar } from './group-permissions-provider';
 import { GroupWindowGrid } from './group-window-grid';
 import { UnsupportedWindowList } from './unsupported-window-list';
 import { GroupBlockList } from './group-block-list';
+import { GroupQuotaRules } from './group-quota-rules';
 
 const CALENDAR_TYPE_LABEL: Record<Calendar['calendar_type'], string> = {
   personal: 'Personal',
@@ -130,12 +131,11 @@ function SlotRosterRow({
         </HStack>
       </AccordionTrigger>
       <AccordionContent>
-        {/* Extension point for Phase 5: quota rules mount here once their
-            hook and component ship, gated on `canEdit`. Phase 3b/3c fill
-            the windows section; Phase 4 fills the blocks section below --
-            both GroupWindowGrid and GroupBlockList read their own
-            editability from `useCanEditCalendar`, so they're mounted the
-            same way in both branches here. */}
+        {/* Phase 3b/3c fill the windows section, Phase 4 the blocks section,
+            Phase 5 the quota section below -- GroupWindowGrid, GroupBlockList,
+            and GroupQuotaRules all read their own editability from
+            `useCanEditCalendar`, so they're mounted the same way in both
+            branches here. */}
         <VStack
           gap={4}
           p={4}
@@ -167,6 +167,12 @@ function SlotRosterRow({
                 calendarId={calendar.id}
                 calendarName={calendar.name}
               />
+              <Divider />
+              <GroupQuotaRules
+                groupId={groupId}
+                slotId={slotId}
+                calendarId={calendar.id}
+              />
             </VStack>
           ) : (
             <VStack
@@ -195,6 +201,12 @@ function SlotRosterRow({
                 slotId={slotId}
                 calendarId={calendar.id}
                 calendarName={calendar.name}
+              />
+              <Divider />
+              <GroupQuotaRules
+                groupId={groupId}
+                slotId={slotId}
+                calendarId={calendar.id}
               />
             </VStack>
           )}

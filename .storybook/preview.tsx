@@ -11,6 +11,13 @@ import { DM_Sans, Geist_Mono } from 'next/font/google';
 sb.mock(import('../src/hooks/availability/use-blocked-times.ts'), {
   spy: true,
 });
+// GroupQuotaRules' duplicate-period-error story needs the create mutation to
+// reject with a fixed body without any real network layer to fail against
+// (this repo's stories have no interactions addon-driven network mocking) —
+// mocking the whole hook lets that story drive the rejection directly.
+sb.mock(import('../src/hooks/calendar-groups/use-group-scoped-quota.ts'), {
+  spy: true,
+});
 
 import { patchFocus } from './patch-focus';
 import '../src/app/globals.css';

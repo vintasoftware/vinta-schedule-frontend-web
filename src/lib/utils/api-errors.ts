@@ -84,3 +84,27 @@ export function isNotFoundError(error: unknown): boolean {
   const body = error as Record<string, unknown>;
   return body.detail === 'Not found.';
 }
+
+/**
+ * Reads a DRF-style non-field-errors rejection (400) — e.g.
+ * `{ "non_field_errors": ["<constraint violation message>"] }` — into the
+ * first message string, or `null` for anything else (a differently shaped
+ * 400, a 500, a network failure). Used by the quota-rule form to surface the
+ * one-rule-per-(calendar, slot, period) constraint the API enforces
+ * (handoff doc section 3) as a form-level message instead of an unhandled
+ * failure or a bare toast — see readOverLimitError's doc comment above for
+ * why these readers work off the thrown body's shape rather than a status
+ * code.
+ */
+export function readNonFieldError(error: unknown): string | null {
+  if (error === null || typeof error !== 'object') {
+    return null;
+  }
+  const body = error as Record<string, unknown>;
+  const messages = body.non_field_errors;
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return null;
+  }
+  const first = messages[0];
+  return typeof first === 'string' ? first : null;
+}
