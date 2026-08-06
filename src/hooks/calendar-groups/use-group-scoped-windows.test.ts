@@ -180,6 +180,92 @@ describe('useGroupScopedWindows', () => {
         })
       );
     });
+
+    it('isTruncated is false when count <= page size', async () => {
+      vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue({
+        data: {
+          count: 150,
+          results: Array.from({ length: 150 }, (_, i) =>
+            makeWindow({ id: i + 1 })
+          ),
+        },
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<
+        ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+      >);
+
+      const { Wrapper } = makeQueryWrapper();
+      const { result } = renderHook(
+        () => useGroupScopedWindows({ groupId: 1, slotId: 10 }),
+        { wrapper: Wrapper }
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      expect(result.current.isTruncated).toBe(false);
+      expect(result.current.totalCount).toBe(150);
+    });
+
+    it('isTruncated is true when count > page size', async () => {
+      vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue({
+        data: {
+          count: 250,
+          results: Array.from({ length: 200 }, (_, i) =>
+            makeWindow({ id: i + 1 })
+          ),
+        },
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<
+        ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+      >);
+
+      const { Wrapper } = makeQueryWrapper();
+      const { result } = renderHook(
+        () => useGroupScopedWindows({ groupId: 1, slotId: 10 }),
+        { wrapper: Wrapper }
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      expect(result.current.isTruncated).toBe(true);
+      expect(result.current.totalCount).toBe(250);
+      // The windows array contains only the first 200 rows (one page).
+      expect(result.current.windows).toHaveLength(200);
+    });
+
+    it('totalCount reflects the whole slot count even when calendarId filter is applied', async () => {
+      vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue({
+        data: {
+          count: 300,
+          results: Array.from({ length: 200 }, (_, i) =>
+            makeWindow({
+              id: i + 1,
+              calendar_id: i % 2 === 0 ? 42 : 43,
+            })
+          ),
+        },
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<
+        ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+      >);
+
+      const { Wrapper } = makeQueryWrapper();
+      const { result } = renderHook(
+        () => useGroupScopedWindows({ groupId: 1, slotId: 10, calendarId: 42 }),
+        { wrapper: Wrapper }
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      // totalCount should still be 300, not the filtered count.
+      expect(result.current.totalCount).toBe(300);
+      // But windows should be filtered to only calendar 42.
+      expect(result.current.windows.every((w) => w.calendar_id === 42)).toBe(
+        true
+      );
+      // And isTruncated reflects that the whole slot exceeds the page size.
+      expect(result.current.isTruncated).toBe(true);
+    });
   });
 
   // -------------------------------------------------------------------------

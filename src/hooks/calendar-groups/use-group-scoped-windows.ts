@@ -227,7 +227,21 @@ export function useGroupScopedWindows({
 
   return {
     windows,
+    /**
+     * Total count of windows in the slot (across all calendars), as returned
+     * by the API list endpoint. This is NOT affected by the `calendarId`
+     * filter — it always reflects the whole slot's count. When `calendarId` is
+     * set, `windows.length` will be less than or equal to `totalCount`.
+     */
     totalCount: windowsQuery.data?.count ?? 0,
+    /**
+     * True when the total count exceeds the page size fetched. When true, the
+     * `windows` array is incomplete (a truncated page), and the count returned
+     * by summaryFor (if called) or by a future "showing X of Y" display is a
+     * lower bound, not exact.
+     */
+    isTruncated:
+      (windowsQuery.data?.count ?? 0) > GROUP_SCOPED_WINDOWS_PAGE_SIZE,
     isLoading: windowsQuery.isLoading,
     isError: windowsQuery.isError,
     error: windowsQuery.error,
