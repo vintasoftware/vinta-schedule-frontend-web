@@ -195,12 +195,35 @@ Two SHOULD-FIX items fixed. The story file had introduced this repo's **first St
 
 Gates: typecheck clean. Full suite green — 1340 app tests, 82 design-system.
 
-## Current phase
+### Phase 6 — Effective availability preview ✅
 
-Phase 6 — Effective availability preview.
+- **Branch**: `plan/calendar-group-scoped-availability/phase-6` (base: `phase-5`)
+- **Implementer model**: Tier 3 (sonnet). **Reviewer**: Tier 3 (sonnet). **Fixer**: Tier 2, run on sonnet
+- **Commits**: `5b5e5df` feat(calendar-groups): add effective availability preview; plus the review fix
+
+Summary:
+
+A collapsed-by-default preview strip that shows, per day, whether a calendar comes back free for the group — so an admin can check whether a configuration does anything without simulating a booking. It issues no request until opened, which the plan named as a risk on an already read-heavy page.
+
+**Review found a BLOCKER: as first built, the feature reported the opposite of the truth.** It probed full calendar days, which the plan's own wording implied. But the backend answers "available" only when a range is fully covered by **a single span** — not the union of a calendar's windows — verified independently in the backend worktree across three files. So a calendar configured Tuesdays and Thursdays 9am–5pm, the plan's own acceptance example, would report **every day including Tuesday and Thursday as not free**. UC-7 exists to make intersect-only narrowing visible; that build asserted total narrowing unconditionally, which is worse than shipping no preview.
+
+The implementer found and reported this themselves after checking the backend, rather than shipping it quietly.
+
+Fixed by deriving each day's probe from the calendar's own group-scoped window for that weekday — the interval the coverage rule can actually answer — reusing the windows list the page already loads and the same pure classifier the grid uses. A false negative there is now the *real* intersect-only signal rather than an artifact of asking an unrelated question. Days with no group-scoped window are not probed at all; they render as governed by base availability.
+
+Switching to the bookable-slots operation was considered and rejected on inspection: its proposal shape carries no calendar or slot id, so it cannot answer "is this calendar free" without re-implementing group satisfiability client-side, and it would reintroduce the simulate-a-booking path UC-7 exists to avoid.
+
+**The test fixtures were encoding a response the real backend cannot produce** — a Tuesday/Thursday-only calendar returning available for a full 24-hour range — which is what let the defect through. They were rewritten to encode what the backend can actually return.
+
+Also fixed: an inverted date range rendered the same "not available in this range" message as a genuine zero-free-days answer, so a mis-click read as "this calendar is never free". And the reviewer corrected a claim in the phase report — that an unmocked operation in the roster test would throw on an eager fetch. React Query swallows that rejection, so it would have passed silently; the two direct assertions are the real proof.
+
+**Known caveat, documented and left**: the preview's query key does not include the windows, so editing the grid while the strip is already open does not re-probe until it is closed and reopened, or the dates change.
+
+Gates: typecheck clean. Full suite green — 1360 app tests, 82 design-system.
 
 ## Remaining phases
-- Phase 6 — Effective availability preview (Tier 3)
+
+None — all nine phases complete.
 
 ## Deferred phases
 
