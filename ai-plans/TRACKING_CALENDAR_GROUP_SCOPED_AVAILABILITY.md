@@ -159,12 +159,29 @@ Review found no BLOCKER and confirmed Phase 3b's two BLOCKER fixes survived the 
 
 Gates: typecheck clean. Full suite green — 1285 app tests, 82 design-system.
 
+### Phase 4 — Group-scoped blocked times ✅
+
+- **Branch**: `plan/calendar-group-scoped-availability/phase-4` (base: `phase-3c`)
+- **Implementer model**: Tier 2→3, run on sonnet. **Reviewer**: Tier 3 (sonnet). **Fixer**: Tier 2 (sonnet)
+- **Commits**: `0949578` feat(calendar-groups): add group-scoped blocked time management; `38a39f6` fix(calendar-groups): stop group block form from silently dropping BYDAY
+
+Summary:
+
+`useGroupScopedBlocks` mirrors the windows hook with `reason` added. Blocks use a row list plus a recurrence form rather than a grid — they are ad-hoc by nature, so the classify-and-diff machinery is deliberately not reused. Phase 3c's two alerts were reused unchanged, confirmed mechanically (neither file appears in the diff). The tri-state `rrule_string` on edit is derived from react-hook-form's `dirtyFields`, which required passing `{ shouldDirty: true }` on the BYDAY checkbox — `setValue` does not mark a field dirty by default, so toggling only a weekday would otherwise have never reached the server.
+
+Review found **one BLOCKER: the Phase 3b classification problem in a different costume.** `parseRRule` parses `BYDAY` regardless of `FREQ`, but the form only re-emits it for `FREQ=WEEKLY`, and the day checkboxes only render for weekly rules — so the data was invisible and unreachable. A block stored as `FREQ=MONTHLY;BYDAY=MO,WE` whose admin edited only the interval or the "Ends" control would be silently rewritten to a plain `FREQ=MONTHLY` with **no day restriction** — a rule that blocks far more time than intended. The module's own doc claimed this could not happen.
+
+Fixed with classify-and-refuse, mirroring Phase 3b's approach rather than the narrower patch: a rule the sub-form cannot represent locks the recurrence fields behind an explanation, while `reason`, times, and timezone stay editable and never touch `rrule_string`. Turning the Repeat switch off explicitly clears the rule and unlocks the form, so replacing it remains possible — deliberately, and only as an explicit act. The false doc claim was corrected in place. The regression test was verified to fail against the pre-fix code.
+
+Two SHOULD-FIX items also fixed: the phase's own acceptance criterion — "adding blocks creates blocks visible in the list" — **was not actually exercised**, because the list mock returned an empty array for every call, so the assertion could not have passed even if written; and `recurrenceUntil` hydrated a full ISO datetime into a `type='date'` input, blanking the end-date control for any rule whose `UNTIL` was a `DATE-TIME` value.
+
+Gates: typecheck clean. Full suite green — 1314 app tests, 82 design-system.
+
 ## Current phase
 
-Phase 4 — Group-scoped blocked times.
+Phase 5 — Group-scoped quota rules.
 
 ## Remaining phases
-- Phase 4 — Group-scoped blocked times (Tier 2→3)
 - Phase 5 — Group-scoped quota rules (Tier 2)
 - Phase 6 — Effective availability preview (Tier 3)
 
