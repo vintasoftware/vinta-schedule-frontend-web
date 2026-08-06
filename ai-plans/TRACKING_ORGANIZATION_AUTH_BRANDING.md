@@ -25,26 +25,25 @@
 ### Phase 3 ✅ — https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/91
 ### Phase 4 ✅ — https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/92
 ### Phase 5 ✅ — https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/93
+### Phase 6 ✅ — https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/94
 
-### Phase 6 — Logo upload widget ✅
+### Phase 7 — Branded `/auth/login/[slug]/` route ✅
 
-- **Status**: published
-- **Model**: implementer `composer-2.5-fast`; reviewer `cursor-grok-4.5-high`; fixer `composer-2.5-fast`
-- **Branch**: `plan/organization-auth-branding/phase-6`
-- **Base**: `plan/organization-auth-branding/phase-5`
-- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/94
-- **PR-context**: `.vinta-ai-workflows/prs-context/organization-auth-branding/phase-6.md` (`status: published`)
-- **E2E**: n/a
-- **Summary**: s3direct branding_logos upload hook + form widget; PUT sends object key; clear `""`. Fixer: form-urlencoded serializer + restore preview on failed upload. 59 scoped tests green.
+- **Status**: published (pending PR open)
+- **Model**: implementer `cursor-grok-4.5-high`; reviewer `cursor-grok-4.5-high`; fixer `composer-2.5-fast`
+- **Branch**: `plan/organization-auth-branding/phase-7`
+- **Base**: `plan/organization-auth-branding/phase-6`
+- **E2E**: PR045 present; known-slug skips without `E2E_BRANDED_LOGIN_SLUG`; Playwright not run
+- **Summary**: `fetchBrandingForSlug` + branded login page + LoginForm branding prop. Fixer corrected PR045 header logo locators and QA counts. 22 scoped unit tests green.
 
 ## Current phase
 
-Paused after Phase 6 — awaiting user confirmation before Phase 7.
+Final phase complete — deleting tracking after PR publish.
 
 ## Remaining phases
 
-- Phase 7 — Branded `/auth/login/[slug]/` route
+_(none)_
 
 ## Deferred phases
 
-_(none)_
+_(none — no feature-flag removal phase)_
