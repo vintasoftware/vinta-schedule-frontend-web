@@ -3,23 +3,32 @@
 import { use } from 'react';
 import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
 import { VStack, Text } from 'vinta-schedule-design-system/layout';
-import { useRequireRole } from '@/components/navigation/role-gate';
+import { useRole } from '@/components/navigation/role-gate';
 import { useCalendarGroup } from '@/hooks/calendar-groups/use-calendar-group';
+import { useOwnedCalendarIds } from '@/hooks/calendars/use-owned-calendar-ids';
 import { GroupDetailView } from '@/components/calendar-groups/group-detail-view';
 import { GroupNotFound } from '@/components/calendar-groups/group-not-found';
+import { GroupPermissionsProvider } from '@/components/calendar-groups/group-permissions';
 
 /**
- * GroupDetailPage — admin-only view of one calendar group: its slots, each
- * slot's roster, and a per-calendar summary of group-scoped configuration.
+ * GroupDetailPage — one calendar group: its slots, each slot's roster, and
+ * a per-calendar summary of group-scoped configuration.
  *
- * Guarded by useRequireRole('admin'), exactly like /groups (Phase 2 replaces
- * this gate with ownership-based access for calendar owners).
+ * Phase 1 admin-gated this route with useRequireRole('admin'). Phase 2
+ * drops that gate: the API itself decides who can see the group (returning
+ * an identical 404 for missing / other-org / out-of-scope / unauthorized —
+ * spec UC-8), and per-row editability is a separate, narrower question
+ * answered by GroupPermissionsProvider below, not by a page-level redirect.
+ * A member who reaches this page for a group they don't belong to gets the
+ * same not-found treatment any other unreachable group gets.
  *
- * The API returns 404 identically whether the group doesn't exist, belongs
- * to another organization, is out of the caller's scope, or the caller isn't
- * authorized (spec UC-8). This page never redirects on that 404 — the URL
- * stays put so the browser back button still works — and renders the exact
- * same GroupNotFound output for all of those cases.
+ * `enabled` on useCalendarGroup: previously gated on the admin-only
+ * useRequireRole('isAllowed'), to avoid fetching the roster before a
+ * non-admin's redirect fired. That redirect no longer exists, so the
+ * gate is re-targeted at a different concern — waiting for `role` (and,
+ * for members, `ownedCalendarIds`) to resolve before fetching or rendering
+ * anything, so a row's editability is never computed against a
+ * not-yet-loaded permission set and then flipped after the fact.
  */
 export default function GroupDetailPage({
   params,
@@ -27,13 +36,28 @@ export default function GroupDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { isAllowed } = useRequireRole('admin');
+  const role = useRole();
+  const isMember = role === 'member';
+  const { ownedCalendarIds, isLoading: isOwnedCalendarsLoading } =
+    useOwnedCalendarIds({ enabled: isMember });
+
+  // Admins don't need ownedCalendarIds (canEditCalendar short-circuits on
+  // role), so their readiness doesn't depend on that query settling.
+  const permissionsReady =
+    role !== null && (!isMember || !isOwnedCalendarsLoading);
+
   const { group, isNotFound, isLoading, isError, error } = useCalendarGroup(
     id,
-    { enabled: isAllowed }
+    { enabled: permissionsReady }
   );
 
-  if (!isAllowed) return null;
+  if (!permissionsReady) {
+    return (
+      <VStack align='center' py={16}>
+        <Spinner label='Loading calendar group' />
+      </VStack>
+    );
+  }
 
   if (isNotFound) {
     return <GroupNotFound />;
@@ -62,5 +86,9 @@ export default function GroupDetailPage({
     );
   }
 
-  return <GroupDetailView group={group} />;
+  return (
+    <GroupPermissionsProvider role={role} ownedCalendarIds={ownedCalendarIds}>
+      <GroupDetailView group={group} />
+    </GroupPermissionsProvider>
+  );
 }

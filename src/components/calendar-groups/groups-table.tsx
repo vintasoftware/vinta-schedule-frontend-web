@@ -14,6 +14,8 @@ import {
   useCalendarGroups,
   type CalendarGroup,
 } from '@/hooks/calendar-groups/use-calendar-groups';
+import { useOwnedCalendarIds } from '@/hooks/calendars/use-owned-calendar-ids';
+import { useRole } from '@/components/navigation/role-gate';
 import { CreateGroupDialog } from './create-group-dialog';
 
 // ---------------------------------------------------------------------------
@@ -58,6 +60,27 @@ export const COLUMNS: DataTableColumn<CalendarGroup>[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// groupHasOwnedCalendar — true when any slot in the group's roster contains
+// a calendar the caller owns. Drives the member-scoped list (Phase 2):
+// members see only groups they can actually act on, admins see all.
+//
+// Defense in depth: this filters client-side regardless of whether the
+// list endpoint already scopes results to a member's own groups server
+// side (Open Question 1 in the plan) — so the visible list is never wider
+// than "groups containing something this viewer owns", independent of
+// what the backend returns.
+// ---------------------------------------------------------------------------
+
+function groupHasOwnedCalendar(
+  group: CalendarGroup,
+  ownedCalendarIds: ReadonlySet<number>
+): boolean {
+  return group.slots.some((slot) =>
+    slot.calendars.some((calendar) => ownedCalendarIds.has(calendar.id))
+  );
+}
+
+// ---------------------------------------------------------------------------
 // GroupsTableEmpty — custom empty state
 // ---------------------------------------------------------------------------
 
@@ -88,9 +111,37 @@ function GroupsTableInner() {
     [query, setPage, setSearch, setOrdering]
   );
 
-  const { groups, totalCount, isLoading, isError, error } = useCalendarGroups({
-    query,
-  });
+  // Admins see every group in the organization, unchanged from before this
+  // phase. Members see only groups containing a calendar they own — and
+  // get neither the create action nor the create dialog, since creating a
+  // group is an admin roster task this page never offers a member a
+  // control for (Non-goals, plan §1: editing groups/slots/rosters).
+  const role = useRole();
+  const isMember = role === 'member';
+  const { ownedCalendarIds, isLoading: isOwnedCalendarsLoading } =
+    useOwnedCalendarIds({ enabled: isMember });
+
+  const {
+    groups: fetchedGroups,
+    totalCount: fetchedTotalCount,
+    isLoading: isGroupsLoading,
+    isError,
+    error,
+  } = useCalendarGroups({ query });
+
+  const groups = isMember
+    ? fetchedGroups.filter((group) =>
+        groupHasOwnedCalendar(group, ownedCalendarIds)
+      )
+    : fetchedGroups;
+
+  // For a member, totalCount reflects only the filtered rows on the
+  // currently-fetched page, not a true count across every page — an
+  // accepted approximation for the client-side filter (see
+  // groupHasOwnedCalendar above); a member's group count is expected to be
+  // small in practice.
+  const totalCount = isMember ? groups.length : fetchedTotalCount;
+  const isLoading = isGroupsLoading || (isMember && isOwnedCalendarsLoading);
 
   if (isError) {
     return (
@@ -107,7 +158,7 @@ function GroupsTableInner() {
     );
   }
 
-  const toolbarActions = (
+  const toolbarActions = isMember ? undefined : (
     <Button
       size='sm'
       onClick={() => setCreateDialogOpen(true)}
@@ -131,10 +182,12 @@ function GroupsTableInner() {
         showSearch={true}
         toolbarActions={toolbarActions}
       />
-      <CreateGroupDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-      />
+      {!isMember && (
+        <CreateGroupDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+        />
+      )}
     </>
   );
 }

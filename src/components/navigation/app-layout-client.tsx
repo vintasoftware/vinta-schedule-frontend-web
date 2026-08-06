@@ -66,6 +66,12 @@ const MEMBER_NAV_ITEMS: SidebarNavItem[] = [
     icon: Settings,
     href: '/availability',
   },
+  {
+    id: 'groups',
+    label: 'Calendar groups',
+    icon: UsersRound,
+    href: '/groups',
+  },
 ];
 
 const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
@@ -81,12 +87,6 @@ const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
     label: 'Resources',
     icon: DoorOpen,
     href: '/resources',
-  },
-  {
-    id: 'groups',
-    label: 'Calendar groups',
-    icon: UsersRound,
-    href: '/groups',
   },
   { id: 'bundles', label: 'Bundles', icon: Calendar, href: '/bundles' },
   {

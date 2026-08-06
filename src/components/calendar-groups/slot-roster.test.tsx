@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import type { CalendarGroupSlot } from '@/client';
 import { SlotRoster } from './slot-roster';
+import { GroupPermissionsProvider } from './group-permissions';
 
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/client/sdk.gen')>();
@@ -54,12 +55,25 @@ function makeListResponse<T>(results: T[]) {
   } as unknown;
 }
 
-function renderRoster() {
+function renderRoster({
+  role,
+  ownedCalendarIds,
+}: {
+  role?: 'admin' | 'member' | null;
+  ownedCalendarIds?: ReadonlySet<number>;
+} = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <GroupPermissionsProvider
+        role={role ?? null}
+        ownedCalendarIds={ownedCalendarIds ?? new Set()}
+      >
+        {children}
+      </GroupPermissionsProvider>
+    </QueryClientProvider>
   );
   return render(<SlotRoster groupId={1} slot={SLOT} />, { wrapper });
 }
@@ -161,6 +175,91 @@ describe('SlotRoster', () => {
     await user.click(screen.getByTestId('roster-row-100'));
 
     expect(await screen.findByTestId('roster-panel-100')).toBeInTheDocument();
+  });
+
+  it('admin sees every row as editable, with no read-only badge', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsBlockedTimesList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsBlockedTimesList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsQuotaRulesList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsQuotaRulesList>
+      >
+    );
+
+    renderRoster({ role: 'admin' });
+    const user = userEvent.setup();
+
+    await screen.findByText('Dr. Smith');
+    await user.click(screen.getByTestId('roster-row-100'));
+    await user.click(screen.getByTestId('roster-row-101'));
+
+    expect(
+      await screen.findByTestId('roster-panel-editable-100')
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('roster-panel-editable-101')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-row-readonly-badge-100')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-row-readonly-badge-101')
+    ).not.toBeInTheDocument();
+  });
+
+  it('member sees only their owned calendar as editable; every other row exposes no write control', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsBlockedTimesList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsBlockedTimesList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsQuotaRulesList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsQuotaRulesList>
+      >
+    );
+
+    // Owns calendar 100 (Dr. Smith); does NOT own 101 (Recovery Room A).
+    renderRoster({ role: 'member', ownedCalendarIds: new Set([100]) });
+    const user = userEvent.setup();
+
+    await screen.findByText('Dr. Smith');
+    await user.click(screen.getByTestId('roster-row-100'));
+    await user.click(screen.getByTestId('roster-row-101'));
+
+    // Owned row: editable, no read-only badge.
+    expect(
+      await screen.findByTestId('roster-panel-editable-100')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-row-readonly-badge-100')
+    ).not.toBeInTheDocument();
+
+    // Non-owned row: a positive read-only signal is present (so this isn't
+    // trivially satisfied by the row failing to render at all)...
+    expect(
+      await screen.findByTestId('roster-panel-readonly-101')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('roster-row-readonly-badge-101')
+    ).toBeInTheDocument();
+    // ...and no write control/affordance for it.
+    expect(
+      screen.queryByTestId('roster-panel-editable-101')
+    ).not.toBeInTheDocument();
   });
 
   it('shows an empty-roster message when the slot has no calendars', () => {

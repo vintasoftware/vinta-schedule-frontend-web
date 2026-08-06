@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
-import type { CalendarGroup } from '@/client';
+import type { Calendar, CalendarGroup, PaginatedCalendarList } from '@/client';
 import GroupDetailPage from './page';
 
 vi.mock('next/navigation', () => ({
@@ -13,7 +14,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/components/navigation/role-gate', () => ({
-  useRequireRole: vi.fn(() => ({ isAllowed: true })),
+  useRole: vi.fn(() => 'admin'),
 }));
 
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
@@ -24,15 +25,17 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     calendarGroupsSlotsAvailabilityWindowsList: vi.fn(),
     calendarGroupsSlotsBlockedTimesList: vi.fn(),
     calendarGroupsSlotsQuotaRulesList: vi.fn(),
+    calendarList: vi.fn(),
   };
 });
 
-import { useRequireRole } from '@/components/navigation/role-gate';
+import { useRole } from '@/components/navigation/role-gate';
 import {
   calendarGroupsRetrieve,
   calendarGroupsSlotsAvailabilityWindowsList,
   calendarGroupsSlotsBlockedTimesList,
   calendarGroupsSlotsQuotaRulesList,
+  calendarList,
 } from '@/client/sdk.gen';
 
 // ---------------------------------------------------------------------------
@@ -100,6 +103,27 @@ function makeEmptyListResponse() {
   } as unknown;
 }
 
+function ownedCalendar(id: number): Calendar {
+  return {
+    id,
+    name: `Owned calendar ${id}`,
+    email: `owned-${id}@example.com`,
+    external_id: `ext-${id}`,
+    provider: 'google',
+    calendar_type: 'personal',
+  };
+}
+
+function makeCalendarListResponse(
+  results: PaginatedCalendarList['results']
+): Awaited<ReturnType<typeof calendarList>> {
+  const body: PaginatedCalendarList = { count: results.length, results };
+  return {
+    data: body,
+    response: new Response(JSON.stringify(body), { status: 200 }),
+  } as unknown as Awaited<ReturnType<typeof calendarList>>;
+}
+
 async function renderPage(id = '1') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -132,9 +156,8 @@ describe('GroupDetailPage', () => {
     vi.mocked(useRouter).mockReturnValue(
       mockRouter as unknown as ReturnType<typeof useRouter>
     );
-    vi.mocked(useRequireRole).mockReturnValue({
-      isAllowed: true,
-    } as unknown as ReturnType<typeof useRequireRole>);
+    vi.mocked(useRole).mockReturnValue('admin');
+    vi.mocked(calendarList).mockResolvedValue(makeCalendarListResponse([]));
     vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
       makeEmptyListResponse() as Awaited<
         ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
@@ -165,10 +188,8 @@ describe('GroupDetailPage', () => {
     expect(screen.getByText('Dr. Lee')).toBeInTheDocument();
   });
 
-  it('renders the member gate: nothing when not allowed', async () => {
-    vi.mocked(useRequireRole).mockReturnValue({
-      isAllowed: false,
-    } as unknown as ReturnType<typeof useRequireRole>);
+  it('does not fetch the group until the caller role has resolved', async () => {
+    vi.mocked(useRole).mockReturnValue(null);
     vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
       makeGroupResponse(FIXTURE_GROUP)
     );
@@ -176,9 +197,6 @@ describe('GroupDetailPage', () => {
     await renderPage();
 
     expect(screen.queryByText('Surgery Team')).not.toBeInTheDocument();
-    // Fetching must be gated on isAllowed, not just rendering — a non-admin
-    // guessing the URL must never trigger a real fetch of the group's
-    // roster (calendar names/emails) before the redirect effect runs.
     expect(calendarGroupsRetrieve).not.toHaveBeenCalled();
   });
 
@@ -218,5 +236,71 @@ describe('GroupDetailPage', () => {
     }
 
     expect(new Set(renders).size).toBe(1);
+  });
+
+  it('as an admin, every roster row is editable', async () => {
+    vi.mocked(useRole).mockReturnValue('admin');
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      makeGroupResponse(FIXTURE_GROUP)
+    );
+
+    await renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByText('Dr. Smith');
+    await user.click(screen.getByTestId('roster-row-100'));
+    await user.click(screen.getByTestId('roster-row-101'));
+
+    expect(
+      await screen.findByTestId('roster-panel-editable-100')
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('roster-panel-editable-101')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-row-readonly-badge-100')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-row-readonly-badge-101')
+    ).not.toBeInTheDocument();
+  });
+
+  it("as a member, the owner's own row is editable and every other row exposes no write control", async () => {
+    vi.mocked(useRole).mockReturnValue('member');
+    // Owns calendar 100 (Dr. Smith); does not own 101 (Dr. Lee).
+    vi.mocked(calendarList).mockResolvedValue(
+      makeCalendarListResponse([ownedCalendar(100)])
+    );
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      makeGroupResponse(FIXTURE_GROUP)
+    );
+
+    await renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByText('Dr. Smith');
+    await user.click(screen.getByTestId('roster-row-100'));
+    await user.click(screen.getByTestId('roster-row-101'));
+
+    // Owned row: editable, no read-only badge.
+    expect(
+      await screen.findByTestId('roster-panel-editable-100')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-row-readonly-badge-100')
+    ).not.toBeInTheDocument();
+
+    // Non-owned row: a positive read-only signal is present (so this isn't
+    // trivially satisfied by the row failing to render at all)...
+    expect(
+      await screen.findByTestId('roster-panel-readonly-101')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('roster-row-readonly-badge-101')
+    ).toBeInTheDocument();
+    // ...and no write control/affordance for it.
+    expect(
+      screen.queryByTestId('roster-panel-editable-101')
+    ).not.toBeInTheDocument();
   });
 });
