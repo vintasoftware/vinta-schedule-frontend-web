@@ -50,13 +50,33 @@ Review found no BLOCKER and no SHOULD-FIX. The reviewer verified the full export
 
 Gates: `pnpm run typecheck` clean (app + design system). `pnpm run test` full suite green — 135 app test files / 1157 tests, 11 design-system files / 82 tests.
 
+### Phase 1 — Group detail route, read-only ✅
+
+- **Branch**: `plan/calendar-group-scoped-availability/phase-1` (base: `plan/calendar-group-scoped-availability/phase-0`)
+- **Implementer model**: Tier 3 (sonnet)
+- **Reviewer model**: Tier 3 (sonnet) — project default. **Fixer**: Tier 2, run on sonnet (change spanned 8 files)
+- **Commits**: `79b248b` feat(calendar-groups): add read-only group detail route (Phase 1); `50dd2d8` fix(calendar-groups): gate group fetch on role, surface truncated config counts
+
+Summary:
+
+The detail route ships read-only: `useCalendarGroup` over `calendarGroupsRetrieve` with a typed `isNotFound`, a detail view with one card per slot, a roster accordion whose rows expand into an empty panel shell (`data-testid="roster-panel-{id}"`) that Phases 3b/4/5/6 mount editors into, and `GroupNotFound`. The groups table's name cell now links to the route.
+
+Non-disclosure is structural, not just copy: `GroupNotFound` takes **no props describing which 404 case occurred**, so it cannot leak the cause by construction. The page test asserts identical output across four fixtures — missing, other-org, unauthorized, out-of-scope — with deliberately differing response bodies, proving the component is insensitive to body content and not merely to status.
+
+Review found one **BLOCKER**, fixed: `useCalendarGroup(id)` was called unconditionally *before* the `if (!isAllowed) return null` gate, and the hook passed no `enabled` option — so a non-admin guessing `/groups/{id}` triggered a real fetch of that group's roster (calendar names, emails) before `useRequireRole`'s redirect effect ran. This is exactly the anti-pattern the sibling groups page documents avoiding, where the fetching hook lives inside a child mounted after the gate. Fixed by adding `{ enabled }` to the hook, following the existing `useCurrentOrganization({ enabled })` idiom. The test that let it through asserted only absent text; it now asserts the retrieve operation was **not called**, and the fixer confirmed that assertion fails against the pre-fix code by stashing the fix and re-running.
+
+One **SHOULD-FIX**, also fixed: the config-summary counts fetched a single 200-row page shared across the whole slot roster, so counts silently became lower bounds past that. The hook now compares each query's `count` against the page size and exposes `isTruncated`; the summary cell renders `200+ configured (exact count unavailable)` rather than a precise-looking number it cannot back up.
+
+Deviation from the Touch List, accepted: `src/hooks/calendar-groups/use-group-scoped-config-summary.ts` was added because AGENTS.md forbids components calling the generated client directly and the roster's summary cell needs the three list queries. It is list-only, no CRUD, and documented as scaffolding Phase 3a supersedes.
+
+Gates: typecheck clean. Full suite green — 141 app files / 1178 tests, 11 design-system files / 82 tests. Lint 0 errors (46 pre-existing warnings, none in touched files).
+
 ## Current phase
 
-Phase 1 — Group detail route, read-only.
+Phase 2 — Member access and ownership-based editability.
 
 ## Remaining phases
 
-- Phase 1 — Group detail route, read-only (Tier 3)
 - Phase 2 — Member access and ownership-based editability (Tier 3; reviewer Tier 4)
 - Phase 3a — Group-scoped window data hooks (Tier 2)
 - Phase 3b — Weekday window grid and unrepresentable rows (Tier 3; reviewer Tier 4)
