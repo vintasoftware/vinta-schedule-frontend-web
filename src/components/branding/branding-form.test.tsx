@@ -8,9 +8,12 @@ import type { ReactNode } from 'react';
 // Mocks — must be hoisted before any imports from the modules being mocked.
 // ---------------------------------------------------------------------------
 
-const { mockUpdateOrganizationSlug } = vi.hoisted(() => ({
-  mockUpdateOrganizationSlug: vi.fn(),
-}));
+const { mockUpdateOrganizationSlug, mockUploadBrandingLogo } = vi.hoisted(
+  () => ({
+    mockUpdateOrganizationSlug: vi.fn(),
+    mockUploadBrandingLogo: vi.fn(),
+  })
+);
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -40,6 +43,13 @@ vi.mock('@/hooks/organizations/use-update-organization-slug', () => ({
     updateOrganizationSlug: mockUpdateOrganizationSlug,
     updateOrganizationSlugMutation: { isPending: false },
   }),
+}));
+
+vi.mock('@/hooks/branding/use-upload-branding-logo', () => ({
+  useUploadBrandingLogo: () => ({
+    uploadBrandingLogo: mockUploadBrandingLogo,
+  }),
+  UploadValidationError: class UploadValidationError extends Error {},
 }));
 
 import { brandingUpdate } from '@/client/sdk.gen';
@@ -107,6 +117,9 @@ describe('BrandingForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUpdateOrganizationSlug.mockResolvedValue({ id: 1, slug: 'acme' });
+    mockUploadBrandingLogo.mockResolvedValue(
+      'uploads/branding_logos/new-logo.png'
+    );
   });
 
   // -------------------------------------------------------------------------
@@ -610,6 +623,88 @@ describe('BrandingForm', () => {
       });
 
       expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Logo upload
+  // -------------------------------------------------------------------------
+
+  describe('logo upload', () => {
+    it('submits the uploaded object key as logo_url in the PUT body', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({ app_name: 'TestApp' })
+      );
+
+      renderForm(null, 'acme');
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+
+      const file = new File([new Uint8Array([1, 2, 3])], 'logo.png', {
+        type: 'image/png',
+      });
+      await user.upload(screen.getByLabelText(/upload logo/i), file);
+
+      await waitFor(() => {
+        expect(mockUploadBrandingLogo).toHaveBeenCalledWith(
+          file,
+          expect.any(Function)
+        );
+      });
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.logo_url).toBe(
+        'uploads/branding_logos/new-logo.png'
+      );
+    });
+
+    it('sends empty string as logo_url when the logo is cleared', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({ app_name: 'TestApp' })
+      );
+
+      renderForm(
+        {
+          app_name: 'TestApp',
+          logo_url: 'https://api.example.com/branding/logo/acme/',
+        },
+        'acme'
+      );
+
+      await user.click(screen.getByRole('button', { name: /clear logo/i }));
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.logo_url).toBe('');
+    });
+
+    it('shows the server delivery-route logo_url as preview without parsing it', () => {
+      const deliveryUrl = 'https://api.example.com/branding/logo/acme/';
+
+      renderForm(
+        {
+          app_name: 'TestApp',
+          logo_url: deliveryUrl,
+        },
+        'acme'
+      );
+
+      expect(screen.getByAltText(/organization logo preview/i)).toHaveAttribute(
+        'src',
+        deliveryUrl
+      );
     });
   });
 

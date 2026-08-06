@@ -5,18 +5,23 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { Upload, X } from 'lucide-react';
 
 import {
   Box,
   Flex,
   Stack,
   HStack,
+  VStack,
   Heading,
   Text,
   FormLayout,
 } from 'vinta-schedule-design-system/layout';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Image } from 'vinta-schedule-design-system/ui/image';
+import { Progress } from 'vinta-schedule-design-system/ui/progress';
+import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
 import {
   Alert,
   AlertDescription,
@@ -33,6 +38,10 @@ import {
   FormDescription,
 } from 'vinta-schedule-design-system/ui/form';
 import { useUpdateBranding } from '@/hooks/branding/use-update-branding';
+import {
+  useUploadBrandingLogo,
+  UploadValidationError,
+} from '@/hooks/branding/use-upload-branding-logo';
 import { useUpdateOrganizationSlug } from '@/hooks/organizations/use-update-organization-slug';
 import type { OrganizationBranding } from '@/client';
 import {
@@ -163,12 +172,6 @@ export const slugSchema = z
 export const brandingSchema = z.object({
   slug: slugSchema.optional(),
   app_name: z.string().trim().min(1, { message: 'App name is required' }),
-  logo_url: z
-    .string()
-    .trim()
-    .url({ message: 'Must be a valid URL' })
-    .or(z.literal(''))
-    .optional(),
   primary_color: hexColorSchema.or(z.literal('')).optional(),
   secondary_color: hexColorSchema.or(z.literal('')).optional(),
   support_email: z
@@ -205,7 +208,6 @@ function toFormValues(
   return {
     slug: initialSlug ?? '',
     app_name: branding?.app_name ?? '',
-    logo_url: branding?.logo_url ?? '',
     primary_color: branding?.primary_color ?? '',
     secondary_color: branding?.secondary_color ?? '',
     support_email: branding?.support_email ?? '',
@@ -213,15 +215,23 @@ function toFormValues(
   };
 }
 
-function toPayload(values: BrandingFormValues): OrganizationBranding {
-  return {
+function toPayload(
+  values: BrandingFormValues,
+  pendingLogoKey: string | null
+): OrganizationBranding {
+  const payload: OrganizationBranding = {
     app_name: values.app_name,
-    logo_url: values.logo_url || undefined,
     primary_color: values.primary_color || undefined,
     secondary_color: values.secondary_color || undefined,
     support_email: values.support_email || undefined,
     redirect_url: values.redirect_url ?? '',
   };
+
+  if (pendingLogoKey !== null) {
+    payload.logo_url = pendingLogoKey;
+  }
+
+  return payload;
 }
 
 // ---------------------------------------------------------------------------
@@ -250,8 +260,22 @@ export function BrandingForm({
   initialSlug = null,
 }: BrandingFormProps) {
   const { updateBranding, updateBrandingMutation } = useUpdateBranding();
+  const { uploadBrandingLogo } = useUploadBrandingLogo();
   const { updateOrganizationSlug, updateOrganizationSlugMutation } =
     useUpdateOrganizationSlug();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const localPreviewUrlRef = React.useRef<string | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = React.useState<
+    string | undefined
+  >(initialBranding?.logo_url ?? undefined);
+  /** null = unchanged; "" = cleared; non-empty string = newly uploaded object key. */
+  const [pendingLogoKey, setPendingLogoKey] = React.useState<string | null>(
+    null
+  );
+  const [uploadProgress, setUploadProgress] = React.useState<number | null>(
+    null
+  );
+  const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [writeForbiddenReason, setWriteForbiddenReason] =
     React.useState<BrandingWriteForbiddenReason | null>(null);
@@ -265,7 +289,6 @@ export function BrandingForm({
   // user types (no submit needed to see how it looks). useWatch avoids the
   // React Compiler "incompatible library" warning triggered by form.watch().
   const watchedAppName = useWatch({ control: form.control, name: 'app_name' });
-  const watchedLogoUrl = useWatch({ control: form.control, name: 'logo_url' });
   const watchedPrimaryColor = useWatch({
     control: form.control,
     name: 'primary_color',
@@ -283,6 +306,59 @@ export function BrandingForm({
   const isSaving =
     updateBrandingMutation.isPending ||
     updateOrganizationSlugMutation.isPending;
+
+  React.useEffect(() => {
+    return () => {
+      if (localPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPreviewUrlRef.current);
+      }
+    };
+  }, []);
+
+  const revokeLocalPreview = React.useCallback(() => {
+    if (localPreviewUrlRef.current) {
+      URL.revokeObjectURL(localPreviewUrlRef.current);
+      localPreviewUrlRef.current = null;
+    }
+  }, []);
+
+  const onLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    revokeLocalPreview();
+    const localUrl = URL.createObjectURL(file);
+    localPreviewUrlRef.current = localUrl;
+    setLogoPreviewUrl(localUrl);
+    setUploadProgress(0);
+    setIsUploadingLogo(true);
+
+    try {
+      const objectKey = await uploadBrandingLogo(file, (pct) =>
+        setUploadProgress(pct)
+      );
+      setPendingLogoKey(objectKey);
+    } catch (err) {
+      revokeLocalPreview();
+      setLogoPreviewUrl(initialBranding?.logo_url ?? undefined);
+      setPendingLogoKey(null);
+      if (err instanceof UploadValidationError) {
+        toast.error(err.message);
+      } else {
+        toast.error('Failed to upload logo — please try again');
+      }
+    } finally {
+      setUploadProgress(null);
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const onClearLogo = () => {
+    revokeLocalPreview();
+    setLogoPreviewUrl(undefined);
+    setPendingLogoKey('');
+  };
 
   const focusSlugField = React.useCallback(() => {
     void form.setFocus('slug');
@@ -315,10 +391,13 @@ export function BrandingForm({
         }
       }
 
-      await updateBranding(toPayload(values));
+      await updateBranding(toPayload(values, pendingLogoKey));
       toast.success('Branding saved', {
         description: 'Your branding settings have been updated.',
       });
+      if (pendingLogoKey !== null && pendingLogoKey !== '') {
+        setPendingLogoKey(null);
+      }
     } catch (err) {
       const forbiddenReason = classifyBrandingWriteForbiddenError(err);
       if (forbiddenReason === 'has_parent') {
@@ -416,27 +495,87 @@ export function BrandingForm({
               )}
             />
 
-            {/* Logo URL */}
-            <FormField
-              control={form.control}
-              name='logo_url'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Logo URL</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='url'
-                      placeholder='https://example.com/logo.png'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Publicly accessible URL for your logo image.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
+            {/* Logo upload — submit object key; read logo_url is display-only */}
+            <VStack gap={3} align='start'>
+              <Text as='label' size='sm' weight='medium'>
+                Logo
+              </Text>
+              {logoPreviewUrl ? (
+                <Box
+                  px={3}
+                  py={2}
+                  radius='md'
+                  border
+                  borderColor='border'
+                  bg='muted'
+                >
+                  <Image
+                    src={logoPreviewUrl}
+                    alt='Organization logo preview'
+                    height={40}
+                    fit='contain'
+                  />
+                </Box>
+              ) : (
+                <Box
+                  width={120}
+                  height={40}
+                  radius='md'
+                  border
+                  borderColor='border'
+                  bg='muted'
+                />
               )}
-            />
+              <HStack gap={2} align='center'>
+                <Input
+                  ref={fileInputRef}
+                  type='file'
+                  accept='image/png,image/jpeg,image/webp'
+                  className='hidden'
+                  aria-label='Upload logo'
+                  onChange={onLogoFileChange}
+                />
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  disabled={isUploadingLogo || isSaving}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isUploadingLogo ? (
+                    <>
+                      <Spinner label='' />
+                      Uploading…
+                    </>
+                  ) : (
+                    <>
+                      <Upload />
+                      {logoPreviewUrl ? 'Replace logo' : 'Upload logo'}
+                    </>
+                  )}
+                </Button>
+                {logoPreviewUrl && (
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='sm'
+                    disabled={isUploadingLogo || isSaving}
+                    aria-label='Clear logo'
+                    onClick={onClearLogo}
+                  >
+                    <X />
+                    Clear logo
+                  </Button>
+                )}
+              </HStack>
+              {uploadProgress !== null ? (
+                <Progress value={uploadProgress} className='h-1.5 w-48' />
+              ) : (
+                <Text size='xs' color='muted-foreground'>
+                  PNG, JPEG, or WebP · max 5 MB. SVG is not allowed.
+                </Text>
+              )}
+            </VStack>
 
             {/* Colors */}
             <Flex
@@ -553,7 +692,7 @@ export function BrandingForm({
             )}
 
             <HStack justify='end'>
-              <Button type='submit' disabled={isSaving}>
+              <Button type='submit' disabled={isSaving || isUploadingLogo}>
                 {isSaving ? 'Saving…' : 'Save branding'}
               </Button>
             </HStack>
@@ -575,7 +714,7 @@ export function BrandingForm({
         <Card padding={0} className='overflow-hidden'>
           <BrandingPreview
             appName={watchedAppName || 'Your App'}
-            logoUrl={watchedLogoUrl || undefined}
+            logoUrl={logoPreviewUrl}
             primaryColor={watchedPrimaryColor || undefined}
             secondaryColor={watchedSecondaryColor || undefined}
           />
