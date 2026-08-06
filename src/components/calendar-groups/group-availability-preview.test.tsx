@@ -4,11 +4,24 @@
  * Covers:
  * - the strip is collapsed by default and issues NO request until the admin
  *   opens it — the laziness requirement this phase exists to prove;
- * - a range where the calendar is never free renders the explicit empty
- *   state, not an error — proving the two are distinguishable;
+ * - a range where every probed day comes back not free renders the
+ *   explicit "not available" state, not an error;
+ * - a calendar with no group-scoped window at all in the picked range
+ *   renders the distinct "no configuration" state, not the generic
+ *   "not available" one -- there was nothing to probe (BLOCKER fix);
+ * - an invalid/inverted picked range renders the distinct "pick a valid
+ *   range" state, not "never free" (SHOULD-FIX);
  * - a request failure renders the error state (with a Retry action),
- *   distinct from the empty state;
- * - a mixed range renders free and not-free days distinctly.
+ *   distinct from the other three;
+ * - a mixed range renders free, not-free, and unconfigured days distinctly.
+ *
+ * The response fixtures here echo what the REAL backend can produce: a
+ * `CalendarGroupRangeAvailability` entry only for a range this calendar has
+ * an actual group-scoped window covering (the backend answers "available"
+ * only when a range is fully covered by a single span -- see the hook's
+ * module doc comment). A fixture claiming a 24-hour range is "available"
+ * for a Tuesday/Thursday-only calendar cannot occur in production, so none
+ * of these fixtures do that.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -16,6 +29,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import type { GroupScopedAvailabilityWindow } from '@/client';
 import { GroupAvailabilityPreview } from './group-availability-preview';
 
 // ---------------------------------------------------------------------------
@@ -27,10 +41,14 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     calendarGroupsAvailabilityCreate: vi.fn(),
+    calendarGroupsSlotsAvailabilityWindowsList: vi.fn(),
   };
 });
 
-import { calendarGroupsAvailabilityCreate } from '@/client/sdk.gen';
+import {
+  calendarGroupsAvailabilityCreate,
+  calendarGroupsSlotsAvailabilityWindowsList,
+} from '@/client/sdk.gen';
 
 // ---------------------------------------------------------------------------
 // Fixtures / helpers
@@ -40,7 +58,53 @@ const GROUP_ID = 1;
 const SLOT_ID = 10;
 const CALENDAR_ID = 42;
 
-function makeResponse(
+// The picked range in every test below is 2026-08-10 (Mon) - 2026-08-13
+// (Thu). Tuesday is 08-11, Thursday is 08-13.
+
+function makeWindow(
+  overrides: Partial<GroupScopedAvailabilityWindow>
+): GroupScopedAvailabilityWindow {
+  return {
+    id: 1,
+    calendar_id: CALENDAR_ID,
+    group_slot_id: SLOT_ID,
+    start_time: '2024-01-02T09:00:00Z', // Tuesday
+    end_time: '2024-01-02T17:00:00Z',
+    timezone: 'UTC',
+    rrule_string: 'FREQ=WEEKLY;BYDAY=TU',
+    is_recurring: true,
+    created: '2024-01-01T00:00:00Z',
+    modified: '2024-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+// Tuesday-and-Thursday 9am-5pm UTC -- the plan's own UC-7 acceptance
+// scenario.
+const TUE_THU_WINDOWS: GroupScopedAvailabilityWindow[] = [
+  makeWindow({ id: 1 }),
+  makeWindow({
+    id: 2,
+    rrule_string: 'FREQ=WEEKLY;BYDAY=TH',
+    start_time: '2024-01-04T09:00:00Z', // Thursday
+    end_time: '2024-01-04T17:00:00Z',
+  }),
+];
+
+function makeWindowsListResponse(results: GroupScopedAvailabilityWindow[]) {
+  const body = { count: results.length, results };
+  return {
+    data: body,
+    response: new Response(JSON.stringify(body), { status: 200 }),
+  } as unknown as Awaited<
+    ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+  >;
+}
+
+// One entry per probed sub-range -- NOT one per whole day. `available: true`
+// means the probed window is fully covered by a single span (the only shape
+// the real backend can answer "available" for).
+function makeAvailabilityResponse(
   results: {
     start_time: string;
     end_time: string;
@@ -102,8 +166,11 @@ describe('GroupAvailabilityPreview', () => {
   });
 
   it('is collapsed by default and issues no request until opened', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeWindowsListResponse(TUE_THU_WINDOWS)
+    );
     vi.mocked(calendarGroupsAvailabilityCreate).mockResolvedValue(
-      makeResponse([])
+      makeAvailabilityResponse([])
     );
 
     renderPreview();
@@ -118,6 +185,7 @@ describe('GroupAvailabilityPreview', () => {
     // Give any accidental eager fetch a chance to happen before asserting
     // its absence.
     await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(calendarGroupsSlotsAvailabilityWindowsList).not.toHaveBeenCalled();
     expect(calendarGroupsAvailabilityCreate).not.toHaveBeenCalled();
 
     const user = userEvent.setup();
@@ -133,27 +201,20 @@ describe('GroupAvailabilityPreview', () => {
     );
   });
 
-  it('a range where the calendar is never free renders the empty state, not an error', async () => {
+  it('a range where every probed day comes back not free renders the "not available" state, not an error', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeWindowsListResponse(TUE_THU_WINDOWS)
+    );
     vi.mocked(calendarGroupsAvailabilityCreate).mockResolvedValue(
-      makeResponse([
+      makeAvailabilityResponse([
         {
-          start_time: '2026-08-10T00:00:00.000Z',
-          end_time: '2026-08-11T00:00:00.000Z',
+          start_time: '2026-08-11T09:00:00.000Z',
+          end_time: '2026-08-11T17:00:00.000Z',
           available: false,
         },
         {
-          start_time: '2026-08-11T00:00:00.000Z',
-          end_time: '2026-08-12T00:00:00.000Z',
-          available: false,
-        },
-        {
-          start_time: '2026-08-12T00:00:00.000Z',
-          end_time: '2026-08-13T00:00:00.000Z',
-          available: false,
-        },
-        {
-          start_time: '2026-08-13T00:00:00.000Z',
-          end_time: '2026-08-14T00:00:00.000Z',
+          start_time: '2026-08-13T09:00:00.000Z',
+          end_time: '2026-08-13T17:00:00.000Z',
           available: false,
         },
       ])
@@ -170,11 +231,17 @@ describe('GroupAvailabilityPreview', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Not available in this range')).toBeInTheDocument();
 
-    // Distinctness: the error state's testid, its "Retry" action, and the
-    // "role=alert" destructive styling contract are all absent here -- this
-    // is an answer, not a failure.
+    // Distinctness: the error state's testid, its "Retry" action, the
+    // no-configuration state, and the invalid-range state are all absent
+    // here -- this is a genuine "never free" answer, not any of those.
     expect(
       screen.queryByTestId(`availability-preview-error-${CALENDAR_ID}`)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`availability-preview-unconfigured-${CALENDAR_ID}`)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`availability-preview-invalid-range-${CALENDAR_ID}`)
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Retry' })
@@ -184,7 +251,77 @@ describe('GroupAvailabilityPreview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('a request failure renders the error state with a Retry action, distinct from the empty state', async () => {
+  it('a calendar with no group-scoped window in the picked range renders the "no configuration" state, distinct from "not available"', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeWindowsListResponse([])
+    );
+    vi.mocked(calendarGroupsAvailabilityCreate).mockResolvedValue(
+      makeAvailabilityResponse([])
+    );
+
+    const user = userEvent.setup();
+    renderPreview();
+    await user.click(
+      screen.getByTestId(`availability-preview-toggle-${CALENDAR_ID}`)
+    );
+
+    expect(
+      await screen.findByTestId(
+        `availability-preview-unconfigured-${CALENDAR_ID}`
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('No group-scoped configuration for this slot')
+    ).toBeInTheDocument();
+
+    // The availability endpoint is never asked about a day with nothing to
+    // probe -- there is no full-day fallback.
+    expect(calendarGroupsAvailabilityCreate).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId(`availability-preview-empty-${CALENDAR_ID}`)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`availability-preview-error-${CALENDAR_ID}`)
+    ).not.toBeInTheDocument();
+  });
+
+  it('an invalid/inverted picked range renders the "pick a valid range" state, not "never free"', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeWindowsListResponse(TUE_THU_WINDOWS)
+    );
+    vi.mocked(calendarGroupsAvailabilityCreate).mockResolvedValue(
+      makeAvailabilityResponse([])
+    );
+
+    const user = userEvent.setup();
+    renderPreview({
+      initialStartDate: '2026-08-13',
+      initialEndDate: '2026-08-10', // inverted
+    });
+    await user.click(
+      screen.getByTestId(`availability-preview-toggle-${CALENDAR_ID}`)
+    );
+
+    expect(
+      await screen.findByTestId(
+        `availability-preview-invalid-range-${CALENDAR_ID}`
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('Pick a valid date range')).toBeInTheDocument();
+
+    expect(calendarGroupsAvailabilityCreate).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId(`availability-preview-empty-${CALENDAR_ID}`)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`availability-preview-unconfigured-${CALENDAR_ID}`)
+    ).not.toBeInTheDocument();
+  });
+
+  it('a request failure renders the error state with a Retry action, distinct from the other states', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeWindowsListResponse(TUE_THU_WINDOWS)
+    );
     vi.mocked(calendarGroupsAvailabilityCreate).mockRejectedValue(
       new Error('network down')
     );
@@ -208,11 +345,16 @@ describe('GroupAvailabilityPreview', () => {
     ).not.toBeInTheDocument();
 
     vi.mocked(calendarGroupsAvailabilityCreate).mockResolvedValue(
-      makeResponse([
+      makeAvailabilityResponse([
         {
-          start_time: '2026-08-10T00:00:00.000Z',
-          end_time: '2026-08-11T00:00:00.000Z',
+          start_time: '2026-08-11T09:00:00.000Z',
+          end_time: '2026-08-11T17:00:00.000Z',
           available: true,
+        },
+        {
+          start_time: '2026-08-13T09:00:00.000Z',
+          end_time: '2026-08-13T17:00:00.000Z',
+          available: false,
         },
       ])
     );
@@ -225,28 +367,21 @@ describe('GroupAvailabilityPreview', () => {
     );
   });
 
-  it('a mixed range renders free and not-free days distinctly', async () => {
+  it('a mixed range renders free, not-free, and unconfigured days distinctly', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeWindowsListResponse(TUE_THU_WINDOWS)
+    );
     vi.mocked(calendarGroupsAvailabilityCreate).mockResolvedValue(
-      makeResponse([
+      makeAvailabilityResponse([
         {
-          start_time: '2026-08-10T00:00:00.000Z',
-          end_time: '2026-08-11T00:00:00.000Z',
-          available: false, // Monday
-        },
-        {
-          start_time: '2026-08-11T00:00:00.000Z',
-          end_time: '2026-08-12T00:00:00.000Z',
+          start_time: '2026-08-11T09:00:00.000Z',
+          end_time: '2026-08-11T17:00:00.000Z',
           available: true, // Tuesday
         },
         {
-          start_time: '2026-08-12T00:00:00.000Z',
-          end_time: '2026-08-13T00:00:00.000Z',
-          available: false, // Wednesday
-        },
-        {
-          start_time: '2026-08-13T00:00:00.000Z',
-          end_time: '2026-08-14T00:00:00.000Z',
-          available: true, // Thursday
+          start_time: '2026-08-13T09:00:00.000Z',
+          end_time: '2026-08-13T17:00:00.000Z',
+          available: false, // Thursday
         },
       ])
     );
@@ -259,15 +394,28 @@ describe('GroupAvailabilityPreview', () => {
 
     await screen.findByTestId(`availability-preview-days-${CALENDAR_ID}`);
 
-    const freeDay = screen.getByTestId('availability-preview-day-2026-08-11');
-    const busyDay = screen.getByTestId('availability-preview-day-2026-08-10');
+    const mondayCard = screen.getByTestId(
+      'availability-preview-day-2026-08-10'
+    );
+    const tuesdayCard = screen.getByTestId(
+      'availability-preview-day-2026-08-11'
+    );
+    const thursdayCard = screen.getByTestId(
+      'availability-preview-day-2026-08-13'
+    );
 
-    expect(freeDay).toHaveTextContent('Free');
-    expect(busyDay).toHaveTextContent('Not free');
-    // Not just different text -- distinct visual treatment too (own testid
-    // fixture support: the badge variant classnames differ).
-    expect(freeDay.querySelector('.bg-green-100')).not.toBeNull();
-    expect(busyDay.querySelector('.bg-green-100')).toBeNull();
+    expect(mondayCard).toHaveTextContent('No config');
+    expect(tuesdayCard).toHaveTextContent('Free');
+    expect(thursdayCard).toHaveTextContent('Not free');
+
+    // The free day carries the design system's `success` Badge variant --
+    // asserted at the testid/text level above, distinctness proven by the
+    // Not-free/No-config cards NOT carrying that same text.
+    expect(
+      screen.getByTestId(
+        `availability-preview-unconfigured-note-${CALENDAR_ID}`
+      )
+    ).toBeInTheDocument();
 
     expect(
       screen.queryByTestId(`availability-preview-empty-${CALENDAR_ID}`)

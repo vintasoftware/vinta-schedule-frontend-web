@@ -2,22 +2,35 @@
  * useGroupAvailabilityPreview tests.
  *
  * Covers:
- * - buildDayRanges: a picked date range splits into one full-day range per
- *   day, in the requested zone; an inverted or invalid range yields no
- *   ranges at all.
- * - reduceAvailabilityToDays: the response reduces to the right per-day
- *   free/not-free answer for the calendar in question, including a day
- *   whose response entry never mentions the slot at all.
- * - the hook: the request's `ranges` body is built from the picked range,
- *   and — the laziness requirement this phase exists to prove — the query
- *   does NOT fire while `enabled` is false, only once it flips to `true`.
+ * - buildDayPlans: a picked date range splits into one plan per day, each
+ *   carrying a probe per REPRESENTABLE group-scoped window whose weekday
+ *   matches that day -- not a full midnight-to-midnight probe (BLOCKER fix:
+ *   the backend only answers "available" for a range fully covered by a
+ *   single span, so a full-day probe on a calendar configured e.g.
+ *   "Tuesdays and Thursdays 9am-5pm" would report every day, including
+ *   Tuesday and Thursday, as not free). A day whose weekday has no matching
+ *   window gets zero probes; an invalid or inverted range yields no plans
+ *   at all.
+ * - reduceAvailabilityToDays: a day with no probes reduces to
+ *   'unconfigured' without consulting the response at all; a day with
+ *   probes reduces to 'free' when ANY of its probes reports the calendar
+ *   free, 'not-free' otherwise -- including a day whose response entry
+ *   never mentions the slot.
+ * - the hook: the request's `ranges` body is built ONLY from probed
+ *   sub-ranges (never a full day), and — the laziness requirement this
+ *   phase exists to prove — neither the group-scoped windows list nor the
+ *   availability request fires while `enabled` is false, only once it flips
+ *   to `true`.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement, type ReactNode } from 'react';
-import type { CalendarGroupRangeAvailability } from '@/client';
+import type {
+  CalendarGroupRangeAvailability,
+  GroupScopedAvailabilityWindow,
+} from '@/client';
 
 // ---------------------------------------------------------------------------
 // Mocks — hoisted before imports
@@ -28,19 +41,29 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     calendarGroupsAvailabilityCreate: vi.fn(),
+    calendarGroupsSlotsAvailabilityWindowsList: vi.fn(),
   };
 });
 
-import { calendarGroupsAvailabilityCreate } from '@/client/sdk.gen';
+import {
+  calendarGroupsAvailabilityCreate,
+  calendarGroupsSlotsAvailabilityWindowsList,
+} from '@/client/sdk.gen';
 import {
   useGroupAvailabilityPreview,
-  buildDayRanges,
+  buildDayPlans,
   reduceAvailabilityToDays,
+  type DayPlan,
 } from './use-group-availability-preview';
+import type { WeekdayWindow } from '@/components/calendar-groups/group-scoped-types';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+const GROUP_ID = 1;
+const SLOT_ID = 10;
+const CALENDAR_ID = 42;
 
 function makeQueryWrapper() {
   const queryClient = new QueryClient({
@@ -56,7 +79,7 @@ function makeQueryWrapper() {
   return { Wrapper, queryClient };
 }
 
-function makeResponse(results: CalendarGroupRangeAvailability[]) {
+function makeAvailabilityResponse(results: CalendarGroupRangeAvailability[]) {
   const body = { count: results.length, results };
   return {
     data: body,
@@ -64,45 +87,115 @@ function makeResponse(results: CalendarGroupRangeAvailability[]) {
   } as unknown as Awaited<ReturnType<typeof calendarGroupsAvailabilityCreate>>;
 }
 
+// 2024-01-02 is a Tuesday -- same anchor convention as
+// group-scoped-types.test.ts and group-window-grid.test.tsx.
+function makeWindow(
+  overrides: Partial<GroupScopedAvailabilityWindow>
+): GroupScopedAvailabilityWindow {
+  return {
+    id: 1,
+    calendar_id: CALENDAR_ID,
+    group_slot_id: SLOT_ID,
+    start_time: '2024-01-02T09:00:00Z',
+    end_time: '2024-01-02T17:00:00Z',
+    timezone: 'UTC',
+    rrule_string: 'FREQ=WEEKLY;BYDAY=TU',
+    is_recurring: true,
+    created: '2024-01-01T00:00:00Z',
+    modified: '2024-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+function makeWindowsListResponse(results: GroupScopedAvailabilityWindow[]) {
+  const body = { count: results.length, results };
+  return {
+    data: body,
+    response: new Response(JSON.stringify(body), { status: 200 }),
+  } as unknown as Awaited<
+    ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+  >;
+}
+
+// Tuesday-and-Thursday 9am-5pm UTC -- the plan's own UC-7 acceptance
+// scenario. 2026-08-11 is a Tuesday, 2026-08-13 is a Thursday.
+const TUE_THU_WINDOWS: WeekdayWindow[] = [
+  { id: 1, weekday: 'TU', startTime: '09:00', endTime: '17:00' },
+  { id: 2, weekday: 'TH', startTime: '09:00', endTime: '17:00' },
+];
+
 // ---------------------------------------------------------------------------
-// buildDayRanges
+// buildDayPlans
 // ---------------------------------------------------------------------------
 
-describe('buildDayRanges', () => {
-  it('splits an inclusive multi-day range into one full-day range per day', () => {
-    const ranges = buildDayRanges('2026-08-10', '2026-08-13', 'UTC');
+describe('buildDayPlans', () => {
+  it('gives every day in the picked range a plan, with probes only on days whose weekday has a matching window', () => {
+    // 2026-08-10 Mon, 08-11 Tue, 08-12 Wed, 08-13 Thu.
+    const plans = buildDayPlans(
+      '2026-08-10',
+      '2026-08-13',
+      'UTC',
+      TUE_THU_WINDOWS
+    );
 
-    expect(ranges.map((r) => r.date)).toEqual([
+    expect(plans.map((p) => p.date)).toEqual([
       '2026-08-10',
       '2026-08-11',
       '2026-08-12',
       '2026-08-13',
     ]);
-    // Each range spans exactly its own day, midnight to midnight.
-    expect(ranges[0]).toEqual({
-      date: '2026-08-10',
-      startTime: '2026-08-10T00:00:00.000Z',
-      endTime: '2026-08-11T00:00:00.000Z',
-    });
-    expect(ranges[3]).toEqual({
-      date: '2026-08-13',
-      startTime: '2026-08-13T00:00:00.000Z',
-      endTime: '2026-08-14T00:00:00.000Z',
-    });
+    expect(plans[0]?.probes).toEqual([]); // Monday -- no window
+    expect(plans[1]?.probes).toEqual([
+      {
+        startTime: '2026-08-11T09:00:00.000Z',
+        endTime: '2026-08-11T17:00:00.000Z',
+      },
+    ]); // Tuesday
+    expect(plans[2]?.probes).toEqual([]); // Wednesday -- no window
+    expect(plans[3]?.probes).toEqual([
+      {
+        startTime: '2026-08-13T09:00:00.000Z',
+        endTime: '2026-08-13T17:00:00.000Z',
+      },
+    ]); // Thursday
   });
 
-  it('a single-day range (start === end) produces exactly one range', () => {
-    const ranges = buildDayRanges('2026-08-10', '2026-08-10', 'UTC');
-    expect(ranges).toHaveLength(1);
-    expect(ranges[0]?.date).toBe('2026-08-10');
+  it('a calendar with no windows at all produces a plan per day, every one with zero probes', () => {
+    const plans = buildDayPlans('2026-08-10', '2026-08-11', 'UTC', []);
+    expect(plans).toEqual([
+      { date: '2026-08-10', probes: [] },
+      { date: '2026-08-11', probes: [] },
+    ]);
   });
 
-  it('an inverted range (end before start) produces no ranges', () => {
-    expect(buildDayRanges('2026-08-13', '2026-08-10', 'UTC')).toEqual([]);
+  it('a weekday with more than one window produces one probe per window', () => {
+    const windows: WeekdayWindow[] = [
+      { id: 1, weekday: 'TU', startTime: '09:00', endTime: '12:00' },
+      { id: 2, weekday: 'TU', startTime: '13:00', endTime: '17:00' },
+    ];
+    const plans = buildDayPlans('2026-08-11', '2026-08-11', 'UTC', windows);
+    expect(plans[0]?.probes).toEqual([
+      {
+        startTime: '2026-08-11T09:00:00.000Z',
+        endTime: '2026-08-11T12:00:00.000Z',
+      },
+      {
+        startTime: '2026-08-11T13:00:00.000Z',
+        endTime: '2026-08-11T17:00:00.000Z',
+      },
+    ]);
   });
 
-  it('an unparseable date produces no ranges', () => {
-    expect(buildDayRanges('not-a-date', '2026-08-10', 'UTC')).toEqual([]);
+  it('an inverted range (end before start) produces no plans', () => {
+    expect(
+      buildDayPlans('2026-08-13', '2026-08-10', 'UTC', TUE_THU_WINDOWS)
+    ).toEqual([]);
+  });
+
+  it('an unparseable date produces no plans', () => {
+    expect(
+      buildDayPlans('not-a-date', '2026-08-10', 'UTC', TUE_THU_WINDOWS)
+    ).toEqual([]);
   });
 });
 
@@ -111,58 +204,63 @@ describe('buildDayRanges', () => {
 // ---------------------------------------------------------------------------
 
 describe('reduceAvailabilityToDays', () => {
-  const dayRanges = buildDayRanges('2026-08-10', '2026-08-11', 'UTC');
-  const SLOT_ID = 10;
-  const CALENDAR_ID = 42;
-  const OTHER_CALENDAR_ID = 43;
+  it('a day with no probes reduces to unconfigured without consulting the response', () => {
+    const dayPlans: DayPlan[] = [{ date: '2026-08-10', probes: [] }];
+    const days = reduceAvailabilityToDays(dayPlans, [], SLOT_ID, CALENDAR_ID);
+    expect(days).toEqual([{ date: '2026-08-10', status: 'unconfigured' }]);
+  });
 
-  it('a day whose slot lists the calendar as available reduces to free', () => {
-    const results: CalendarGroupRangeAvailability[] = [
+  it('a day whose probe reports the calendar free reduces to free', () => {
+    const dayPlans: DayPlan[] = [
       {
-        start_time: dayRanges[0]!.startTime,
-        end_time: dayRanges[0]!.endTime,
-        slots: [
+        date: '2026-08-11',
+        probes: [
           {
-            slot_id: SLOT_ID,
-            available_calendar_ids: [CALENDAR_ID, OTHER_CALENDAR_ID],
-            required_count: 1,
-            is_bookable: true,
+            startTime: '2026-08-11T09:00:00.000Z',
+            endTime: '2026-08-11T17:00:00.000Z',
           },
         ],
       },
+    ];
+    const results: CalendarGroupRangeAvailability[] = [
       {
-        start_time: dayRanges[1]!.startTime,
-        end_time: dayRanges[1]!.endTime,
+        start_time: '2026-08-11T09:00:00.000Z',
+        end_time: '2026-08-11T17:00:00.000Z',
         slots: [
           {
             slot_id: SLOT_ID,
-            available_calendar_ids: [OTHER_CALENDAR_ID],
+            available_calendar_ids: [CALENDAR_ID],
             required_count: 1,
             is_bookable: true,
           },
         ],
       },
     ];
-
     const days = reduceAvailabilityToDays(
-      dayRanges,
+      dayPlans,
       results,
       SLOT_ID,
       CALENDAR_ID
     );
-
-    expect(days).toEqual([
-      { date: '2026-08-10', isFree: true },
-      { date: '2026-08-11', isFree: false },
-    ]);
+    expect(days).toEqual([{ date: '2026-08-11', status: 'free' }]);
   });
 
   it('a day whose response never mentions the slot reduces to not-free', () => {
+    const dayPlans: DayPlan[] = [
+      {
+        date: '2026-08-11',
+        probes: [
+          {
+            startTime: '2026-08-11T09:00:00.000Z',
+            endTime: '2026-08-11T17:00:00.000Z',
+          },
+        ],
+      },
+    ];
     const results: CalendarGroupRangeAvailability[] = [
       {
-        start_time: dayRanges[0]!.startTime,
-        end_time: dayRanges[0]!.endTime,
-        // A different slot entirely -- SLOT_ID is not among these.
+        start_time: '2026-08-11T09:00:00.000Z',
+        end_time: '2026-08-11T17:00:00.000Z',
         slots: [
           {
             slot_id: 999,
@@ -173,23 +271,80 @@ describe('reduceAvailabilityToDays', () => {
         ],
       },
     ];
-
     const days = reduceAvailabilityToDays(
-      [dayRanges[0]!],
+      dayPlans,
       results,
       SLOT_ID,
       CALENDAR_ID
     );
-
-    expect(days).toEqual([{ date: '2026-08-10', isFree: false }]);
+    expect(days).toEqual([{ date: '2026-08-11', status: 'not-free' }]);
   });
 
   it('a day missing from the response entirely reduces to not-free (positional fallback finds no match)', () => {
-    const days = reduceAvailabilityToDays(dayRanges, [], SLOT_ID, CALENDAR_ID);
-    expect(days).toEqual([
-      { date: '2026-08-10', isFree: false },
-      { date: '2026-08-11', isFree: false },
-    ]);
+    const dayPlans: DayPlan[] = [
+      {
+        date: '2026-08-11',
+        probes: [
+          {
+            startTime: '2026-08-11T09:00:00.000Z',
+            endTime: '2026-08-11T17:00:00.000Z',
+          },
+        ],
+      },
+    ];
+    const days = reduceAvailabilityToDays(dayPlans, [], SLOT_ID, CALENDAR_ID);
+    expect(days).toEqual([{ date: '2026-08-11', status: 'not-free' }]);
+  });
+
+  it('a day free on ANY of its probes reduces to free, even when another probe that day is not free', () => {
+    const dayPlans: DayPlan[] = [
+      {
+        date: '2026-08-11',
+        probes: [
+          {
+            startTime: '2026-08-11T09:00:00.000Z',
+            endTime: '2026-08-11T12:00:00.000Z',
+          },
+          {
+            startTime: '2026-08-11T13:00:00.000Z',
+            endTime: '2026-08-11T17:00:00.000Z',
+          },
+        ],
+      },
+    ];
+    const results: CalendarGroupRangeAvailability[] = [
+      {
+        start_time: '2026-08-11T09:00:00.000Z',
+        end_time: '2026-08-11T12:00:00.000Z',
+        slots: [
+          {
+            slot_id: SLOT_ID,
+            available_calendar_ids: [],
+            required_count: 1,
+            is_bookable: false,
+          },
+        ],
+      },
+      {
+        start_time: '2026-08-11T13:00:00.000Z',
+        end_time: '2026-08-11T17:00:00.000Z',
+        slots: [
+          {
+            slot_id: SLOT_ID,
+            available_calendar_ids: [CALENDAR_ID],
+            required_count: 1,
+            is_bookable: true,
+          },
+        ],
+      },
+    ];
+    const days = reduceAvailabilityToDays(
+      dayPlans,
+      results,
+      SLOT_ID,
+      CALENDAR_ID
+    );
+    expect(days).toEqual([{ date: '2026-08-11', status: 'free' }]);
   });
 });
 
@@ -202,20 +357,25 @@ describe('useGroupAvailabilityPreview', () => {
     vi.clearAllMocks();
   });
 
-  it('does NOT fire the request while enabled is false', async () => {
+  it('does NOT fire either request while enabled is false', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeWindowsListResponse(
+        TUE_THU_WINDOWS.map((w) => makeWindow({ id: w.id }))
+      )
+    );
     vi.mocked(calendarGroupsAvailabilityCreate).mockResolvedValue(
-      makeResponse([])
+      makeAvailabilityResponse([])
     );
     const { Wrapper } = makeQueryWrapper();
 
     const { result, rerender } = renderHook(
       (props: { enabled: boolean }) =>
         useGroupAvailabilityPreview({
-          groupId: 1,
-          slotId: 10,
-          calendarId: 42,
+          groupId: GROUP_ID,
+          slotId: SLOT_ID,
+          calendarId: CALENDAR_ID,
           startDate: '2026-08-10',
-          endDate: '2026-08-11',
+          endDate: '2026-08-13',
           timezone: 'UTC',
           enabled: props.enabled,
         }),
@@ -226,6 +386,7 @@ describe('useGroupAvailabilityPreview', () => {
     // its absence -- asserting immediately after render could pass even if
     // the query fired asynchronously.
     await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(calendarGroupsSlotsAvailabilityWindowsList).not.toHaveBeenCalled();
     expect(calendarGroupsAvailabilityCreate).not.toHaveBeenCalled();
     expect(result.current.isLoading).toBe(false);
 
@@ -236,7 +397,18 @@ describe('useGroupAvailabilityPreview', () => {
     );
   });
 
-  it('builds the request ranges from the picked date range and reduces the response for the calendar in question', async () => {
+  it('builds the request ranges from ONLY the days whose weekday has a matching window, and reduces the response per day', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeWindowsListResponse([
+        makeWindow({ id: 1 }), // Tuesday 09:00-17:00
+        makeWindow({
+          id: 2,
+          rrule_string: 'FREQ=WEEKLY;BYDAY=TH',
+          start_time: '2024-01-04T09:00:00Z', // Thursday
+          end_time: '2024-01-04T17:00:00Z',
+        }),
+      ])
+    );
     vi.mocked(calendarGroupsAvailabilityCreate).mockImplementation(
       (async (options: {
         body: { ranges: { start_time: string; end_time: string }[] };
@@ -247,17 +419,15 @@ describe('useGroupAvailabilityPreview', () => {
           end_time: r.end_time,
           slots: [
             {
-              slot_id: 10,
-              // Every OTHER day is free, so this asserts BOTH values occur
-              // (a mock that always answers the same way couldn't support
-              // this assertion).
-              available_calendar_ids: index % 2 === 0 ? [42] : [],
+              slot_id: SLOT_ID,
+              // Tuesday free, Thursday not -- asserts both values occur.
+              available_calendar_ids: index === 0 ? [CALENDAR_ID] : [],
               required_count: 1,
-              is_bookable: index % 2 === 0,
+              is_bookable: index === 0,
             },
           ],
         }));
-        return makeResponse(results);
+        return makeAvailabilityResponse(results);
       }) as typeof calendarGroupsAvailabilityCreate
     );
 
@@ -265,9 +435,9 @@ describe('useGroupAvailabilityPreview', () => {
     const { result } = renderHook(
       () =>
         useGroupAvailabilityPreview({
-          groupId: 1,
-          slotId: 10,
-          calendarId: 42,
+          groupId: GROUP_ID,
+          slotId: SLOT_ID,
+          calendarId: CALENDAR_ID,
           startDate: '2026-08-10',
           endDate: '2026-08-13',
           timezone: 'UTC',
@@ -280,24 +450,16 @@ describe('useGroupAvailabilityPreview', () => {
 
     expect(calendarGroupsAvailabilityCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        path: { id: '1' },
+        path: { id: String(GROUP_ID) },
         body: {
           ranges: [
             {
-              start_time: '2026-08-10T00:00:00.000Z',
-              end_time: '2026-08-11T00:00:00.000Z',
+              start_time: '2026-08-11T09:00:00.000Z',
+              end_time: '2026-08-11T17:00:00.000Z',
             },
             {
-              start_time: '2026-08-11T00:00:00.000Z',
-              end_time: '2026-08-12T00:00:00.000Z',
-            },
-            {
-              start_time: '2026-08-12T00:00:00.000Z',
-              end_time: '2026-08-13T00:00:00.000Z',
-            },
-            {
-              start_time: '2026-08-13T00:00:00.000Z',
-              end_time: '2026-08-14T00:00:00.000Z',
+              start_time: '2026-08-13T09:00:00.000Z',
+              end_time: '2026-08-13T17:00:00.000Z',
             },
           ],
         },
@@ -305,28 +467,64 @@ describe('useGroupAvailabilityPreview', () => {
     );
 
     expect(result.current.days).toEqual([
-      { date: '2026-08-10', isFree: true },
-      { date: '2026-08-11', isFree: false },
-      { date: '2026-08-12', isFree: true },
-      { date: '2026-08-13', isFree: false },
+      { date: '2026-08-10', status: 'unconfigured' }, // Monday, no window
+      { date: '2026-08-11', status: 'free' }, // Tuesday
+      { date: '2026-08-12', status: 'unconfigured' }, // Wednesday, no window
+      { date: '2026-08-13', status: 'not-free' }, // Thursday
     ]);
     expect(result.current.hasAnyFreeDay).toBe(true);
   });
 
-  it('an empty picked range (invalid dates) never issues a request even when enabled', async () => {
+  it('a calendar with no representable group-scoped window at all never issues the availability request', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeWindowsListResponse([])
+    );
     vi.mocked(calendarGroupsAvailabilityCreate).mockResolvedValue(
-      makeResponse([])
+      makeAvailabilityResponse([])
     );
     const { Wrapper } = makeQueryWrapper();
 
     const { result } = renderHook(
       () =>
         useGroupAvailabilityPreview({
-          groupId: 1,
-          slotId: 10,
-          calendarId: 42,
+          groupId: GROUP_ID,
+          slotId: SLOT_ID,
+          calendarId: CALENDAR_ID,
+          startDate: '2026-08-10',
+          endDate: '2026-08-11',
+          timezone: 'UTC',
+          enabled: true,
+        }),
+      { wrapper: Wrapper }
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(calendarGroupsAvailabilityCreate).not.toHaveBeenCalled();
+    expect(result.current.days).toEqual([
+      { date: '2026-08-10', status: 'unconfigured' },
+      { date: '2026-08-11', status: 'unconfigured' },
+    ]);
+  });
+
+  it('an empty picked range (invalid dates) never issues either request even when enabled', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeWindowsListResponse(
+        TUE_THU_WINDOWS.map((w) => makeWindow({ id: w.id }))
+      )
+    );
+    vi.mocked(calendarGroupsAvailabilityCreate).mockResolvedValue(
+      makeAvailabilityResponse([])
+    );
+    const { Wrapper } = makeQueryWrapper();
+
+    const { result } = renderHook(
+      () =>
+        useGroupAvailabilityPreview({
+          groupId: GROUP_ID,
+          slotId: SLOT_ID,
+          calendarId: CALENDAR_ID,
           startDate: '2026-08-13',
-          endDate: '2026-08-10', // inverted -- buildDayRanges yields []
+          endDate: '2026-08-10', // inverted -- buildDayPlans yields []
           timezone: 'UTC',
           enabled: true,
         }),

@@ -18,6 +18,25 @@
  * intersect-only rule read as broken UI instead of a fact about the
  * configuration.
  *
+ * THREE DISTINCT "NOT A FAILURE" STATES, not one: `useGroupAvailabilityPreview`
+ * probes each day's OWN declared group-scoped window interval, not the
+ * whole day (see the hook's module doc comment for why a full-day probe
+ * would lie). That means "nothing bookable" can mean three different
+ * things, each rendered distinctly:
+ *  - the picked range itself is invalid (`endDate` before `startDate` —
+ *    easy to produce mid-edit in the date inputs) — no day was ever
+ *    evaluated, so this must not read as "never free";
+ *  - this calendar has no representable group-scoped window anywhere in
+ *    the picked range at all — there was nothing to probe, so "not
+ *    available" would misleadingly imply a configuration that doesn't
+ *    help, when there IS no configuration to speak of (base availability
+ *    governs it entirely);
+ *  - every probed day came back not free — the genuine intersect-only
+ *    narrowing result UC-7 exists to surface.
+ * A day can also be individually `'unconfigured'` inside an otherwise mixed
+ * range (some days configured, some not) — rendered with its own badge
+ * plus an explanatory note, rather than silently reporting it "not free".
+ *
  * COLLAPSED BY DEFAULT, LAZY QUERY: the group detail page already loads the
  * group, its slots, their rosters, and three concept lists per calendar
  * (slot-roster.tsx) — the plan calls out extra reads on this page as a named
@@ -121,6 +140,22 @@ export function GroupAvailabilityPreview({
       enabled: isOpen,
     });
 
+  // `days` is empty ONLY for an invalid/inverted picked range (see
+  // buildDayPlans) -- distinct from a genuinely-queried range that came
+  // back with zero free days, which still has one entry per day. Conflating
+  // the two would tell an admin who mis-edited the date fields "this
+  // calendar is never free" instead of "pick a valid range" (SHOULD-FIX).
+  const isInvalidRange = days.length === 0;
+  // Every day in range has no representable group-scoped window for this
+  // calendar/slot at all -- there was nothing to probe, so this reads
+  // differently from "narrowed away by configuration" (see the module doc
+  // comment).
+  const isEntirelyUnconfigured =
+    days.length > 0 && days.every((day) => day.status === 'unconfigured');
+  const hasAnyUnconfiguredDay = days.some(
+    (day) => day.status === 'unconfigured'
+  );
+
   return (
     <VStack gap={3} data-testid={`availability-preview-${calendarId}`}>
       <HStack justify='between' align='center'>
@@ -219,6 +254,37 @@ export function GroupAvailabilityPreview({
                 </VStack>
               </AlertDescription>
             </Alert>
+          ) : isInvalidRange ? (
+            // No day was ever evaluated -- must not read as "never free"
+            // (SHOULD-FIX). `Input min` only guards the native picker;
+            // editing "From" past an already-set "To" still gets here.
+            <Alert
+              data-testid={`availability-preview-invalid-range-${calendarId}`}
+            >
+              <AlertTitle>Pick a valid date range</AlertTitle>
+              <AlertDescription>
+                The &quot;To&quot; date must be on or after the &quot;From&quot;
+                date.
+              </AlertDescription>
+            </Alert>
+          ) : isEntirelyUnconfigured ? (
+            // Nothing to probe: this calendar has no representable
+            // group-scoped window anywhere in the picked range. Distinct
+            // from "narrowed away by configuration" below -- there IS no
+            // configuration here, base availability governs it entirely.
+            <Alert
+              data-testid={`availability-preview-unconfigured-${calendarId}`}
+            >
+              <AlertTitle>
+                No group-scoped configuration for this slot
+              </AlertTitle>
+              <AlertDescription>
+                {calendarName} has no group-scoped availability window
+                configured between {startDate} and {endDate} for this group
+                slot. There&apos;s nothing to preview here — availability is
+                governed entirely by the calendar&apos;s base hours.
+              </AlertDescription>
+            </Alert>
           ) : !hasAnyFreeDay ? (
             // Legitimate, expected result -- NOT an error. See the module
             // doc comment: intersect-only means a save can succeed and do
@@ -235,30 +301,55 @@ export function GroupAvailabilityPreview({
               </AlertDescription>
             </Alert>
           ) : (
-            <HStack
-              gap={2}
-              wrap
-              data-testid={`availability-preview-days-${calendarId}`}
-            >
-              {days.map((day) => (
-                <VStack
-                  key={day.date}
-                  gap={1}
-                  align='center'
-                  p={2}
-                  border
-                  radius='md'
-                  data-testid={`availability-preview-day-${day.date}`}
+            <VStack gap={2}>
+              <HStack
+                gap={2}
+                wrap
+                data-testid={`availability-preview-days-${calendarId}`}
+              >
+                {days.map((day) => (
+                  <VStack
+                    key={day.date}
+                    gap={1}
+                    align='center'
+                    p={2}
+                    border
+                    radius='md'
+                    data-testid={`availability-preview-day-${day.date}`}
+                  >
+                    <Text size='xs' color='muted-foreground'>
+                      {DateTime.fromISO(day.date).toFormat('EEE, MMM d')}
+                    </Text>
+                    <Badge
+                      variant={
+                        day.status === 'free'
+                          ? 'success'
+                          : day.status === 'unconfigured'
+                            ? 'secondary'
+                            : 'outline'
+                      }
+                    >
+                      {day.status === 'free'
+                        ? 'Free'
+                        : day.status === 'unconfigured'
+                          ? 'No config'
+                          : 'Not free'}
+                    </Badge>
+                  </VStack>
+                ))}
+              </HStack>
+              {hasAnyUnconfiguredDay && (
+                <Text
+                  size='xs'
+                  color='muted-foreground'
+                  data-testid={`availability-preview-unconfigured-note-${calendarId}`}
                 >
-                  <Text size='xs' color='muted-foreground'>
-                    {DateTime.fromISO(day.date).toFormat('EEE, MMM d')}
-                  </Text>
-                  <Badge variant={day.isFree ? 'success' : 'outline'}>
-                    {day.isFree ? 'Free' : 'Not free'}
-                  </Badge>
-                </VStack>
-              ))}
-            </HStack>
+                  Days marked &quot;No config&quot; have no group-scoped window
+                  for this calendar in this slot — availability there is
+                  governed entirely by the calendar&apos;s base hours.
+                </Text>
+              )}
+            </VStack>
           )}
         </VStack>
       )}
