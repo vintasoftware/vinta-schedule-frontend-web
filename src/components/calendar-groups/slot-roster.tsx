@@ -24,6 +24,7 @@ import {
 import { useCanEditCalendar } from './group-permissions-provider';
 import { GroupWindowGrid } from './group-window-grid';
 import { UnsupportedWindowList } from './unsupported-window-list';
+import { GroupBlockList } from './group-block-list';
 
 const CALENDAR_TYPE_LABEL: Record<Calendar['calendar_type'], string> = {
   personal: 'Personal',
@@ -129,9 +130,12 @@ function SlotRosterRow({
         </HStack>
       </AccordionTrigger>
       <AccordionContent>
-        {/* Extension point for Phases 4-5: block list/form and quota rules
-            mount here once their hooks and components ship, gated on
-            `canEdit`. Phase 3b fills the windows section below. */}
+        {/* Extension point for Phase 5: quota rules mount here once their
+            hook and component ship, gated on `canEdit`. Phase 3b/3c fill
+            the windows section; Phase 4 fills the blocks section below --
+            both GroupWindowGrid and GroupBlockList read their own
+            editability from `useCanEditCalendar`, so they're mounted the
+            same way in both branches here. */}
         <VStack
           gap={4}
           p={4}
@@ -156,6 +160,13 @@ function SlotRosterRow({
                 slotId={slotId}
                 calendarId={calendar.id}
               />
+              <Divider />
+              <GroupBlockList
+                groupId={groupId}
+                slotId={slotId}
+                calendarId={calendar.id}
+                calendarName={calendar.name}
+              />
             </VStack>
           ) : (
             <VStack
@@ -178,6 +189,13 @@ function SlotRosterRow({
                 slotId={slotId}
                 calendarId={calendar.id}
               />
+              <Divider />
+              <GroupBlockList
+                groupId={groupId}
+                slotId={slotId}
+                calendarId={calendar.id}
+                calendarName={calendar.name}
+              />
             </VStack>
           )}
         </VStack>
@@ -192,8 +210,8 @@ function SlotRosterRow({
  * (read from the windows / blocks / quota list queries).
  *
  * Each row expands into a panel; Phase 3b fills the windows section (the
- * weekday grid and the read-only unsupported-window list), Phases 4-5 mount
- * blocks and quota next to it.
+ * weekday grid and the read-only unsupported-window list), Phase 4 mounts
+ * the blocks section (GroupBlockList) next to it, and Phase 5 mounts quota.
  */
 export function SlotRoster({ groupId, slot }: SlotRosterProps) {
   const { summaryFor, isLoading, isError, isTruncated } =
