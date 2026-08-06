@@ -51,14 +51,14 @@ import type { GroupScopedAvailabilityWindow } from '@/client';
 // ---------------------------------------------------------------------------
 
 interface UnsupportedWindowRowProps {
-  window: GroupScopedAvailabilityWindow;
+  windowRow: GroupScopedAvailabilityWindow;
   readOnly: boolean;
   isDeleting: boolean;
   onDelete: (id: number) => void;
 }
 
 function UnsupportedWindowRow({
-  window,
+  windowRow,
   readOnly,
   isDeleting,
   onDelete,
@@ -66,17 +66,17 @@ function UnsupportedWindowRow({
   const [confirmOpen, setConfirmOpen] = React.useState(false);
 
   const handleDeleteClick = () => {
-    if (window.is_recurring) {
+    if (windowRow.is_recurring) {
       // The API deletes the whole series on a recurring row -- confirm
       // first so a single click can't remove more than the admin intended.
       setConfirmOpen(true);
       return;
     }
-    onDelete(window.id);
+    onDelete(windowRow.id);
   };
 
   const handleConfirm = () => {
-    onDelete(window.id);
+    onDelete(windowRow.id);
     setConfirmOpen(false);
   };
 
@@ -88,17 +88,17 @@ function UnsupportedWindowRow({
       p={3}
       border
       radius='md'
-      data-testid={`unsupported-window-${window.id}`}
+      data-testid={`unsupported-window-${windowRow.id}`}
     >
       <Stack gap={1}>
         <Text size='sm' weight='medium'>
-          {zonedFormat(window.start_time, window.timezone)} –{' '}
-          {zonedFormat(window.end_time, window.timezone, 'h:mm a')}
+          {zonedFormat(windowRow.start_time, windowRow.timezone)} –{' '}
+          {zonedFormat(windowRow.end_time, windowRow.timezone, 'h:mm a')}
         </Text>
         <Text size='xs' color='muted-foreground'>
-          {window.timezone} ·{' '}
-          {window.is_recurring
-            ? `Recurring (${window.rrule_string})`
+          {windowRow.timezone} ·{' '}
+          {windowRow.is_recurring
+            ? `Recurring (${windowRow.rrule_string})`
             : 'One-time'}
         </Text>
         <Text size='xs' color='muted-foreground'>
@@ -113,36 +113,40 @@ function UnsupportedWindowRow({
           size='icon'
           onClick={handleDeleteClick}
           disabled={isDeleting}
-          aria-label={`Delete window ${window.id}`}
+          aria-label={`Delete window ${windowRow.id}`}
         >
           <Trash2 aria-hidden />
         </Button>
       )}
 
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete recurring window</AlertDialogTitle>
-            <AlertDialogDescription>
-              This removes the entire recurring series, not just one occurrence.
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirm}
-              disabled={isDeleting}
-              // shadcn internal: AlertDialogAction hardcodes buttonVariants()
-              // and exposes no `variant` prop, so the destructive surface
-              // can only be set through className (see calendars-table.tsx).
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-            >
-              Delete series
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Only mounted when the delete control exists -- with readOnly there
+          is no trigger that can ever open it. */}
+      {!readOnly && (
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete recurring window</AlertDialogTitle>
+              <AlertDialogDescription>
+                This removes the entire recurring series, not just one
+                occurrence. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirm}
+                disabled={isDeleting}
+                // shadcn internal: AlertDialogAction hardcodes buttonVariants()
+                // and exposes no `variant` prop, so the destructive surface
+                // can only be set through className (see calendars-table.tsx).
+                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              >
+                Delete series
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </HStack>
   );
 }
@@ -232,12 +236,12 @@ export function UnsupportedWindowList({
         </Text>
       )}
       <Stack gap={2}>
-        {unrepresentable.map((window) => (
+        {unrepresentable.map((windowRow) => (
           <UnsupportedWindowRow
-            key={window.id}
-            window={window}
+            key={windowRow.id}
+            windowRow={windowRow}
             readOnly={readOnly}
-            isDeleting={pendingIds.has(window.id)}
+            isDeleting={pendingIds.has(windowRow.id)}
             onDelete={handleDelete}
           />
         ))}

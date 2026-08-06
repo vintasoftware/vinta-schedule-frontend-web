@@ -44,8 +44,16 @@ import {
   FormItem,
   FormLabel,
   FormControl,
+  FormDescription,
   FormMessage,
 } from 'vinta-schedule-design-system/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from 'vinta-schedule-design-system/ui/select';
 import {
   Box,
   Divider,
@@ -56,7 +64,11 @@ import {
   VStack,
   VisuallyHidden,
 } from 'vinta-schedule-design-system/layout';
-import { weekdayMatrix, type WeekdayEntry } from '@/lib/datetime/index';
+import {
+  DateTime,
+  weekdayMatrix,
+  type WeekdayEntry,
+} from '@/lib/datetime/index';
 import { useGroupScopedWindows } from '@/hooks/calendar-groups/use-group-scoped-windows';
 import { useCanEditCalendar } from './group-permissions-provider';
 import {
@@ -69,6 +81,11 @@ import {
   type WeekdayWindow,
   type BydayCode,
 } from './group-scoped-types';
+
+// All IANA zone names the runtime's ICU data knows about, for the timezone
+// Select below -- replaces a free-text input a typo could turn into an
+// invalid zone (see the `.refine` on `gridFormSchema.timezone`).
+const TIME_ZONES = Intl.supportedValuesOf('timeZone');
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -96,7 +113,12 @@ const weekdayRowSchema = z.object({
 });
 
 const gridFormSchema = z.object({
-  timezone: z.string().min(1, { message: 'Timezone is required' }),
+  timezone: z
+    .string()
+    .min(1, { message: 'Timezone is required' })
+    .refine((tz) => DateTime.local().setZone(tz).isValid, {
+      message: 'Unknown timezone',
+    }),
   weekdays: z.array(weekdayRowSchema),
 });
 
@@ -287,7 +309,7 @@ function ReadOnlyGrid({
                 </Text>
                 <Stack gap={1}>
                   {rows.map((row, i) => (
-                    <Text key={i} size='sm' color='muted-foreground'>
+                    <Text key={row.id ?? i} size='sm' color='muted-foreground'>
                       {row.startTime}–{row.endTime}
                     </Text>
                   ))}
@@ -328,6 +350,13 @@ function toWeekdayWindow(row: EditedRow): WeekdayWindow {
     endTime: row.endTime,
   };
 }
+
+// The outcome of one diffed write, tagged so onSubmit can fold only the
+// SUCCEEDED writes back into the diff baseline after a `Promise.allSettled`
+// (see the BLOCKER 2 comment in onSubmit for why this can't be `Promise.all`).
+type WriteOutcome =
+  | { type: 'create' | 'update'; row: WeekdayWindow }
+  | { type: 'delete'; id: number };
 
 export function GroupWindowGrid({
   groupId,
@@ -370,104 +399,203 @@ export function GroupWindowGrid({
     []
   );
   const [isSaving, setIsSaving] = React.useState(false);
+  // Guards against a literal double-submit synchronously: two calls to
+  // onSubmit reaching the handler before React re-renders (which is what
+  // disables the Save button via `disabled={isSaving}`) would both read
+  // `isSaving` as stale `false` if this were state. A ref is read-and-set
+  // synchronously, so the second call sees the first's write immediately.
+  const savingRef = React.useRef(false);
+  // Bumped every time the effect below hydrates the form, and used as the
+  // timezone Select's `key`. Radix's Select mirrors its controlled `value`
+  // into a hidden native `<select>` for form semantics; if that value
+  // changes AFTER mount while the dropdown has never been opened, the
+  // native mirror has no matching `<option>` yet and Radix resets the
+  // value to '' via `onValueChange` (see SelectBubbleInput in
+  // @radix-ui/react-select) -- silently blanking the timezone `form.reset`
+  // just set. Changing `key` forces a fresh Select instance whose value is
+  // correct from its own first render instead of being changed out from
+  // under it.
+  const [hydrationGeneration, setHydrationGeneration] = React.useState(0);
 
-  const hasHydratedRef = React.useRef(false);
+  // Re-hydrates the form from the server's `windows` whenever they change
+  // (initial load, or a refetch after ANY write invalidates the list query
+  // -- including another admin's concurrent edit or a server-normalized
+  // value), as long as the form has no unsaved edits of its own. Guarding
+  // on `isDirty` (read, not a dependency) rather than gating with a
+  // one-shot ref lets a later, quiet refetch still reach the form -- see
+  // the Guiding Decision "writes refetch; no optimistic updates".
   React.useEffect(() => {
-    if (hasHydratedRef.current) return;
     if (isLoading) return;
-    hasHydratedRef.current = true;
+    if (form.formState.isDirty) return;
     const timezone = defaultGridTimezone(windows, viewerTimezone);
     form.reset(buildDefaultsFromRepresentable(representable, timezone));
     setLoadedBaseline(representable);
-    // hasHydratedRef makes this a one-shot effect; the dep list only needs
-    // to observe when loading finishes.
+    setHydrationGeneration((generation) => generation + 1);
+    // `form` and `viewerTimezone` are stable across renders; `representable`
+    // is derived from `windows` via useMemo, so depending on `windows` alone
+    // is sufficient to react to every server-data change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
+  }, [isLoading, windows]);
 
   const weekdays = weekdayMatrix();
 
-  async function onSubmit(values: GridFormSchema) {
-    // Guards a literal double-submit: `isSaving` is captured in this
-    // closure at the render that created it, and the Save button is
-    // disabled from the very next render onward -- see the Save button's
-    // `disabled={isSaving}` below.
-    if (isSaving) return;
-
-    const edited: EditedRow[] = [];
-    values.weekdays.forEach((row, weekdayIndex) => {
-      row.ranges.forEach((range, rangeIndex) => {
-        if (!range.startTime || !range.endTime) return;
-        edited.push({
-          id: range.sourceId,
-          weekday: weekdays[weekdayIndex].byday as BydayCode,
-          startTime: range.startTime,
-          endTime: range.endTime,
-          weekdayIndex,
-          rangeIndex,
+  // `form.handleSubmit(onSubmit)` below calls `onSubmit` (indirectly) during
+  // render to produce the submit handler; `react-hooks/refs` flags a plain
+  // function that reads `savingRef.current` there as an in-render ref read.
+  // Wrapping it in `useCallback` satisfies the rule -- it's a genuine
+  // memoized callback, not a render-time ref access, even though several of
+  // its dependencies (createWindow/updateWindow/deleteWindow, `weekdays`)
+  // are re-created every render, so this doesn't skip re-creation in
+  // practice.
+  const onSubmit = React.useCallback(
+    async (values: GridFormSchema) => {
+      // Synchronous double-submit guard -- see savingRef's doc comment above.
+      if (savingRef.current) return;
+      savingRef.current = true;
+      try {
+        const edited: EditedRow[] = [];
+        values.weekdays.forEach((row, weekdayIndex) => {
+          row.ranges.forEach((range, rangeIndex) => {
+            edited.push({
+              id: range.sourceId,
+              weekday: weekdays[weekdayIndex].byday as BydayCode,
+              startTime: range.startTime,
+              endTime: range.endTime,
+              weekdayIndex,
+              rangeIndex,
+            });
+          });
         });
-      });
-    });
 
-    const diff = computeGridDiff(loadedBaseline, edited);
+        const diff = computeGridDiff(loadedBaseline, edited);
 
-    if (
-      diff.creates.length === 0 &&
-      diff.updates.length === 0 &&
-      diff.deletes.length === 0
-    ) {
-      toast.info('No changes to save');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await Promise.all([
-        ...diff.creates.map(async (row) => {
-          const result = await createWindow({
-            groupId,
-            slotId,
-            body: buildWindowCreateBody(row, calendarId, values.timezone),
-          });
-          // Reattach the server id so an immediate re-save (no further
-          // edits) diffs against a real id instead of re-creating it.
-          row.id = result.window.id;
-          form.setValue(
-            `weekdays.${row.weekdayIndex}.ranges.${row.rangeIndex}.sourceId`,
-            result.window.id,
-            { shouldDirty: false }
+        if (
+          diff.creates.length === 0 &&
+          diff.updates.length === 0 &&
+          diff.deletes.length === 0
+        ) {
+          // A timezone-only edit never produces a create/update/delete (see
+          // buildWindowUpdateBody's doc comment -- an edited row keeps its own
+          // original zone; only NEW rows pick up the selector). Say so
+          // explicitly rather than the generic message, which would otherwise
+          // read as "your edit did nothing" with no explanation.
+          toast.info(
+            form.formState.dirtyFields.timezone
+              ? 'Timezone applies to new windows only — nothing to save.'
+              : 'No changes to save'
           );
-        }),
-        ...diff.updates.map(async (update) => {
-          // The row keeps its OWN original timezone -- an edit to the
-          // wall-clock time must not also silently re-zone it.
-          const original = windows.find((w) => w.id === update.id);
-          const timezone = original?.timezone ?? values.timezone;
-          await updateWindow({
-            groupId,
-            slotId,
-            windowId: update.id,
-            body: buildWindowUpdateBody(update.row, timezone),
-          });
-        }),
-        ...diff.deletes.map((id) =>
-          deleteWindow({ groupId, slotId, windowId: id })
-        ),
-      ]);
+          return;
+        }
 
-      // Every diffed write succeeded: the edited state now matches the
-      // server, so it becomes the new baseline for the next save.
-      setLoadedBaseline(edited.map(toWeekdayWindow));
-      toast.success('Availability windows saved', {
-        description: `${edited.length} weekly window${edited.length === 1 ? '' : 's'} saved.`,
-      });
-    } catch (err) {
-      toast.error('Failed to save availability windows', {
-        description: err instanceof Error ? err.message : 'Unknown error',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  }
+        setIsSaving(true);
+        try {
+          const outcomes = await Promise.allSettled<WriteOutcome>([
+            ...diff.creates.map(async (row): Promise<WriteOutcome> => {
+              const result = await createWindow({
+                groupId,
+                slotId,
+                body: buildWindowCreateBody(row, calendarId, values.timezone),
+              });
+              // Reattach the server id so an immediate re-save (no further
+              // edits) diffs against a real id instead of re-creating it.
+              row.id = result.window.id;
+              form.setValue(
+                `weekdays.${row.weekdayIndex}.ranges.${row.rangeIndex}.sourceId`,
+                result.window.id,
+                { shouldDirty: false }
+              );
+              return { type: 'create', row: toWeekdayWindow(row) };
+            }),
+            ...diff.updates.map(async (update): Promise<WriteOutcome> => {
+              // The row keeps its OWN original timezone -- an edit to the
+              // wall-clock time must not also silently re-zone it.
+              const original = windows.find((w) => w.id === update.id);
+              const timezone = original?.timezone ?? values.timezone;
+              await updateWindow({
+                groupId,
+                slotId,
+                windowId: update.id,
+                body: buildWindowUpdateBody(update.row, timezone),
+              });
+              return { type: 'update', row: toWeekdayWindow(update.row) };
+            }),
+            ...diff.deletes.map(async (id): Promise<WriteOutcome> => {
+              await deleteWindow({ groupId, slotId, windowId: id });
+              return { type: 'delete', id };
+            }),
+          ]);
+
+          // BLOCKER 2 fix: reconcile the baseline from ONLY the writes that
+          // actually succeeded. `Promise.all` used to reject on the first
+          // failure and skip this step entirely -- but a create that already
+          // succeeded had already written its server id into the form
+          // (above), so on retry `computeGridDiff` saw an id `loadedBaseline`
+          // didn't recognize and re-created it. Starting from the previous
+          // baseline and applying only the successful outcomes means a retry
+          // always re-diffs against what the server actually has, however
+          // many writes in this batch failed.
+          const baselineById = new Map<number, WeekdayWindow>(
+            loadedBaseline
+              .filter(
+                (row): row is WeekdayWindow & { id: number } =>
+                  row.id !== undefined
+              )
+              .map((row) => [row.id, row])
+          );
+          for (const outcome of outcomes) {
+            if (outcome.status !== 'fulfilled') continue;
+            if (outcome.value.type === 'delete') {
+              baselineById.delete(outcome.value.id);
+            } else if (outcome.value.row.id !== undefined) {
+              baselineById.set(outcome.value.row.id, outcome.value.row);
+            }
+          }
+          setLoadedBaseline(Array.from(baselineById.values()));
+
+          const failures = outcomes.filter(
+            (outcome): outcome is PromiseRejectedResult =>
+              outcome.status === 'rejected'
+          );
+          if (failures.length > 0) {
+            const firstReason = failures[0].reason;
+            toast.error('Failed to save availability windows', {
+              description: `${failures.length} of ${outcomes.length} write${outcomes.length === 1 ? '' : 's'} failed${firstReason instanceof Error ? `: ${firstReason.message}` : ''}. Already-saved changes were kept -- retry to finish the rest.`,
+            });
+          } else {
+            toast.success('Availability windows saved', {
+              description: `${edited.length} weekly window${edited.length === 1 ? '' : 's'} saved.`,
+            });
+          }
+        } finally {
+          setIsSaving(false);
+        }
+      } finally {
+        savingRef.current = false;
+      }
+    },
+    [
+      weekdays,
+      loadedBaseline,
+      form,
+      groupId,
+      slotId,
+      calendarId,
+      createWindow,
+      updateWindow,
+      deleteWindow,
+      windows,
+    ]
+  );
+
+  // `form.handleSubmit(onSubmit)` (RHF's usual inline JSX call) would invoke
+  // `handleSubmit` during render to build the event handler, which is what
+  // `react-hooks/refs` actually objects to here (onSubmit closes over
+  // savingRef) -- not the ref read itself. Deferring the call into a
+  // handler that only runs at submit time avoids invoking it during render.
+  const handleFormSubmit = React.useCallback(
+    (event: React.BaseSyntheticEvent) => form.handleSubmit(onSubmit)(event),
+    [form, onSubmit]
+  );
 
   if (isLoading) {
     return (
@@ -487,7 +615,7 @@ export function GroupWindowGrid({
 
   return (
     <Form {...form}>
-      <FormLayout gap={4} onSubmit={form.handleSubmit(onSubmit)}>
+      <FormLayout gap={4} onSubmit={handleFormSubmit}>
         <Text size='sm' weight='medium' color='foreground'>
           Weekly availability
         </Text>
@@ -502,20 +630,54 @@ export function GroupWindowGrid({
         <FormField
           control={form.control}
           name='timezone'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Timezone</FormLabel>
-              <FormControl>
-                <Input
-                  type='text'
-                  {...field}
+          render={({ field }) => {
+            // A loaded row's timezone (e.g. a pre-existing "UTC") can be a
+            // perfectly valid zone without being a literal member of
+            // `Intl.supportedValuesOf('timeZone')` (that list uses
+            // canonical IANA names, e.g. "Etc/UTC"). Radix's Select resets
+            // an unmatched controlled `value` to '' via `onValueChange`, so
+            // without this the calendar's already-configured timezone would
+            // be silently blanked on load. Always give the current value a
+            // matching item.
+            const timeZoneOptions =
+              field.value && !TIME_ZONES.includes(field.value)
+                ? [field.value, ...TIME_ZONES]
+                : TIME_ZONES;
+            return (
+              <FormItem>
+                <FormLabel>Timezone</FormLabel>
+                <Select
+                  key={hydrationGeneration}
+                  onValueChange={field.onChange}
+                  value={field.value}
                   disabled={isSaving}
-                  aria-label='Timezone for new or edited windows'
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder='Select a timezone' />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {timeZoneOptions.map((tz) => (
+                      <SelectItem key={tz} value={tz}>
+                        {tz}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Only NEW rows pick up this value on save -- an edited
+                    row's PATCH always keeps its own original timezone (see
+                    buildWindowUpdateBody's doc comment). Naming that here
+                    rather than in a stale aria-label keeps the accessible
+                    name equal to the visible FormLabel. */}
+                <FormDescription>
+                  Applies only to windows you add here; existing windows keep
+                  their own timezone.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
 
         <Stack gap={3}>

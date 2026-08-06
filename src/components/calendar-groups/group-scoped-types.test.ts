@@ -119,6 +119,34 @@ describe('classifyWindow', () => {
     expect(classifyWindow(window)).toEqual({ kind: 'unrepresentable', window });
   });
 
+  // ---------------------------------------------------------------------
+  // BLOCKER 1 regression (phase-3b review): `end.weekday !== start.weekday`
+  // is 1-7, so a span that is a whole number of weeks long (same weekday,
+  // different calendar day) wrongly passed as representable and rendered
+  // as an ordinary same-day row -- unticking it, or editing its time, would
+  // have silently deleted or truncated a multi-day window. Compare calendar
+  // days (`hasSame(end, 'day')`), not weekday numbers.
+  // ---------------------------------------------------------------------
+  it('classifies a week-long span (same weekday, 7 days later) as unrepresentable', () => {
+    // 2024-01-01 and 2024-01-08 are both Mondays -- `end.weekday !==
+    // start.weekday` alone would wrongly accept this as a same-day range.
+    const window = makeWindow({
+      start_time: '2024-01-01T09:00:00Z',
+      end_time: '2024-01-08T17:00:00Z',
+      rrule_string: 'FREQ=WEEKLY;BYDAY=MO',
+    });
+    expect(classifyWindow(window)).toEqual({ kind: 'unrepresentable', window });
+  });
+
+  it('classifies a two-week span (same weekday, 14 days later) as unrepresentable', () => {
+    const window = makeWindow({
+      start_time: '2024-01-01T09:00:00Z',
+      end_time: '2024-01-15T10:00:00Z',
+      rrule_string: 'FREQ=WEEKLY;BYDAY=MO',
+    });
+    expect(classifyWindow(window)).toEqual({ kind: 'unrepresentable', window });
+  });
+
   it('classifies a non-positive range (end <= start) as unrepresentable', () => {
     const window = makeWindow({
       start_time: '2024-01-02T09:00:00Z',
@@ -152,6 +180,32 @@ describe('classifyWindows (batch)', () => {
       { id: 1, weekday: 'TU', startTime: '09:00', endTime: '17:00' },
     ]);
     expect(unrepresentable.map((w) => w.id)).toEqual([2, 3]);
+  });
+
+  // SHOULD-FIX 5 (phase-3b review): rows are each formatted in their OWN
+  // timezone but stacked under one grid-level timezone label, so a row in a
+  // different zone could show the same HH:mm as another row while meaning a
+  // different instant, with nothing on screen to tell them apart. Bias that
+  // row unrepresentable rather than let it hide in the grid.
+  it('classifies a window whose timezone differs from the batch default as unrepresentable', () => {
+    const first = makeWindow({ id: 1, timezone: 'UTC' });
+    const otherZone = makeWindow({ id: 2, timezone: 'America/Sao_Paulo' });
+
+    const { representable, unrepresentable } = classifyWindows([
+      first,
+      otherZone,
+    ]);
+
+    expect(representable).toEqual([
+      { id: 1, weekday: 'TU', startTime: '09:00', endTime: '17:00' },
+    ]);
+    expect(unrepresentable.map((w) => w.id)).toEqual([2]);
+  });
+
+  it('classifyWindow alone (no gridTimezone arg) does not apply the mixed-timezone check', () => {
+    // A caller with no batch context (single-window classify) opts out.
+    const window = makeWindow({ timezone: 'America/Sao_Paulo' });
+    expect(classifyWindow(window).kind).toBe('representable');
   });
 });
 
@@ -287,6 +341,37 @@ describe('computeGridDiff', () => {
     const diff = computeGridDiff(badLoaded, []);
     expect(diff.deletes).toEqual([99]);
   });
+
+  it('keeps two representable windows on the same weekday as distinct rows through classify -> diff (the API permits duplicates)', () => {
+    // Regression for a documented-but-unpinned property: nothing here
+    // indexes rows by weekday, so two windows both landing on Monday must
+    // stay distinct end to end. A future "index by weekday" refactor that
+    // broke this would silently drop one row and delete it instead.
+    const first = makeWindow({
+      id: 10,
+      rrule_string: 'FREQ=WEEKLY;BYDAY=MO',
+      start_time: '2024-01-01T09:00:00Z',
+      end_time: '2024-01-01T10:00:00Z',
+    });
+    const second = makeWindow({
+      id: 11,
+      rrule_string: 'FREQ=WEEKLY;BYDAY=MO',
+      start_time: '2024-01-01T13:00:00Z',
+      end_time: '2024-01-01T14:00:00Z',
+    });
+
+    const { representable } = classifyWindows([first, second]);
+    expect(representable).toEqual([
+      { id: 10, weekday: 'MO', startTime: '09:00', endTime: '10:00' },
+      { id: 11, weekday: 'MO', startTime: '13:00', endTime: '14:00' },
+    ]);
+
+    // The admin clears the whole Monday row (both ranges) and saves.
+    const diff = computeGridDiff(representable, []);
+    expect(diff.deletes).toEqual([10, 11]);
+    expect(diff.creates).toEqual([]);
+    expect(diff.updates).toEqual([]);
+  });
 });
 
 describe('buildWindowCreateBody / buildWindowUpdateBody', () => {
@@ -338,6 +423,27 @@ describe('buildWindowCreateBody / buildWindowUpdateBody', () => {
     expect('timezone' in body).toBe(false);
     expect(body.start_time).toBeTruthy();
     expect(body.end_time).toBeTruthy();
+  });
+
+  // SHOULD-FIX 2 (phase-3b review): an invalid IANA zone makes
+  // DateTime#toISO() return null. The old `!` non-null assertion would have
+  // silently sent `start_time: null` / `end_time: null` to the server;
+  // throwing surfaces the real problem to the save handler's error toast
+  // instead.
+  it('throws rather than returning a null start_time/end_time for an invalid timezone', () => {
+    expect(() =>
+      buildWindowCreateBody(
+        { weekday: 'TU', startTime: '09:00', endTime: '17:00' },
+        42,
+        'Not/A_Real_Zone'
+      )
+    ).toThrow(/invalid timezone/i);
+    expect(() =>
+      buildWindowUpdateBody(
+        { id: 1, weekday: 'MO', startTime: '10:00', endTime: '18:00' },
+        'Not/A_Real_Zone'
+      )
+    ).toThrow(/invalid timezone/i);
   });
 });
 

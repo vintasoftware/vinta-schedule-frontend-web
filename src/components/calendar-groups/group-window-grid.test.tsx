@@ -6,8 +6,13 @@
  *   single-BYDAY weekly rrule;
  * - saving again with no further edits issues nothing (idempotent re-save,
  *   proving the created rows' server ids were reattached to the form);
- * - a double submit (two clicks before the first write settles) issues one
- *   write, not two;
+ * - a double submit (two `fireEvent.submit`s with no `await` between them --
+ *   the actual double-invocation hazard the ref guard in onSubmit defends
+ *   against) issues one write, not two;
+ * - a partially-failed save (one of three creates rejects) followed by a
+ *   retry does not re-create the writes that already succeeded (BLOCKER 2
+ *   regression -- see group-scoped-types.ts's classifyWindow doc and the
+ *   phase-3b review);
  * - alongside UnsupportedWindowList: a calendar with one weekly row and two
  *   unrepresentable rows renders one grid row and two read-only entries,
  *   and saving the grid never touches the unrepresentable rows' ids -- the
@@ -17,7 +22,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -293,7 +305,7 @@ describe('GroupWindowGrid', () => {
 
     const queryClient = makeQueryClient();
     const user = userEvent.setup();
-    renderGrid(queryClient);
+    const { container } = renderGrid(queryClient);
 
     await screen.findByText('Weekly availability');
 
@@ -311,12 +323,20 @@ describe('GroupWindowGrid', () => {
       '17:00'
     );
 
-    const saveButton = screen.getByRole('button', { name: /save windows/i });
-    await user.click(saveButton);
-    // Second click while the first write is still in flight -- the button
-    // should already be disabled, and the submit handler itself guards
-    // against a literal double invocation regardless.
-    await user.click(saveButton);
+    const form = container.querySelector('form');
+    if (!form) throw new Error('form element not found');
+
+    // Two submits with NO `await` between them -- this is the actual
+    // double-submit hazard the ref guard in onSubmit defends against. A
+    // click-based test doesn't exercise it: userEvent's `await user.click`
+    // flushes a React render between clicks, so a second click always lands
+    // on an already-disabled Save button and never reaches onSubmit at all
+    // -- which is why a state-only guard (`if (isSaving) return`, read from
+    // a stale closure) can pass that kind of test while doing nothing.
+    await act(async () => {
+      fireEvent.submit(form);
+      fireEvent.submit(form);
+    });
 
     resolveCreate(makeCreateResponse(makeWindow({ id: 901 })));
 
@@ -329,6 +349,89 @@ describe('GroupWindowGrid', () => {
     expect(
       vi.mocked(calendarGroupsSlotsAvailabilityWindowsCreate)
     ).toHaveBeenCalledTimes(1);
+  });
+
+  it('a retry after a partially-failed save does not re-create the writes that already succeeded', async () => {
+    // BLOCKER 2 regression: `Promise.all` used to reject on the FIRST
+    // failure and skip updating the diff baseline entirely, even though a
+    // create earlier in the batch had already succeeded and written its
+    // server id into the form. A retry then saw that id as unrecognized by
+    // the (stale) baseline and re-created it. Three concurrent creates,
+    // the middle one rejecting, mirrors the phase's documented "an
+    // over-limit 402 falls through to the ordinary error toast" case: the
+    // write that fails is not necessarily the last one issued.
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeListResponse([])
+    );
+
+    let callCount = 0;
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsCreate).mockImplementation(
+      (async (opts: { body: GroupScopedAvailabilityWindowCreate }) => {
+        callCount += 1;
+        if (callCount === 2) {
+          throw new Error('simulated write failure');
+        }
+        return makeCreateResponse(
+          makeWindow({
+            id: 900 + callCount,
+            start_time: opts.body.start_time,
+            end_time: opts.body.end_time,
+            timezone: opts.body.timezone,
+            rrule_string: opts.body.rrule_string ?? null,
+          })
+        );
+      }) as unknown as typeof calendarGroupsSlotsAvailabilityWindowsCreate
+    );
+
+    const queryClient = makeQueryClient();
+    const user = userEvent.setup();
+    renderGrid(queryClient);
+
+    await screen.findByText('Weekly availability');
+
+    for (const day of ['Monday', 'Tuesday', 'Wednesday']) {
+      await user.click(
+        screen.getByRole('button', { name: `Add ${day} window` })
+      );
+      await user.clear(screen.getByLabelText(`${day} window 1 start time`));
+      await user.type(
+        screen.getByLabelText(`${day} window 1 start time`),
+        '09:00'
+      );
+      await user.clear(screen.getByLabelText(`${day} window 1 end time`));
+      await user.type(
+        screen.getByLabelText(`${day} window 1 end time`),
+        '17:00'
+      );
+    }
+
+    const saveButton = screen.getByRole('button', { name: /save windows/i });
+    await user.click(saveButton);
+
+    await waitFor(() =>
+      expect(
+        vi.mocked(calendarGroupsSlotsAvailabilityWindowsCreate)
+      ).toHaveBeenCalledTimes(3)
+    );
+    await waitFor(() => expect(saveButton).toBeEnabled());
+
+    // Retry with no further edits. Only the row whose create failed
+    // (Tuesday, the 2nd call) should be re-issued -- Monday and Wednesday
+    // already have server ids and must not be re-created.
+    await user.click(saveButton);
+
+    await waitFor(() =>
+      expect(
+        vi.mocked(calendarGroupsSlotsAvailabilityWindowsCreate)
+      ).toHaveBeenCalledTimes(4)
+    );
+    await waitFor(() => expect(saveButton).toBeEnabled());
+
+    // Give an (incorrect) duplicate retry of the already-succeeded rows a
+    // chance to fire before asserting the ceiling.
+    expect(
+      vi.mocked(calendarGroupsSlotsAvailabilityWindowsCreate)
+    ).toHaveBeenCalledTimes(4);
   });
 
   it('renders one grid row and two read-only entries, and saving the grid never touches the unrepresentable rows’ ids', async () => {

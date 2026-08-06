@@ -25,7 +25,8 @@
  * the shape is anything but the one exact pattern above, INCLUDING cases a
  * looser parser would accept (extra RRULE parts a lenient reader would
  * silently ignore, a BYDAY that disagrees with the row's own start-time
- * weekday, an overnight range). See inline comments at each check.
+ * weekday, a multi-day span, a timezone that differs from the grid's own).
+ * See inline comments at each check.
  * -----------------------------------------------------------------------
  */
 
@@ -146,7 +147,16 @@ function parseSingleWeekdayRule(rrule: string): BydayCode | null {
  * way it is.
  */
 export function classifyWindow(
-  window: GroupScopedAvailabilityWindow
+  window: GroupScopedAvailabilityWindow,
+  /**
+   * The grid's own timezone (see `defaultGridTimezone`). When provided and
+   * this window's `timezone` differs from it, the window is unrepresentable
+   * -- two rows rendered in different zones can show the same HH:mm while
+   * meaning different instants, with nothing on screen to tell them apart.
+   * Undefined (the default) skips this check, e.g. for a caller classifying
+   * a single window with no grid context.
+   */
+  gridTimezone?: string
 ): ClassifiedWindow {
   if (!window.rrule_string) {
     // One-off (no recurrence at all).
@@ -155,6 +165,10 @@ export function classifyWindow(
 
   const byday = parseSingleWeekdayRule(window.rrule_string);
   if (!byday) {
+    return { kind: 'unrepresentable', window };
+  }
+
+  if (gridTimezone !== undefined && window.timezone !== gridTimezone) {
     return { kind: 'unrepresentable', window };
   }
 
@@ -176,11 +190,13 @@ export function classifyWindow(
 
   const startTime = start.toFormat('HH:mm');
   const endTime = end.toFormat('HH:mm');
-  // The grid's row is a same-day HH:mm range. An overnight span (the end
-  // falls on a different calendar day, or doesn't come after the start)
-  // can't round-trip through two same-day time fields -- bias
-  // unrepresentable rather than silently truncating or misrepresenting it.
-  if (end.weekday !== start.weekday || endTime <= startTime) {
+  // The grid's row is a same-day HH:mm range. A span that crosses a
+  // calendar day boundary (overnight, or a whole number of weeks long --
+  // `weekday` alone is 1-7 and would wrongly accept the latter) can't
+  // round-trip through two same-day time fields -- bias unrepresentable
+  // rather than silently truncating or misrepresenting it. Compare calendar
+  // days (`hasSame(end, 'day')`), not weekday numbers.
+  if (!start.hasSame(end, 'day') || endTime <= startTime) {
     return { kind: 'unrepresentable', window };
   }
 
@@ -204,10 +220,14 @@ export interface ClassifiedWindows {
 export function classifyWindows(
   windows: readonly GroupScopedAvailabilityWindow[]
 ): ClassifiedWindows {
+  // Same "first loaded window's timezone" rule as `defaultGridTimezone`
+  // (which additionally falls back to the viewer's zone, irrelevant here
+  // since an empty `windows` has nothing to classify against).
+  const gridTimezone = windows[0]?.timezone;
   const representable: WeekdayWindow[] = [];
   const unrepresentable: GroupScopedAvailabilityWindow[] = [];
   for (const window of windows) {
-    const classified = classifyWindow(window);
+    const classified = classifyWindow(window, gridTimezone);
     if (classified.kind === 'representable') {
       representable.push(classified.row);
     } else {
@@ -333,6 +353,21 @@ function anchoredInstant(
 }
 
 /**
+ * `DateTime#toISO()` types as `string | null` -- it returns null only for an
+ * invalid DateTime (e.g. an unrecognized timezone). Asserting non-null here
+ * would let an invalid zone silently POST `start_time: null` / `end_time:
+ * null` to the server; throw instead so the save handler's error path (a
+ * toast) surfaces the real problem.
+ */
+function requireISO(dt: DateTime, label: string): string {
+  const iso = dt.toISO();
+  if (iso === null) {
+    throw new Error(`Could not compute ${label}: invalid timezone`);
+  }
+  return iso;
+}
+
+/**
  * Builds the create payload for a brand-new grid row. `timezone` is the
  * grid's currently-selected timezone -- new rows are always created in it.
  */
@@ -345,8 +380,8 @@ export function buildWindowCreateBody(
   const end = anchoredInstant(row.weekday, row.endTime, timezone);
   return {
     calendar: calendarId,
-    start_time: start.toISO()!,
-    end_time: end.toISO()!,
+    start_time: requireISO(start, 'start time'),
+    end_time: requireISO(end, 'end time'),
     timezone,
     rrule_string: serializeRRule({ freq: 'WEEKLY', byday: [row.weekday] }),
   };
@@ -370,8 +405,8 @@ export function buildWindowUpdateBody(
   const start = anchoredInstant(row.weekday, row.startTime, timezone);
   const end = anchoredInstant(row.weekday, row.endTime, timezone);
   return {
-    start_time: start.toISO()!,
-    end_time: end.toISO()!,
+    start_time: requireISO(start, 'start time'),
+    end_time: requireISO(end, 'end time'),
   };
 }
 
