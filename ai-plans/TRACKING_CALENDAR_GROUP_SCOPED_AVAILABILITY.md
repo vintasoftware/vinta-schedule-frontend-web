@@ -138,12 +138,32 @@ The fixer also hit a real Radix `Select` behavior worth recording: a controlled 
 
 Gates: typecheck clean. Full suite green — 1271 app tests, 82 design-system.
 
+### Phase 3c — Surface orphaned bookings and plan limits ✅
+
+- **Branch**: `plan/calendar-group-scoped-availability/phase-3c` (base: `phase-3b`)
+- **Implementer model**: Tier 2, run on sonnet. **Reviewer**: Tier 3 (sonnet). **Fixer**: Tier 2 (sonnet)
+- **Commits**: `e480ed4` feat(calendar-groups): surface orphaned bookings and plan limits on window saves; `1f806c7` fix(calendar-groups): address phase-3c review findings on orphan-booking alert
+
+Summary:
+
+Two alerts, both built to be reused by Phase 4's blocks unchanged: a dismissible orphaned-bookings alert stating plainly that nothing was cancelled, and an over-limit alert naming resource, usage, and limit with no upgrade link (the app has no billing surface). A deleted-row 404 now renders "this entry no longer exists" and refetches instead of surfacing a raw error.
+
+**The plan's acceptance line for UC-6 turned out to be wrong, and the implementer flagged it rather than quietly picking a reading.** It says an over-limit rejection "creates nothing" — but Phase 3b's `Promise.allSettled` reconciliation means earlier writes in the same save can land before a later one is rejected. That holds exactly for a single-write save; for a multi-write save something *was* created. The alert now states what actually persisted (`otherWritesSucceeded`), and a dedicated test covers the case.
+
+Review found no BLOCKER and confirmed Phase 3b's two BLOCKER fixes survived the rewrite of the same save handler. Four SHOULD-FIX items, all fixed:
+
+- **Orphan times rendered in UTC**, citing a precedent that was not analogous — the cited component genuinely has no timezone available, whereas this grid *knows* the zone that produced each orphan and was discarding it. An admin in `America/Sao_Paulo` saw a time eight hours off, for a decision where the time is the entire point. Now formatted in the write's own zone.
+- **The booking-link gap was cheaper to close than reported.** No per-event route exists, but the events view already reads a `?calendar=` param, so each booking now links to that calendar's agenda. Spec UC-5's "link to the booking" is still not fully met, and the module comment now says so accurately instead of implying infeasibility.
+- **A mixed failure batch dropped the ordinary failure**: with both an over-limit rejection and an unrelated 500, only the over-limit alert rendered, so the admin never learned a second edit had failed and would lose it on navigating away. Both are now reported.
+- **The calendar name was threaded through** before Phase 4 reuses this component, so the alert does not lock in `Calendar #42` as the convention in a context that may lack the roster row's visual anchor.
+
+Gates: typecheck clean. Full suite green — 1285 app tests, 82 design-system.
+
 ## Current phase
 
-Phase 3c — Surface orphaned bookings and plan limits.
+Phase 4 — Group-scoped blocked times.
 
 ## Remaining phases
-- Phase 3c — Surface orphaned bookings and plan limits (Tier 2)
 - Phase 4 — Group-scoped blocked times (Tier 2→3)
 - Phase 5 — Group-scoped quota rules (Tier 2)
 - Phase 6 — Effective availability preview (Tier 3)
