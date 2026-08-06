@@ -19,36 +19,27 @@
 
 ## Completed phases
 
-### Phase 0 — Sync schemas and regenerate clients ✅
-- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/77
+### Phase 0 ✅ — PR https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/77
+### Phase 1 ✅ — PR https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/78
+### Phase 2 ✅ — PR https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/81
+### Phase 3 ✅ — PR https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/91
+### Phase 4 ✅ — PR https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/92
 
-### Phase 1 — Honor OAuth `destination`; delete `validateReturnUrl` ✅
-- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/78
+### Phase 5 — Distinguishable branding write 403 UIs ✅
 
-### Phase 2 — Branding form: `redirect_url` replaces allowlist ✅
-- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/81
-
-### Phase 3 — Gate Branding on `can_manage_branding` ✅
-- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/91
-
-### Phase 4 — Slug field on the branding page ✅
-
-- **Status**: published
+- **Status**: published (pending PR open)
 - **Model**: implementer `composer-2.5-fast`; reviewer `cursor-grok-4.5-high`; fixer n/a
-- **Branch**: `plan/organization-auth-branding/phase-4`
-- **Base**: `plan/organization-auth-branding/phase-3`
-- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/92
-- **PR-context**: `.vinta-ai-workflows/prs-context/organization-auth-branding/phase-4.md` (`status: published`)
+- **Branch**: `plan/organization-auth-branding/phase-5`
+- **Base**: `plan/organization-auth-branding/phase-4`
 - **E2E**: n/a
-- **Summary**: `useUpdateOrganizationSlug` + branding form slug field; PATCH-then-PUT; empty → null; orphan warning; reserved/uniqueness from server 400. Review PASS (NIT only). 49 scoped tests green.
+- **Summary**: `parseBrandingWriteForbidden` + form branches for has_parent / not_entitled / no_slug; unknown keeps generic Save failed. Review PASS. 58 scoped tests green.
 
 ## Current phase
 
-Paused after Phase 4 — awaiting user confirmation before Phase 5.
+Paused after Phase 5 — awaiting user confirmation before Phase 6.
 
 ## Remaining phases
 
-- Phase 5 — Distinguishable branding write 403 UIs
 - Phase 6 — Logo upload widget
 - Phase 7 — Branded `/auth/login/[slug]/` route
 
