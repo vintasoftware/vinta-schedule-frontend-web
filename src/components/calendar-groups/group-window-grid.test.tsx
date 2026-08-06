@@ -37,6 +37,12 @@
  *   save) renders the "no longer exists" toast, clears the form's now-
  *   stale sourceId (proven by a follow-up save reissuing a CREATE instead
  *   of silently doing nothing), and triggers a refetch of the window list.
+ *
+ * Phase 3c review fix:
+ * - a batch whose rejections mix an over-limit failure with an unrelated
+ *   ordinary failure renders BOTH the over-limit alert and a toast for the
+ *   ordinary one, rather than the ordinary failure silently going
+ *   unreported because `overLimit` alone gated the `else if` branch.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -764,6 +770,100 @@ describe('GroupWindowGrid', () => {
       expect(
         vi.mocked(calendarGroupsSlotsAvailabilityWindowsCreate)
       ).toHaveBeenCalledTimes(3)
+    );
+  });
+
+  it('a mixed batch (over-limit + an unrelated ordinary failure) reports both, not just the over-limit one', async () => {
+    // Reviewer finding (Phase 3c): `overLimit` being truthy short-circuited
+    // the `else if (failures.length > 0)` branch, so an ordinary failure
+    // riding alongside an over-limit one in the same batch never reached a
+    // toast -- the admin saw only the over-limit alert and had no signal
+    // that a second, unrelated edit also needed a retry.
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeListResponse([])
+    );
+    let callCount = 0;
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsCreate).mockImplementation(
+      (async (opts: { body: GroupScopedAvailabilityWindowCreate }) => {
+        callCount += 1;
+        // computeGridDiff/onSubmit iterate weekdays in Monday..Sunday order
+        // regardless of click order, so Tuesday is call 1, Wednesday call
+        // 2, Thursday call 3.
+        if (callCount === 2) {
+          throw new Error('simulated write failure');
+        }
+        if (callCount === 3) {
+          throw OVER_LIMIT_BODY;
+        }
+        return makeCreateResponse(
+          makeWindow({
+            id: 900 + callCount,
+            start_time: opts.body.start_time,
+            end_time: opts.body.end_time,
+            timezone: opts.body.timezone,
+            rrule_string: opts.body.rrule_string ?? null,
+          })
+        );
+      }) as unknown as typeof calendarGroupsSlotsAvailabilityWindowsCreate
+    );
+
+    const queryClient = makeQueryClient();
+    const user = userEvent.setup();
+    renderGrid(queryClient);
+
+    await screen.findByText('Weekly availability');
+
+    for (const day of ['Tuesday', 'Wednesday', 'Thursday']) {
+      await user.click(
+        screen.getByRole('button', { name: `Add ${day} window` })
+      );
+      await user.clear(screen.getByLabelText(`${day} window 1 start time`));
+      await user.type(
+        screen.getByLabelText(`${day} window 1 start time`),
+        '09:00'
+      );
+      await user.clear(screen.getByLabelText(`${day} window 1 end time`));
+      await user.type(
+        screen.getByLabelText(`${day} window 1 end time`),
+        '17:00'
+      );
+    }
+
+    await user.click(screen.getByRole('button', { name: /save windows/i }));
+
+    await waitFor(() =>
+      expect(
+        vi.mocked(calendarGroupsSlotsAvailabilityWindowsCreate)
+      ).toHaveBeenCalledTimes(3)
+    );
+
+    // The over-limit alert (Thursday) still renders, counting Tuesday's
+    // already-succeeded write.
+    expect(await screen.findByTestId('over-limit-alert')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /1 other change in this save already went through and was kept/i
+      )
+    ).toBeInTheDocument();
+
+    // The unrelated ordinary failure (Wednesday) must ALSO be reported --
+    // this is the assertion the finding says was missing.
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'Failed to save some availability windows',
+        expect.objectContaining({
+          description: expect.stringContaining('1 of 3 writes failed'),
+        })
+      )
+    );
+
+    // Retrying reissues only the two failed writes (Wednesday, Thursday) --
+    // Tuesday's already-succeeded create must not be reissued.
+    await user.click(screen.getByRole('button', { name: /save windows/i }));
+    await waitFor(() =>
+      expect(
+        vi.mocked(calendarGroupsSlotsAvailabilityWindowsCreate)
+      ).toHaveBeenCalledTimes(5)
     );
   });
 

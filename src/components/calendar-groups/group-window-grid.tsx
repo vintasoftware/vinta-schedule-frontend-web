@@ -341,6 +341,8 @@ export interface GroupWindowGridProps {
   groupId: number;
   slotId: number;
   calendarId: number;
+  /** Display name of `calendarId`'s calendar -- forwarded to OrphanedBookingsAlert. */
+  calendarName?: string;
 }
 
 // Extra bookkeeping GroupWindowGrid attaches to each edited row so a
@@ -390,6 +392,7 @@ export function GroupWindowGrid({
   groupId,
   slotId,
   calendarId,
+  calendarName,
 }: GroupWindowGridProps) {
   // Read-only-ness comes from the shared GroupPermissionsProvider context
   // (mounted by the group detail page), the same predicate every roster row
@@ -528,6 +531,11 @@ export function GroupWindowGrid({
               ? 'Timezone applies to new windows only — nothing to save.'
               : 'No changes to save'
           );
+          // A prior save's alert must not linger once there's nothing left
+          // to retry -- reachable when the admin reverts the edit that
+          // caused it and clicks Save again.
+          setOrphanedBookings([]);
+          setOverLimitError(null);
           return;
         }
 
@@ -556,7 +564,14 @@ export function GroupWindowGrid({
               return {
                 type: 'create',
                 row: toWeekdayWindow(row),
-                orphanedBookings: result.orphanedBookings,
+                // The zone this write's own body was sent in -- an orphaned
+                // booking has none of its own (see OrphanedBooking's doc
+                // comment), so the write that stranded it is the only
+                // correct source.
+                orphanedBookings: result.orphanedBookings.map((booking) => ({
+                  ...booking,
+                  timezone: values.timezone,
+                })),
               };
             }),
             ...diff.updates.map(async (update): Promise<WriteOutcome> => {
@@ -574,7 +589,13 @@ export function GroupWindowGrid({
                 return {
                   type: 'update',
                   row: toWeekdayWindow(update.row),
-                  orphanedBookings: result.orphanedBookings,
+                  // Same reasoning as the create branch above, but this
+                  // write's body used the row's OWN original zone, not the
+                  // selector's -- `timezone` here already reflects that.
+                  orphanedBookings: result.orphanedBookings.map((booking) => ({
+                    ...booking,
+                    timezone,
+                  })),
                 };
               } catch (err) {
                 // Someone else deleted this row between load and save --
@@ -654,6 +675,13 @@ export function GroupWindowGrid({
           const overLimit = failures
             .map((failure) => readOverLimitError(failure.reason))
             .find((body): body is OverLimitErrorBody => body !== null);
+          // Failures the over-limit alert does NOT speak for -- a mixed
+          // batch (e.g. an over-limit rejection on one row and an unrelated
+          // 500 on another) must not let the ordinary failure go unreported
+          // just because `overLimit` is truthy.
+          const nonOverLimitFailures = failures.filter(
+            (failure) => readOverLimitError(failure.reason) === null
+          );
 
           if (overLimit) {
             // Some of THIS SAME batch's other writes may already have
@@ -668,6 +696,12 @@ export function GroupWindowGrid({
                   outcome.value.type === 'delete')
             ).length;
             setOverLimitError({ error: overLimit, otherWritesSucceeded });
+            if (nonOverLimitFailures.length > 0) {
+              const firstReason = nonOverLimitFailures[0].reason;
+              toast.error('Failed to save some availability windows', {
+                description: `${nonOverLimitFailures.length} of ${outcomes.length} write${outcomes.length === 1 ? '' : 's'} failed${firstReason instanceof Error ? `: ${firstReason.message}` : ''}. Already-saved changes were kept -- retry to finish the rest.`,
+              });
+            }
           } else if (failures.length > 0) {
             const firstReason = failures[0].reason;
             toast.error('Failed to save availability windows', {
@@ -833,6 +867,7 @@ export function GroupWindowGrid({
         {orphanedBookings.length > 0 && (
           <OrphanedBookingsAlert
             bookings={orphanedBookings}
+            calendarName={calendarName}
             onDismiss={() => setOrphanedBookings([])}
           />
         )}

@@ -148,6 +148,7 @@ function SlotRosterRow({
                 groupId={groupId}
                 slotId={slotId}
                 calendarId={calendar.id}
+                calendarName={calendar.name}
               />
               <Divider />
               <UnsupportedWindowList
@@ -169,6 +170,7 @@ function SlotRosterRow({
                 groupId={groupId}
                 slotId={slotId}
                 calendarId={calendar.id}
+                calendarName={calendar.name}
               />
               <Divider />
               <UnsupportedWindowList
