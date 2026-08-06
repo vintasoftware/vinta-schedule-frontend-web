@@ -1,11 +1,11 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Input } from 'vinta-schedule-design-system/ui/input';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Card } from 'vinta-schedule-design-system/ui/card';
@@ -56,10 +56,26 @@ export interface AcceptInviteFormProps {
 
 export default function AcceptInviteForm({ branding }: AcceptInviteFormProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { acceptInvitation, acceptInvitationMutation } = useAcceptInvitation();
   const [error, setError] = useState<string | null>(null);
   const [alreadyMember, setAlreadyMember] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Accepting requires a session (the API call is bearer/session-scoped, and
+  // the hook checks `/organizations/mine/` before it accepts). Without this
+  // gate, an unauthenticated visitor's click silently 401s, burns a refresh
+  // attempt, and gets force-logged-out to the generic login page — losing
+  // the invite token with no way back. Check first and send them to sign in
+  // (or create an account) instead, with a `next` back to this exact URL.
+  useEffect(() => {
+    setIsAuthenticated(
+      document.cookie.split('; ').some((c) => c.startsWith('sessionActive='))
+    );
+    setAuthChecked(true);
+  }, []);
 
   const form = useForm<AcceptInviteSchema>({
     resolver: zodResolver(acceptInviteSchema),
@@ -83,6 +99,48 @@ export default function AcceptInviteForm({ branding }: AcceptInviteFormProps) {
       setError(getAcceptInvitationErrorMessage(err));
     }
   };
+
+  if (!authChecked || !isAuthenticated) {
+    const nextQuery = searchParams.toString();
+    const nextPath = `${pathname}${nextQuery ? `?${nextQuery}` : ''}`;
+
+    return (
+      <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>
+        <Card padding={8}>
+          <VStack gap={8}>
+            <Stack gap={4}>
+              <Heading level={1} size='3xl'>
+                Accept invitation
+              </Heading>
+              <Text size='sm' color='muted-foreground'>
+                {authChecked
+                  ? "Sign in or create an account to accept this invitation. You'll be brought right back here afterward."
+                  : 'Checking your session…'}
+              </Text>
+            </Stack>
+            {authChecked && (
+              <VStack gap={2}>
+                <Button asChild fullWidth>
+                  <Link
+                    href={`/auth/login?next=${encodeURIComponent(nextPath)}`}
+                  >
+                    Log in
+                  </Link>
+                </Button>
+                <Button asChild variant='outline' fullWidth>
+                  <Link
+                    href={`/auth/signup?next=${encodeURIComponent(nextPath)}`}
+                  >
+                    Sign up
+                  </Link>
+                </Button>
+              </VStack>
+            )}
+          </VStack>
+        </Card>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>

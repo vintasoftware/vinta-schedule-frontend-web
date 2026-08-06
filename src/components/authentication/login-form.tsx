@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLogin } from '@/hooks/authentication/use-login';
 import { Input } from 'vinta-schedule-design-system/ui/input';
 import { Button } from 'vinta-schedule-design-system/ui/button';
@@ -39,6 +39,7 @@ import { useState } from 'react';
 import type { Provider } from '@/auth-client';
 import { useProviderLogin } from '@/hooks/authentication/use-provider-login';
 import type { TenantBranding } from '@/lib/branding-shared';
+import { getSafeNextPath } from '@/lib/safe-redirect';
 import { SocialProviderIcon } from './social-provider-icon';
 
 // Shared Zod schema for login: login can be email or phone (email-only account
@@ -92,6 +93,7 @@ export default function LoginForm({
   branding,
 }: LoginFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, loginMutation } = useLogin();
   const [error, setError] = useState<string | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
@@ -131,7 +133,7 @@ export default function LoginForm({
         loginPayload = { email: values.login, password: values.password };
       }
       await login(loginPayload);
-      router.push('/dashboard');
+      router.push(getSafeNextPath(searchParams.get('next')) ?? '/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }
