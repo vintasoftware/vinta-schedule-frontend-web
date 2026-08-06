@@ -327,7 +327,10 @@ export function BrandingForm({
     if (!file) return;
     e.target.value = '';
 
-    revokeLocalPreview();
+    const previousPendingLogoKey = pendingLogoKey;
+    const previousLogoPreviewUrl = logoPreviewUrl;
+    const previousLocalPreviewUrl = localPreviewUrlRef.current;
+
     const localUrl = URL.createObjectURL(file);
     localPreviewUrlRef.current = localUrl;
     setLogoPreviewUrl(localUrl);
@@ -338,11 +341,17 @@ export function BrandingForm({
       const objectKey = await uploadBrandingLogo(file, (pct) =>
         setUploadProgress(pct)
       );
+      if (previousLocalPreviewUrl) {
+        URL.revokeObjectURL(previousLocalPreviewUrl);
+      }
       setPendingLogoKey(objectKey);
     } catch (err) {
-      revokeLocalPreview();
-      setLogoPreviewUrl(initialBranding?.logo_url ?? undefined);
-      setPendingLogoKey(null);
+      if (localPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPreviewUrlRef.current);
+      }
+      localPreviewUrlRef.current = previousLocalPreviewUrl;
+      setLogoPreviewUrl(previousLogoPreviewUrl);
+      setPendingLogoKey(previousPendingLogoKey);
       if (err instanceof UploadValidationError) {
         toast.error(err.message);
       } else {

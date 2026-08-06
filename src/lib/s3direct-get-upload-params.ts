@@ -1,4 +1,5 @@
 import { client } from '@/client/client.gen';
+import { urlSearchParamsBodySerializer } from '@/client/client';
 import type { ProfilePictureUploadParams } from '@/client';
 
 export type S3DirectUploadParamsRequest = {
@@ -21,17 +22,16 @@ type S3DirectErrorResponse = {
 export async function getS3DirectUploadParams(
   request: S3DirectUploadParamsRequest
 ): Promise<ProfilePictureUploadParams> {
-  const body = new URLSearchParams({
-    dest: request.dest,
-    name: request.name,
-    type: request.type,
-    size: String(request.size),
-  });
-
   const result = await client.request({
+    ...urlSearchParamsBodySerializer,
     method: 'POST',
     url: '/s3direct/get_upload_params/',
-    body,
+    body: {
+      dest: request.dest,
+      name: request.name,
+      type: request.type,
+      size: String(request.size),
+    },
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
@@ -39,7 +39,9 @@ export async function getS3DirectUploadParams(
   });
 
   if (!result.response?.ok) {
-    const errorBody = result.data as S3DirectErrorResponse | undefined;
+    const errorBody =
+      (result.error as S3DirectErrorResponse | undefined) ??
+      (result.data as S3DirectErrorResponse | undefined);
     throw new Error(
       errorBody?.error ??
         `Failed to get upload params (${result.response?.status ?? 'unknown'})`

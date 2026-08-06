@@ -98,6 +98,18 @@ describe('useUploadBrandingLogo', () => {
     expect(xhrInstances).toHaveLength(0);
   });
 
+  it('rejects .svg extension even when MIME type is not SVG', async () => {
+    const { result } = renderHook(() => useUploadBrandingLogo(), { wrapper });
+    const disguisedSvg = new File(['fake'], 'logo.svg', { type: 'image/png' });
+
+    await expect(
+      act(async () => result.current.uploadBrandingLogo(disguisedSvg))
+    ).rejects.toThrow(UploadValidationError);
+
+    expect(mockGetS3DirectUploadParams).not.toHaveBeenCalled();
+    expect(xhrInstances).toHaveLength(0);
+  });
+
   it('rejects oversized files before requesting upload params', async () => {
     const { result } = renderHook(() => useUploadBrandingLogo(), { wrapper });
     const oversized = makePngFile('big.png', 5 * 1024 * 1024 + 1);
