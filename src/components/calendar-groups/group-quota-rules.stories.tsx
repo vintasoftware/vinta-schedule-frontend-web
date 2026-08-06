@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fn, mocked, userEvent, within, waitFor, expect } from 'storybook/test';
+import { fn, mocked } from 'storybook/test';
 import { GroupQuotaRules } from './group-quota-rules';
 import { GroupPermissionsProvider } from './group-permissions-provider';
 // Mocked in .storybook/preview.tsx via `sb.mock(...)`; `mocked()` just types it.
@@ -124,10 +124,10 @@ export const OneRule: Story = {
   ],
 };
 
-// Opens the "Add rule" dialog, fills a valid cap, and submits -- the mocked
-// `createQuotaRule` rejects with the API's own one-rule-per-period
-// constraint message (handoff doc, section 3), which the form must render
-// verbatim rather than an unhandled failure or a toast.
+// The duplicate-period rejection (400 `non_field_errors`) is covered by the
+// vitest test at group-quota-rules.test.tsx (line 143-171), which is the only
+// verification that runs in CI. This story renders the initial rule list state
+// (the dialog stays closed) -- the interaction coverage belongs in the test.
 export const DuplicatePeriodError: Story = {
   decorators: [
     (Story) => {
@@ -153,25 +153,6 @@ export const DuplicatePeriodError: Story = {
       return <Story />;
     },
   ],
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(
-      await canvas.findByRole('button', { name: /add rule/i })
-    );
-
-    // Dialog content renders in a portal, outside canvasElement.
-    const body = within(document.body);
-    const capInput = await body.findByLabelText(/^cap$/i);
-    await userEvent.clear(capInput);
-    await userEvent.type(capInput, '3');
-    await userEvent.click(body.getByTestId('quota-rule-submit'));
-
-    await waitFor(() =>
-      expect(body.getByTestId('quota-form-error')).toHaveTextContent(
-        'The fields calendar, group_slot, period must make a unique set.'
-      )
-    );
-  },
 };
 
 export const Mobile: Story = {

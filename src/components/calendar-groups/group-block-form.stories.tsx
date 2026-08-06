@@ -53,9 +53,9 @@ export const Create: Story = {
 
 // Editing an existing RECURRING block hydrates `repeat: true` straight from
 // `block.rrule_string` (see `blockToFormValues`), which is what renders the
-// repeat sub-form open by default -- no interaction needed to reach it, and
-// no `play` function (unprecedented elsewhere in this repo's stories; the
-// interactions addon isn't installed -- see .storybook/main.ts).
+// repeat sub-form open by default -- no interaction needed to reach it. This
+// repo has no `play` functions because the interactions addon isn't installed
+// (see .storybook/main.ts); interaction coverage lives in vitest tests instead.
 export const EditWithRepeatOpen: Story = {
   args: {
     groupId: 1,

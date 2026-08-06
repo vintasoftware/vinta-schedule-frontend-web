@@ -287,9 +287,7 @@ function GroupQuotaRuleForm({
           </Alert>
         )}
 
-        {overLimitError && (
-          <OverLimitAlert error={overLimitError} otherWritesSucceeded={0} />
-        )}
+        {overLimitError && <OverLimitAlert error={overLimitError} />}
 
         <HStack gap={3} justify='end'>
           {onCancel && (
@@ -386,6 +384,10 @@ function QuotaRuleRow({
             <AlertDialogHeader>
               <AlertDialogTitle>Delete quota rule</AlertDialogTitle>
               <AlertDialogDescription>
+                {/* Confirm on every delete: removing a quota rule uncaps the
+                    calendar for every future period immediately, affecting
+                    all future bookings (same reasoning as group-block-list's
+                    recurring-block confirmation). */}
                 This removes the {PERIOD_LABELS[rule.period].toLowerCase()} cap
                 of {rule.cap} for this calendar in this slot. This action cannot
                 be undone.
