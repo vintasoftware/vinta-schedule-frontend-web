@@ -3,12 +3,12 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement, type ReactNode } from 'react';
 
-const { mockGetS3DirectUploadParams } = vi.hoisted(() => ({
-  mockGetS3DirectUploadParams: vi.fn(),
+const { mockGetBrandingLogoUploadParams } = vi.hoisted(() => ({
+  mockGetBrandingLogoUploadParams: vi.fn(),
 }));
 
-vi.mock('@/lib/s3direct-get-upload-params', () => ({
-  getS3DirectUploadParams: mockGetS3DirectUploadParams,
+vi.mock('@/lib/branding-logo-upload-params', () => ({
+  getBrandingLogoUploadParams: mockGetBrandingLogoUploadParams,
 }));
 
 import {
@@ -24,7 +24,6 @@ const UPLOAD_PARAMS = {
   bucket: 'media-bucket',
   endpoint: 'https://s3.example.com',
   acl: 'private',
-  allow_existence_optimization: false,
 };
 
 function makePngFile(name: string, sizeBytes: number): File {
@@ -59,7 +58,7 @@ describe('useUploadBrandingLogo', () => {
       defaultOptions: { mutations: { retry: false } },
     });
     xhrInstances = [];
-    mockGetS3DirectUploadParams.mockResolvedValue(UPLOAD_PARAMS);
+    mockGetBrandingLogoUploadParams.mockResolvedValue(UPLOAD_PARAMS);
 
     vi.stubGlobal(
       'XMLHttpRequest',
@@ -94,7 +93,7 @@ describe('useUploadBrandingLogo', () => {
       act(async () => result.current.uploadBrandingLogo(svgFile))
     ).rejects.toThrow(UploadValidationError);
 
-    expect(mockGetS3DirectUploadParams).not.toHaveBeenCalled();
+    expect(mockGetBrandingLogoUploadParams).not.toHaveBeenCalled();
     expect(xhrInstances).toHaveLength(0);
   });
 
@@ -106,7 +105,7 @@ describe('useUploadBrandingLogo', () => {
       act(async () => result.current.uploadBrandingLogo(disguisedSvg))
     ).rejects.toThrow(UploadValidationError);
 
-    expect(mockGetS3DirectUploadParams).not.toHaveBeenCalled();
+    expect(mockGetBrandingLogoUploadParams).not.toHaveBeenCalled();
     expect(xhrInstances).toHaveLength(0);
   });
 
@@ -118,11 +117,11 @@ describe('useUploadBrandingLogo', () => {
       act(async () => result.current.uploadBrandingLogo(oversized))
     ).rejects.toThrow(UploadValidationError);
 
-    expect(mockGetS3DirectUploadParams).not.toHaveBeenCalled();
+    expect(mockGetBrandingLogoUploadParams).not.toHaveBeenCalled();
     expect(xhrInstances).toHaveLength(0);
   });
 
-  it('signs via s3direct branding_logos and returns the object key', async () => {
+  it('signs via the branding logo upload-params endpoint and returns the object key', async () => {
     const { result } = renderHook(() => useUploadBrandingLogo(), { wrapper });
     const file = makePngFile('logo.png', 1024);
     const onProgress = vi.fn();
@@ -131,11 +130,10 @@ describe('useUploadBrandingLogo', () => {
       result.current.uploadBrandingLogo(file, onProgress)
     );
 
-    expect(mockGetS3DirectUploadParams).toHaveBeenCalledWith({
-      dest: 'branding_logos',
-      name: 'logo.png',
-      type: 'image/png',
-      size: 1024,
+    expect(mockGetBrandingLogoUploadParams).toHaveBeenCalledWith({
+      file_name: 'logo.png',
+      file_type: 'image/png',
+      file_size: 1024,
     });
     expect(objectKey).toBe('uploads/branding_logos/test-logo.png');
     expect(xhrInstances).toHaveLength(1);
@@ -144,5 +142,21 @@ describe('useUploadBrandingLogo', () => {
       'https://s3.example.com/media-bucket/uploads/branding_logos/test-logo.png'
     );
     expect(onProgress).toHaveBeenCalledWith(100);
+  });
+
+  it('builds a virtual-hosted-style S3 URL when endpoint is null', async () => {
+    mockGetBrandingLogoUploadParams.mockResolvedValue({
+      ...UPLOAD_PARAMS,
+      endpoint: null,
+    });
+    const { result } = renderHook(() => useUploadBrandingLogo(), { wrapper });
+    const file = makePngFile('logo.png', 1024);
+
+    await act(async () => result.current.uploadBrandingLogo(file));
+
+    expect(xhrInstances[0]?.open).toHaveBeenCalledWith(
+      'PUT',
+      'https://media-bucket.s3.us-east-1.amazonaws.com/uploads/branding_logos/test-logo.png'
+    );
   });
 });

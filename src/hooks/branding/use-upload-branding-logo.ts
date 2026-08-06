@@ -1,22 +1,38 @@
 import { useMutation } from '@tanstack/react-query';
 import {
-  getS3DirectUploadParams,
-  type S3DirectUploadParams,
-} from '@/lib/s3direct-get-upload-params';
+  getBrandingLogoUploadParams,
+  type BrandingLogoUploadParams,
+} from '@/lib/branding-logo-upload-params';
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-const BRANDING_LOGOS_DEST = 'branding_logos';
 
 export class UploadValidationError extends Error {}
 
+/**
+ * `endpoint` is only set for S3-compatible backends signed with a custom
+ * endpoint (path-style URL). Plain AWS S3 returns `endpoint: null` — build the
+ * standard virtual-hosted-style URL from `bucket`/`region` instead.
+ */
+function buildUploadUrl(params: BrandingLogoUploadParams): string {
+  if (params.endpoint) {
+    return `${params.endpoint}/${params.bucket}/${params.object_key}`;
+  }
+
+  if (!params.bucket || !params.region) {
+    throw new Error('Upload params are missing bucket/region for S3 URL');
+  }
+
+  return `https://${params.bucket}.s3.${params.region}.amazonaws.com/${params.object_key}`;
+}
+
 function uploadToS3(
-  params: S3DirectUploadParams,
+  params: BrandingLogoUploadParams,
   file: File,
   onProgress: (pct: number) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const url = `${params.endpoint}/${params.bucket}/${params.object_key}`;
+    const url = buildUploadUrl(params);
     const xhr = new XMLHttpRequest();
 
     xhr.upload.addEventListener('progress', (e) => {
@@ -72,11 +88,10 @@ function validateLogoFile(file: File): void {
 export function useUploadBrandingLogo() {
   const getUploadParams = useMutation({
     mutationFn: (file: File) =>
-      getS3DirectUploadParams({
-        dest: BRANDING_LOGOS_DEST,
-        name: file.name,
-        type: file.type,
-        size: file.size,
+      getBrandingLogoUploadParams({
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
       }),
   });
 
