@@ -19,30 +19,28 @@
 
 ## Completed phases
 
-### Phase 0 ✅ — PR https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/77
-### Phase 1 ✅ — PR https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/78
-### Phase 2 ✅ — PR https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/81
-### Phase 3 ✅ — PR https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/91
-### Phase 4 ✅ — PR https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/92
+### Phase 0 ✅ — https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/77
+### Phase 1 ✅ — https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/78
+### Phase 2 ✅ — https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/81
+### Phase 3 ✅ — https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/91
+### Phase 4 ✅ — https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/92
+### Phase 5 ✅ — https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/93
 
-### Phase 5 — Distinguishable branding write 403 UIs ✅
+### Phase 6 — Logo upload widget ✅
 
-- **Status**: published
-- **Model**: implementer `composer-2.5-fast`; reviewer `cursor-grok-4.5-high`; fixer n/a
-- **Branch**: `plan/organization-auth-branding/phase-5`
-- **Base**: `plan/organization-auth-branding/phase-4`
-- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/93
-- **PR-context**: `.vinta-ai-workflows/prs-context/organization-auth-branding/phase-5.md` (`status: published`)
+- **Status**: published (pending PR open)
+- **Model**: implementer `composer-2.5-fast`; reviewer `cursor-grok-4.5-high`; fixer `composer-2.5-fast`
+- **Branch**: `plan/organization-auth-branding/phase-6`
+- **Base**: `plan/organization-auth-branding/phase-5`
 - **E2E**: n/a
-- **Summary**: `parseBrandingWriteForbidden` + form branches for has_parent / not_entitled / no_slug; unknown keeps generic Save failed. Review PASS. 58 scoped tests green.
+- **Summary**: s3direct branding_logos upload hook + form widget; PUT sends object key; clear `""`. Fixer: form-urlencoded serializer + restore preview on failed upload. 59 scoped tests green.
 
 ## Current phase
 
-Paused after Phase 5 — awaiting user confirmation before Phase 6.
+Paused after Phase 6 — awaiting user confirmation before Phase 7.
 
 ## Remaining phases
 
-- Phase 6 — Logo upload widget
 - Phase 7 — Branded `/auth/login/[slug]/` route
 
 ## Deferred phases
