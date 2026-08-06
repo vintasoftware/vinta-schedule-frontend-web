@@ -28,10 +28,12 @@
 
 ### Phase 6 — Logo upload widget ✅
 
-- **Status**: published (pending PR open)
+- **Status**: published
 - **Model**: implementer `composer-2.5-fast`; reviewer `cursor-grok-4.5-high`; fixer `composer-2.5-fast`
 - **Branch**: `plan/organization-auth-branding/phase-6`
 - **Base**: `plan/organization-auth-branding/phase-5`
+- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/94
+- **PR-context**: `.vinta-ai-workflows/prs-context/organization-auth-branding/phase-6.md` (`status: published`)
 - **E2E**: n/a
 - **Summary**: s3direct branding_logos upload hook + form widget; PUT sends object key; clear `""`. Fixer: form-urlencoded serializer + restore preview on failed upload. 59 scoped tests green.
 
