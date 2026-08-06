@@ -36,8 +36,12 @@ test.describe('PR045 — Branded login', () => {
 
     await expect(brandedLogin.welcomeHeading).toBeVisible({ timeout: 15_000 });
     await expect(brandedLogin.loginButton).toBeVisible();
-    // Default vinta BrandMark — no custom reseller <img> in the navbar.
-    await expect(brandedLogin.brandedLogo).toHaveCount(0);
+    // Default vinta BrandMark in AuthNavbar header (see auth-navbar.test.tsx).
+    await expect(brandedLogin.defaultVintaLogo).toBeVisible({ timeout: 15_000 });
+    await expect(brandedLogin.defaultVintaLogo).toHaveAttribute(
+      'src',
+      /vinta-wordmark/
+    );
     await brandedLogin.screenshot('PR045', '01', 'unknown-slug-default');
   });
 

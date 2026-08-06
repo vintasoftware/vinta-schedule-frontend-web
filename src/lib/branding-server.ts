@@ -132,9 +132,10 @@ export async function fetchBrandingForTenant(
 export async function fetchBrandingForSlug(
   slug: string | null | undefined
 ): Promise<TenantBranding> {
-  if (!slug) {
+  const trimmed = slug?.trim();
+  if (!trimmed) {
     return VINTA_DEFAULT_BRANDING;
   }
 
-  return fetchBrandingFromGraphQL(BRANDING_BY_SLUG_QUERY, { slug });
+  return fetchBrandingFromGraphQL(BRANDING_BY_SLUG_QUERY, { slug: trimmed });
 }

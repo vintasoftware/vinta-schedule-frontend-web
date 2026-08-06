@@ -187,8 +187,8 @@ path when shipped.
 
 | Category      | Count  |
 | ------------- | ------ |
-| Member (`PR`) | 31     |
-| Admin (`PA`)  | 14     |
+| Member (`PR`) | 27     |
+| Admin (`PA`)  | 18     |
 | **Total**     | **45** |
 
 _Foundation smoke (PR000) is not counted in the 45 use-cases — it is harness scaffolding. PR039–PR043 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–7. PR044 has a spec file but is `test.skip`-ped — no identity provider in this harness can complete a real OAuth consent screen; the callback route's unit tests are the merge gate until a testable IdP exists. PR045's known-slug case skips unless `E2E_BRANDED_LOGIN_SLUG` names a QA org with public branding; the unknown-slug case is always runnable._

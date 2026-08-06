@@ -25,8 +25,13 @@ export class BrandedLoginPage extends BasePage {
     return this.page.getByRole('button', { name: /^login$/i });
   }
 
+  /** Vinta wordmark shown when branding falls back to defaults (AuthNavbar `<header>`). */
+  get defaultVintaLogo() {
+    return this.page.getByRole('img', { name: 'Vinta' });
+  }
+
   /** Custom (non-vinta) logo rendered by AuthNavbar when branding is branded. */
   get brandedLogo() {
-    return this.page.locator('nav img').first();
+    return this.page.locator('header img').first();
   }
 }
