@@ -21,16 +21,16 @@ import { useRole } from '@/components/navigation/role-gate';
  */
 export default function GroupsPage() {
   const role = useRole();
-  const isMember = role === 'member';
+  const isAdmin = role === 'admin';
 
   return (
     <Stack gap={6}>
       <PageHeader
         title='Calendar groups'
         description={
-          isMember
-            ? 'Calendar groups you belong to.'
-            : 'Manage your organization calendar groups.'
+          isAdmin
+            ? 'Manage your organization calendar groups.'
+            : 'Calendar groups you belong to.'
         }
       />
       <DataTableQueryBoundary>

@@ -16,7 +16,7 @@ import {
   SUMMARY_PAGE_SIZE,
   type CalendarConfigSummary,
 } from '@/hooks/calendar-groups/use-group-scoped-config-summary';
-import { useCanEditCalendar } from './group-permissions';
+import { useCanEditCalendar } from './group-permissions-provider';
 
 const CALENDAR_TYPE_LABEL: Record<Calendar['calendar_type'], string> = {
   personal: 'Personal',

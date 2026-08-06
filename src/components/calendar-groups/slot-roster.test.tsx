@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import type { CalendarGroupSlot } from '@/client';
 import { SlotRoster } from './slot-roster';
-import { GroupPermissionsProvider } from './group-permissions';
+import { GroupPermissionsProvider } from './group-permissions-provider';
 
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/client/sdk.gen')>();

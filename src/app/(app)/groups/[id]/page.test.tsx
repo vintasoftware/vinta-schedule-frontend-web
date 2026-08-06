@@ -303,4 +303,63 @@ describe('GroupDetailPage', () => {
       screen.queryByTestId('roster-panel-editable-101')
     ).not.toBeInTheDocument();
   });
+
+  it('as a member, the group is not fetched while ownership is still resolving, and nothing renders as editable', async () => {
+    vi.mocked(useRole).mockReturnValue('member');
+    let resolveCalendarList!: (
+      value: Awaited<ReturnType<typeof calendarList>>
+    ) => void;
+    const pending = new Promise<Awaited<ReturnType<typeof calendarList>>>(
+      (resolve) => {
+        resolveCalendarList = resolve;
+      }
+    );
+    vi.mocked(calendarList).mockReturnValueOnce(
+      pending as ReturnType<typeof calendarList>
+    );
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      makeGroupResponse(FIXTURE_GROUP)
+    );
+
+    await renderPage();
+
+    // Ownership fetch (isOwnedCalendarsLoading) is still in flight — the
+    // group fetch must not have fired yet (permissionsReady gate), and
+    // nothing editable can have rendered as a result.
+    expect(calendarGroupsRetrieve).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId('roster-panel-editable-100')
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveCalendarList(makeCalendarListResponse([ownedCalendar(100)]));
+      await pending;
+    });
+
+    expect(await screen.findByText('Surgery Team')).toBeInTheDocument();
+    expect(calendarGroupsRetrieve).toHaveBeenCalled();
+  });
+
+  it('as a member, a failed ownership fetch surfaces an error instead of silently rendering every row read-only', async () => {
+    vi.mocked(useRole).mockReturnValue('member');
+    vi.mocked(calendarList).mockRejectedValue(new Error('network error'));
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      makeGroupResponse(FIXTURE_GROUP)
+    );
+
+    await renderPage();
+
+    expect(
+      await screen.findByText("Couldn't check which calendars you own.")
+    ).toBeInTheDocument();
+    // The owned row must not silently render as read-only, indistinguishable
+    // from "owns nothing" — nothing from the roster renders at all here.
+    expect(
+      screen.queryByTestId('roster-panel-editable-100')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-panel-readonly-100')
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
 });

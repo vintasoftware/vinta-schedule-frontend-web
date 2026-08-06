@@ -12,6 +12,7 @@ import type {
   GroupScopedQuotaRule,
 } from '@/client';
 import { SlotRoster } from './slot-roster';
+import { GroupPermissionsProvider } from './group-permissions-provider';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -176,7 +177,9 @@ export const Populated: Story = {
     });
     return (
       <QueryClientProvider client={client}>
-        <SlotRoster groupId={GROUP_ID} slot={SLOT} />
+        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+          <SlotRoster groupId={GROUP_ID} slot={SLOT} />
+        </GroupPermissionsProvider>
       </QueryClientProvider>
     );
   },
@@ -192,7 +195,33 @@ export const NoConfiguration: Story = {
     });
     return (
       <QueryClientProvider client={client}>
-        <SlotRoster groupId={GROUP_ID} slot={SLOT} />
+        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+          <SlotRoster groupId={GROUP_ID} slot={SLOT} />
+        </GroupPermissionsProvider>
+      </QueryClientProvider>
+    );
+  },
+};
+
+// Member who owns one of the slot's two calendars: shows the editable and
+// read-only row states side by side, the pair this permission boundary
+// exists to distinguish (Phase 2).
+export const MemberPartialOwnership: Story = {
+  render: () => {
+    const client = makeSeededQueryClient({
+      slotId: SLOT.id,
+      windowCalendarIds: [100],
+      blockCalendarIds: [],
+      quotaCalendarIds: [],
+    });
+    return (
+      <QueryClientProvider client={client}>
+        <GroupPermissionsProvider
+          role='member'
+          ownedCalendarIds={new Set([100])}
+        >
+          <SlotRoster groupId={GROUP_ID} slot={SLOT} />
+        </GroupPermissionsProvider>
       </QueryClientProvider>
     );
   },

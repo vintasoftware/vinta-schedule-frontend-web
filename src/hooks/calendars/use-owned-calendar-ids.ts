@@ -27,15 +27,37 @@
  * Fetches a single generous page rather than following pagination — an
  * individual's own calendar count is small in practice, matching the
  * tradeoff use-colleague-calendars.ts makes for a colleague's calendars.
+ *
+ * Exports OWNED_CALENDAR_IDS_QUERY_KEY (built from the exact params this
+ * hook queries with) rather than reusing MY_CALENDARS_QUERY_KEY: that key
+ * is `calendarListQueryKey()` with NO params, which the generated factory
+ * does not guarantee is a prefix of this hook's params-bearing key — see
+ * the CAVEAT in use-my-calendars.ts. A mutation that wants to invalidate
+ * both should invalidate both keys explicitly (or use the predicate form
+ * documented there).
  */
 
-import { calendarListOptions } from '@/client/@tanstack/react-query.gen';
+import * as React from 'react';
+import {
+  calendarListOptions,
+  calendarListQueryKey,
+} from '@/client/@tanstack/react-query.gen';
 import { useQuery } from '@tanstack/react-query';
 
 // Generous enough to cover any realistic individual's calendar count in one
 // page — see the file-level comment on use-group-scoped-config-summary.ts
 // for the same tradeoff applied to a slot's group-scoped rows.
 export const OWNED_CALENDARS_PAGE_SIZE = 200;
+
+const OWNED_CALENDARS_QUERY_PARAMS = {
+  owner: 'me' as const,
+  include_unlisted: true,
+  limit: OWNED_CALENDARS_PAGE_SIZE,
+};
+
+export const OWNED_CALENDAR_IDS_QUERY_KEY = calendarListQueryKey({
+  query: OWNED_CALENDARS_QUERY_PARAMS,
+});
 
 export interface UseOwnedCalendarIdsOptions {
   /** Set to false to skip the fetch entirely (e.g. the viewer is an admin,
@@ -48,24 +70,26 @@ export interface OwnedCalendarIdsResult {
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
+  /** Re-run the fetch. Callers surfacing isError should offer this as a
+   * retry rather than silently treating the error as "owns nothing". */
+  refetch: () => void;
 }
 
 export function useOwnedCalendarIds({
   enabled = true,
 }: UseOwnedCalendarIdsOptions = {}): OwnedCalendarIdsResult {
   const query = useQuery({
-    ...calendarListOptions({
-      query: {
-        owner: 'me',
-        include_unlisted: true,
-        limit: OWNED_CALENDARS_PAGE_SIZE,
-      },
-    }),
+    ...calendarListOptions({ query: OWNED_CALENDARS_QUERY_PARAMS }),
     enabled,
   });
 
-  const ownedCalendarIds = new Set<number>(
-    (query.data?.results ?? []).map((calendar) => calendar.id)
+  // Stable Set identity across renders with the same data — a brand-new Set
+  // every render defeats React.useMemo([role, ownedCalendarIds]) downstream
+  // in GroupPermissionsProvider, which exists precisely to avoid re-rendering
+  // every SlotRosterRow on every unrelated parent render.
+  const ownedCalendarIds = React.useMemo(
+    () => new Set<number>((query.data?.results ?? []).map((c) => c.id)),
+    [query.data]
   );
 
   return {
@@ -73,5 +97,8 @@ export function useOwnedCalendarIds({
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error as Error | null,
+    refetch: () => {
+      void query.refetch();
+    },
   };
 }

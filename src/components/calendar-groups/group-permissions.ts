@@ -1,16 +1,18 @@
 /**
- * Group detail page permission boundary.
- *
- * `canEditCalendar` is the single predicate every editor phase (3b onward)
+ * canEditCalendar — the single predicate every editor phase (3b onward)
  * consumes for "can the current viewer write to this calendar's
- * group-scoped configuration". It is kept pure, framework-free, and
- * directly unit-tested (group-permissions.test.ts) rather than re-derived
- * ad hoc inside component state — see the plan's Guiding Decisions and
- * Phase 2's "Permission widening is the main security risk" note.
+ * group-scoped configuration". Kept pure and framework-free (no 'use
+ * client', no React import) so it stays importable from a Server Component
+ * too, and is directly unit-tested (group-permissions.test.ts) rather than
+ * re-derived ad hoc inside component state — see the plan's Guiding
+ * Decisions and Phase 2's "Permission widening is the main security risk"
+ * note.
  *
- * `GroupPermissionsProvider` / `useCanEditCalendar` exist so every roster
- * row asks the same question the same way, instead of each editor phase
- * re-reading role + ownedCalendarIds and recomputing the predicate itself.
+ * The context/provider/hook that expose this predicate to the component
+ * tree live in group-permissions-provider.tsx ('use client' — creates a
+ * React context) so every roster row asks the same question the same way,
+ * instead of each editor phase re-reading role + ownedCalendarIds and
+ * recomputing the predicate itself.
  *
  * ---------------------------------------------------------------------
  * LOAD-BEARING ASSUMPTION (do not remove this paragraph without re-reading
@@ -32,7 +34,6 @@
  * ---------------------------------------------------------------------
  */
 
-import * as React from 'react';
 import type { RoleEnum } from '@/client';
 
 export interface CanEditCalendarParams {
@@ -54,44 +55,4 @@ export function canEditCalendar({
   if (role === 'admin') return true;
   if (role === 'member') return ownedCalendarIds.has(calendarId);
   return false;
-}
-
-interface GroupPermissionsContextValue {
-  role: RoleEnum | null;
-  ownedCalendarIds: ReadonlySet<number>;
-}
-
-// Default (no provider in the tree) is the fail-closed state: role null,
-// no owned calendars — every row reads as read-only until a real provider
-// supplies the resolved role and ownership set.
-const GroupPermissionsContext =
-  React.createContext<GroupPermissionsContextValue>({
-    role: null,
-    ownedCalendarIds: new Set(),
-  });
-
-export interface GroupPermissionsProviderProps extends GroupPermissionsContextValue {
-  children: React.ReactNode;
-}
-
-export function GroupPermissionsProvider({
-  role,
-  ownedCalendarIds,
-  children,
-}: GroupPermissionsProviderProps) {
-  const value = React.useMemo(
-    () => ({ role, ownedCalendarIds }),
-    [role, ownedCalendarIds]
-  );
-  return (
-    <GroupPermissionsContext.Provider value={value}>
-      {children}
-    </GroupPermissionsContext.Provider>
-  );
-}
-
-/** Whether the current viewer may edit `calendarId`'s group-scoped rows. */
-export function useCanEditCalendar(calendarId: number): boolean {
-  const { role, ownedCalendarIds } = React.useContext(GroupPermissionsContext);
-  return canEditCalendar({ role, ownedCalendarIds, calendarId });
 }

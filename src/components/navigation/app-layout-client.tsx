@@ -122,7 +122,9 @@ const BRANDING_NAV_ITEM: SidebarNavItem = {
   href: '/branding',
 };
 
-function buildNavGroups(
+// Exported so tests can pin the nav shape directly (which ids each role
+// sees) without mounting the whole gated layout — see app-layout-client.test.tsx.
+export function buildNavGroups(
   role: RoleEnum | null,
   canManageBranding: boolean
 ): SidebarNavGroup[] {

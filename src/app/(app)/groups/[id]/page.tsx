@@ -2,13 +2,14 @@
 
 import { use } from 'react';
 import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import { VStack, Text } from 'vinta-schedule-design-system/layout';
 import { useRole } from '@/components/navigation/role-gate';
 import { useCalendarGroup } from '@/hooks/calendar-groups/use-calendar-group';
 import { useOwnedCalendarIds } from '@/hooks/calendars/use-owned-calendar-ids';
 import { GroupDetailView } from '@/components/calendar-groups/group-detail-view';
 import { GroupNotFound } from '@/components/calendar-groups/group-not-found';
-import { GroupPermissionsProvider } from '@/components/calendar-groups/group-permissions';
+import { GroupPermissionsProvider } from '@/components/calendar-groups/group-permissions-provider';
 
 /**
  * GroupDetailPage — one calendar group: its slots, each slot's roster, and
@@ -38,8 +39,12 @@ export default function GroupDetailPage({
   const { id } = use(params);
   const role = useRole();
   const isMember = role === 'member';
-  const { ownedCalendarIds, isLoading: isOwnedCalendarsLoading } =
-    useOwnedCalendarIds({ enabled: isMember });
+  const {
+    ownedCalendarIds,
+    isLoading: isOwnedCalendarsLoading,
+    isError: isOwnedCalendarsError,
+    refetch: refetchOwnedCalendars,
+  } = useOwnedCalendarIds({ enabled: isMember });
 
   // Admins don't need ownedCalendarIds (canEditCalendar short-circuits on
   // role), so their readiness doesn't depend on that query settling.
@@ -55,6 +60,26 @@ export default function GroupDetailPage({
     return (
       <VStack align='center' py={16}>
         <Spinner label='Loading calendar group' />
+      </VStack>
+    );
+  }
+
+  // A member whose ownership check failed must not silently fall back to
+  // "owns nothing" — canEditCalendar would fail closed on an empty set and
+  // every row (including ones the member actually owns) would render
+  // read-only, indistinguishable from the true "owns nothing" case.
+  if (isMember && isOwnedCalendarsError) {
+    return (
+      <VStack gap={2} py={6} align='center'>
+        <Text color='destructive' weight='medium'>
+          Couldn&apos;t check which calendars you own.
+        </Text>
+        <Text color='muted-foreground' size='sm'>
+          Roster rows may show as read-only until this is retried.
+        </Text>
+        <Button size='sm' variant='outline' onClick={refetchOwnedCalendars}>
+          Retry
+        </Button>
       </VStack>
     );
   }
