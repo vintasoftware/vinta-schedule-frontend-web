@@ -15,6 +15,12 @@
  * with more group-scoped rows than the page size undercounts rather than
  * fails; there is no pagination UI here to fix that, by design (Phase 1 is
  * read-only).
+ *
+ * Each paginated response carries a total `count`. When a concept's `count`
+ * exceeds `SUMMARY_PAGE_SIZE`, the per-calendar breakdown for that concept is
+ * a lower bound, not an exact count — the page cut off before every row was
+ * seen. `isTruncated` surfaces that so callers don't render a precise-looking
+ * number they can't back up.
  */
 
 import { useQueries } from '@tanstack/react-query';
@@ -27,7 +33,7 @@ import {
 // Large enough to cover any realistic slot roster's group-scoped rows in one
 // page — see the file-level comment on why undercounting (not failing) is
 // the fallback for an outsized slot.
-const SUMMARY_PAGE_SIZE = 200;
+export const SUMMARY_PAGE_SIZE = 200;
 
 export interface CalendarConfigSummary {
   windowCount: number;
@@ -79,10 +85,18 @@ export function useGroupScopedConfigSummary({
     quotaCount: quotaCounts.get(calendarId) ?? 0,
   });
 
+  const windowsTruncated = (windowsQuery.data?.count ?? 0) > SUMMARY_PAGE_SIZE;
+  const blocksTruncated = (blocksQuery.data?.count ?? 0) > SUMMARY_PAGE_SIZE;
+  const quotaTruncated = (quotaQuery.data?.count ?? 0) > SUMMARY_PAGE_SIZE;
+
   return {
     summaryFor,
     isLoading:
       windowsQuery.isLoading || blocksQuery.isLoading || quotaQuery.isLoading,
     isError: windowsQuery.isError || blocksQuery.isError || quotaQuery.isError,
+    // True when any concept's total (across the whole slot roster) exceeds
+    // the single page fetched — the counts summaryFor returns are then a
+    // lower bound, not exact.
+    isTruncated: windowsTruncated || blocksTruncated || quotaTruncated,
   };
 }

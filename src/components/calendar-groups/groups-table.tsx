@@ -28,6 +28,8 @@ export const COLUMNS: DataTableColumn<CalendarGroup>[] = [
     header: 'Name',
     enableSorting: false,
     cell: ({ row }) => (
+      // className is an escape hatch here because TextLink has no `weight`
+      // variant yet — add one instead of copying this one-off class.
       <TextLink asChild className='font-medium'>
         <Link href={`/groups/${row.original.id}`}>{row.original.name}</Link>
       </TextLink>

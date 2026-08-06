@@ -104,6 +104,37 @@ describe('SlotRoster', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders 200+ instead of a precise count when a concept is truncated', async () => {
+    // count (201) exceeds SUMMARY_PAGE_SIZE (200): the summary cannot back
+    // up an exact number, so it must show a truncation indicator instead.
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue({
+      data: { count: 201, results: [{ calendar_id: 100 }] },
+      response: new Response(
+        JSON.stringify({ count: 201, results: [{ calendar_id: 100 }] }),
+        { status: 200 }
+      ),
+    } as unknown as Awaited<
+      ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+    >);
+    vi.mocked(calendarGroupsSlotsBlockedTimesList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsBlockedTimesList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsQuotaRulesList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsQuotaRulesList>
+      >
+    );
+
+    renderRoster();
+
+    const row = screen.getByTestId('roster-row-100');
+    expect(
+      await within(row).findByText('200+ configured (exact count unavailable)')
+    ).toBeInTheDocument();
+  });
+
   it('expands a row into the panel shell extension point', async () => {
     vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
       makeListResponse([]) as Awaited<

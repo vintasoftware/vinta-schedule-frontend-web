@@ -13,6 +13,7 @@ import { HStack, VStack, Text } from 'vinta-schedule-design-system/layout';
 import type { Calendar, CalendarGroupSlot } from '@/client';
 import {
   useGroupScopedConfigSummary,
+  SUMMARY_PAGE_SIZE,
   type CalendarConfigSummary,
 } from '@/hooks/calendar-groups/use-group-scoped-config-summary';
 
@@ -27,7 +28,17 @@ function pluralize(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
-function formatSummary(summary: CalendarConfigSummary): string {
+// When the slot's group-scoped rows for a concept outnumber the single page
+// fetched (see use-group-scoped-config-summary.ts), the per-calendar count
+// is a lower bound — render it as `200+` rather than a precise-looking
+// number the summary can't back up.
+function formatSummary(
+  summary: CalendarConfigSummary,
+  isTruncated: boolean
+): string {
+  if (isTruncated) {
+    return `${SUMMARY_PAGE_SIZE}+ configured (exact count unavailable)`;
+  }
   return [
     pluralize(summary.windowCount, 'window'),
     pluralize(summary.blockCount, 'block'),
@@ -49,10 +60,11 @@ export interface SlotRosterProps {
  * the accordion content below is that extension point, empty for now.
  */
 export function SlotRoster({ groupId, slot }: SlotRosterProps) {
-  const { summaryFor, isLoading, isError } = useGroupScopedConfigSummary({
-    groupId,
-    slotId: slot.id,
-  });
+  const { summaryFor, isLoading, isError, isTruncated } =
+    useGroupScopedConfigSummary({
+      groupId,
+      slotId: slot.id,
+    });
 
   if (slot.calendars.length === 0) {
     return (
@@ -87,7 +99,7 @@ export function SlotRoster({ groupId, slot }: SlotRosterProps) {
                 </Text>
               ) : (
                 <Text size='xs' color='muted-foreground'>
-                  {formatSummary(summaryFor(calendar.id))}
+                  {formatSummary(summaryFor(calendar.id), isTruncated)}
                 </Text>
               )}
             </HStack>

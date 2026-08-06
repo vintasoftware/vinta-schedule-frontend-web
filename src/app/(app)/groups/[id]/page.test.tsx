@@ -176,6 +176,10 @@ describe('GroupDetailPage', () => {
     await renderPage();
 
     expect(screen.queryByText('Surgery Team')).not.toBeInTheDocument();
+    // Fetching must be gated on isAllowed, not just rendering — a non-admin
+    // guessing the URL must never trigger a real fetch of the group's
+    // roster (calendar names/emails) before the redirect effect runs.
+    expect(calendarGroupsRetrieve).not.toHaveBeenCalled();
   });
 
   it('renders the not-found state on 404, with no router.replace call', async () => {

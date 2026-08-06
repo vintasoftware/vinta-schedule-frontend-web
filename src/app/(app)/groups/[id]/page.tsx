@@ -28,7 +28,10 @@ export default function GroupDetailPage({
 }) {
   const { id } = use(params);
   const { isAllowed } = useRequireRole('admin');
-  const { group, isNotFound, isLoading, isError, error } = useCalendarGroup(id);
+  const { group, isNotFound, isLoading, isError, error } = useCalendarGroup(
+    id,
+    { enabled: isAllowed }
+  );
 
   if (!isAllowed) return null;
 

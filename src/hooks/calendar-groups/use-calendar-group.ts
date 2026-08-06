@@ -26,9 +26,13 @@ export type CalendarGroupResult =
   | { status: 'ok'; group: CalendarGroup }
   | { status: 'not_found'; group: null };
 
-export function useCalendarGroup(id: string) {
+export function useCalendarGroup(
+  id: string,
+  { enabled = true }: { enabled?: boolean } = {}
+) {
   const query = useQuery<CalendarGroupResult>({
     queryKey: calendarGroupQueryKey(id),
+    enabled,
     queryFn: async ({ signal }) => {
       const { data, response } = await calendarGroupsRetrieve({
         path: { id },

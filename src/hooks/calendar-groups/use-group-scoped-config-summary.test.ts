@@ -5,6 +5,8 @@
  * - counts group correctly per calendar_id across the three list responses
  * - a calendar with no rows in a list resolves to 0 for that count
  * - isLoading / isError reflect the underlying queries
+ * - isTruncated reflects whether any concept's total count exceeds the
+ *   single page fetched
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -138,5 +140,68 @@ describe('useGroupScopedConfigSummary', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.isError).toBe(true);
+  });
+
+  it('sets isTruncated:true when a concept total exceeds the page size', async () => {
+    // count (201) > SUMMARY_PAGE_SIZE (200): the single page fetched cannot
+    // hold every row, so the per-calendar counts derived from it are a lower
+    // bound, not exact.
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue({
+      data: { count: 201, results: [{ calendar_id: 1 }] },
+      response: new Response(
+        JSON.stringify({ count: 201, results: [{ calendar_id: 1 }] }),
+        { status: 200 }
+      ),
+    } as unknown as Awaited<
+      ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+    >);
+    vi.mocked(calendarGroupsSlotsBlockedTimesList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsBlockedTimesList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsQuotaRulesList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsQuotaRulesList>
+      >
+    );
+
+    const { Wrapper } = makeQueryWrapper();
+    const { result } = renderHook(
+      () => useGroupScopedConfigSummary({ groupId: 1, slotId: 10 }),
+      { wrapper: Wrapper }
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.isTruncated).toBe(true);
+  });
+
+  it('sets isTruncated:false when every concept total is within the page size', async () => {
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeListResponse([{ calendar_id: 1 }]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsBlockedTimesList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsBlockedTimesList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsQuotaRulesList).mockResolvedValue(
+      makeListResponse([]) as Awaited<
+        ReturnType<typeof calendarGroupsSlotsQuotaRulesList>
+      >
+    );
+
+    const { Wrapper } = makeQueryWrapper();
+    const { result } = renderHook(
+      () => useGroupScopedConfigSummary({ groupId: 1, slotId: 10 }),
+      { wrapper: Wrapper }
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.isTruncated).toBe(false);
   });
 });
