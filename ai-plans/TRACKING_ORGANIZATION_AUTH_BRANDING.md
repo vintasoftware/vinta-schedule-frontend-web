@@ -27,10 +27,12 @@
 
 ### Phase 5 — Distinguishable branding write 403 UIs ✅
 
-- **Status**: published (pending PR open)
+- **Status**: published
 - **Model**: implementer `composer-2.5-fast`; reviewer `cursor-grok-4.5-high`; fixer n/a
 - **Branch**: `plan/organization-auth-branding/phase-5`
 - **Base**: `plan/organization-auth-branding/phase-4`
+- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/93
+- **PR-context**: `.vinta-ai-workflows/prs-context/organization-auth-branding/phase-5.md` (`status: published`)
 - **E2E**: n/a
 - **Summary**: `parseBrandingWriteForbidden` + form branches for has_parent / not_entitled / no_slug; unknown keeps generic Save failed. Review PASS. 58 scoped tests green.
 
