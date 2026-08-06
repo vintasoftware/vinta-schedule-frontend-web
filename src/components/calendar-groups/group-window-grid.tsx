@@ -70,6 +70,11 @@ import {
   type WeekdayEntry,
 } from '@/lib/datetime/index';
 import { useGroupScopedWindows } from '@/hooks/calendar-groups/use-group-scoped-windows';
+import {
+  readOverLimitError,
+  isNotFoundError,
+  type OverLimitErrorBody,
+} from '@/lib/utils/api-errors';
 import { useCanEditCalendar } from './group-permissions-provider';
 import {
   classifyWindows,
@@ -81,6 +86,11 @@ import {
   type WeekdayWindow,
   type BydayCode,
 } from './group-scoped-types';
+import {
+  OrphanedBookingsAlert,
+  type OrphanedBooking,
+} from './orphaned-bookings-alert';
+import { OverLimitAlert } from './over-limit-alert';
 
 // All IANA zone names the runtime's ICU data knows about, for the timezone
 // Select below -- replaces a free-text input a typo could turn into an
@@ -354,8 +364,26 @@ function toWeekdayWindow(row: EditedRow): WeekdayWindow {
 // The outcome of one diffed write, tagged so onSubmit can fold only the
 // SUCCEEDED writes back into the diff baseline after a `Promise.allSettled`
 // (see the BLOCKER 2 comment in onSubmit for why this can't be `Promise.all`).
+//
+// 'update-gone' is a FULFILLED outcome, not a rejection: onSubmit catches a
+// 404 (isNotFoundError) on the update call itself and folds it into this
+// shape, the same convention useGroupScopedWindows.deleteWindow already
+// uses for its own 'row_gone' -- "the row is confirmed absent server-side"
+// is a real, actionable answer, not a transport failure. Carries
+// weekdayIndex/rangeIndex so onSubmit can clear the form field's stale
+// sourceId (see the reconciliation loop).
 type WriteOutcome =
-  | { type: 'create' | 'update'; row: WeekdayWindow }
+  | {
+      type: 'create' | 'update';
+      row: WeekdayWindow;
+      orphanedBookings: OrphanedBooking[];
+    }
+  | {
+      type: 'update-gone';
+      id: number;
+      weekdayIndex: number;
+      rangeIndex: number;
+    }
   | { type: 'delete'; id: number };
 
 export function GroupWindowGrid({
@@ -380,6 +408,7 @@ export function GroupWindowGrid({
     createWindow,
     updateWindow,
     deleteWindow,
+    windowsQuery,
   } = useGroupScopedWindows({ groupId, slotId, calendarId });
 
   const { representable } = React.useMemo(
@@ -416,6 +445,21 @@ export function GroupWindowGrid({
   // correct from its own first render instead of being changed out from
   // under it.
   const [hydrationGeneration, setHydrationGeneration] = React.useState(0);
+
+  // Bookings a save orphaned (spec UC-5) -- collected across every write in
+  // ONE save (see onSubmit) and cleared at the start of the next one, so the
+  // alert always reflects the most recent save attempt, not a stale one.
+  const [orphanedBookings, setOrphanedBookings] = React.useState<
+    OrphanedBooking[]
+  >([]);
+  // Set when a write in the most recent save was rejected as over-limit
+  // (spec UC-6). `otherWritesSucceeded` counts the OTHER writes in that same
+  // batch that already landed -- see over-limit-alert.tsx's doc comment for
+  // why that matters. Cleared at the start of the next save attempt.
+  const [overLimitError, setOverLimitError] = React.useState<{
+    error: OverLimitErrorBody;
+    otherWritesSucceeded: number;
+  } | null>(null);
 
   // Re-hydrates the form from the server's `windows` whenever they change
   // (initial load, or a refetch after ANY write invalidates the list query
@@ -488,6 +532,11 @@ export function GroupWindowGrid({
         }
 
         setIsSaving(true);
+        // Clear the previous save's alerts up front so this attempt's
+        // outcome is what's on screen -- a stale over-limit or orphan alert
+        // from an earlier save must not linger across a later, unrelated one.
+        setOrphanedBookings([]);
+        setOverLimitError(null);
         try {
           const outcomes = await Promise.allSettled<WriteOutcome>([
             ...diff.creates.map(async (row): Promise<WriteOutcome> => {
@@ -504,20 +553,45 @@ export function GroupWindowGrid({
                 result.window.id,
                 { shouldDirty: false }
               );
-              return { type: 'create', row: toWeekdayWindow(row) };
+              return {
+                type: 'create',
+                row: toWeekdayWindow(row),
+                orphanedBookings: result.orphanedBookings,
+              };
             }),
             ...diff.updates.map(async (update): Promise<WriteOutcome> => {
               // The row keeps its OWN original timezone -- an edit to the
               // wall-clock time must not also silently re-zone it.
               const original = windows.find((w) => w.id === update.id);
               const timezone = original?.timezone ?? values.timezone;
-              await updateWindow({
-                groupId,
-                slotId,
-                windowId: update.id,
-                body: buildWindowUpdateBody(update.row, timezone),
-              });
-              return { type: 'update', row: toWeekdayWindow(update.row) };
+              try {
+                const result = await updateWindow({
+                  groupId,
+                  slotId,
+                  windowId: update.id,
+                  body: buildWindowUpdateBody(update.row, timezone),
+                });
+                return {
+                  type: 'update',
+                  row: toWeekdayWindow(update.row),
+                  orphanedBookings: result.orphanedBookings,
+                };
+              } catch (err) {
+                // Someone else deleted this row between load and save --
+                // confirmed absent, not a transport failure. Fold it into a
+                // fulfilled outcome (same convention deleteWindow's own
+                // 'row_gone' uses) rather than letting it read as an
+                // ordinary write failure.
+                if (isNotFoundError(err)) {
+                  return {
+                    type: 'update-gone',
+                    id: update.id,
+                    weekdayIndex: update.row.weekdayIndex,
+                    rangeIndex: update.row.rangeIndex,
+                  };
+                }
+                throw err;
+              }
             }),
             ...diff.deletes.map(async (id): Promise<WriteOutcome> => {
               await deleteWindow({ groupId, slotId, windowId: id });
@@ -542,21 +616,59 @@ export function GroupWindowGrid({
               )
               .map((row) => [row.id, row])
           );
+          const orphaned: OrphanedBooking[] = [];
+          let goneCount = 0;
           for (const outcome of outcomes) {
             if (outcome.status !== 'fulfilled') continue;
-            if (outcome.value.type === 'delete') {
-              baselineById.delete(outcome.value.id);
-            } else if (outcome.value.row.id !== undefined) {
-              baselineById.set(outcome.value.row.id, outcome.value.row);
+            const value = outcome.value;
+            if (value.type === 'delete') {
+              baselineById.delete(value.id);
+            } else if (value.type === 'update-gone') {
+              // Confirmed gone server-side -- drop it from the baseline AND
+              // clear the form's now-stale sourceId, so a later save treats
+              // this row as a fresh create instead of PATCHing an id that no
+              // longer exists (same "fail toward create" direction
+              // computeGridDiff already takes for an id it doesn't
+              // recognize).
+              baselineById.delete(value.id);
+              goneCount += 1;
+              form.setValue(
+                `weekdays.${value.weekdayIndex}.ranges.${value.rangeIndex}.sourceId`,
+                undefined,
+                { shouldDirty: false }
+              );
+            } else {
+              if (value.row.id !== undefined) {
+                baselineById.set(value.row.id, value.row);
+              }
+              orphaned.push(...value.orphanedBookings);
             }
           }
           setLoadedBaseline(Array.from(baselineById.values()));
+          setOrphanedBookings(orphaned);
 
           const failures = outcomes.filter(
             (outcome): outcome is PromiseRejectedResult =>
               outcome.status === 'rejected'
           );
-          if (failures.length > 0) {
+          const overLimit = failures
+            .map((failure) => readOverLimitError(failure.reason))
+            .find((body): body is OverLimitErrorBody => body !== null);
+
+          if (overLimit) {
+            // Some of THIS SAME batch's other writes may already have
+            // reached the server (Promise.allSettled, not Promise.all) --
+            // count them so the alert doesn't claim nothing was written when
+            // something was. See over-limit-alert.tsx's doc comment.
+            const otherWritesSucceeded = outcomes.filter(
+              (outcome) =>
+                outcome.status === 'fulfilled' &&
+                (outcome.value.type === 'create' ||
+                  outcome.value.type === 'update' ||
+                  outcome.value.type === 'delete')
+            ).length;
+            setOverLimitError({ error: overLimit, otherWritesSucceeded });
+          } else if (failures.length > 0) {
             const firstReason = failures[0].reason;
             toast.error('Failed to save availability windows', {
               description: `${failures.length} of ${outcomes.length} write${outcomes.length === 1 ? '' : 's'} failed${firstReason instanceof Error ? `: ${firstReason.message}` : ''}. Already-saved changes were kept -- retry to finish the rest.`,
@@ -565,6 +677,19 @@ export function GroupWindowGrid({
             toast.success('Availability windows saved', {
               description: `${edited.length} weekly window${edited.length === 1 ? '' : 's'} saved.`,
             });
+          }
+
+          if (goneCount > 0) {
+            toast.info(
+              goneCount === 1
+                ? 'This entry no longer exists'
+                : 'Some entries no longer exist',
+              {
+                description:
+                  'They may have already been removed elsewhere. Reloading the latest data.',
+              }
+            );
+            void windowsQuery.refetch();
           }
         } finally {
           setIsSaving(false);
@@ -584,6 +709,7 @@ export function GroupWindowGrid({
       updateWindow,
       deleteWindow,
       windows,
+      windowsQuery,
     ]
   );
 
@@ -693,6 +819,23 @@ export function GroupWindowGrid({
             </React.Fragment>
           ))}
         </Stack>
+
+        {/* Results of the most recent save (spec UC-5/UC-6). Neither alert
+            resets the form or the rows above -- see the doc comments on
+            OrphanedBookingsAlert/OverLimitAlert and onSubmit's reconciliation
+            for why leaving edited state intact is deliberate here. */}
+        {overLimitError && (
+          <OverLimitAlert
+            error={overLimitError.error}
+            otherWritesSucceeded={overLimitError.otherWritesSucceeded}
+          />
+        )}
+        {orphanedBookings.length > 0 && (
+          <OrphanedBookingsAlert
+            bookings={orphanedBookings}
+            onDismiss={() => setOrphanedBookings([])}
+          />
+        )}
 
         <HStack gap={3} justify='end'>
           <Button
