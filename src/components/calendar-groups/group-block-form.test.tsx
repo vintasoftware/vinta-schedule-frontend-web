@@ -19,6 +19,12 @@
  *   keeps the form's input on screen (no `onSaved` call -- a rejection is
  *   not a save); an unrelated failure the over-limit reader doesn't match
  *   falls through to an ordinary error toast instead.
+ * - a block whose rrule carries a BYDAY restriction under a non-WEEKLY freq
+ *   (e.g. `FREQ=MONTHLY;BYDAY=MO,WE`) locks the recurrence sub-form instead
+ *   of silently dropping BYDAY when an unrelated recurrence field is edited
+ *   -- see `isUnrepresentableRecurrence` in group-block-form.tsx.
+ * - `recurrenceUntil` hydrates as a date-only string even when the stored
+ *   UNTIL was a full DATE-TIME value.
  */
 
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
@@ -407,6 +413,62 @@ describe('GroupBlockForm', () => {
       const call = vi.mocked(calendarGroupsSlotsBlockedTimesPartialUpdate).mock
         .calls[0]?.[0] as { body: PatchedGroupScopedBlockedTimeUpdate };
       expect(call.body.rrule_string).toBe('FREQ=WEEKLY;BYDAY=TH');
+    });
+
+    it('a FREQ=MONTHLY;BYDAY=MO,WE block locks recurrence editing and never loses BYDAY', async () => {
+      const existing = makeBlock({
+        id: 501,
+        rrule_string: 'FREQ=MONTHLY;BYDAY=MO,WE',
+        is_recurring: true,
+      });
+      vi.mocked(calendarGroupsSlotsBlockedTimesPartialUpdate).mockResolvedValue(
+        makeUpdateResponse(existing)
+      );
+
+      const user = userEvent.setup();
+      renderForm({ block: existing });
+
+      // This shape can't be safely edited here -- BYDAY is only rendered/
+      // re-emitted for WEEKLY, so this rrule cannot round-trip through the
+      // sub-form. The lock notice is shown and the "Every"/interval control
+      // -- visible and editable for every OTHER frequency -- is disabled.
+      expect(screen.getByTestId('block-recurrence-locked')).toBeInTheDocument();
+      const intervalInput = screen.getByLabelText(/every/i);
+      expect(intervalInput).toBeDisabled();
+
+      // Attempting to edit the (disabled) interval control must not be able
+      // to mark recurrence dirty and rewrite the rule with BYDAY dropped.
+      await user.click(intervalInput);
+      await user.keyboard('3');
+
+      await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+      await waitFor(() =>
+        expect(
+          calendarGroupsSlotsBlockedTimesPartialUpdate
+        ).toHaveBeenCalledTimes(1)
+      );
+      const call = vi.mocked(calendarGroupsSlotsBlockedTimesPartialUpdate).mock
+        .calls[0]?.[0] as { body: PatchedGroupScopedBlockedTimeUpdate };
+      // Untouched (disabled) recurrence -- rrule_string omitted, not
+      // rewritten without the BYDAY restriction.
+      expect('rrule_string' in call.body).toBe(false);
+    });
+
+    it('recurrenceUntil hydrates as a date-only string from a DATE-TIME UNTIL', async () => {
+      const existing = makeBlock({
+        id: 502,
+        rrule_string: 'FREQ=WEEKLY;BYDAY=MO;UNTIL=20261231T120000Z',
+        is_recurring: true,
+      });
+
+      renderForm({ block: existing });
+
+      // recurrenceEndType hydrates to 'on-date' whenever `until` is set, so
+      // the End date field renders without any interaction.
+      expect(await screen.findByLabelText(/end date/i)).toHaveValue(
+        '2026-12-31'
+      );
     });
   });
 });

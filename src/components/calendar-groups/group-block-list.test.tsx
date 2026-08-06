@@ -107,13 +107,20 @@ describe('GroupBlockList', () => {
     vi.clearAllMocks();
   });
 
-  it('a save returning orphaned bookings renders the shared alert', async () => {
-    vi.mocked(calendarGroupsSlotsBlockedTimesList).mockResolvedValue(
-      makeListResponse([])
-    );
+  it('a save returning orphaned bookings renders the shared alert and the new block appears in the list', async () => {
+    const created = makeBlock({ id: 900, reason: 'Conference' });
+    // Sequenced, not a single mockResolvedValue for every call: the list
+    // starts empty, then the mutation's cache invalidation triggers a
+    // refetch that must return the newly-created row -- a fixture that
+    // returns [] unconditionally could never support asserting the row
+    // appears (see the acceptance criterion this test proves: adding a
+    // one-off block creates a block visible in the list).
+    vi.mocked(calendarGroupsSlotsBlockedTimesList)
+      .mockResolvedValueOnce(makeListResponse([]))
+      .mockResolvedValueOnce(makeListResponse([created]));
     vi.mocked(calendarGroupsSlotsBlockedTimesCreate).mockResolvedValue({
       data: {
-        block: makeBlock({ id: 900, reason: 'Conference' }),
+        block: created,
         orphaned_bookings: [
           {
             id: 5001,
@@ -159,6 +166,13 @@ describe('GroupBlockList', () => {
     // even though the toolbar's own "Add block" trigger button remains.
     expect(screen.queryByLabelText(/date/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId('group-block-submit')).not.toBeInTheDocument();
+
+    // The acceptance criterion this test exists for: the created block is
+    // actually visible in the list after the save-triggered refetch.
+    expect(await screen.findByTestId('group-block-900')).toBeInTheDocument();
+    expect(
+      screen.queryByText('No blocked time configured.')
+    ).not.toBeInTheDocument();
   });
 
   it("a recurring block's delete confirms before calling the API", async () => {

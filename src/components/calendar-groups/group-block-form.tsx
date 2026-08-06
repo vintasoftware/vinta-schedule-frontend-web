@@ -65,6 +65,11 @@ import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from 'vinta-schedule-design-system/ui/alert';
 import { Checkbox } from 'vinta-schedule-design-system/ui/checkbox';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Input } from 'vinta-schedule-design-system/ui/input';
@@ -214,12 +219,30 @@ function getDefaultValues(timezone: string): GroupBlockFormSchema {
 /**
  * Hydrates the form from an existing block for edit mode. The recurrence
  * sub-fields are a best-effort round-trip through `parseRRule` (which
- * silently ignores parts it doesn't recognize) purely to populate the UI --
- * this is NOT the data-loss-critical classification group-scoped-types.ts
- * does for the weekday grid. If the admin never touches the repeat/
- * recurrence controls, `rrule_string` is omitted from the PATCH body
- * entirely (see `buildUpdateBody`), so an imperfect display round-trip can
- * never overwrite the block's actual stored rule.
+ * silently ignores parts it doesn't recognize) purely to populate the UI.
+ *
+ * CORRECTION: an earlier version of this comment claimed "an imperfect
+ * display round-trip can never overwrite the block's actual stored rule",
+ * on the theory that untouched recurrence fields keep `rrule_string` out of
+ * the PATCH body entirely. That claim was FALSE for one shape: `parseRRule`
+ * parses `BYDAY` regardless of `FREQ`, but `RecurrenceFields` only renders
+ * the day checkboxes when `recurrenceFreq === 'WEEKLY'`, and
+ * `buildRecurrenceRule` only re-emits `byday` for `WEEKLY` too. A block
+ * stored as e.g. `FREQ=MONTHLY;BYDAY=MO,WE` hydrates `recurrenceByday` with
+ * data the admin can neither see nor re-touch -- editing only
+ * `recurrenceInterval` or `recurrenceEndType` (both visible and editable for
+ * every frequency) marks `recurrenceDirty`, and the PATCH would silently
+ * rewrite the rule with the BYDAY restriction dropped.
+ *
+ * `isUnrepresentableRecurrence` below detects this shape on load, and the
+ * form (`recurrenceLocked` state, see the main component) disables the
+ * whole recurrence sub-form for that block -- classify-and-refuse,
+ * mirroring `classifyWindow` in group-scoped-types.ts for the weekday grid.
+ * The admin's only path to change such a rule is to turn Repeat off (which
+ * clears `rrule_string`, an explicit PATCH of `null`) and, if wanted, turn
+ * it back on to compose a brand-new rule from scratch. Every OTHER shape
+ * (no BYDAY, or BYDAY only under WEEKLY) genuinely round-trips through this
+ * form and is unaffected.
  */
 function blockToFormValues(
   block: GroupScopedBlockedTime
@@ -244,10 +267,29 @@ function blockToFormValues(
       : recurrence?.count !== undefined
         ? 'after-n'
         : 'never',
-    recurrenceUntil: recurrence?.until ?? '',
+    // `until` can be a full ISO datetime when the stored UNTIL was a
+    // DATE-TIME value (parseRRule), but this binds to `<Input type='date'>`,
+    // which only accepts `YYYY-MM-DD` -- slice to the date part so an
+    // otherwise-valid block doesn't hydrate into a blank/invalid control.
+    recurrenceUntil: recurrence?.until ? recurrence.until.slice(0, 10) : '',
     recurrenceCount: recurrence?.count ?? 10,
     recurrenceByday: recurrence?.byday ?? [],
   };
+}
+
+/**
+ * True when `recurrence` carries a `BYDAY` restriction under a non-WEEKLY
+ * `FREQ` -- the one shape this form's recurrence sub-form cannot safely
+ * round-trip. See `blockToFormValues`'s doc comment for why.
+ */
+function isUnrepresentableRecurrence(
+  recurrence: RecurrenceRule | null
+): boolean {
+  return (
+    recurrence !== null &&
+    recurrence.freq !== 'WEEKLY' &&
+    (recurrence.byday?.length ?? 0) > 0
+  );
 }
 
 function buildRecurrenceRule(values: GroupBlockFormSchema): RecurrenceRule {
@@ -291,13 +333,21 @@ function requiredISO(dt: DateTime, label: string): string {
 interface RecurrenceFieldsProps {
   form: UseFormReturn<GroupBlockFormSchema>;
   disabled: boolean;
+  /**
+   * True when this block's stored recurrence can't be safely edited here
+   * (see `isUnrepresentableRecurrence`). Every control below is disabled and
+   * an alert explains the admin's only path: turn Repeat off to clear the
+   * rule, then back on to compose a new one.
+   */
+  locked: boolean;
 }
 
-function RecurrenceFields({ form, disabled }: RecurrenceFieldsProps) {
+function RecurrenceFields({ form, disabled, locked }: RecurrenceFieldsProps) {
   const freq = form.watch('recurrenceFreq');
   const endType = form.watch('recurrenceEndType') as RecurrenceEndType;
   const byday = form.watch('recurrenceByday');
   const WEEKDAYS = weekdayMatrix();
+  const fieldsDisabled = disabled || locked;
 
   const handleBydayToggle = (code: string, checked: boolean) => {
     const current = form.getValues('recurrenceByday');
@@ -313,6 +363,16 @@ function RecurrenceFields({ form, disabled }: RecurrenceFieldsProps) {
 
   return (
     <VStack gap={3} p={3} border radius='md' data-testid='block-repeat-fields'>
+      {locked && (
+        <Alert data-testid='block-recurrence-locked'>
+          <AlertTitle>This recurrence can&apos;t be edited here</AlertTitle>
+          <AlertDescription>
+            This block repeats on specific days combined with a frequency this
+            form doesn&apos;t support editing here. Turn Repeat off to clear the
+            rule, then back on to set a new one.
+          </AlertDescription>
+        </Alert>
+      )}
       <FormField
         control={form.control}
         name='recurrenceFreq'
@@ -322,7 +382,7 @@ function RecurrenceFields({ form, disabled }: RecurrenceFieldsProps) {
             <Select
               onValueChange={field.onChange}
               value={field.value}
-              disabled={disabled}
+              disabled={fieldsDisabled}
             >
               <FormControl>
                 <SelectTrigger>
@@ -352,7 +412,7 @@ function RecurrenceFields({ form, disabled }: RecurrenceFieldsProps) {
                 type='number'
                 min={1}
                 {...field}
-                disabled={disabled}
+                disabled={fieldsDisabled}
                 onChange={(e) => field.onChange(e.target.valueAsNumber)}
               />
             </FormControl>
@@ -379,7 +439,7 @@ function RecurrenceFields({ form, disabled }: RecurrenceFieldsProps) {
                 <Checkbox
                   id={`group-block-byday-${day.byday}`}
                   checked={byday.includes(day.byday)}
-                  disabled={disabled}
+                  disabled={fieldsDisabled}
                   onCheckedChange={(checked) =>
                     handleBydayToggle(day.byday, Boolean(checked))
                   }
@@ -407,7 +467,7 @@ function RecurrenceFields({ form, disabled }: RecurrenceFieldsProps) {
             <Select
               onValueChange={field.onChange}
               value={field.value}
-              disabled={disabled}
+              disabled={fieldsDisabled}
             >
               <FormControl>
                 <SelectTrigger>
@@ -433,7 +493,7 @@ function RecurrenceFields({ form, disabled }: RecurrenceFieldsProps) {
             <FormItem>
               <FormLabel>End date</FormLabel>
               <FormControl>
-                <Input type='date' {...field} disabled={disabled} />
+                <Input type='date' {...field} disabled={fieldsDisabled} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -453,7 +513,7 @@ function RecurrenceFields({ form, disabled }: RecurrenceFieldsProps) {
                   type='number'
                   min={1}
                   {...field}
-                  disabled={disabled}
+                  disabled={fieldsDisabled}
                   value={field.value ?? ''}
                   onChange={(e) => field.onChange(e.target.valueAsNumber)}
                 />
@@ -524,6 +584,15 @@ export function GroupBlockForm({
   const [overLimitError, setOverLimitError] = React.useState<ReturnType<
     typeof readOverLimitError
   > | null>(null);
+  // Classify-and-refuse gate for the BLOCKER described in
+  // `blockToFormValues`'s doc comment -- computed once from the block this
+  // form mounted with (never re-evaluated on prop changes; the caller
+  // remounts this form per block, see the module doc comment on hydration).
+  const [recurrenceLocked, setRecurrenceLocked] = React.useState(() =>
+    block?.rrule_string
+      ? isUnrepresentableRecurrence(parseRRule(block.rrule_string))
+      : false
+  );
 
   const repeat = form.watch('repeat');
 
@@ -748,7 +817,18 @@ export function GroupBlockForm({
                 <FormControl>
                   <Switch
                     checked={field.value}
-                    onCheckedChange={field.onChange}
+                    onCheckedChange={(checked) => {
+                      field.onChange(checked);
+                      // Turning Repeat off explicitly clears rrule_string
+                      // (tri-state PATCH, see onSubmit) -- that's the
+                      // "clear" half of the classify-and-refuse gate above.
+                      // Unlock so turning it back on lets the admin compose
+                      // a brand-new rule instead of staying stuck on the
+                      // unrepresentable one.
+                      if (!checked && recurrenceLocked) {
+                        setRecurrenceLocked(false);
+                      }
+                    }}
                     disabled={isSaving}
                   />
                 </FormControl>
@@ -760,7 +840,11 @@ export function GroupBlockForm({
         {repeat && (
           <>
             <Divider />
-            <RecurrenceFields form={form} disabled={isSaving} />
+            <RecurrenceFields
+              form={form}
+              disabled={isSaving}
+              locked={recurrenceLocked}
+            />
           </>
         )}
 
