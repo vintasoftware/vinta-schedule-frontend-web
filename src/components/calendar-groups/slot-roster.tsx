@@ -9,7 +9,12 @@ import {
 } from 'vinta-schedule-design-system/ui/accordion';
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
-import { HStack, VStack, Text } from 'vinta-schedule-design-system/layout';
+import {
+  Divider,
+  HStack,
+  VStack,
+  Text,
+} from 'vinta-schedule-design-system/layout';
 import type { Calendar, CalendarGroupSlot } from '@/client';
 import {
   useGroupScopedConfigSummary,
@@ -17,6 +22,8 @@ import {
   type CalendarConfigSummary,
 } from '@/hooks/calendar-groups/use-group-scoped-config-summary';
 import { useCanEditCalendar } from './group-permissions-provider';
+import { GroupWindowGrid } from './group-window-grid';
+import { UnsupportedWindowList } from './unsupported-window-list';
 
 const CALENDAR_TYPE_LABEL: Record<Calendar['calendar_type'], string> = {
   personal: 'Personal',
@@ -53,6 +60,8 @@ export interface SlotRosterProps {
 }
 
 interface SlotRosterRowProps {
+  groupId: number;
+  slotId: number;
   calendar: Calendar;
   summary: CalendarConfigSummary;
   isSummaryLoading: boolean;
@@ -73,6 +82,8 @@ interface SlotRosterRowProps {
  * the page suggests an action the viewer cannot take (Phase 2).
  */
 function SlotRosterRow({
+  groupId,
+  slotId,
   calendar,
   summary,
   isSummaryLoading,
@@ -118,34 +129,54 @@ function SlotRosterRow({
         </HStack>
       </AccordionTrigger>
       <AccordionContent>
-        {/* Extension point for Phases 3-5: the weekday window grid,
-            unsupported-window list, block list/form, and quota rules mount
-            here once their hooks and components ship, gated on `canEdit`. */}
+        {/* Extension point for Phases 4-5: block list/form and quota rules
+            mount here once their hooks and components ship, gated on
+            `canEdit`. Phase 3b fills the windows section below. */}
         <VStack
-          gap={2}
+          gap={4}
           p={4}
           border
           radius='md'
           data-testid={`roster-panel-${calendar.id}`}
         >
           {canEdit ? (
-            <Text
-              color='muted-foreground'
-              size='sm'
+            <VStack
+              gap={4}
               data-testid={`roster-panel-editable-${calendar.id}`}
             >
-              You can configure this calendar&apos;s group-scoped availability,
-              blocks, and quota — editors ship in a later phase.
-            </Text>
+              <GroupWindowGrid
+                groupId={groupId}
+                slotId={slotId}
+                calendarId={calendar.id}
+              />
+              <Divider />
+              <UnsupportedWindowList
+                groupId={groupId}
+                slotId={slotId}
+                calendarId={calendar.id}
+              />
+            </VStack>
           ) : (
-            <Text
-              color='muted-foreground'
-              size='sm'
+            <VStack
+              gap={4}
               data-testid={`roster-panel-readonly-${calendar.id}`}
             >
-              Only this calendar&apos;s owner or an organization admin can
-              configure its group-scoped settings.
-            </Text>
+              <Text color='muted-foreground' size='sm'>
+                Only this calendar&apos;s owner or an organization admin can
+                configure its group-scoped settings.
+              </Text>
+              <GroupWindowGrid
+                groupId={groupId}
+                slotId={slotId}
+                calendarId={calendar.id}
+              />
+              <Divider />
+              <UnsupportedWindowList
+                groupId={groupId}
+                slotId={slotId}
+                calendarId={calendar.id}
+              />
+            </VStack>
           )}
         </VStack>
       </AccordionContent>
@@ -158,8 +189,9 @@ function SlotRosterRow({
  * type, and a summary of how much group-scoped configuration exists for it
  * (read from the windows / blocks / quota list queries).
  *
- * Each row expands into a panel that Phases 3-5 mount their editors into —
- * the accordion content below is that extension point, empty for now.
+ * Each row expands into a panel; Phase 3b fills the windows section (the
+ * weekday grid and the read-only unsupported-window list), Phases 4-5 mount
+ * blocks and quota next to it.
  */
 export function SlotRoster({ groupId, slot }: SlotRosterProps) {
   const { summaryFor, isLoading, isError, isTruncated } =
@@ -181,6 +213,8 @@ export function SlotRoster({ groupId, slot }: SlotRosterProps) {
       {slot.calendars.map((calendar) => (
         <SlotRosterRow
           key={calendar.id}
+          groupId={groupId}
+          slotId={slot.id}
           calendar={calendar}
           summary={summaryFor(calendar.id)}
           isSummaryLoading={isLoading}
