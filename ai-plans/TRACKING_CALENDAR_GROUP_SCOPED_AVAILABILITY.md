@@ -97,12 +97,29 @@ Both BLOCKER fixes were verified to fail against the pre-fix code by stashing th
 
 Gates: typecheck clean. Full suite green — 1200 app tests, 82 design-system. Lint 0 errors.
 
+### Phase 3a — Group-scoped window data hooks ✅
+
+- **Branch**: `plan/calendar-group-scoped-availability/phase-3a` (base: `phase-2`)
+- **Implementer model**: Tier 2, run on sonnet (5 files). **Reviewer**: Tier 3 (sonnet). **Fixer**: Tier 2 (haiku)
+- **Commits**: `a1c9612` feat(calendar-groups): add group-scoped window data hooks; `28e6da2` fix(hooks): add truncation signal and document totalCount in useGroupScopedWindows
+
+Summary:
+
+`useGroupScopedWindows` covers list, create, update, and delete for one slot. Create and update return `{ window, orphanedBookings }` unwrapped from the generated write-result, so no caller reaches into the generated shape. Delete returns a typed `{ status: 'deleted' | 'row_gone' }`, distinguishing "another actor deleted it" from a transport failure — it bypasses the generated mutation factory to get status access, which the reviewer confirmed loses nothing (the factory is a trivial `throwOnError: true` wrapper over the same client singleton). Writes invalidate by predicate on the operation id, matching the caveat documented in `use-all-calendars.ts`. `src/lib/utils/api-errors.ts` adds a typed over-limit reader and a not-found predicate.
+
+The tri-state `rrule_string` is handled deliberately: omit the key to leave recurrence unchanged, `null` to clear it, a string to replace it. A plain optional field would have made "clear it" unreachable, since the client's serializer drops `undefined`.
+
+**The list endpoint has no `calendar_id` filter** — verified against the schema — so the hook fetches one 200-row page for the whole slot and filters client-side. Review flagged that it shipped with no truncation signal, which matters because Phase 3b's grid and unrepresentable-rows list are built directly on this hook: past 200 rows they would silently under-represent, against Objective 3's "zero rows unaccounted for". Fixed by exposing `isTruncated`, following the precedent set in Phase 1's config-summary hook. `totalCount` is now documented as the whole slot's count, unaffected by the calendar filter — the two numbers legitimately disagree on a filtered call.
+
+The reviewer **verified rather than assumed** that a diff-based save cannot delete or overwrite a row that was never loaded: an unloaded row is never in the diff. So truncation is an invisibility problem, not a data-loss one.
+
+Gates: typecheck clean. Full suite green — 1228 app tests, 82 design-system.
+
 ## Current phase
 
-Phase 3a — Group-scoped window data hooks.
+Phase 3b — Weekday window grid and unrepresentable rows.
 
 ## Remaining phases
-- Phase 3a — Group-scoped window data hooks (Tier 2)
 - Phase 3b — Weekday window grid and unrepresentable rows (Tier 3; reviewer Tier 4)
 - Phase 3c — Surface orphaned bookings and plan limits (Tier 2)
 - Phase 4 — Group-scoped blocked times (Tier 2→3)
