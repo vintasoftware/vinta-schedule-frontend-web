@@ -177,12 +177,29 @@ Two SHOULD-FIX items also fixed: the phase's own acceptance criterion — "addin
 
 Gates: typecheck clean. Full suite green — 1314 app tests, 82 design-system.
 
+### Phase 5 — Group-scoped quota rules ✅
+
+- **Branch**: `plan/calendar-group-scoped-availability/phase-5` (base: `phase-4`)
+- **Implementer model**: Tier 2, run on sonnet. **Reviewer**: Tier 3 (sonnet). **Fixer**: Tier 2 (haiku)
+- **Commits**: `7b8aa51` feat(calendar-groups): add group-scoped quota rules management; `61b22d7` fix(calendar-groups): remove play function, fix comments, add deletion context
+
+Summary:
+
+`useGroupScopedQuota` plus the quota section in the roster panel: period, cap, add/edit/delete, with helper text stating that day, week, and month boundaries are measured in UTC rather than the calendar's local zone. No consumption indicator — no endpoint provides one, and inferring it would be wrong in ways an admin could not detect. Create returns the rule directly rather than a write result, since a quota rule caps future bookings and can never orphan an existing one.
+
+The one-rule-per-`(calendar, slot, period)` violation surfaces as the API's `non_field_errors` message rendered verbatim on the form, via a new `readNonFieldError` reader alongside the existing over-limit reader. A daily and a weekly rule coexist — the uniqueness is per period, not per calendar and slot.
+
+**Review found no BLOCKER, and the tests held up** — notable after three consecutive phases where review found a test that either passed with its feature deleted or carried a fixture that made its own assertion impossible.
+
+Two SHOULD-FIX items fixed. The story file had introduced this repo's **first Storybook `play` function**, duplicating an assertion the vitest test already covers — and since no Storybook test runner exists here, it would never re-run automatically, so it added a precedent-breaking pattern with no unique coverage. Removed. A sibling story file's comment asserting play functions are unprecedented had been silently falsified by that addition; it is now accurate again.
+
+Gates: typecheck clean. Full suite green — 1340 app tests, 82 design-system.
+
 ## Current phase
 
-Phase 5 — Group-scoped quota rules.
+Phase 6 — Effective availability preview.
 
 ## Remaining phases
-- Phase 5 — Group-scoped quota rules (Tier 2)
 - Phase 6 — Effective availability preview (Tier 3)
 
 ## Deferred phases
