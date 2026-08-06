@@ -33,10 +33,12 @@
 
 ### Phase 4 — Slug field on the branding page ✅
 
-- **Status**: published (pending PR open)
+- **Status**: published
 - **Model**: implementer `composer-2.5-fast`; reviewer `cursor-grok-4.5-high`; fixer n/a
 - **Branch**: `plan/organization-auth-branding/phase-4`
 - **Base**: `plan/organization-auth-branding/phase-3`
+- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/92
+- **PR-context**: `.vinta-ai-workflows/prs-context/organization-auth-branding/phase-4.md` (`status: published`)
 - **E2E**: n/a
 - **Summary**: `useUpdateOrganizationSlug` + branding form slug field; PATCH-then-PUT; empty → null; orphan warning; reserved/uniqueness from server 400. Review PASS (NIT only). 49 scoped tests green.
 
