@@ -115,12 +115,34 @@ The reviewer **verified rather than assumed** that a diff-based save cannot dele
 
 Gates: typecheck clean. Full suite green — 1228 app tests, 82 design-system.
 
+### Phase 3b — Weekday window grid and unrepresentable rows ✅
+
+- **Branch**: `plan/calendar-group-scoped-availability/phase-3b` (base: `phase-3a`)
+- **Implementer model**: Tier 3 (sonnet). **Reviewer**: Tier 4 (opus) — plan override, this being the plan's highest data-loss risk. **Fixer**: Tier 2, run on sonnet
+- **Commits**: `ba60a59` feat(calendar-groups): add weekday window grid and unrepresentable-row list; `5716b67` fix(calendar-groups): stop phase-3b window grid from mangling multi-day and partially-saved windows
+
+Summary:
+
+The weekday grid, the read-only list of rows the grid cannot express, and a diff-based save that issues only creates/updates/deletes and nothing at all for an untouched grid. Classification is deliberately stricter than the plan asked: representable only when the rule's key set is *exactly* `{FREQ, BYDAY}` with `FREQ=WEEKLY` and one `BYDAY`, and `parseRRule` is deliberately not reused because it silently drops unrecognized parts.
+
+The Tier 4 review earned its cost. It ran the classifier against 45 adversarial inputs rather than reading the source, and found **two data-corrupting BLOCKERs**:
+
+1. **A multi-day window was classified representable.** The guard compared `end.weekday !== start.weekday`, and weekday numbers repeat every 7 days — so a Monday-to-Monday window spanning a full week passed it and rendered as an ordinary 8-hour Monday row. Unticking Monday would `DELETE` a week-long window whose extent the admin never saw; editing its time would `PATCH` it down from 7 days to 8 hours. Exactly the "wrongly representable → rewritten or deleted" direction the module claims to bias against. Fixed by comparing calendar days (`hasSame(end, 'day')`).
+2. **A partially-failed save duplicated everything that had already succeeded.** `Promise.all` rejects on the first failure, so the diff baseline never updated — but a create that *had* succeeded already wrote its server id into the form. On retry the diff saw an id absent from the baseline and pushed it to `creates`, producing a duplicate window. Not hypothetical: this phase's own documented interim behavior sends an over-limit 402 to a generic error toast, and over-limit is precisely the case where write N fails after 1..N-1 succeeded. Fixed with `Promise.allSettled`, rebuilding the baseline from the fulfilled outcomes even on failure.
+
+Seven SHOULD-FIX items also fixed. The notable ones: the double-submit guard was a stale-closure state read that did nothing, **and its test was vacuous** — `await user.click` flushes React between clicks, so the second landed on an already-disabled button and never reached the handler; the test passed unchanged with the guard deleted. Now a synchronous ref guard, tested with two un-awaited `fireEvent.submit` calls in one `act`. The timezone field was free text with only a `min(1)` check, so a typo produced an invalid `DateTime` and the app POSTed `start_time: null` behind a generic failure toast; it is now a validated `Select` with the non-null assertions replaced by an explicit throw. Rows in a timezone differing from the grid's are now classified unrepresentable, since two rows could otherwise both read `09:00` and mean different instants. One-shot hydration was defeating the refetch the plan's "writes refetch" decision requires.
+
+All three critical fixes were verified to fail against the pre-fix code before being accepted.
+
+The fixer also hit a real Radix `Select` behavior worth recording: a controlled value changed *after* mount while the dropdown has never been opened is silently reset to `''`, because the native `<option>` mirror stays empty until first open. It blanked the timezone and failed every write until worked around with a keyed remount. **Any RHF + Select form in this repo that hydrates asynchronously is exposed to this** — worth a follow-up audit.
+
+Gates: typecheck clean. Full suite green — 1271 app tests, 82 design-system.
+
 ## Current phase
 
-Phase 3b — Weekday window grid and unrepresentable rows.
+Phase 3c — Surface orphaned bookings and plan limits.
 
 ## Remaining phases
-- Phase 3b — Weekday window grid and unrepresentable rows (Tier 3; reviewer Tier 4)
 - Phase 3c — Surface orphaned bookings and plan limits (Tier 2)
 - Phase 4 — Group-scoped blocked times (Tier 2→3)
 - Phase 5 — Group-scoped quota rules (Tier 2)
