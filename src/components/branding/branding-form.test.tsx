@@ -8,6 +8,10 @@ import type { ReactNode } from 'react';
 // Mocks — must be hoisted before any imports from the modules being mocked.
 // ---------------------------------------------------------------------------
 
+const { mockUpdateOrganizationSlug } = vi.hoisted(() => ({
+  mockUpdateOrganizationSlug: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/partner/branding',
@@ -31,9 +35,21 @@ vi.mock('sonner', () => ({
   },
 }));
 
+vi.mock('@/hooks/organizations/use-update-organization-slug', () => ({
+  useUpdateOrganizationSlug: () => ({
+    updateOrganizationSlug: mockUpdateOrganizationSlug,
+    updateOrganizationSlugMutation: { isPending: false },
+  }),
+}));
+
 import { brandingUpdate } from '@/client/sdk.gen';
 import { toast } from 'sonner';
-import { BrandingForm, redirectUrlSchema } from './branding-form';
+import {
+  BrandingForm,
+  redirectUrlSchema,
+  slugSchema,
+  extractSlugFieldError,
+} from './branding-form';
 import type { OrganizationBranding } from '@/client';
 
 // ---------------------------------------------------------------------------
@@ -49,15 +65,24 @@ function makeQueryClient() {
   });
 }
 
-function renderForm(initialBranding?: OrganizationBranding | null) {
+function renderForm(
+  initialBranding?: OrganizationBranding | null,
+  initialSlug?: string | null
+) {
   const queryClient = makeQueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
   return {
-    ...render(<BrandingForm initialBranding={initialBranding ?? null} />, {
-      wrapper,
-    }),
+    ...render(
+      <BrandingForm
+        initialBranding={initialBranding ?? null}
+        initialSlug={initialSlug ?? null}
+      />,
+      {
+        wrapper,
+      }
+    ),
     queryClient,
   };
 }
@@ -81,6 +106,183 @@ function makeBrandingResponse(
 describe('BrandingForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUpdateOrganizationSlug.mockResolvedValue({ id: 1, slug: 'acme' });
+  });
+
+  // -------------------------------------------------------------------------
+  // Validation — slug (schema unit + form integration)
+  // -------------------------------------------------------------------------
+
+  describe('slug validation', () => {
+    const slugLabel = /public slug/i;
+
+    describe('slugSchema', () => {
+      it('accepts empty string (unset slug)', () => {
+        expect(slugSchema.safeParse('').success).toBe(true);
+      });
+
+      it('accepts a valid lowercase slug', () => {
+        expect(slugSchema.safeParse('acme-corp').success).toBe(true);
+      });
+
+      it('lowercases input on transform', () => {
+        const result = slugSchema.safeParse('Acme-Corp');
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data).toBe('acme-corp');
+        }
+      });
+
+      it('rejects non-ASCII characters (confusables)', () => {
+        expect(slugSchema.safeParse('acmé').success).toBe(false);
+      });
+
+      it('rejects slugs shorter than 3 characters', () => {
+        expect(slugSchema.safeParse('ab').success).toBe(false);
+      });
+
+      it('rejects slugs longer than 63 characters', () => {
+        expect(slugSchema.safeParse('a'.repeat(64)).success).toBe(false);
+      });
+
+      it('rejects leading hyphens', () => {
+        expect(slugSchema.safeParse('-acme').success).toBe(false);
+      });
+
+      it('rejects trailing hyphens', () => {
+        expect(slugSchema.safeParse('acme-').success).toBe(false);
+      });
+
+      it('rejects consecutive hyphens', () => {
+        expect(slugSchema.safeParse('acme--corp').success).toBe(false);
+      });
+
+      it('rejects purely numeric slugs', () => {
+        expect(slugSchema.safeParse('12345').success).toBe(false);
+      });
+    });
+
+    describe('extractSlugFieldError', () => {
+      it('returns the first slug message from a DRF 400 body', () => {
+        expect(
+          extractSlugFieldError({
+            slug: ["An organization with the slug 'acme' already exists."],
+          })
+        ).toBe("An organization with the slug 'acme' already exists.");
+      });
+
+      it('returns null for non-field errors', () => {
+        expect(extractSlugFieldError(new Error('network'))).toBeNull();
+      });
+    });
+
+    it('rejects a purely numeric slug via the form', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.type(screen.getByLabelText(slugLabel), '12345');
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/must not be purely numeric/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(mockUpdateOrganizationSlug).not.toHaveBeenCalled();
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('maps slug 400 field errors onto the slug input', async () => {
+      const user = userEvent.setup();
+      mockUpdateOrganizationSlug.mockRejectedValue({
+        slug: ["An organization with the slug 'acme' already exists."],
+      });
+
+      renderForm(null, null);
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.type(screen.getByLabelText(slugLabel), 'acme');
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/organization with the slug 'acme' already exists/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(mockUpdateOrganizationSlug).toHaveBeenCalledWith('acme');
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Submit — slug PATCH then branding PUT
+  // -------------------------------------------------------------------------
+
+  describe('submit — slug sequencing', () => {
+    const slugLabel = /public slug/i;
+
+    it('PATCHes org then PUTs branding when slug changed', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({ app_name: 'TestApp' })
+      );
+
+      renderForm(null, null);
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.type(screen.getByLabelText(slugLabel), 'acme');
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(mockUpdateOrganizationSlug).toHaveBeenCalledWith('acme');
+        expect(vi.mocked(brandingUpdate)).toHaveBeenCalledOnce();
+      });
+
+      expect(
+        mockUpdateOrganizationSlug.mock.invocationCallOrder[0]
+      ).toBeLessThan(vi.mocked(brandingUpdate).mock.invocationCallOrder[0]!);
+    });
+
+    it('skips org PATCH when slug is unchanged', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({ app_name: 'TestApp' })
+      );
+
+      renderForm({ app_name: 'Old Name' }, 'acme');
+
+      await user.clear(screen.getByLabelText(/app name/i));
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingUpdate)).toHaveBeenCalledOnce();
+      });
+
+      expect(mockUpdateOrganizationSlug).not.toHaveBeenCalled();
+    });
+
+    it('shows a warning when changing an existing slug', async () => {
+      const user = userEvent.setup();
+      renderForm(null, 'old-slug');
+
+      expect(screen.queryByText(/changing your slug/i)).not.toBeInTheDocument();
+
+      const slugInput = screen.getByLabelText(/public slug/i);
+      await user.clear(slugInput);
+      await user.type(slugInput, 'new-slug');
+
+      await waitFor(() => {
+        expect(screen.getByText(/changing your slug/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/orphans any previously shared branded login/i)
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   // -------------------------------------------------------------------------

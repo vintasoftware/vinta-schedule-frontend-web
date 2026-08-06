@@ -33,6 +33,7 @@ import {
   FormDescription,
 } from 'vinta-schedule-design-system/ui/form';
 import { useUpdateBranding } from '@/hooks/branding/use-update-branding';
+import { useUpdateOrganizationSlug } from '@/hooks/organizations/use-update-organization-slug';
 import type { OrganizationBranding } from '@/client';
 import { BrandingPreview } from './branding-preview';
 
@@ -113,7 +114,49 @@ export const redirectUrlSchema = z
   })
   .transform((raw) => raw.trim());
 
+/** Mirrors server slug format rules; reserved words and uniqueness come from 400. */
+export const slugSchema = z
+  .string()
+  .transform((raw) => raw.trim().toLowerCase())
+  .superRefine((val, ctx) => {
+    if (val === '') return;
+
+    // Confusables — non-ASCII characters are rejected outright.
+    if (/[^\x00-\x7F]/.test(val)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must use ASCII letters, numbers, and hyphens only',
+      });
+      return;
+    }
+
+    if (val.length < 3 || val.length > 63) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must be between 3 and 63 characters',
+      });
+      return;
+    }
+
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(val)) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Must be lowercase letters, numbers, and single hyphens only (no leading, trailing, or consecutive hyphens)',
+      });
+      return;
+    }
+
+    if (/^\d+$/.test(val)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must not be purely numeric',
+      });
+    }
+  });
+
 export const brandingSchema = z.object({
+  slug: slugSchema.optional(),
   app_name: z.string().trim().min(1, { message: 'App name is required' }),
   logo_url: z
     .string()
@@ -134,10 +177,28 @@ export const brandingSchema = z.object({
 
 type BrandingFormValues = z.infer<typeof brandingSchema>;
 
+function normalizeSlug(value: string | null | undefined): string {
+  return (value ?? '').trim().toLowerCase();
+}
+
+/** Map DRF `{ slug: ["…"] }` field errors onto the slug input. */
+export function extractSlugFieldError(err: unknown): string | null {
+  if (!err || typeof err !== 'object') return null;
+
+  const slug = (err as Record<string, unknown>).slug;
+  if (Array.isArray(slug) && typeof slug[0] === 'string') {
+    return slug[0];
+  }
+
+  return null;
+}
+
 function toFormValues(
-  branding: OrganizationBranding | null
+  branding: OrganizationBranding | null,
+  initialSlug?: string | null
 ): BrandingFormValues {
   return {
+    slug: initialSlug ?? '',
     app_name: branding?.app_name ?? '',
     logo_url: branding?.logo_url ?? '',
     primary_color: branding?.primary_color ?? '',
@@ -168,19 +229,26 @@ export interface BrandingFormProps {
    * (first-write) state — the form renders with empty defaults.
    */
   initialBranding?: OrganizationBranding | null;
+  /** Current organization slug from membership.organization.slug. */
+  initialSlug?: string | null;
 }
 
 // ---------------------------------------------------------------------------
 // BrandingForm
 // ---------------------------------------------------------------------------
 
-export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
+export function BrandingForm({
+  initialBranding = null,
+  initialSlug = null,
+}: BrandingFormProps) {
   const { updateBranding, updateBrandingMutation } = useUpdateBranding();
+  const { updateOrganizationSlug, updateOrganizationSlugMutation } =
+    useUpdateOrganizationSlug();
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   const form = useForm<BrandingFormValues>({
     resolver: zodResolver(brandingSchema),
-    defaultValues: toFormValues(initialBranding),
+    defaultValues: toFormValues(initialBranding, initialSlug),
   });
 
   // Live-preview values — watch individual fields so the preview updates as the
@@ -196,10 +264,37 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
     control: form.control,
     name: 'secondary_color',
   });
+  const watchedSlug = useWatch({ control: form.control, name: 'slug' });
+
+  const showSlugChangeWarning =
+    Boolean(initialSlug) &&
+    normalizeSlug(watchedSlug) !== normalizeSlug(initialSlug);
+
+  const isSaving =
+    updateBrandingMutation.isPending ||
+    updateOrganizationSlugMutation.isPending;
 
   const onSubmit = async (values: BrandingFormValues) => {
     setSubmitError(null);
+    const normalizedSlug = normalizeSlug(values.slug);
+    const slugNeedsPatch = normalizedSlug !== normalizeSlug(initialSlug);
+
     try {
+      if (slugNeedsPatch) {
+        try {
+          await updateOrganizationSlug(
+            normalizedSlug === '' ? null : normalizedSlug
+          );
+        } catch (err) {
+          const slugError = extractSlugFieldError(err);
+          if (slugError) {
+            form.setError('slug', { message: slugError });
+            return;
+          }
+          throw err;
+        }
+      }
+
       await updateBranding(toPayload(values));
       toast.success('Branding saved', {
         description: 'Your branding settings have been updated.',
@@ -221,6 +316,42 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
       <Stack gap={6} grow shrink basis={0} minWidth={0}>
         <Form {...form}>
           <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={6} noValidate>
+            {/* Public slug — org-level; PATCHed before branding PUT when changed */}
+            <FormField
+              control={form.control}
+              name='slug'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Public slug</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='text'
+                      placeholder='acme'
+                      autoComplete='off'
+                      spellCheck={false}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    URL-safe identifier for your branded sign-in page
+                    (/auth/login/&lt;slug&gt;). Required before branding can be
+                    saved. Reserved words and uniqueness are validated on save.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {showSlugChangeWarning && (
+              <Alert>
+                <AlertTitle>Changing your slug</AlertTitle>
+                <AlertDescription>
+                  Updating the slug orphans any previously shared branded login
+                  URLs. Old links will show the default Vinta identity instead.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* App Name */}
             <FormField
               control={form.control}
@@ -355,8 +486,8 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
             )}
 
             <HStack justify='end'>
-              <Button type='submit' disabled={updateBrandingMutation.isPending}>
-                {updateBrandingMutation.isPending ? 'Saving…' : 'Save branding'}
+              <Button type='submit' disabled={isSaving}>
+                {isSaving ? 'Saving…' : 'Save branding'}
               </Button>
             </HStack>
           </FormLayout>

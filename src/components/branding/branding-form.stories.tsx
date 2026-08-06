@@ -30,21 +30,23 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * Empty form — first-time configuration. The live preview uses the fallback
- * placeholder text ("Your App") and the app's default primary color.
+ * Empty form — first-time configuration. No slug set yet; the live preview uses
+ * the fallback placeholder text ("Your App").
  */
 export const Empty: Story = {
   args: {
     initialBranding: null,
+    initialSlug: null,
   },
 };
 
 /**
  * Prefilled form — shows how the form looks when the org already has a branding
- * configuration. The live preview reflects the saved colors and app name.
+ * configuration and a public slug.
  */
 export const Prefilled: Story = {
   args: {
+    initialSlug: 'myscheduler',
     initialBranding: {
       app_name: 'MyScheduler',
       logo_url: 'https://placehold.co/120x40/1B4DFF/white?text=Logo',
@@ -57,12 +59,23 @@ export const Prefilled: Story = {
 };
 
 /**
+ * Slug-less eligible org — branding fields empty, slug field ready for first set.
+ */
+export const SluglessOrg: Story = {
+  args: {
+    initialBranding: null,
+    initialSlug: null,
+  },
+};
+
+/**
  * Mobile viewport variant — verifies the responsive layout (form + preview
  * stack vertically on small screens).
  */
 export const Mobile: Story = {
   args: {
     initialBranding: null,
+    initialSlug: null,
   },
   globals: { viewport: { value: 'mobile' } },
 };
