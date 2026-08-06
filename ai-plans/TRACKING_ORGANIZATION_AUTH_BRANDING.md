@@ -39,10 +39,12 @@
 
 ### Phase 3 — Gate Branding on `can_manage_branding` ✅
 
-- **Status**: published (pending PR open)
+- **Status**: published
 - **Model**: implementer `composer-2.5-fast`; reviewer `cursor-grok-4.5-high`; fixer `composer-2.5-fast`
 - **Branch**: `plan/organization-auth-branding/phase-3`
 - **Base**: `plan/organization-auth-branding/phase-2`
+- **PR**: https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/91
+- **PR-context**: `.vinta-ai-workflows/prs-context/organization-auth-branding/phase-3.md` (`status: published`)
 - **E2E**: n/a
 - **Summary**: Nav + page gated on admin && `can_manage_branding`; Reseller group removed; deep link redirects to `/`. Fixer required admin because GET `/branding/` is admin-gated and `can_manage_branding` is org-level (true for members too). 20 scoped tests green.
 
