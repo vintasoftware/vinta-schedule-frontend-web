@@ -35,6 +35,11 @@ import {
 import { useUpdateBranding } from '@/hooks/branding/use-update-branding';
 import { useUpdateOrganizationSlug } from '@/hooks/organizations/use-update-organization-slug';
 import type { OrganizationBranding } from '@/client';
+import {
+  classifyBrandingWriteForbiddenError,
+  extractApiErrorDetail,
+  type BrandingWriteForbiddenReason,
+} from '@/lib/branding-write-errors';
 import { BrandingPreview } from './branding-preview';
 
 // ---------------------------------------------------------------------------
@@ -237,6 +242,9 @@ export interface BrandingFormProps {
 // BrandingForm
 // ---------------------------------------------------------------------------
 
+const NO_SLUG_FIELD_MESSAGE =
+  'Pick a public slug before saving branding settings.';
+
 export function BrandingForm({
   initialBranding = null,
   initialSlug = null,
@@ -245,6 +253,8 @@ export function BrandingForm({
   const { updateOrganizationSlug, updateOrganizationSlugMutation } =
     useUpdateOrganizationSlug();
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [writeForbiddenReason, setWriteForbiddenReason] =
+    React.useState<BrandingWriteForbiddenReason | null>(null);
 
   const form = useForm<BrandingFormValues>({
     resolver: zodResolver(brandingSchema),
@@ -274,8 +284,18 @@ export function BrandingForm({
     updateBrandingMutation.isPending ||
     updateOrganizationSlugMutation.isPending;
 
+  const focusSlugField = React.useCallback(() => {
+    void form.setFocus('slug');
+    requestAnimationFrame(() => {
+      const slugInput =
+        document.querySelector<HTMLInputElement>('input[name="slug"]');
+      slugInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [form]);
+
   const onSubmit = async (values: BrandingFormValues) => {
     setSubmitError(null);
+    setWriteForbiddenReason(null);
     const normalizedSlug = normalizeSlug(values.slug);
     const slugNeedsPatch = normalizedSlug !== normalizeSlug(initialSlug);
 
@@ -300,9 +320,24 @@ export function BrandingForm({
         description: 'Your branding settings have been updated.',
       });
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : 'Failed to save branding settings.'
-      );
+      const forbiddenReason = classifyBrandingWriteForbiddenError(err);
+      if (forbiddenReason === 'has_parent') {
+        setWriteForbiddenReason('has_parent');
+        return;
+      }
+      if (forbiddenReason === 'not_entitled') {
+        setWriteForbiddenReason('not_entitled');
+        return;
+      }
+      if (forbiddenReason === 'no_slug') {
+        form.setError('slug', { message: NO_SLUG_FIELD_MESSAGE });
+        setWriteForbiddenReason('no_slug');
+        focusSlugField();
+        return;
+      }
+
+      const detail = extractApiErrorDetail(err);
+      setSubmitError(detail ?? 'Failed to save branding settings.');
     }
   };
 
@@ -341,6 +376,17 @@ export function BrandingForm({
                 </FormItem>
               )}
             />
+
+            {writeForbiddenReason === 'no_slug' && (
+              <Alert>
+                <AlertTitle>Public slug required</AlertTitle>
+                <AlertDescription>
+                  Pick a public slug above before saving branding settings. The
+                  slug powers your branded sign-in page at
+                  /auth/login/&lt;slug&gt;.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {showSlugChangeWarning && (
               <Alert>
@@ -477,6 +523,27 @@ export function BrandingForm({
                 </FormItem>
               )}
             />
+
+            {writeForbiddenReason === 'has_parent' && (
+              <Alert>
+                <AlertTitle>Branding not available</AlertTitle>
+                <AlertDescription>
+                  This organization is part of a hierarchy and cannot manage its
+                  own branding. Branding for organizations inside a hierarchy is
+                  controlled by the reseller organization above them.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {writeForbiddenReason === 'not_entitled' && (
+              <Alert>
+                <AlertTitle>Plan upgrade required</AlertTitle>
+                <AlertDescription>
+                  This organization&apos;s plan does not include white-label
+                  branding. Contact your administrator to upgrade your plan.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {submitError && (
               <Alert variant='destructive'>

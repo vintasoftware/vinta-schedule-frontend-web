@@ -727,6 +727,116 @@ describe('BrandingForm', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Write 403 — distinguishable refusal reasons
+  // -------------------------------------------------------------------------
+
+  describe('write 403 — distinguishable refusal reasons', () => {
+    const HAS_PARENT_DETAIL =
+      'This organization has a parent organization and cannot manage its own branding. Branding for organizations inside a hierarchy is controlled by the reseller organization above them.';
+
+    const NOT_ENTITLED_DETAIL =
+      "This organization's plan does not include white-label branding.";
+
+    const NO_SLUG_DETAIL =
+      'Pick a public slug for this organization before configuring branding.';
+
+    async function submitMinimalForm(user: ReturnType<typeof userEvent.setup>) {
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+    }
+
+    it('shows permanent unavailable state for has-parent 403', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockRejectedValue({
+        detail: HAS_PARENT_DETAIL,
+      });
+
+      renderForm({ app_name: 'TestApp' }, 'acme');
+      await submitMinimalForm(user);
+
+      await waitFor(() => {
+        expect(screen.getByText(/branding not available/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            /part of a hierarchy and cannot manage its own branding/i
+          )
+        ).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText(/save failed/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/plan upgrade required/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/public slug required/i)
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows plan upgrade copy for not-entitled 403', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockRejectedValue({
+        detail: NOT_ENTITLED_DETAIL,
+      });
+
+      renderForm({ app_name: 'TestApp' }, 'acme');
+      await submitMinimalForm(user);
+
+      await waitFor(() => {
+        expect(screen.getByText(/plan upgrade required/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/does not include white-label branding/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(
+        screen.queryByText(/branding not available/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/public slug required/i)
+      ).not.toBeInTheDocument();
+    });
+
+    it('focuses slug field and shows inline prompt for no-slug 403', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockRejectedValue({ detail: NO_SLUG_DETAIL });
+
+      renderForm({ app_name: 'TestApp' }, 'acme');
+      await submitMinimalForm(user);
+
+      await waitFor(() => {
+        expect(screen.getByText(/public slug required/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            /pick a public slug before saving branding settings/i
+          )
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText(/public slug/i)).toHaveFocus();
+      });
+      expect(
+        screen.queryByText(/branding not available/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/plan upgrade required/i)
+      ).not.toBeInTheDocument();
+    });
+
+    it('falls back to generic save error for unknown 403 detail', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockRejectedValue({
+        detail: 'Permission denied.',
+      });
+
+      renderForm({ app_name: 'TestApp' }, 'acme');
+      await submitMinimalForm(user);
+
+      await waitFor(() => {
+        expect(screen.getByText(/save failed/i)).toBeInTheDocument();
+        expect(screen.getByText(/permission denied/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Live preview — updates as the user types
   // -------------------------------------------------------------------------
 
