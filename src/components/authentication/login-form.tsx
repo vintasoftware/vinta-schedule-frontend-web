@@ -38,6 +38,7 @@ import { z } from 'zod';
 import { useState } from 'react';
 import type { Provider } from '@/auth-client';
 import { useProviderLogin } from '@/hooks/authentication/use-provider-login';
+import type { TenantBranding } from '@/lib/branding-shared';
 import { SocialProviderIcon } from './social-provider-icon';
 
 // Shared Zod schema for login: login can be email or phone (email-only account
@@ -79,9 +80,17 @@ type LoginSchema = z.infer<typeof loginSchema>;
 
 type LoginFormProps = {
   socialProviders: Provider[];
+  /**
+   * Resolved tenant branding for slug-scoped login. When omitted, AuthNavbar
+   * keeps the vinta default (generic `/auth/login`).
+   */
+  branding?: TenantBranding;
 };
 
-export default function LoginForm({ socialProviders }: LoginFormProps) {
+export default function LoginForm({
+  socialProviders,
+  branding,
+}: LoginFormProps) {
   const router = useRouter();
   const { login, loginMutation } = useLogin();
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +138,10 @@ export default function LoginForm({ socialProviders }: LoginFormProps) {
   };
 
   return (
-    <AuthLayout navbar={<AuthNavbar />} variant='two-column'>
+    <AuthLayout
+      navbar={<AuthNavbar branding={branding} />}
+      variant='two-column'
+    >
       <Card>
         <Flex
           direction={{ base: 'column', md: 'row' }}
