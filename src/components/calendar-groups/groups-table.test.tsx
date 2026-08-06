@@ -119,4 +119,18 @@ describe('GroupsTable', () => {
     expect(COLUMNS[1]?.id).toBe('description');
     expect(COLUMNS[2]?.id).toBe('slots');
   });
+
+  it('links the name cell to the group detail route', async () => {
+    vi.mocked(calendarGroupsList).mockResolvedValueOnce(
+      makePagedResponse(mockGroups, 2)
+    );
+
+    renderGroupsTable();
+
+    const link = await screen.findByRole('link', { name: 'Frontend Team' });
+    expect(link).toHaveAttribute('href', '/groups/1');
+
+    const secondLink = screen.getByRole('link', { name: 'Backend Team' });
+    expect(secondLink).toHaveAttribute('href', '/groups/2');
+  });
 });

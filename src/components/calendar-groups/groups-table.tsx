@@ -1,11 +1,13 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDataTableQuery } from '@/components/data-table/use-data-table-query';
 import type { DataTableColumn } from '@/components/data-table/types';
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 import { Plus } from 'lucide-react';
 import { VStack, Text } from 'vinta-schedule-design-system/layout';
 import {
@@ -25,7 +27,11 @@ export const COLUMNS: DataTableColumn<CalendarGroup>[] = [
     id: 'name',
     header: 'Name',
     enableSorting: false,
-    cell: ({ row }) => <Text weight='medium'>{row.original.name}</Text>,
+    cell: ({ row }) => (
+      <TextLink asChild className='font-medium'>
+        <Link href={`/groups/${row.original.id}`}>{row.original.name}</Link>
+      </TextLink>
+    ),
   },
   {
     accessorKey: 'description',

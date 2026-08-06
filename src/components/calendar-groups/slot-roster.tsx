@@ -1,0 +1,116 @@
+'use client';
+
+import * as React from 'react';
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from 'vinta-schedule-design-system/ui/accordion';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
+import { HStack, VStack, Text } from 'vinta-schedule-design-system/layout';
+import type { Calendar, CalendarGroupSlot } from '@/client';
+import {
+  useGroupScopedConfigSummary,
+  type CalendarConfigSummary,
+} from '@/hooks/calendar-groups/use-group-scoped-config-summary';
+
+const CALENDAR_TYPE_LABEL: Record<Calendar['calendar_type'], string> = {
+  personal: 'Personal',
+  resource: 'Resource',
+  virtual: 'Virtual',
+  bundle: 'Bundle',
+};
+
+function pluralize(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+function formatSummary(summary: CalendarConfigSummary): string {
+  return [
+    pluralize(summary.windowCount, 'window'),
+    pluralize(summary.blockCount, 'block'),
+    pluralize(summary.quotaCount, 'quota rule'),
+  ].join(' · ');
+}
+
+export interface SlotRosterProps {
+  groupId: number;
+  slot: CalendarGroupSlot;
+}
+
+/**
+ * SlotRoster — one slot's roster: every calendar in its candidate pool, its
+ * type, and a summary of how much group-scoped configuration exists for it
+ * (read from the windows / blocks / quota list queries).
+ *
+ * Each row expands into a panel that Phases 3-5 mount their editors into —
+ * the accordion content below is that extension point, empty for now.
+ */
+export function SlotRoster({ groupId, slot }: SlotRosterProps) {
+  const { summaryFor, isLoading, isError } = useGroupScopedConfigSummary({
+    groupId,
+    slotId: slot.id,
+  });
+
+  if (slot.calendars.length === 0) {
+    return (
+      <Text color='muted-foreground' size='sm'>
+        No calendars in this slot&apos;s roster.
+      </Text>
+    );
+  }
+
+  return (
+    <Accordion type='multiple' data-testid={`slot-roster-${slot.id}`}>
+      {slot.calendars.map((calendar) => (
+        <AccordionItem key={calendar.id} value={`calendar-${calendar.id}`}>
+          <AccordionTrigger data-testid={`roster-row-${calendar.id}`}>
+            <HStack
+              gap={3}
+              align='center'
+              justify='between'
+              className='flex-1 pr-2'
+            >
+              <HStack gap={2} align='center'>
+                <Text weight='medium'>{calendar.name}</Text>
+                <Badge variant='secondary'>
+                  {CALENDAR_TYPE_LABEL[calendar.calendar_type]}
+                </Badge>
+              </HStack>
+              {isLoading ? (
+                <Spinner size='xs' label='Loading configuration counts' />
+              ) : isError ? (
+                <Text size='xs' color='destructive'>
+                  Unable to load configuration counts
+                </Text>
+              ) : (
+                <Text size='xs' color='muted-foreground'>
+                  {formatSummary(summaryFor(calendar.id))}
+                </Text>
+              )}
+            </HStack>
+          </AccordionTrigger>
+          <AccordionContent>
+            {/* Extension point for Phases 3-5: the weekday window grid,
+                unsupported-window list, block list/form, and quota rules
+                mount here once their hooks and components ship. */}
+            <VStack
+              gap={2}
+              p={4}
+              border
+              radius='md'
+              data-testid={`roster-panel-${calendar.id}`}
+            >
+              <Text color='muted-foreground' size='sm'>
+                Configuration for this calendar will be editable here in a later
+                phase.
+              </Text>
+            </VStack>
+          </AccordionContent>
+        </AccordionItem>
+      ))}
+    </Accordion>
+  );
+}
