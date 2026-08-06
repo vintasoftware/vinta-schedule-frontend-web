@@ -26,6 +26,7 @@ import { GroupWindowGrid } from './group-window-grid';
 import { UnsupportedWindowList } from './unsupported-window-list';
 import { GroupBlockList } from './group-block-list';
 import { GroupQuotaRules } from './group-quota-rules';
+import { GroupAvailabilityPreview } from './group-availability-preview';
 
 const CALENDAR_TYPE_LABEL: Record<Calendar['calendar_type'], string> = {
   personal: 'Personal',
@@ -135,7 +136,10 @@ function SlotRosterRow({
             Phase 5 the quota section below -- GroupWindowGrid, GroupBlockList,
             and GroupQuotaRules all read their own editability from
             `useCanEditCalendar`, so they're mounted the same way in both
-            branches here. */}
+            branches here. Phase 6's GroupAvailabilityPreview closes the
+            panel: it has no write affordance of its own (a read-only
+            preview of the effective result, spec UC-7), so it's mounted
+            identically in both branches too, with no editability check. */}
         <VStack
           gap={4}
           p={4}
@@ -173,6 +177,13 @@ function SlotRosterRow({
                 slotId={slotId}
                 calendarId={calendar.id}
               />
+              <Divider />
+              <GroupAvailabilityPreview
+                groupId={groupId}
+                slotId={slotId}
+                calendarId={calendar.id}
+                calendarName={calendar.name}
+              />
             </VStack>
           ) : (
             <VStack
@@ -208,6 +219,16 @@ function SlotRosterRow({
                 slotId={slotId}
                 calendarId={calendar.id}
               />
+              <Divider />
+              {/* Read-only viewers get the same informational preview -- it
+                  has no write affordance of its own, so it carries no
+                  editability concern (unlike the sections above it). */}
+              <GroupAvailabilityPreview
+                groupId={groupId}
+                slotId={slotId}
+                calendarId={calendar.id}
+                calendarName={calendar.name}
+              />
             </VStack>
           )}
         </VStack>
@@ -223,7 +244,9 @@ function SlotRosterRow({
  *
  * Each row expands into a panel; Phase 3b fills the windows section (the
  * weekday grid and the read-only unsupported-window list), Phase 4 mounts
- * the blocks section (GroupBlockList) next to it, and Phase 5 mounts quota.
+ * the blocks section (GroupBlockList) next to it, Phase 5 mounts quota, and
+ * Phase 6 closes the panel with GroupAvailabilityPreview -- a collapsed-by-
+ * default strip previewing the resolved effect of all of the above.
  */
 export function SlotRoster({ groupId, slot }: SlotRosterProps) {
   const { summaryFor, isLoading, isError, isTruncated } =
