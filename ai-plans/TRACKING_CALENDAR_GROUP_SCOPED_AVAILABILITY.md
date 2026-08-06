@@ -71,13 +71,37 @@ Deviation from the Touch List, accepted: `src/hooks/calendar-groups/use-group-sc
 
 Gates: typecheck clean. Full suite green — 141 app files / 1178 tests, 11 design-system files / 82 tests. Lint 0 errors (46 pre-existing warnings, none in touched files).
 
+### Phase 2 — Member access and ownership-based editability ✅
+
+- **Branch**: `plan/calendar-group-scoped-availability/phase-2` (base: `phase-1`)
+- **Implementer model**: Tier 3 (sonnet)
+- **Reviewer model**: Tier 4 (opus) — plan override, because this phase removes a role gate and defines the predicate every later editor trusts. **Fixer**: Tier 2, run on sonnet (13 files)
+- **Commits**: `868d779` feat(calendar-groups): open group access to owning members (Phase 2); `bf6dbcf` fix(calendar-groups): close the Phase 2 permission-boundary gaps
+
+Summary:
+
+The groups list and detail route are now reachable by members, filtered to groups containing a calendar they own; the `groups` nav item moved into the member set. Editability comes from one pure predicate, `canEditCalendar({ role, ownedCalendarIds, calendarId })`, consumed through a context so later editor phases never re-derive it. Non-owned rows render with **no write affordance** rather than a disabled one.
+
+**Open Question 2 is effectively resolved.** The implementer found that the calendar list endpoint accepts `owner: 'me'`, documented in the generated schema as *"return only the authenticated user's own calendars"* — an unconditional scope, rather than the role-dependent default the plan assumed when it said to omit the param. Ownership no longer rests on inferring behavior from the caller's role. Open Question 1 (does the group list serve members at all) remains unverified.
+
+Review found **two BLOCKERs**, both fixed:
+
+1. **The permission branch failed open.** `isMember = role === 'member'` meant `role === null` took the *admin* path — unfiltered groups, org-wide count, the create button, a mounted create dialog. And `role === null` is reachable on every full page load, because `RoleProvider` is not mounted until the auth check resolves. So the first client commit of `/groups` rendered admin chrome and fired an unscoped group list. Phase 1 rendered nothing there, so this was a regression against an existing shipped page; the sibling detail route failed closed on the identical condition, so the two surfaces disagreed. Fixed by inverting to `isAdmin`, scoping everything that is not `admin`, and holding the table in its loading state until the role resolves.
+2. **Members were pinned to page 1.** The ownership filter ran *after* server-side pagination and then overwrote `totalCount` with the current page's filtered count, so a member whose group sat on page 2+ saw "No calendar groups found" with no pagination control to reach it — breaking the phase's own acceptance criterion. Fixed by fetching a single large page for non-admins and paginating the filtered rows client-side. The admin path is untouched.
+
+Six SHOULD-FIX items also fixed: the pure predicate split out of the provider so a Server Component can import it; a memoized owned-id `Set` (its unstable identity was defeating the provider's own memo); an exported query key; the ownership-fetch error surfaced with a retry on both surfaces instead of silently collapsing into "you own nothing" — which had been rendering a member's own row read-only with the false explanation that only the owner can configure it; Storybook stories fixed, since the fail-closed default had silently turned every existing story read-only; and tests added for the ownership-loading and ownership-error branches plus the nav change.
+
+Both BLOCKER fixes were verified to fail against the pre-fix code by stashing the fix and re-running.
+
+**Known residual**: for a non-admin the group list fetches one large page (200), so an organization with more than 200 groups would truncate a member's list. Named in a code comment, not surfaced in the UI. Judged remote enough to accept — unlike the Phase 1 truncation it mirrors, which was reachable at 200 config rows across a single roster.
+
+Gates: typecheck clean. Full suite green — 1200 app tests, 82 design-system. Lint 0 errors.
+
 ## Current phase
 
-Phase 2 — Member access and ownership-based editability.
+Phase 3a — Group-scoped window data hooks.
 
 ## Remaining phases
-
-- Phase 2 — Member access and ownership-based editability (Tier 3; reviewer Tier 4)
 - Phase 3a — Group-scoped window data hooks (Tier 2)
 - Phase 3b — Weekday window grid and unrepresentable rows (Tier 3; reviewer Tier 4)
 - Phase 3c — Surface orphaned bookings and plan limits (Tier 2)
