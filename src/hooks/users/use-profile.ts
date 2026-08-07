@@ -10,6 +10,14 @@ import { useQuery } from '@tanstack/react-query';
 // profile name.
 // ---------------------------------------------------------------------------
 
+/**
+ * Exported so mutations can seed this query's cache without a refetch. Built
+ * from the generated options so it matches the key useQuery registers below.
+ */
+export const PROFILE_QUERY_KEY = profileRetrieveOptions({
+  path: { user: 'me' },
+}).queryKey;
+
 export function useProfile({ enabled = true }: { enabled?: boolean } = {}) {
   const profileQuery = useQuery({
     ...profileRetrieveOptions({ path: { user: 'me' } }),

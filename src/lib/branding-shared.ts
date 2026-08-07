@@ -29,3 +29,22 @@ export const VINTA_DEFAULT_BRANDING: TenantBranding = {
   primaryColor: '',
   secondaryColor: '',
 };
+
+/**
+ * Whether the resolved branding is the vinta fallback rather than a tenant's
+ * own identity.
+ *
+ * Both the logo AND the app name must match the sentinel. A tenant that set a
+ * custom app name but kept the default logo (or vice-versa) counts as branded,
+ * so neither value is silently dropped.
+ *
+ * Callers use this to decide whether to render tenant identity at all — the
+ * navbar swaps the wordmark on it, and the branded signup route only locks the
+ * organization field when it has a real tenant name to lock it to.
+ */
+export function isVintaDefaultBranding(branding: TenantBranding): boolean {
+  return (
+    branding.logoUrl === VINTA_DEFAULT_BRANDING.logoUrl &&
+    branding.appName === VINTA_DEFAULT_BRANDING.appName
+  );
+}

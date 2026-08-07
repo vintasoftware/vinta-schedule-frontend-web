@@ -8,6 +8,7 @@ import { Card } from 'vinta-schedule-design-system/ui/card';
 import { AuthLayout } from 'vinta-schedule-design-system/layout/auth-layout';
 import { Text, VStack } from 'vinta-schedule-design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
+import { BrandingTheme } from '@/components/authentication/branding-theme';
 import { setMemoryAccessToken } from '@/lib/token-storage-strategy.client';
 import type { TenantBranding } from '@/lib/branding-shared';
 import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
@@ -68,17 +69,19 @@ export function SocialSuccess({
   ]);
 
   return (
-    <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>
-      <Card padding={8}>
-        <VStack align='center' gap={2} textAlign='center'>
-          <Text as='div' size='lg' weight='semibold'>
-            Connecting…
-          </Text>
-          <Text as='div' size='sm' color='muted-foreground'>
-            Please wait while we finish your social login.
-          </Text>
-        </VStack>
-      </Card>
-    </AuthLayout>
+    <BrandingTheme branding={branding}>
+      <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>
+        <Card padding={8}>
+          <VStack align='center' gap={2} textAlign='center'>
+            <Text as='div' size='lg' weight='semibold'>
+              Connecting…
+            </Text>
+            <Text as='div' size='sm' color='muted-foreground'>
+              Please wait while we finish your social login.
+            </Text>
+          </VStack>
+        </Card>
+      </AuthLayout>
+    </BrandingTheme>
   );
 }

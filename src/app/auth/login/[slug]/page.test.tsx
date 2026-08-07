@@ -1,130 +1,59 @@
 /**
- * BrandedLoginPage is an async Server Component: it awaits branding + auth
- * config, then renders LoginForm. React Testing Library can't render an async
- * component function directly, so we await the page element first (same
- * pattern as privacy/terms page tests).
- *
- * LoginForm is mocked to a sync stub — its interactive behavior is covered
- * elsewhere; this suite only verifies slug → branding wiring and auth-config
- * degradation.
+ * `/auth/login/[slug]` is the legacy branded login URL. Branded auth now lives
+ * under `/o/{slug}/`, so this page only redirects — previously-issued branded
+ * login links (invitation emails, partner handoffs) must keep working.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
-import type { TenantBranding } from '@/lib/branding-shared';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const fetchBrandingForSlug = vi.fn();
-vi.mock('@/lib/branding-server', () => ({
-  fetchBrandingForSlug: (...args: unknown[]) => fetchBrandingForSlug(...args),
+const permanentRedirect = vi.fn();
+vi.mock('next/navigation', () => ({
+  permanentRedirect: (...args: unknown[]) => permanentRedirect(...args),
 }));
 
-const getAuthByClientV1Config = vi.fn();
-vi.mock('@/auth-client', () => ({
-  getAuthByClientV1Config: (...args: unknown[]) =>
-    getAuthByClientV1Config(...args),
-}));
+import LegacyBrandedLoginPage from './page';
 
-vi.mock('@/components/authentication/login-form', () => ({
-  default: ({
-    socialProviders,
-    branding,
-  }: {
-    socialProviders: unknown[];
-    branding?: TenantBranding;
-  }) => (
-    <div data-testid='login-form'>
-      <span data-testid='provider-count'>{socialProviders.length}</span>
-      <span data-testid='branding-app-name'>
-        {branding?.appName ?? '(none)'}
-      </span>
-      <span data-testid='branding-logo'>{branding?.logoUrl ?? '(none)'}</span>
-    </div>
-  ),
-}));
-
-import BrandedLoginPage from './page';
-
-describe('BrandedLoginPage (/auth/login/[slug])', () => {
+describe('LegacyBrandedLoginPage (/auth/login/[slug])', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getAuthByClientV1Config.mockResolvedValue({
-      data: { status: 500 },
-    });
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('fetches branding by slug and passes it to LoginForm', async () => {
-    const branding: TenantBranding = {
-      appName: 'Acme Scheduling',
-      logoUrl: 'https://api.example.com/branding/logo/acme/',
-      primaryColor: '#1A73E8',
-      secondaryColor: '#FBBC04FF',
-    };
-    fetchBrandingForSlug.mockResolvedValueOnce(branding);
-    getAuthByClientV1Config.mockResolvedValueOnce({
-      data: {
-        status: 200,
-        data: {
-          socialaccount: {
-            providers: [{ id: 'google', name: 'Google' }],
-          },
-        },
-      },
+  it('redirects to the canonical branded login URL', async () => {
+    await LegacyBrandedLoginPage({
+      params: Promise.resolve({ slug: 'acme' }),
+      searchParams: Promise.resolve({}),
     });
 
-    render(
-      await BrandedLoginPage({
-        params: Promise.resolve({ slug: 'acme' }),
-      })
-    );
-
-    expect(fetchBrandingForSlug).toHaveBeenCalledWith('acme');
-    expect(screen.getByTestId('branding-app-name')).toHaveTextContent(
-      'Acme Scheduling'
-    );
-    expect(screen.getByTestId('branding-logo')).toHaveTextContent(
-      'https://api.example.com/branding/logo/acme/'
-    );
-    expect(screen.getByTestId('provider-count')).toHaveTextContent('1');
+    expect(permanentRedirect).toHaveBeenCalledWith('/o/acme/auth/login');
   });
 
-  it('still renders LoginForm with default branding for an unknown slug (no error page)', async () => {
-    fetchBrandingForSlug.mockResolvedValueOnce(VINTA_DEFAULT_BRANDING);
-
-    render(
-      await BrandedLoginPage({
-        params: Promise.resolve({ slug: 'no-such-org-xyz' }),
-      })
-    );
-
-    expect(fetchBrandingForSlug).toHaveBeenCalledWith('no-such-org-xyz');
-    expect(screen.getByTestId('login-form')).toBeInTheDocument();
-    expect(screen.getByTestId('branding-app-name')).toHaveTextContent(
-      VINTA_DEFAULT_BRANDING.appName
-    );
-    expect(screen.getByTestId('branding-logo')).toHaveTextContent(
-      VINTA_DEFAULT_BRANDING.logoUrl
-    );
-    expect(screen.queryByText(/not found|error/i)).not.toBeInTheDocument();
-  });
-
-  it('degrades gracefully when auth config is unreachable (empty social providers)', async () => {
-    fetchBrandingForSlug.mockResolvedValueOnce(VINTA_DEFAULT_BRANDING);
-    getAuthByClientV1Config.mockResolvedValueOnce({
-      data: undefined,
-      error: { detail: 'unreachable' },
+  it('carries the query string over so `next` survives the hop', async () => {
+    await LegacyBrandedLoginPage({
+      params: Promise.resolve({ slug: 'acme' }),
+      searchParams: Promise.resolve({ next: '/dashboard' }),
     });
 
-    render(
-      await BrandedLoginPage({
-        params: Promise.resolve({ slug: 'acme' }),
-      })
+    expect(permanentRedirect).toHaveBeenCalledWith(
+      '/o/acme/auth/login?next=%2Fdashboard'
     );
+  });
 
-    expect(screen.getByTestId('login-form')).toBeInTheDocument();
-    expect(screen.getByTestId('provider-count')).toHaveTextContent('0');
+  it('keeps every value of a repeated query param', async () => {
+    await LegacyBrandedLoginPage({
+      params: Promise.resolve({ slug: 'acme' }),
+      searchParams: Promise.resolve({ tag: ['a', 'b'] }),
+    });
+
+    expect(permanentRedirect).toHaveBeenCalledWith(
+      '/o/acme/auth/login?tag=a&tag=b'
+    );
+  });
+
+  it('encodes a slug that is not URL-safe', async () => {
+    await LegacyBrandedLoginPage({
+      params: Promise.resolve({ slug: 'a b/c' }),
+      searchParams: Promise.resolve({}),
+    });
+
+    expect(permanentRedirect).toHaveBeenCalledWith('/o/a%20b%2Fc/auth/login');
   });
 });

@@ -21,7 +21,7 @@ export default async function BrandedAcceptInvitePage({
 
   return (
     <Suspense fallback={null}>
-      <AcceptInviteForm branding={branding} />
+      <AcceptInviteForm branding={branding} slug={slug} />
     </Suspense>
   );
 }

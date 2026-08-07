@@ -2,10 +2,10 @@ import { test, expect } from '../../fixtures/auth';
 import { BrandedLoginPage } from '../../page-objects/branded-login-page';
 
 /**
- * PR045 — Branded `/auth/login/[slug]/` shows tenant branding
+ * PR045 — Branded `/o/[slug]/auth/login/` shows tenant branding
  *
  * Happy path this spec covers when runnable:
- *   1. Visitor opens `/auth/login/<known-qa-slug>/`.
+ *   1. Visitor opens `/o/<known-qa-slug>/auth/login/`.
  *   2. The page fetches `brandingForTenant(slug: …)` and renders LoginForm
  *      with that org's public branding (logo / app name) in AuthNavbar.
  *   3. An unknown slug still renders the login form with default vinta

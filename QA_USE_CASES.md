@@ -175,11 +175,13 @@ path when shipped.
 
 ---
 
-## Branded Login (Organization Auth-Area Branding — Phase 7)
+## Branded Auth (Organization Auth-Area Branding — Phase 7)
 
-| ID    | Role   | Happy-path description                                                                                                                 | Spec path                                                                                                  |
-| ----- | ------ | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| PR045 | member | Visitor opens `/auth/login/<slug>/` and sees that org's public branding; an unknown slug still shows login with default vinta identity | `e2e/tests/app/PR045-branded-login.spec.ts` (known-slug case skips unless `E2E_BRANDED_LOGIN_SLUG` is set) |
+| ID    | Role   | Happy-path description                                                                                                                                                                  | Spec path                                                                                                                |
+| ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| PR045 | member | Visitor opens `/o/<slug>/auth/login/` and sees that org's public branding; an unknown slug still shows login with default vinta identity                                                | `e2e/tests/app/PR045-branded-login.spec.ts` (known-slug case skips unless `E2E_BRANDED_LOGIN_SLUG` is set)               |
+| PR046 | member | Visitor opens `/o/<slug>/auth/signup/` and finds the Organization field pre-filled with that org's name and disabled; an unknown slug leaves it empty and editable                      | `e2e/tests/app/PR046-branded-signup.spec.ts` (known-slug case skips unless `E2E_BRANDED_LOGIN_SLUG` is set)              |
+| PR047 | member | Branded auth pages render primary buttons, links and focus rings in the org's brand colors; an unbranded/unknown slug keeps the vinta palette, and the legacy login URL still redirects | `e2e/tests/app/PR047-branded-auth-colors.spec.ts` (known-slug case skips unless `E2E_BRANDED_PRIMARY_COLOR` is also set) |
 
 ---
 
@@ -187,8 +189,8 @@ path when shipped.
 
 | Category      | Count  |
 | ------------- | ------ |
-| Member (`PR`) | 27     |
+| Member (`PR`) | 29     |
 | Admin (`PA`)  | 18     |
-| **Total**     | **45** |
+| **Total**     | **47** |
 
-_Foundation smoke (PR000) is not counted in the 45 use-cases — it is harness scaffolding. PR039–PR043 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–7. PR044 has a spec file but is `test.skip`-ped — no identity provider in this harness can complete a real OAuth consent screen; the callback route's unit tests are the merge gate until a testable IdP exists. PR045's known-slug case skips unless `E2E_BRANDED_LOGIN_SLUG` names a QA org with public branding; the unknown-slug case is always runnable._
+_Foundation smoke (PR000) is not counted in the 47 use-cases — it is harness scaffolding. PR039–PR043 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–7. PR044 has a spec file but is `test.skip`-ped — no identity provider in this harness can complete a real OAuth consent screen; the callback route's unit tests are the merge gate until a testable IdP exists. PR045–PR047's known-slug cases skip unless `E2E_BRANDED_LOGIN_SLUG` names a QA org with public branding (PR047 additionally needs `E2E_BRANDED_PRIMARY_COLOR`); their unknown-slug cases are always runnable._

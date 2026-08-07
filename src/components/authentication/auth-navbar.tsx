@@ -8,7 +8,11 @@ import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Image } from 'vinta-schedule-design-system/ui/image';
 import { ThemeToggle } from '@/components/navigation/theme-toggle';
 import type { TenantBranding } from '@/lib/branding-shared';
-import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
+import {
+  VINTA_DEFAULT_BRANDING,
+  isVintaDefaultBranding,
+} from '@/lib/branding-shared';
+import { brandedAuthPath } from '@/lib/branded-auth-paths';
 
 interface ThemedBrandMarkProps {
   branding: TenantBranding;
@@ -24,11 +28,7 @@ interface ThemedBrandMarkProps {
  * is silently dropped.
  */
 function ThemedBrandMark({ branding }: ThemedBrandMarkProps) {
-  const isVintaDefault =
-    branding.logoUrl === VINTA_DEFAULT_BRANDING.logoUrl &&
-    branding.appName === VINTA_DEFAULT_BRANDING.appName;
-
-  if (isVintaDefault) {
+  if (isVintaDefaultBranding(branding)) {
     // Preserve exact vinta rendering — no visual diff for unbranded tenants.
     return <BrandMark />;
   }
@@ -63,11 +63,18 @@ export interface AuthNavbarProps {
    * default, the navbar renders exactly as today's vinta navbar.
    */
   branding?: TenantBranding;
+  /**
+   * Public org slug when this navbar sits on a branded `/o/{slug}/` route.
+   * Keeps the sign-in / sign-up actions inside the branded flow instead of
+   * bouncing the visitor to the generic, unbranded pages.
+   */
+  slug?: string;
 }
 
 /** Shared top navbar for the public authentication pages. */
 export function AuthNavbar({
   branding = VINTA_DEFAULT_BRANDING,
+  slug,
 }: AuthNavbarProps) {
   return (
     <Navbar
@@ -80,10 +87,10 @@ export function AuthNavbar({
         <>
           <ThemeToggle />
           <Button asChild variant='ghost' size='sm'>
-            <Link href='/auth/login'>Sign in</Link>
+            <Link href={brandedAuthPath('/auth/login', slug)}>Sign in</Link>
           </Button>
           <Button asChild size='sm'>
-            <Link href='/auth/signup'>Sign up</Link>
+            <Link href={brandedAuthPath('/auth/signup', slug)}>Sign up</Link>
           </Button>
         </>
       }

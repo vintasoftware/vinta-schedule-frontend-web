@@ -19,6 +19,7 @@ import {
 } from 'vinta-schedule-design-system/layout';
 import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
+import { BrandingTheme } from '@/components/authentication/branding-theme';
 import {
   Alert,
   AlertTitle,
@@ -38,6 +39,7 @@ import {
   isAlreadyMemberError,
 } from '@/hooks/organizations/use-accept-invitation';
 import type { TenantBranding } from '@/lib/branding-shared';
+import { brandedAuthPath } from '@/lib/branded-auth-paths';
 
 const acceptInviteSchema = z.object({
   token: z.string().min(1, { message: 'Invitation token is required' }),
@@ -52,9 +54,14 @@ export interface AcceptInviteFormProps {
    * `/auth/accept-invite`).
    */
   branding?: TenantBranding;
+  /** Public org slug when rendered from `/o/{slug}/auth/accept-invite`. */
+  slug?: string;
 }
 
-export default function AcceptInviteForm({ branding }: AcceptInviteFormProps) {
+export default function AcceptInviteForm({
+  branding,
+  slug,
+}: AcceptInviteFormProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -105,7 +112,56 @@ export default function AcceptInviteForm({ branding }: AcceptInviteFormProps) {
     const nextPath = `${pathname}${nextQuery ? `?${nextQuery}` : ''}`;
 
     return (
-      <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>
+      <BrandingTheme branding={branding}>
+        <AuthLayout
+          navbar={<AuthNavbar branding={branding} slug={slug} />}
+          variant='single'
+        >
+          <Card padding={8}>
+            <VStack gap={8}>
+              <Stack gap={4}>
+                <Heading level={1} size='3xl'>
+                  Accept invitation
+                </Heading>
+                <Text size='sm' color='muted-foreground'>
+                  {authChecked
+                    ? "Sign in or create an account to accept this invitation. You'll be brought right back here afterward."
+                    : 'Checking your session…'}
+                </Text>
+              </Stack>
+              {authChecked && (
+                <VStack gap={2}>
+                  {/* Stay inside the branded flow: a branded invite must not
+                      hand the visitor off to the generic vinta pages. */}
+                  <Button asChild fullWidth>
+                    <Link
+                      href={`${brandedAuthPath('/auth/login', slug)}?next=${encodeURIComponent(nextPath)}`}
+                    >
+                      Log in
+                    </Link>
+                  </Button>
+                  <Button asChild variant='outline' fullWidth>
+                    <Link
+                      href={`${brandedAuthPath('/auth/signup', slug)}?next=${encodeURIComponent(nextPath)}`}
+                    >
+                      Sign up
+                    </Link>
+                  </Button>
+                </VStack>
+              )}
+            </VStack>
+          </Card>
+        </AuthLayout>
+      </BrandingTheme>
+    );
+  }
+
+  return (
+    <BrandingTheme branding={branding}>
+      <AuthLayout
+        navbar={<AuthNavbar branding={branding} slug={slug} />}
+        variant='single'
+      >
         <Card padding={8}>
           <VStack gap={8}>
             <Stack gap={4}>
@@ -113,108 +169,71 @@ export default function AcceptInviteForm({ branding }: AcceptInviteFormProps) {
                 Accept invitation
               </Heading>
               <Text size='sm' color='muted-foreground'>
-                {authChecked
-                  ? "Sign in or create an account to accept this invitation. You'll be brought right back here afterward."
-                  : 'Checking your session…'}
+                Enter your invitation token to join the organization.
               </Text>
             </Stack>
-            {authChecked && (
-              <VStack gap={2}>
-                <Button asChild fullWidth>
-                  <Link
-                    href={`/auth/login?next=${encodeURIComponent(nextPath)}`}
+            {alreadyMember ? (
+              <Alert variant='destructive'>
+                <AlertTitle>
+                  You&apos;re already a member of this organization
+                </AlertTitle>
+                <AlertDescription>
+                  You already belong to this organization, so the invite cannot
+                  be accepted again. Your memberships are unchanged.{' '}
+                  <TextLink asChild variant='inherit' underline='always'>
+                    <Link href='/'>Go to the app</Link>
+                  </TextLink>
+                  .
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Form {...form}>
+                <FormLayout gap={4} onSubmit={form.handleSubmit(onSubmit)}>
+                  <FormField
+                    control={form.control}
+                    name='token'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Invitation token</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='text'
+                            placeholder='Paste your invitation token'
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {error && (
+                    <Alert variant='destructive'>
+                      <AlertTitle>Could not accept invitation</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  {/* `mt-2 w-full`: <Button> exposes no margin/width props. */}
+                  <Button
+                    type='submit'
+                    className='mt-2 w-full'
+                    disabled={acceptInvitationMutation.isPending}
                   >
-                    Log in
-                  </Link>
-                </Button>
-                <Button asChild variant='outline' fullWidth>
-                  <Link
-                    href={`/auth/signup?next=${encodeURIComponent(nextPath)}`}
-                  >
-                    Sign up
-                  </Link>
-                </Button>
-              </VStack>
+                    {acceptInvitationMutation.isPending
+                      ? 'Accepting...'
+                      : 'Accept invitation'}
+                  </Button>
+                </FormLayout>
+              </Form>
             )}
+            <Text as='div' size='sm' align='center' color='muted-foreground'>
+              No invitation?{' '}
+              <TextLink href='/auth/onboarding'>
+                Create your own organization
+              </TextLink>
+            </Text>
           </VStack>
         </Card>
       </AuthLayout>
-    );
-  }
-
-  return (
-    <AuthLayout navbar={<AuthNavbar branding={branding} />} variant='single'>
-      <Card padding={8}>
-        <VStack gap={8}>
-          <Stack gap={4}>
-            <Heading level={1} size='3xl'>
-              Accept invitation
-            </Heading>
-            <Text size='sm' color='muted-foreground'>
-              Enter your invitation token to join the organization.
-            </Text>
-          </Stack>
-          {alreadyMember ? (
-            <Alert variant='destructive'>
-              <AlertTitle>
-                You&apos;re already a member of this organization
-              </AlertTitle>
-              <AlertDescription>
-                You already belong to this organization, so the invite cannot be
-                accepted again. Your memberships are unchanged.{' '}
-                <TextLink asChild variant='inherit' underline='always'>
-                  <Link href='/'>Go to the app</Link>
-                </TextLink>
-                .
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Form {...form}>
-              <FormLayout gap={4} onSubmit={form.handleSubmit(onSubmit)}>
-                <FormField
-                  control={form.control}
-                  name='token'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Invitation token</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='text'
-                          placeholder='Paste your invitation token'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {error && (
-                  <Alert variant='destructive'>
-                    <AlertTitle>Could not accept invitation</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                {/* `mt-2 w-full`: <Button> exposes no margin/width props. */}
-                <Button
-                  type='submit'
-                  className='mt-2 w-full'
-                  disabled={acceptInvitationMutation.isPending}
-                >
-                  {acceptInvitationMutation.isPending
-                    ? 'Accepting...'
-                    : 'Accept invitation'}
-                </Button>
-              </FormLayout>
-            </Form>
-          )}
-          <Text as='div' size='sm' align='center' color='muted-foreground'>
-            No invitation?{' '}
-            <TextLink href='/auth/onboarding'>
-              Create your own organization
-            </TextLink>
-          </Text>
-        </VStack>
-      </Card>
-    </AuthLayout>
+    </BrandingTheme>
   );
 }

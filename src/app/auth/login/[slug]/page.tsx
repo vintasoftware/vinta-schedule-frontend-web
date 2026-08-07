@@ -1,38 +1,35 @@
-import { Suspense } from 'react';
-import { getAuthByClientV1Config } from '@/auth-client';
-import LoginForm from '@/components/authentication/login-form';
-import { fetchBrandingForSlug } from '@/lib/branding-server';
+import { permanentRedirect } from 'next/navigation';
 
 /**
- * Slug-scoped branded login. Fetches public branding for the path slug and
- * renders the same LoginForm as `/auth/login`. Unknown/removed slugs resolve
- * to vinta default branding (no error page). Slug is display-only pre-auth —
- * OAuth callback plumbing is unchanged and does not org-scope membership.
+ * Legacy branded login URL. Branded auth now lives under one `/o/{slug}/`
+ * prefix, so this redirects to `/o/{slug}/auth/login` and keeps every
+ * previously-issued branded login link working.
+ *
+ * The query string is carried over — `?next=` decides where login lands.
  */
-export default async function BrandedLoginPage({
+export default async function LegacyBrandedLoginPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { slug } = await params;
-  const branding = await fetchBrandingForSlug(slug);
+  const [{ slug }, resolvedSearchParams] = await Promise.all([
+    params,
+    searchParams,
+  ]);
 
-  // Same auth-config degradation as generic login: unreachable backend →
-  // form without social providers; never redirect back here.
-  const authConfig = await getAuthByClientV1Config({
-    path: {
-      client: 'app',
-    },
-  });
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(resolvedSearchParams)) {
+    if (Array.isArray(value)) {
+      value.forEach((entry) => query.append(key, entry));
+    } else if (value !== undefined) {
+      query.append(key, value);
+    }
+  }
 
-  const socialProviders =
-    authConfig.data?.status === 200
-      ? (authConfig.data.data.socialaccount?.providers ?? [])
-      : [];
-
-  return (
-    <Suspense fallback={null}>
-      <LoginForm socialProviders={socialProviders} branding={branding} />
-    </Suspense>
+  const queryString = query.toString();
+  permanentRedirect(
+    `/o/${encodeURIComponent(slug)}/auth/login${queryString ? `?${queryString}` : ''}`
   );
 }

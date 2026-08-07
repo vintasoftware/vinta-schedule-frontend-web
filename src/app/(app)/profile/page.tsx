@@ -73,17 +73,19 @@ function initials(firstName?: string, lastName?: string): string {
 export default function ProfilePage() {
   const { profile, isLoading } = useProfile();
   const { updateProfile, updateProfileMutation } = useUpdateProfile();
+  // A second mutation instance so the picture PATCH's pending state stays out
+  // of the name form's submit button.
+  const { updateProfile: saveProfilePicture } = useUpdateProfile();
   const { uploadProfilePicture } = useUploadProfilePicture();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  // Object URL of the file being uploaded, shown until the PATCH response
+  // hands back the persisted picture URL.
+  const localPreviewUrlRef = React.useRef<string | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(
     null
   );
   const [isUploading, setIsUploading] = React.useState(false);
-  // The S3 key of an already-uploaded picture, saved on the next form submit.
-  const [pendingPictureKey, setPendingPictureKey] = React.useState<
-    string | null
-  >(null);
 
   const form = useForm<ProfileSchema>({
     resolver: zodResolver(profileSchema),
@@ -99,16 +101,22 @@ export default function ProfilePage() {
     }
   }, [profile, form]);
 
+  const revokeLocalPreview = React.useCallback(() => {
+    if (localPreviewUrlRef.current) {
+      URL.revokeObjectURL(localPreviewUrlRef.current);
+      localPreviewUrlRef.current = null;
+    }
+  }, []);
+
+  React.useEffect(() => revokeLocalPreview, [revokeLocalPreview]);
+
   const onSubmit = async (values: ProfileSchema) => {
     try {
       await updateProfile({
         first_name: values.first_name || undefined,
         last_name: values.last_name || undefined,
-        ...(pendingPictureKey ? { profile_picture: pendingPictureKey } : {}),
       });
       toast.success('Profile updated');
-      setPreviewUrl(null);
-      setPendingPictureKey(null);
     } catch {
       toast.error('Failed to update profile — please try again');
     }
@@ -119,7 +127,9 @@ export default function ProfilePage() {
     if (!file) return;
     e.target.value = '';
 
+    revokeLocalPreview();
     const localUrl = URL.createObjectURL(file);
+    localPreviewUrlRef.current = localUrl;
     setPreviewUrl(localUrl);
     setUploadProgress(0);
     setIsUploading(true);
@@ -128,17 +138,23 @@ export default function ProfilePage() {
       const objectKey = await uploadProfilePicture(file, (pct) =>
         setUploadProgress(pct)
       );
-      setPendingPictureKey(objectKey);
+      // PATCH the key on its own so the new picture survives a reload even if
+      // the user never submits the name form. The mutation seeds the profile
+      // cache with the response, so the avatar here and in the nav both pick
+      // up the persisted URL.
+      await saveProfilePicture({ profile_picture: objectKey });
+      toast.success('Profile picture updated');
     } catch (err) {
       if (err instanceof UploadValidationError) {
         toast.error(err.message);
       } else {
-        toast.error('Failed to upload picture — please try again');
+        toast.error('Failed to update picture — please try again');
       }
-      URL.revokeObjectURL(localUrl);
-      setPreviewUrl(null);
-      setPendingPictureKey(null);
     } finally {
+      // Either the profile cache now holds the persisted URL or the change
+      // failed; both fall back to whatever the profile query has.
+      revokeLocalPreview();
+      setPreviewUrl(null);
       setUploadProgress(null);
       setIsUploading(false);
     }
@@ -192,6 +208,7 @@ export default function ProfilePage() {
                     type='file'
                     accept='image/jpeg,image/png,image/webp,image/gif'
                     className='hidden'
+                    aria-label='Upload profile picture'
                     onChange={onFileChange}
                   />
                   <Button
