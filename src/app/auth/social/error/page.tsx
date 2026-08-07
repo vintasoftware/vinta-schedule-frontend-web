@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Card } from 'vinta-schedule-design-system/ui/card';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import {
@@ -43,7 +44,7 @@ export default async function SocialLoginErrorPage({
           <Divider spacing={2} />
           {/* `w-full`: <Button> exposes no width prop (see DS gap in report). */}
           <Button asChild variant='default' fullWidth>
-            <a href='/auth/login'>Back to Login</a>
+            <Link href='/auth/login'>Back to Login</Link>
           </Button>
         </VStack>
       </Card>

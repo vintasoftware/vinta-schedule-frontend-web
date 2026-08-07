@@ -2,14 +2,16 @@
  * AcceptInvitePage tests (Phase 7 — UC4b).
  *
  * Covers:
- * - Form renders with heading and submit button.
+ * - Form renders with heading and submit button (session already active).
  * - On successful accept, router.replace('/') is called.
  * - Already-member error (same-org duplicate) shows the friendly message and
  *   does NOT redirect.
  * - Generic error shows the error alert and does NOT redirect.
+ * - No active session: gated to Log in / Sign up links (never calls
+ *   acceptInvitation — that's what used to silently 401 and lose the token).
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -21,7 +23,8 @@ import type { ReactNode } from 'react';
 const replace = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace }),
-  useSearchParams: () => ({ get: () => null }),
+  usePathname: () => '/auth/accept-invite',
+  useSearchParams: () => ({ get: () => null, toString: () => '' }),
 }));
 
 const mockAcceptInvitation = vi.fn();
@@ -87,6 +90,13 @@ async function fillTokenAndSubmit(token: string) {
 describe('AcceptInvitePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Simulate an active session (the JS-readable flag `OnboardingGate` and
+    // the accept-invite gate both check) unless a test opts out below.
+    document.cookie = 'sessionActive=1; path=/';
+  });
+
+  afterEach(() => {
+    document.cookie = 'sessionActive=; path=/; Max-Age=0';
   });
 
   it('renders the form heading and submit button', () => {
@@ -179,6 +189,52 @@ describe('AcceptInvitePage', () => {
       await fillTokenAndSubmit('bad-token');
       expect(await screen.findByText(/token not found/i)).toBeInTheDocument();
       expect(replace).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('no active session', () => {
+    beforeEach(() => {
+      // Override the top-level beforeEach: no `sessionActive` cookie set.
+      document.cookie = 'sessionActive=; path=/; Max-Age=0';
+    });
+
+    // AuthNavbar always renders its own generic "Sign up" (and "Sign in")
+    // link, so `getByRole('link', { name: /sign up/i })` alone is ambiguous —
+    // disambiguate by the `next`-carrying href, which only the gate's CTA has.
+    function getSignUpCta() {
+      const nextTarget = encodeURIComponent('/auth/accept-invite');
+      return screen
+        .getAllByRole('link', { name: /sign up/i })
+        .find((link) =>
+          link.getAttribute('href')?.includes(`next=${nextTarget}`)
+        );
+    }
+
+    it('shows Log in / Sign up links instead of the token form', () => {
+      renderPage();
+      expect(screen.getByRole('link', { name: /log in/i })).toBeInTheDocument();
+      expect(getSignUpCta()).toBeInTheDocument();
+      expect(
+        screen.queryByRole('textbox', { name: /invitation token/i })
+      ).not.toBeInTheDocument();
+    });
+
+    it('never calls acceptInvitation (the previous silent-401 bug)', () => {
+      renderPage();
+      expect(mockAcceptInvitation).not.toHaveBeenCalled();
+    });
+
+    it('points Log in / Sign up at this exact page via `next`', () => {
+      renderPage();
+      const nextTarget = encodeURIComponent('/auth/accept-invite');
+      expect(screen.getByRole('link', { name: /log in/i })).toHaveAttribute(
+        'href',
+        `/auth/login?next=${nextTarget}`
+      );
+      expect(getSignUpCta()).toHaveAttribute(
+        'href',
+        `/auth/signup?next=${nextTarget}`
+      );
     });
   });
 });

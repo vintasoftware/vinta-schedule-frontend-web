@@ -16,7 +16,7 @@ import {
   VINTA_DEFAULT_BRANDING,
 } from '@/lib/branding-shared';
 
-const BRANDING_QUERY = `
+const BRANDING_BY_TENANT_ID_QUERY = `
   query BrandingForTenant($tenantId: ID!) {
     brandingForTenant(tenantId: $tenantId) {
       appName
@@ -26,6 +26,81 @@ const BRANDING_QUERY = `
     }
   }
 `;
+
+const BRANDING_BY_SLUG_QUERY = `
+  query BrandingForTenantBySlug($slug: String!) {
+    brandingForTenant(slug: $slug) {
+      appName
+      logoUrl
+      primaryColor
+      secondaryColor
+    }
+  }
+`;
+
+type BrandingGraphQLResponse = {
+  data?: { brandingForTenant?: TenantBranding | null };
+  errors?: unknown[];
+};
+
+function mergeWithDefaults(branding: TenantBranding): TenantBranding {
+  // Merge with defaults so any missing field falls back gracefully.
+  return {
+    appName: branding.appName || VINTA_DEFAULT_BRANDING.appName,
+    logoUrl: branding.logoUrl || VINTA_DEFAULT_BRANDING.logoUrl,
+    primaryColor: branding.primaryColor || VINTA_DEFAULT_BRANDING.primaryColor,
+    secondaryColor:
+      branding.secondaryColor || VINTA_DEFAULT_BRANDING.secondaryColor,
+  };
+}
+
+/**
+ * POST the public GraphQL branding query and normalize the result.
+ * On any failure (network, non-200, GraphQL error, null data) returns
+ * VINTA_DEFAULT_BRANDING — callers can always trust the return value.
+ */
+async function fetchBrandingFromGraphQL(
+  query: string,
+  variables: Record<string, string>
+): Promise<TenantBranding> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+
+  const endpoint = `${baseUrl}/graphql/`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+      // Don't block the page render for too long on a branding fetch.
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (!response.ok) {
+      return VINTA_DEFAULT_BRANDING;
+    }
+
+    const json = (await response.json()) as BrandingGraphQLResponse;
+
+    if (json.errors?.length) {
+      return VINTA_DEFAULT_BRANDING;
+    }
+
+    const branding = json.data?.brandingForTenant;
+    if (!branding) {
+      return VINTA_DEFAULT_BRANDING;
+    }
+
+    return mergeWithDefaults(branding);
+  } catch {
+    // Network error, abort, parse failure — return the safe default.
+    return VINTA_DEFAULT_BRANDING;
+  }
+}
 
 /**
  * Fetch branding for a tenant from the public (unauthenticated) GraphQL API.
@@ -44,52 +119,23 @@ export async function fetchBrandingForTenant(
     return VINTA_DEFAULT_BRANDING;
   }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+  return fetchBrandingFromGraphQL(BRANDING_BY_TENANT_ID_QUERY, { tenantId });
+}
 
-  const endpoint = `${baseUrl}/graphql/`;
-
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: BRANDING_QUERY,
-        variables: { tenantId },
-      }),
-      // Don't block the page render for too long on a branding fetch.
-      signal: AbortSignal.timeout(3000),
-    });
-
-    if (!response.ok) {
-      return VINTA_DEFAULT_BRANDING;
-    }
-
-    const json = (await response.json()) as {
-      data?: { brandingForTenant?: TenantBranding | null };
-      errors?: unknown[];
-    };
-
-    if (json.errors?.length) {
-      return VINTA_DEFAULT_BRANDING;
-    }
-
-    const branding = json.data?.brandingForTenant;
-    if (!branding) {
-      return VINTA_DEFAULT_BRANDING;
-    }
-
-    // Merge with defaults so any missing field falls back gracefully.
-    return {
-      appName: branding.appName || VINTA_DEFAULT_BRANDING.appName,
-      logoUrl: branding.logoUrl || VINTA_DEFAULT_BRANDING.logoUrl,
-      primaryColor:
-        branding.primaryColor || VINTA_DEFAULT_BRANDING.primaryColor,
-      secondaryColor:
-        branding.secondaryColor || VINTA_DEFAULT_BRANDING.secondaryColor,
-    };
-  } catch {
-    // Network error, abort, parse failure — return the safe default.
+/**
+ * Fetch branding by the organization's public slug (branded login route).
+ *
+ * Passes `slug` alone to `brandingForTenant` — do not combine with tenantId
+ * (handoff: pass exactly one). Unknown/empty slug → VINTA_DEFAULT_BRANDING,
+ * indistinguishable from an unbranded org (no error page).
+ */
+export async function fetchBrandingForSlug(
+  slug: string | null | undefined
+): Promise<TenantBranding> {
+  const trimmed = slug?.trim();
+  if (!trimmed) {
     return VINTA_DEFAULT_BRANDING;
   }
+
+  return fetchBrandingFromGraphQL(BRANDING_BY_SLUG_QUERY, { slug: trimmed });
 }
