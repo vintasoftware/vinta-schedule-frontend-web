@@ -2,12 +2,8 @@ import { client } from '@/client/client.gen';
 
 export type BrandingLogoUploadParams = {
   object_key: string;
-  access_key_id: string | null;
-  session_token: string | null;
-  region: string | null;
-  bucket: string | null;
-  endpoint: string | null;
-  acl: string;
+  upload_url: string;
+  expires_in: number;
 };
 
 export type BrandingLogoUploadParamsRequest = {

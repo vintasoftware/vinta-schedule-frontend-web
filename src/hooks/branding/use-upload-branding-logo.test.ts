@@ -18,12 +18,9 @@ import {
 
 const UPLOAD_PARAMS = {
   object_key: 'uploads/branding_logos/test-logo.png',
-  access_key_id: 'AKIA',
-  session_token: null,
-  region: 'us-east-1',
-  bucket: 'media-bucket',
-  endpoint: 'https://s3.example.com',
-  acl: 'private',
+  upload_url:
+    'https://s3.example.com/media-bucket/uploads/branding_logos/test-logo.png?X-Amz-Signature=abc',
+  expires_in: 900,
 };
 
 function makePngFile(name: string, sizeBytes: number): File {
@@ -139,24 +136,12 @@ describe('useUploadBrandingLogo', () => {
     expect(xhrInstances).toHaveLength(1);
     expect(xhrInstances[0]?.open).toHaveBeenCalledWith(
       'PUT',
-      'https://s3.example.com/media-bucket/uploads/branding_logos/test-logo.png'
+      UPLOAD_PARAMS.upload_url
+    );
+    expect(xhrInstances[0]?.setRequestHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'image/png'
     );
     expect(onProgress).toHaveBeenCalledWith(100);
-  });
-
-  it('builds a virtual-hosted-style S3 URL when endpoint is null', async () => {
-    mockGetBrandingLogoUploadParams.mockResolvedValue({
-      ...UPLOAD_PARAMS,
-      endpoint: null,
-    });
-    const { result } = renderHook(() => useUploadBrandingLogo(), { wrapper });
-    const file = makePngFile('logo.png', 1024);
-
-    await act(async () => result.current.uploadBrandingLogo(file));
-
-    expect(xhrInstances[0]?.open).toHaveBeenCalledWith(
-      'PUT',
-      'https://media-bucket.s3.us-east-1.amazonaws.com/uploads/branding_logos/test-logo.png'
-    );
   });
 });
