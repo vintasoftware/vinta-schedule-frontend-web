@@ -21,12 +21,14 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// Mock the sdk.gen boundary so brandingUpdate never hits a real network.
+// Mock the sdk.gen boundary so brandingUpdate/brandingPartialUpdate never hit
+// a real network.
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/client/sdk.gen')>();
   return {
     ...original,
     brandingUpdate: vi.fn(),
+    brandingPartialUpdate: vi.fn(),
   };
 });
 
@@ -52,7 +54,7 @@ vi.mock('@/hooks/branding/use-upload-branding-logo', () => ({
   UploadValidationError: class UploadValidationError extends Error {},
 }));
 
-import { brandingUpdate } from '@/client/sdk.gen';
+import { brandingUpdate, brandingPartialUpdate } from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import {
   BrandingForm,
@@ -665,10 +667,12 @@ describe('BrandingForm', () => {
       );
     });
 
-    it('sends empty string as logo_url when the logo is cleared', async () => {
+    it('PATCHes an empty logo_url immediately when Clear logo is clicked', async () => {
       const user = userEvent.setup();
-      vi.mocked(brandingUpdate).mockResolvedValue(
-        makeBrandingResponse({ app_name: 'TestApp' })
+      vi.mocked(brandingPartialUpdate).mockResolvedValue(
+        makeBrandingResponse({
+          app_name: 'TestApp',
+        }) as unknown as Awaited<ReturnType<typeof brandingPartialUpdate>>
       );
 
       renderForm(
@@ -680,6 +684,40 @@ describe('BrandingForm', () => {
       );
 
       await user.click(screen.getByRole('button', { name: /clear logo/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingPartialUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingPartialUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.logo_url).toBe('');
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('does not PATCH when clearing before branding is configured (defers to the create PUT)', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({ app_name: 'TestApp' })
+      );
+
+      renderForm(null, 'acme');
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+
+      const file = new File([new Uint8Array([1, 2, 3])], 'logo.png', {
+        type: 'image/png',
+      });
+      await user.upload(screen.getByLabelText(/upload logo/i), file);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /clear logo/i })
+        ).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /clear logo/i }));
+      expect(vi.mocked(brandingPartialUpdate)).not.toHaveBeenCalled();
+
       await user.click(screen.getByRole('button', { name: /save branding/i }));
 
       await waitFor(() => {
@@ -688,6 +726,57 @@ describe('BrandingForm', () => {
 
       const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
       expect(callArgs?.body?.logo_url).toBe('');
+    });
+
+    it('persists logo_url via PATCH immediately after upload when branding already exists', async () => {
+      const user = userEvent.setup();
+      const deliveryUrl = 'https://api.example.com/branding/logo/acme/';
+      vi.mocked(brandingPartialUpdate).mockResolvedValue(
+        makeBrandingResponse({
+          app_name: 'TestApp',
+          logo_url: deliveryUrl,
+        }) as unknown as Awaited<ReturnType<typeof brandingPartialUpdate>>
+      );
+
+      renderForm({ app_name: 'TestApp', logo_url: deliveryUrl }, 'acme');
+
+      const file = new File([new Uint8Array([1, 2, 3])], 'logo.png', {
+        type: 'image/png',
+      });
+      await user.upload(screen.getByLabelText(/upload logo/i), file);
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingPartialUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingPartialUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.logo_url).toBe(
+        'uploads/branding_logos/new-logo.png'
+      );
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+
+      await waitFor(() => {
+        expect(
+          screen.getByAltText(/organization logo preview/i)
+        ).toHaveAttribute('src', deliveryUrl);
+      });
+    });
+
+    it('does not PATCH immediately when branding is not yet configured', async () => {
+      const user = userEvent.setup();
+
+      renderForm(null, 'acme');
+
+      const file = new File([new Uint8Array([1, 2, 3])], 'logo.png', {
+        type: 'image/png',
+      });
+      await user.upload(screen.getByLabelText(/upload logo/i), file);
+
+      await waitFor(() => {
+        expect(mockUploadBrandingLogo).toHaveBeenCalled();
+      });
+
+      expect(vi.mocked(brandingPartialUpdate)).not.toHaveBeenCalled();
     });
 
     it('shows the server delivery-route logo_url as preview without parsing it', () => {

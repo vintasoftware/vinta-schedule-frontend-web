@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getAuthByClientV1Config } from '@/auth-client';
 import LoginForm from '@/components/authentication/login-form';
 import { fetchBrandingForSlug } from '@/lib/branding-server';
@@ -29,5 +30,9 @@ export default async function BrandedLoginPage({
       ? (authConfig.data.data.socialaccount?.providers ?? [])
       : [];
 
-  return <LoginForm socialProviders={socialProviders} branding={branding} />;
+  return (
+    <Suspense fallback={null}>
+      <LoginForm socialProviders={socialProviders} branding={branding} />
+    </Suspense>
+  );
 }
