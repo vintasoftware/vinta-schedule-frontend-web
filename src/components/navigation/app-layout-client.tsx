@@ -115,27 +115,24 @@ const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
   },
 ];
 
-// Reseller capability: only orgs flagged `can_invite_organizations` get the
-// white-label branding console. Rendered as its own group so it stays visible
-// independent of the member/admin role split.
-const RESELLER_NAV_ITEMS: SidebarNavItem[] = [
-  { id: 'branding', label: 'Branding', icon: Palette, href: '/branding' },
-];
+const BRANDING_NAV_ITEM: SidebarNavItem = {
+  id: 'branding',
+  label: 'Branding',
+  icon: Palette,
+  href: '/branding',
+};
 
 function buildNavGroups(
   role: RoleEnum | null,
-  canInviteOrganizations: boolean
+  canManageBranding: boolean
 ): SidebarNavGroup[] {
   const groups: SidebarNavGroup[] = [{ items: MEMBER_NAV_ITEMS }];
 
   if (role === 'admin') {
-    groups.push({ label: 'Admin', items: ADMIN_ONLY_NAV_ITEMS });
-  }
-
-  // Only reseller orgs see the branding link. The /branding endpoint is
-  // independently server-gated (403) as a backstop for direct URL access.
-  if (canInviteOrganizations) {
-    groups.push({ label: 'Reseller', items: RESELLER_NAV_ITEMS });
+    const adminItems = canManageBranding
+      ? [...ADMIN_ONLY_NAV_ITEMS, BRANDING_NAV_ITEM]
+      : ADMIN_ONLY_NAV_ITEMS;
+    groups.push({ label: 'Admin', items: adminItems });
   }
 
   return groups;
@@ -366,14 +363,10 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
         : 'Organization'
       : 'Organization';
 
-  // Reseller flag lives on the nested organization (opaque {[key]: unknown}),
-  // exposed read-only by OrganizationSerializer on GET /organizations/current.
-  const canInviteOrganizations =
-    isOnboarded && membership?.organization
-      ? membership.organization.can_invite_organizations === true
-      : false;
+  const canManageBranding =
+    isOnboarded && membership?.can_manage_branding === true;
 
-  const navGroups = buildNavGroups(role, canInviteOrganizations);
+  const navGroups = buildNavGroups(role, canManageBranding);
 
   const sessionUser = session?.data?.user;
   const userEmail =

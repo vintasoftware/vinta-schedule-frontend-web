@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Stack,
   PageHeader,
@@ -14,27 +16,52 @@ import {
 } from 'vinta-schedule-design-system/ui/alert';
 import { BrandingForm } from '@/components/branding/branding-form';
 import { useBranding } from '@/hooks/branding/use-branding';
+import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
 
 /**
  * BrandingPage — white-label branding console for eligible organizations.
  *
  * A normal internal (app) page: it renders inside the tenant AppShell. The
- * sidebar link to this route is shown only when the acting org is flagged
- * can_invite_organizations (see app-layout-client). Access is still API-driven
- * as a backstop: the backend returns 403 when the acting org is not entitled
- * or the user is not an admin. The useBranding hook inspects the HTTP status
- * directly (throwOnError:false) and returns a discriminated result so each
- * state can be rendered correctly.
+ * sidebar link is shown only for onboarded admins with `can_manage_branding`
+ * (see app-layout-client). Ineligible users who deep-link here are redirected
+ * away — the page is absent, not merely refused.
+ *
+ * GET 403 from `/branding/` remains a rare backstop when cache is stale or the
+ * server rejects read access; useBranding surfaces that as a neutral alert.
  *
  * States:
- *   • Loading — query in flight.
- *   • forbidden — 403: org is not a reseller or user is not an admin; neutral no-access.
- *   • not_configured — 404: no branding row yet (first-write); form renders with empty defaults.
- *   • ok — 200: form prefilled with the saved branding.
+ *   • Redirect — user is not an admin with `can_manage_branding`.
+ *   • Loading — org or branding query in flight.
+ *   • forbidden — 403 from API (stale entitlement / server backstop).
+ *   • not_configured — 404: no branding row yet (first-write).
+ *   • ok — 200: form prefilled with saved branding.
  *   • isError — network/server error; destructive alert.
  */
 export default function BrandingPage() {
-  const { brandingQuery } = useBranding();
+  const router = useRouter();
+  const {
+    membership,
+    isOnboarded,
+    isLoading: isOrgLoading,
+  } = useCurrentOrganization();
+  const isEligibleBrandingAdmin =
+    isOnboarded &&
+    membership?.role === 'admin' &&
+    membership?.can_manage_branding === true;
+
+  const { brandingQuery } = useBranding({
+    enabled: !isOrgLoading && isEligibleBrandingAdmin,
+  });
+
+  useEffect(() => {
+    if (!isOrgLoading && isOnboarded && !isEligibleBrandingAdmin) {
+      router.replace('/');
+    }
+  }, [isOrgLoading, isOnboarded, isEligibleBrandingAdmin, router]);
+
+  if (isOrgLoading || (isOnboarded && !isEligibleBrandingAdmin)) {
+    return null;
+  }
 
   // ---------------------------------------------------------------------------
   // Loading state
@@ -97,14 +124,19 @@ export default function BrandingPage() {
   // render the form. For 'not_configured', initialBranding is null and the
   // form shows empty defaults. For 'ok', the form prefills with saved values.
   const initialBranding = result?.status === 'ok' ? result.branding : null;
+  const rawSlug = membership?.organization.slug;
+  const initialSlug = typeof rawSlug === 'string' ? rawSlug : null;
 
   return (
     <Stack gap={6}>
       <PageHeader
         title='Branding'
-        description='Customize authentication pages and emails for your reseller organization.'
+        description='Customize authentication pages and emails for your organization.'
       />
-      <BrandingForm initialBranding={initialBranding} />
+      <BrandingForm
+        initialBranding={initialBranding}
+        initialSlug={initialSlug}
+      />
     </Stack>
   );
 }
