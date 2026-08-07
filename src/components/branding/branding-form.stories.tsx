@@ -49,7 +49,7 @@ export const Prefilled: Story = {
     initialSlug: 'myscheduler',
     initialBranding: {
       app_name: 'MyScheduler',
-      logo_url: 'https://placehold.co/120x40/1B4DFF/white?text=Logo',
+      logo_url: 'https://api.example.com/branding/logo/myscheduler/',
       primary_color: '#1B4DFF',
       secondary_color: '#0D1F6B',
       support_email: 'support@myscheduler.example.com',

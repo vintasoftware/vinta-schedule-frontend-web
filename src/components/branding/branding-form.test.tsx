@@ -8,9 +8,12 @@ import type { ReactNode } from 'react';
 // Mocks — must be hoisted before any imports from the modules being mocked.
 // ---------------------------------------------------------------------------
 
-const { mockUpdateOrganizationSlug } = vi.hoisted(() => ({
-  mockUpdateOrganizationSlug: vi.fn(),
-}));
+const { mockUpdateOrganizationSlug, mockUploadBrandingLogo } = vi.hoisted(
+  () => ({
+    mockUpdateOrganizationSlug: vi.fn(),
+    mockUploadBrandingLogo: vi.fn(),
+  })
+);
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -18,12 +21,14 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// Mock the sdk.gen boundary so brandingUpdate never hits a real network.
+// Mock the sdk.gen boundary so brandingUpdate/brandingPartialUpdate never hit
+// a real network.
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/client/sdk.gen')>();
   return {
     ...original,
     brandingUpdate: vi.fn(),
+    brandingPartialUpdate: vi.fn(),
   };
 });
 
@@ -42,7 +47,14 @@ vi.mock('@/hooks/organizations/use-update-organization-slug', () => ({
   }),
 }));
 
-import { brandingUpdate } from '@/client/sdk.gen';
+vi.mock('@/hooks/branding/use-upload-branding-logo', () => ({
+  useUploadBrandingLogo: () => ({
+    uploadBrandingLogo: mockUploadBrandingLogo,
+  }),
+  UploadValidationError: class UploadValidationError extends Error {},
+}));
+
+import { brandingUpdate, brandingPartialUpdate } from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import {
   BrandingForm,
@@ -107,6 +119,9 @@ describe('BrandingForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUpdateOrganizationSlug.mockResolvedValue({ id: 1, slug: 'acme' });
+    mockUploadBrandingLogo.mockResolvedValue(
+      'uploads/branding_logos/new-logo.png'
+    );
   });
 
   // -------------------------------------------------------------------------
@@ -614,6 +629,175 @@ describe('BrandingForm', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Logo upload
+  // -------------------------------------------------------------------------
+
+  describe('logo upload', () => {
+    it('submits the uploaded object key as logo_url in the PUT body', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({ app_name: 'TestApp' })
+      );
+
+      renderForm(null, 'acme');
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+
+      const file = new File([new Uint8Array([1, 2, 3])], 'logo.png', {
+        type: 'image/png',
+      });
+      await user.upload(screen.getByLabelText(/upload logo/i), file);
+
+      await waitFor(() => {
+        expect(mockUploadBrandingLogo).toHaveBeenCalledWith(
+          file,
+          expect.any(Function)
+        );
+      });
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.logo_url).toBe(
+        'uploads/branding_logos/new-logo.png'
+      );
+    });
+
+    it('PATCHes an empty logo_url immediately when Clear logo is clicked', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingPartialUpdate).mockResolvedValue(
+        makeBrandingResponse({
+          app_name: 'TestApp',
+        }) as unknown as Awaited<ReturnType<typeof brandingPartialUpdate>>
+      );
+
+      renderForm(
+        {
+          app_name: 'TestApp',
+          logo_url: 'https://api.example.com/branding/logo/acme/',
+        },
+        'acme'
+      );
+
+      await user.click(screen.getByRole('button', { name: /clear logo/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingPartialUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingPartialUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.logo_url).toBe('');
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('does not PATCH when clearing before branding is configured (defers to the create PUT)', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({ app_name: 'TestApp' })
+      );
+
+      renderForm(null, 'acme');
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+
+      const file = new File([new Uint8Array([1, 2, 3])], 'logo.png', {
+        type: 'image/png',
+      });
+      await user.upload(screen.getByLabelText(/upload logo/i), file);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /clear logo/i })
+        ).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /clear logo/i }));
+      expect(vi.mocked(brandingPartialUpdate)).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.logo_url).toBe('');
+    });
+
+    it('persists logo_url via PATCH immediately after upload when branding already exists', async () => {
+      const user = userEvent.setup();
+      const deliveryUrl = 'https://api.example.com/branding/logo/acme/';
+      vi.mocked(brandingPartialUpdate).mockResolvedValue(
+        makeBrandingResponse({
+          app_name: 'TestApp',
+          logo_url: deliveryUrl,
+        }) as unknown as Awaited<ReturnType<typeof brandingPartialUpdate>>
+      );
+
+      renderForm({ app_name: 'TestApp', logo_url: deliveryUrl }, 'acme');
+
+      const file = new File([new Uint8Array([1, 2, 3])], 'logo.png', {
+        type: 'image/png',
+      });
+      await user.upload(screen.getByLabelText(/upload logo/i), file);
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingPartialUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingPartialUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.logo_url).toBe(
+        'uploads/branding_logos/new-logo.png'
+      );
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+
+      await waitFor(() => {
+        expect(
+          screen.getByAltText(/organization logo preview/i)
+        ).toHaveAttribute('src', deliveryUrl);
+      });
+    });
+
+    it('does not PATCH immediately when branding is not yet configured', async () => {
+      const user = userEvent.setup();
+
+      renderForm(null, 'acme');
+
+      const file = new File([new Uint8Array([1, 2, 3])], 'logo.png', {
+        type: 'image/png',
+      });
+      await user.upload(screen.getByLabelText(/upload logo/i), file);
+
+      await waitFor(() => {
+        expect(mockUploadBrandingLogo).toHaveBeenCalled();
+      });
+
+      expect(vi.mocked(brandingPartialUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('shows the server delivery-route logo_url as preview without parsing it', () => {
+      const deliveryUrl = 'https://api.example.com/branding/logo/acme/';
+
+      renderForm(
+        {
+          app_name: 'TestApp',
+          logo_url: deliveryUrl,
+        },
+        'acme'
+      );
+
+      expect(screen.getByAltText(/organization logo preview/i)).toHaveAttribute(
+        'src',
+        deliveryUrl
+      );
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Submit — payload shape
   // -------------------------------------------------------------------------
 
@@ -723,6 +907,116 @@ describe('BrandingForm', () => {
       expect(screen.getByDisplayValue('Prefilled App')).toBeInTheDocument();
       expect(screen.getByDisplayValue('#AABBCC')).toBeInTheDocument();
       expect(screen.getByDisplayValue('pre@example.com')).toBeInTheDocument();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Write 403 — distinguishable refusal reasons
+  // -------------------------------------------------------------------------
+
+  describe('write 403 — distinguishable refusal reasons', () => {
+    const HAS_PARENT_DETAIL =
+      'This organization has a parent organization and cannot manage its own branding. Branding for organizations inside a hierarchy is controlled by the reseller organization above them.';
+
+    const NOT_ENTITLED_DETAIL =
+      "This organization's plan does not include white-label branding.";
+
+    const NO_SLUG_DETAIL =
+      'Pick a public slug for this organization before configuring branding.';
+
+    async function submitMinimalForm(user: ReturnType<typeof userEvent.setup>) {
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+    }
+
+    it('shows permanent unavailable state for has-parent 403', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockRejectedValue({
+        detail: HAS_PARENT_DETAIL,
+      });
+
+      renderForm({ app_name: 'TestApp' }, 'acme');
+      await submitMinimalForm(user);
+
+      await waitFor(() => {
+        expect(screen.getByText(/branding not available/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            /part of a hierarchy and cannot manage its own branding/i
+          )
+        ).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText(/save failed/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/plan upgrade required/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/public slug required/i)
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows plan upgrade copy for not-entitled 403', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockRejectedValue({
+        detail: NOT_ENTITLED_DETAIL,
+      });
+
+      renderForm({ app_name: 'TestApp' }, 'acme');
+      await submitMinimalForm(user);
+
+      await waitFor(() => {
+        expect(screen.getByText(/plan upgrade required/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/does not include white-label branding/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(
+        screen.queryByText(/branding not available/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/public slug required/i)
+      ).not.toBeInTheDocument();
+    });
+
+    it('focuses slug field and shows inline prompt for no-slug 403', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockRejectedValue({ detail: NO_SLUG_DETAIL });
+
+      renderForm({ app_name: 'TestApp' }, 'acme');
+      await submitMinimalForm(user);
+
+      await waitFor(() => {
+        expect(screen.getByText(/public slug required/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            /pick a public slug before saving branding settings/i
+          )
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText(/public slug/i)).toHaveFocus();
+      });
+      expect(
+        screen.queryByText(/branding not available/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/plan upgrade required/i)
+      ).not.toBeInTheDocument();
+    });
+
+    it('falls back to generic save error for unknown 403 detail', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockRejectedValue({
+        detail: 'Permission denied.',
+      });
+
+      renderForm({ app_name: 'TestApp' }, 'acme');
+      await submitMinimalForm(user);
+
+      await waitFor(() => {
+        expect(screen.getByText(/save failed/i)).toBeInTheDocument();
+        expect(screen.getByText(/permission denied/i)).toBeInTheDocument();
+      });
     });
   });
 
