@@ -7,7 +7,6 @@ import {
 } from '@/lib/authentication-response-type-checks';
 import { cookies } from 'next/headers';
 import type { AuthenticationResponse, Flow } from '@/auth-client';
-import { fetchValidatedReturnUrl } from '@/lib/branding-server';
 // Removed invalid import of CookieOptions
 
 export async function POST(
@@ -23,13 +22,13 @@ export async function POST(
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
 
   const requestBaseUrl = `${protocol}://${host}`;
-  // Only prefix the base URL for relative (path) URLs; absolute external URLs
-  // (allowlisted reseller return URLs) are used as-is to avoid producing a
+  // Only prefix the base URL for relative (path) URLs; absolute
+  // backend-resolved `destination` URLs are used as-is to avoid producing a
   // garbage host like "https://vinta.comhttps://app.reseller.com/...".
-  const destination = /^https?:\/\//i.test(url)
+  const redirectUrl = /^https?:\/\//i.test(url)
     ? url
     : `${requestBaseUrl}${url}`;
-  const response = NextResponse.redirect(destination);
+  const response = NextResponse.redirect(redirectUrl);
   cookiesToSet?.forEach(({ name, value, options }) => {
     response.cookies.set(name, value, options);
   });
@@ -55,13 +54,13 @@ export async function GET(
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
 
   const requestBaseUrl = `${protocol}://${host}`;
-  // Only prefix the base URL for relative (path) URLs; absolute external URLs
-  // (allowlisted reseller return URLs) are used as-is to avoid producing a
+  // Only prefix the base URL for relative (path) URLs; absolute
+  // backend-resolved `destination` URLs are used as-is to avoid producing a
   // garbage host like "https://vinta.comhttps://app.reseller.com/...".
-  const destination = /^https?:\/\//i.test(url)
+  const redirectUrl = /^https?:\/\//i.test(url)
     ? url
     : `${requestBaseUrl}${url}`;
-  const response = NextResponse.redirect(destination);
+  const response = NextResponse.redirect(redirectUrl);
   cookiesToSet?.forEach(({ name, value, options }) => {
     response.cookies.set(name, value, options);
   });
@@ -77,6 +76,14 @@ type CookieOptions = {
   sameSite?: 'lax' | 'strict' | 'none';
   // Add other cookie options if needed
 };
+
+// A backend-resolved `destination` must be either an absolute http(s) URL or
+// a same-origin relative path (a single leading `/`, not `//…`, which browsers
+// treat as protocol-relative to an arbitrary host). Anything else is rejected
+// and falls back to the interstitial rather than being used as a redirect.
+function isSafeDestination(destination: string): boolean {
+  return /^https?:\/\//i.test(destination) || /^\/(?!\/)/.test(destination);
+}
 
 type CallbackResult = {
   url: string;
@@ -197,14 +204,9 @@ export async function handleProviderLoginCallback(
 
   // The tenant_id may be embedded in the OAuth state param (set by the
   // initiating page) or passed as a direct query param. If present, we use it
-  // to fetch tenant branding for interstitials and to validate the `next` URL.
+  // to fetch tenant branding for interstitials.
   const tenantId = params.tenant_id || null;
 
-  // The `next` / return-URL the reseller's app wants to send the user back to
-  // after login. MUST be validated server-side against the tenant's allowlist
-  // before use. An absent or off-allowlist URL falls back to the default
-  // dashboard (no open-redirect risk).
-  const nextParam = params.next || null;
   const cookiesToSet: Array<{
     name: string;
     value: string;
@@ -219,6 +221,12 @@ export async function handleProviderLoginCallback(
         sessionToken: incomingSessionToken,
       })
     ).json();
+
+    // Read `destination` before the type guard narrows `response` to the
+    // generated `AuthenticatedResponse` shape, which doesn't know about it.
+    // Trim so a whitespace-only value falls through to the interstitial
+    // instead of being treated as a truthy destination.
+    const destination = response.destination?.trim() || null;
 
     if (isAuthenticatedResponse(response)) {
       if (!response.meta?.access_token) {
@@ -284,21 +292,19 @@ export async function handleProviderLoginCallback(
         });
       }
 
-      // Determine the post-login redirect URL.
-      // If a `next` param was supplied, ask the backend to validate it against
-      // the tenant's return-URL allowlist. The backend performs ALL matching
-      // and scheme-guard logic and returns the sanitized URL only when allowed.
-      // An absent/invalid/off-allowlist URL falls back to the success
-      // interstitial (which then redirects to /dashboard). Fail closed.
-      const validatedNext = await fetchValidatedReturnUrl(tenantId, nextParam);
+      // Determine the post-login redirect URL. The backend resolves
+      // `destination` entirely server-side from the authenticated user's
+      // organization and its configured branding `redirect_url` — the SPA
+      // must not decide this from client-sent `next`/`callback_url` state
+      // (see the organization-auth-branding handoff, "Resolved post-auth
+      // destination"). An absent/empty `destination` falls back to the
+      // success interstitial.
       let successUrl: string;
-      if (validatedNext) {
-        // The backend confirmed the URL is allowed — redirect directly there.
-        // sanitizedUrl is an absolute URL so no origin prefix is needed.
-        successUrl = validatedNext;
+      if (destination && isSafeDestination(destination)) {
+        // `destination` is either an absolute URL or a same-origin relative
+        // path — no origin prefix needed either way.
+        successUrl = destination;
       } else {
-        // Off-allowlist, failed validation, or no next param — use the
-        // standard success interstitial.
         const base = `/auth/social/${provider}/success`;
         successUrl = tenantId
           ? `${base}?tenant_id=${encodeURIComponent(tenantId)}`

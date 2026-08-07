@@ -16,5 +16,5 @@ export type { TenantBranding } from '@/lib/branding-shared';
 export { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
 export {
   fetchBrandingForTenant,
-  fetchValidatedReturnUrl,
+  fetchBrandingForSlug,
 } from '@/lib/branding-server';

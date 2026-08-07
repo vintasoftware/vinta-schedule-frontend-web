@@ -5,18 +5,23 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { Upload, X } from 'lucide-react';
 
 import {
   Box,
   Flex,
   Stack,
   HStack,
+  VStack,
   Heading,
   Text,
   FormLayout,
 } from 'vinta-schedule-design-system/layout';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Image } from 'vinta-schedule-design-system/ui/image';
+import { Progress } from 'vinta-schedule-design-system/ui/progress';
+import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
 import {
   Alert,
   AlertDescription,
@@ -33,11 +38,23 @@ import {
   FormDescription,
 } from 'vinta-schedule-design-system/ui/form';
 import { useUpdateBranding } from '@/hooks/branding/use-update-branding';
+import { usePatchBranding } from '@/hooks/branding/use-patch-branding';
+import {
+  useUploadBrandingLogo,
+  UploadValidationError,
+} from '@/hooks/branding/use-upload-branding-logo';
+import { useUpdateOrganizationSlug } from '@/hooks/organizations/use-update-organization-slug';
 import type { OrganizationBranding } from '@/client';
+import {
+  classifyBrandingWriteForbiddenError,
+  extractApiErrorDetail,
+  type BrandingWriteForbiddenReason,
+} from '@/lib/branding-write-errors';
 import { BrandingPreview } from './branding-preview';
 
 // ---------------------------------------------------------------------------
 // Zod schema — mirrors the OrganizationBranding serializer's validation rules.
+// redirect_url checks match organizations.redirect_url_validation (handoff order).
 // ---------------------------------------------------------------------------
 
 const hexColorSchema = z
@@ -47,57 +64,115 @@ const hexColorSchema = z
     'Must be a hex color: #RRGGBB or #RRGGBBAA'
   );
 
-// Mirrors organizations/redirect_url_validation.py — same rules in the same
-// order, so the inline message names the rule the API would reject on. The
-// server stays the authority: URL parsing here is the browser's, which is more
-// lenient than Django's URLValidator about a few malformed shapes.
-const redirectUrlSchema = z
+/** Mirrors the five server redirect_url rules; empty string clears. */
+export const redirectUrlSchema = z
   .string()
-  .trim()
-  .superRefine((value, ctx) => {
-    // Empty means "no configured destination" — valid, falls back to the dashboard.
-    if (!value) return;
+  .superRefine((raw, ctx) => {
+    // 1. No control characters (CR, LF, tab) — checked before trim.
+    if (/[\r\n\t]/.test(raw)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must not contain control characters',
+      });
+      return;
+    }
 
-    const fail = (message: string) => {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message });
-    };
+    const val = raw.trim();
+    if (val === '') return;
 
-    if (/[\r\n\t]/.test(value)) {
-      return fail('Must not contain line breaks or tabs');
+    // 2. HTTPS only (also rejects scheme-confusion values like https:evil.com).
+    if (!/^https:\/\//i.test(val)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must be a valid HTTPS URL',
+      });
+      return;
+    }
+
+    // 3. No wildcard character.
+    if (val.includes('*')) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must not contain wildcard characters',
+      });
+      return;
     }
 
     let parsed: URL;
     try {
-      parsed = new URL(value);
+      parsed = new URL(val);
     } catch {
-      return fail('Must be a well-formed https URL with a host');
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must be a valid HTTPS URL',
+      });
+      return;
     }
 
-    if (parsed.protocol !== 'https:') {
-      return fail('Must use the https scheme');
+    // 4. No path-prefix pattern — non-root paths must not end with /.
+    const { pathname } = parsed;
+    if (pathname !== '/' && pathname.endsWith('/')) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'URL path must not end with a trailing slash',
+      });
+      return;
     }
-    if (value.includes('*')) {
-      return fail("Must not contain a wildcard character ('*')");
-    }
-    // A trailing slash after a path segment is allowlist-prefix semantics; a
-    // single concrete destination has no reason to end that way. The bare root
-    // (https://example.com/) has no path segment to be a prefix of.
-    if (parsed.pathname.endsWith('/') && parsed.pathname !== '/') {
-      return fail('Must not end with a trailing slash after a path segment');
-    }
+
+    // 5. Well-formed URL with a host.
     if (!parsed.hostname) {
-      return fail('Must be a well-formed https URL with a host');
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must include a valid host',
+      });
+    }
+  })
+  .transform((raw) => raw.trim());
+
+/** Mirrors server slug format rules; reserved words and uniqueness come from 400. */
+export const slugSchema = z
+  .string()
+  .transform((raw) => raw.trim().toLowerCase())
+  .superRefine((val, ctx) => {
+    if (val === '') return;
+
+    // Confusables — non-ASCII characters are rejected outright.
+    if (/[^\x00-\x7F]/.test(val)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must use ASCII letters, numbers, and hyphens only',
+      });
+      return;
+    }
+
+    if (val.length < 3 || val.length > 63) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must be between 3 and 63 characters',
+      });
+      return;
+    }
+
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(val)) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Must be lowercase letters, numbers, and single hyphens only (no leading, trailing, or consecutive hyphens)',
+      });
+      return;
+    }
+
+    if (/^\d+$/.test(val)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Must not be purely numeric',
+      });
     }
   });
 
 export const brandingSchema = z.object({
+  slug: slugSchema.optional(),
   app_name: z.string().trim().min(1, { message: 'App name is required' }),
-  logo_url: z
-    .string()
-    .trim()
-    .url({ message: 'Must be a valid URL' })
-    .or(z.literal(''))
-    .optional(),
   primary_color: hexColorSchema.or(z.literal('')).optional(),
   secondary_color: hexColorSchema.or(z.literal('')).optional(),
   support_email: z
@@ -111,16 +186,29 @@ export const brandingSchema = z.object({
 
 type BrandingFormValues = z.infer<typeof brandingSchema>;
 
-// ---------------------------------------------------------------------------
-// Helpers — convert between the flat OrganizationBranding type and form values.
-// ---------------------------------------------------------------------------
+function normalizeSlug(value: string | null | undefined): string {
+  return (value ?? '').trim().toLowerCase();
+}
+
+/** Map DRF `{ slug: ["…"] }` field errors onto the slug input. */
+export function extractSlugFieldError(err: unknown): string | null {
+  if (!err || typeof err !== 'object') return null;
+
+  const slug = (err as Record<string, unknown>).slug;
+  if (Array.isArray(slug) && typeof slug[0] === 'string') {
+    return slug[0];
+  }
+
+  return null;
+}
 
 function toFormValues(
-  branding: OrganizationBranding | null
+  branding: OrganizationBranding | null,
+  initialSlug?: string | null
 ): BrandingFormValues {
   return {
+    slug: initialSlug ?? '',
     app_name: branding?.app_name ?? '',
-    logo_url: branding?.logo_url ?? '',
     primary_color: branding?.primary_color ?? '',
     secondary_color: branding?.secondary_color ?? '',
     support_email: branding?.support_email ?? '',
@@ -128,17 +216,23 @@ function toFormValues(
   };
 }
 
-function toPayload(values: BrandingFormValues): OrganizationBranding {
-  return {
+function toPayload(
+  values: BrandingFormValues,
+  pendingLogoKey: string | null
+): OrganizationBranding {
+  const payload: OrganizationBranding = {
     app_name: values.app_name,
-    logo_url: values.logo_url || undefined,
     primary_color: values.primary_color || undefined,
     secondary_color: values.secondary_color || undefined,
     support_email: values.support_email || undefined,
-    // Sent even when blank — '' is how the API clears a configured destination,
-    // the same way the allowlist this replaced was cleared with [].
     redirect_url: values.redirect_url ?? '',
   };
+
+  if (pendingLogoKey !== null) {
+    payload.logo_url = pendingLogoKey;
+  }
+
+  return payload;
 }
 
 // ---------------------------------------------------------------------------
@@ -151,26 +245,55 @@ export interface BrandingFormProps {
    * (first-write) state — the form renders with empty defaults.
    */
   initialBranding?: OrganizationBranding | null;
+  /** Current organization slug from membership.organization.slug. */
+  initialSlug?: string | null;
 }
 
 // ---------------------------------------------------------------------------
 // BrandingForm
 // ---------------------------------------------------------------------------
 
-export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
+const NO_SLUG_FIELD_MESSAGE =
+  'Pick a public slug before saving branding settings.';
+
+export function BrandingForm({
+  initialBranding = null,
+  initialSlug = null,
+}: BrandingFormProps) {
   const { updateBranding, updateBrandingMutation } = useUpdateBranding();
+  const { patchBranding } = usePatchBranding();
+  const { uploadBrandingLogo } = useUploadBrandingLogo();
+  const { updateOrganizationSlug, updateOrganizationSlugMutation } =
+    useUpdateOrganizationSlug();
+  /** PATCH can only update an existing row; a first-time setup has none yet. */
+  const brandingExists = initialBranding !== null;
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const localPreviewUrlRef = React.useRef<string | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = React.useState<
+    string | undefined
+  >(initialBranding?.logo_url ?? undefined);
+  /** null = unchanged; "" = cleared; non-empty string = newly uploaded object key. */
+  const [pendingLogoKey, setPendingLogoKey] = React.useState<string | null>(
+    null
+  );
+  const [uploadProgress, setUploadProgress] = React.useState<number | null>(
+    null
+  );
+  const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
+  const [isClearingLogo, setIsClearingLogo] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [writeForbiddenReason, setWriteForbiddenReason] =
+    React.useState<BrandingWriteForbiddenReason | null>(null);
 
   const form = useForm<BrandingFormValues>({
     resolver: zodResolver(brandingSchema),
-    defaultValues: toFormValues(initialBranding),
+    defaultValues: toFormValues(initialBranding, initialSlug),
   });
 
   // Live-preview values — watch individual fields so the preview updates as the
   // user types (no submit needed to see how it looks). useWatch avoids the
   // React Compiler "incompatible library" warning triggered by form.watch().
   const watchedAppName = useWatch({ control: form.control, name: 'app_name' });
-  const watchedLogoUrl = useWatch({ control: form.control, name: 'logo_url' });
   const watchedPrimaryColor = useWatch({
     control: form.control,
     name: 'primary_color',
@@ -179,18 +302,183 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
     control: form.control,
     name: 'secondary_color',
   });
+  const watchedSlug = useWatch({ control: form.control, name: 'slug' });
+
+  const showSlugChangeWarning =
+    Boolean(initialSlug) &&
+    normalizeSlug(watchedSlug) !== normalizeSlug(initialSlug);
+
+  const isSaving =
+    updateBrandingMutation.isPending ||
+    updateOrganizationSlugMutation.isPending;
+
+  React.useEffect(() => {
+    return () => {
+      if (localPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPreviewUrlRef.current);
+      }
+    };
+  }, []);
+
+  const revokeLocalPreview = React.useCallback(() => {
+    if (localPreviewUrlRef.current) {
+      URL.revokeObjectURL(localPreviewUrlRef.current);
+      localPreviewUrlRef.current = null;
+    }
+  }, []);
+
+  /**
+   * PATCHes `logo_url` on its own (used by both upload and clear) so the
+   * change survives a reload even if the user never clicks "Save branding".
+   * Returns the stable delivery-route URL from the response (or undefined
+   * when cleared) to show as the new preview.
+   */
+  const persistLogoUrl = async (
+    logoUrl: string
+  ): Promise<string | undefined> => {
+    const updated = await patchBranding({ logo_url: logoUrl });
+    return updated?.logo_url ?? undefined;
+  };
+
+  const onLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const previousPendingLogoKey = pendingLogoKey;
+    const previousLogoPreviewUrl = logoPreviewUrl;
+    const previousLocalPreviewUrl = localPreviewUrlRef.current;
+
+    const localUrl = URL.createObjectURL(file);
+    localPreviewUrlRef.current = localUrl;
+    setLogoPreviewUrl(localUrl);
+    setUploadProgress(0);
+    setIsUploadingLogo(true);
+
+    try {
+      const objectKey = await uploadBrandingLogo(file, (pct) =>
+        setUploadProgress(pct)
+      );
+
+      if (brandingExists) {
+        const persistedUrl = await persistLogoUrl(objectKey);
+        if (previousLocalPreviewUrl) {
+          URL.revokeObjectURL(previousLocalPreviewUrl);
+        }
+        URL.revokeObjectURL(localUrl);
+        localPreviewUrlRef.current = null;
+        setLogoPreviewUrl(persistedUrl);
+        setPendingLogoKey(null);
+      } else {
+        if (previousLocalPreviewUrl) {
+          URL.revokeObjectURL(previousLocalPreviewUrl);
+        }
+        setPendingLogoKey(objectKey);
+      }
+    } catch (err) {
+      if (localPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPreviewUrlRef.current);
+      }
+      localPreviewUrlRef.current = previousLocalPreviewUrl;
+      setLogoPreviewUrl(previousLogoPreviewUrl);
+      setPendingLogoKey(previousPendingLogoKey);
+      if (err instanceof UploadValidationError) {
+        toast.error(err.message);
+      } else {
+        toast.error('Failed to upload logo — please try again');
+      }
+    } finally {
+      setUploadProgress(null);
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const onClearLogo = async () => {
+    const previousLogoPreviewUrl = logoPreviewUrl;
+    const previousPendingLogoKey = pendingLogoKey;
+    const previousLocalPreviewUrl = localPreviewUrlRef.current;
+
+    revokeLocalPreview();
+    setLogoPreviewUrl(undefined);
+
+    if (!brandingExists) {
+      // Nothing persisted yet (first-time setup) — just clear local state;
+      // toPayload() sends "" on the eventual create PUT.
+      setPendingLogoKey('');
+      return;
+    }
+
+    setIsClearingLogo(true);
+    try {
+      await persistLogoUrl('');
+      setPendingLogoKey(null);
+    } catch {
+      localPreviewUrlRef.current = previousLocalPreviewUrl;
+      setLogoPreviewUrl(previousLogoPreviewUrl);
+      setPendingLogoKey(previousPendingLogoKey);
+      toast.error('Failed to clear logo — please try again');
+    } finally {
+      setIsClearingLogo(false);
+    }
+  };
+
+  const focusSlugField = React.useCallback(() => {
+    void form.setFocus('slug');
+    requestAnimationFrame(() => {
+      const slugInput =
+        document.querySelector<HTMLInputElement>('input[name="slug"]');
+      slugInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [form]);
 
   const onSubmit = async (values: BrandingFormValues) => {
     setSubmitError(null);
+    setWriteForbiddenReason(null);
+    const normalizedSlug = normalizeSlug(values.slug);
+    const slugNeedsPatch = normalizedSlug !== normalizeSlug(initialSlug);
+
     try {
-      await updateBranding(toPayload(values));
+      if (slugNeedsPatch) {
+        try {
+          await updateOrganizationSlug(
+            normalizedSlug === '' ? null : normalizedSlug
+          );
+        } catch (err) {
+          const slugError = extractSlugFieldError(err);
+          if (slugError) {
+            form.setError('slug', { message: slugError });
+            return;
+          }
+          throw err;
+        }
+      }
+
+      await updateBranding(toPayload(values, pendingLogoKey));
       toast.success('Branding saved', {
         description: 'Your branding settings have been updated.',
       });
+      if (pendingLogoKey !== null && pendingLogoKey !== '') {
+        setPendingLogoKey(null);
+      }
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : 'Failed to save branding settings.'
-      );
+      const forbiddenReason = classifyBrandingWriteForbiddenError(err);
+      if (forbiddenReason === 'has_parent') {
+        setWriteForbiddenReason('has_parent');
+        return;
+      }
+      if (forbiddenReason === 'not_entitled') {
+        setWriteForbiddenReason('not_entitled');
+        return;
+      }
+      if (forbiddenReason === 'no_slug') {
+        form.setError('slug', { message: NO_SLUG_FIELD_MESSAGE });
+        setWriteForbiddenReason('no_slug');
+        focusSlugField();
+        return;
+      }
+
+      const detail = extractApiErrorDetail(err);
+      setSubmitError(detail ?? 'Failed to save branding settings.');
     }
   };
 
@@ -204,6 +492,53 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
       <Stack gap={6} grow shrink basis={0} minWidth={0}>
         <Form {...form}>
           <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={6} noValidate>
+            {/* Public slug — org-level; PATCHed before branding PUT when changed */}
+            <FormField
+              control={form.control}
+              name='slug'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Public slug</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='text'
+                      placeholder='acme'
+                      autoComplete='off'
+                      spellCheck={false}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    URL-safe identifier for your branded sign-in page
+                    (/auth/login/&lt;slug&gt;). Required before branding can be
+                    saved. Reserved words and uniqueness are validated on save.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {writeForbiddenReason === 'no_slug' && (
+              <Alert>
+                <AlertTitle>Public slug required</AlertTitle>
+                <AlertDescription>
+                  Pick a public slug above before saving branding settings. The
+                  slug powers your branded sign-in page at
+                  /auth/login/&lt;slug&gt;.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {showSlugChangeWarning && (
+              <Alert>
+                <AlertTitle>Changing your slug</AlertTitle>
+                <AlertDescription>
+                  Updating the slug orphans any previously shared branded login
+                  URLs. Old links will show the default Vinta identity instead.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* App Name */}
             <FormField
               control={form.control}
@@ -222,27 +557,96 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
               )}
             />
 
-            {/* Logo URL */}
-            <FormField
-              control={form.control}
-              name='logo_url'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Logo URL</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='url'
-                      placeholder='https://example.com/logo.png'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Publicly accessible URL for your logo image.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
+            {/* Logo upload — submit object key; read logo_url is display-only */}
+            <VStack gap={3} align='start'>
+              <Text as='label' size='sm' weight='medium'>
+                Logo
+              </Text>
+              {logoPreviewUrl ? (
+                <Box
+                  px={3}
+                  py={2}
+                  radius='md'
+                  border
+                  borderColor='border'
+                  bg='muted'
+                >
+                  <Image
+                    src={logoPreviewUrl}
+                    alt='Organization logo preview'
+                    height={40}
+                    fit='contain'
+                  />
+                </Box>
+              ) : (
+                <Box
+                  width={120}
+                  height={40}
+                  radius='md'
+                  border
+                  borderColor='border'
+                  bg='muted'
+                />
               )}
-            />
+              <HStack gap={2} align='center'>
+                <Input
+                  ref={fileInputRef}
+                  type='file'
+                  accept='image/png,image/jpeg,image/webp'
+                  className='hidden'
+                  aria-label='Upload logo'
+                  onChange={onLogoFileChange}
+                />
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  disabled={isUploadingLogo || isClearingLogo || isSaving}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isUploadingLogo ? (
+                    <>
+                      <Spinner label='' />
+                      Uploading…
+                    </>
+                  ) : (
+                    <>
+                      <Upload />
+                      {logoPreviewUrl ? 'Replace logo' : 'Upload logo'}
+                    </>
+                  )}
+                </Button>
+                {logoPreviewUrl && (
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='sm'
+                    disabled={isUploadingLogo || isClearingLogo || isSaving}
+                    aria-label='Clear logo'
+                    onClick={onClearLogo}
+                  >
+                    {isClearingLogo ? (
+                      <>
+                        <Spinner label='' />
+                        Clearing…
+                      </>
+                    ) : (
+                      <>
+                        <X />
+                        Clear logo
+                      </>
+                    )}
+                  </Button>
+                )}
+              </HStack>
+              {uploadProgress !== null ? (
+                <Progress value={uploadProgress} className='h-1.5 w-48' />
+              ) : (
+                <Text size='xs' color='muted-foreground'>
+                  PNG, JPEG, or WebP · max 5 MB. SVG is not allowed.
+                </Text>
+              )}
+            </VStack>
 
             {/* Colors */}
             <Flex
@@ -306,29 +710,50 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
               )}
             />
 
-            {/* Redirect URL */}
+            {/* Post-login redirect URL — single server-resolved destination */}
             <FormField
               control={form.control}
               name='redirect_url'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Redirect URL</FormLabel>
+                  <FormLabel>Post-login redirect URL</FormLabel>
                   <FormControl>
                     <Input
                       type='url'
-                      placeholder='https://example.com/auth/callback'
+                      placeholder='https://app.example.com/dashboard'
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Where users land after signing in. Must be an https URL.
-                    Leave blank to send them to the dashboard.
+                    Concrete HTTPS URL where users land after signing in.
+                    Wildcards and path-prefix patterns are not allowed. Leave
+                    empty to clear.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {writeForbiddenReason === 'has_parent' && (
+              <Alert>
+                <AlertTitle>Branding not available</AlertTitle>
+                <AlertDescription>
+                  This organization is part of a hierarchy and cannot manage its
+                  own branding. Branding for organizations inside a hierarchy is
+                  controlled by the reseller organization above them.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {writeForbiddenReason === 'not_entitled' && (
+              <Alert>
+                <AlertTitle>Plan upgrade required</AlertTitle>
+                <AlertDescription>
+                  This organization&apos;s plan does not include white-label
+                  branding. Contact your administrator to upgrade your plan.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {submitError && (
               <Alert variant='destructive'>
@@ -338,8 +763,8 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
             )}
 
             <HStack justify='end'>
-              <Button type='submit' disabled={updateBrandingMutation.isPending}>
-                {updateBrandingMutation.isPending ? 'Saving…' : 'Save branding'}
+              <Button type='submit' disabled={isSaving || isUploadingLogo}>
+                {isSaving ? 'Saving…' : 'Save branding'}
               </Button>
             </HStack>
           </FormLayout>
@@ -360,7 +785,7 @@ export function BrandingForm({ initialBranding = null }: BrandingFormProps) {
         <Card padding={0} className='overflow-hidden'>
           <BrandingPreview
             appName={watchedAppName || 'Your App'}
-            logoUrl={watchedLogoUrl || undefined}
+            logoUrl={logoPreviewUrl}
             primaryColor={watchedPrimaryColor || undefined}
             secondaryColor={watchedSecondaryColor || undefined}
           />

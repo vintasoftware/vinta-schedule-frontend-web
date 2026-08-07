@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getAuthByClientV1Config } from '@/auth-client';
 import LoginForm from '@/components/authentication/login-form';
 
@@ -17,5 +18,9 @@ export default async function LoginPage() {
       ? (authConfig.data.data.socialaccount?.providers ?? [])
       : [];
 
-  return <LoginForm socialProviders={socialProviders} />;
+  return (
+    <Suspense fallback={null}>
+      <LoginForm socialProviders={socialProviders} />
+    </Suspense>
+  );
 }

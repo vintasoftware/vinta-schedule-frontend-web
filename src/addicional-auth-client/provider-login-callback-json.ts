@@ -11,6 +11,17 @@ export type ProviderLoginCallbackParams = {
   sessionToken?: string;
 };
 
+/**
+ * The headless callback response, plus `destination` — the backend-resolved
+ * post-auth landing URL (organization-auth-branding handoff, "Resolved
+ * post-auth destination"). `schema-auth.yml` doesn't expose it yet, so it's
+ * hand-extended here until the allauth OpenAPI schema catches up.
+ */
+export type ProviderCallbackJsonResponse =
+  GetAuthByClientV1AuthSessionResponse & {
+    destination?: string;
+  };
+
 type GenericFetchResponse<T> = {
   data?: T;
   status: number;
@@ -51,7 +62,7 @@ export async function postAppV1AuthProviderCallbackJson({
         }),
         redirect: 'manual',
       }
-    )) as GenericFetchResponse<GetAuthByClientV1AuthSessionResponse>;
+    )) as GenericFetchResponse<ProviderCallbackJsonResponse>;
   } catch (error) {
     throw error as GetAuthByClientV1AuthSessionError;
   }
