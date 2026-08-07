@@ -217,7 +217,7 @@ export function FinishSignupForm({
             </Alert>
             {/* `w-full`: <Button> exposes no width prop. */}
             <Button asChild variant='default' fullWidth>
-              <a href='/auth/login'>Restart sign-in</a>
+              <Link href='/auth/login'>Restart sign-in</Link>
             </Button>
           </VStack>
         </Card>

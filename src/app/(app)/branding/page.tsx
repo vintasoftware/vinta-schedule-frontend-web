@@ -124,6 +124,8 @@ export default function BrandingPage() {
   // render the form. For 'not_configured', initialBranding is null and the
   // form shows empty defaults. For 'ok', the form prefills with saved values.
   const initialBranding = result?.status === 'ok' ? result.branding : null;
+  const rawSlug = membership?.organization.slug;
+  const initialSlug = typeof rawSlug === 'string' ? rawSlug : null;
 
   return (
     <Stack gap={6}>
@@ -131,7 +133,10 @@ export default function BrandingPage() {
         title='Branding'
         description='Customize authentication pages and emails for your organization.'
       />
-      <BrandingForm initialBranding={initialBranding} />
+      <BrandingForm
+        initialBranding={initialBranding}
+        initialSlug={initialSlug}
+      />
     </Stack>
   );
 }
