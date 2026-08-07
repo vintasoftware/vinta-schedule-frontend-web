@@ -9,30 +9,12 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export class UploadValidationError extends Error {}
 
-/**
- * `endpoint` is only set for S3-compatible backends signed with a custom
- * endpoint (path-style URL). Plain AWS S3 returns `endpoint: null` — build the
- * standard virtual-hosted-style URL from `bucket`/`region` instead.
- */
-function buildUploadUrl(params: BrandingLogoUploadParams): string {
-  if (params.endpoint) {
-    return `${params.endpoint}/${params.bucket}/${params.object_key}`;
-  }
-
-  if (!params.bucket || !params.region) {
-    throw new Error('Upload params are missing bucket/region for S3 URL');
-  }
-
-  return `https://${params.bucket}.s3.${params.region}.amazonaws.com/${params.object_key}`;
-}
-
 function uploadToS3(
   params: BrandingLogoUploadParams,
   file: File,
   onProgress: (pct: number) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const url = buildUploadUrl(params);
     const xhr = new XMLHttpRequest();
 
     xhr.upload.addEventListener('progress', (e) => {
@@ -53,11 +35,11 @@ function uploadToS3(
     xhr.addEventListener('error', () => reject(new Error('Upload failed')));
     xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
 
-    xhr.open('PUT', url);
+    // `upload_url` is a complete presigned PUT URL. Content-Type is part of
+    // what the backend signed, so it has to be sent and has to match the file
+    // exactly; any other header would break the signature.
+    xhr.open('PUT', params.upload_url);
     xhr.setRequestHeader('Content-Type', file.type);
-    if (params.acl) {
-      xhr.setRequestHeader('x-amz-acl', params.acl);
-    }
     xhr.send(file);
   });
 }
