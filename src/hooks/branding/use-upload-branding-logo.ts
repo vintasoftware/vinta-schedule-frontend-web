@@ -1,6 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
-import type { ProfilePictureUploadParams } from '@/client';
-import { getS3DirectUploadParams } from '@/lib/s3direct-get-upload-params';
+import {
+  getS3DirectUploadParams,
+  type S3DirectUploadParams,
+} from '@/lib/s3direct-get-upload-params';
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -9,7 +11,7 @@ const BRANDING_LOGOS_DEST = 'branding_logos';
 export class UploadValidationError extends Error {}
 
 function uploadToS3(
-  params: ProfilePictureUploadParams,
+  params: S3DirectUploadParams,
   file: File,
   onProgress: (pct: number) => void
 ): Promise<void> {
