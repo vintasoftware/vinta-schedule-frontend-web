@@ -5,9 +5,10 @@
  * from client components ('use client'). The server-only fetch logic lives in
  * `branding-server.ts` (guarded by `import 'server-only'`).
  *
- * Return-URL validation is now performed server-side via the backend
- * `validateReturnUrl` GraphQL query (see `fetchValidatedReturnUrl` in
- * `branding-server.ts`).
+ * Post-login navigation is resolved entirely server-side: the OAuth callback
+ * response carries a `destination` field, and the SPA just navigates there
+ * (see `src/app/auth/social/[provider]/callback/route.tsx`). There is no
+ * client-side return-URL validation.
  */
 
 export interface TenantBranding {

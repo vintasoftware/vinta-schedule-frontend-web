@@ -1,9 +1,32 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   fetchBrandingForTenant,
-  fetchValidatedReturnUrl,
+  fetchBrandingForSlug,
 } from './branding-server';
 import { VINTA_DEFAULT_BRANDING } from './branding-shared';
+
+// ---------------------------------------------------------------------------
+// Shared fetch helpers
+// ---------------------------------------------------------------------------
+
+function mockFetch(response: Partial<Response & { ok: boolean }>) {
+  global.fetch = vi.fn().mockResolvedValue(response);
+}
+
+function jsonFetch(status: number, body: unknown) {
+  mockFetch({
+    ok: status >= 200 && status < 300,
+    json: async () => body,
+  } as Response);
+}
+
+function lastFetchBody(): { query: string; variables: Record<string, string> } {
+  const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+  return JSON.parse(call[1].body as string) as {
+    query: string;
+    variables: Record<string, string>;
+  };
+}
 
 // ---------------------------------------------------------------------------
 // fetchBrandingForTenant
@@ -17,17 +40,6 @@ describe('fetchBrandingForTenant', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
-
-  function mockFetch(response: Partial<Response & { ok: boolean }>) {
-    global.fetch = vi.fn().mockResolvedValue(response);
-  }
-
-  function jsonFetch(status: number, body: unknown) {
-    mockFetch({
-      ok: status >= 200 && status < 300,
-      json: async () => body,
-    } as Response);
-  }
 
   it('returns vinta default on null tenantId — never throws', async () => {
     const result = await fetchBrandingForTenant(null);
@@ -63,6 +75,25 @@ describe('fetchBrandingForTenant', () => {
       primaryColor: '#1a2b3c',
       secondaryColor: '#4d5e6f',
     });
+  });
+
+  it('sends the tenantId GraphQL variable (not slug)', async () => {
+    jsonFetch(200, {
+      data: {
+        brandingForTenant: {
+          appName: 'Acme Corp',
+          logoUrl: 'https://acme.example.com/logo.svg',
+          primaryColor: '#1a2b3c',
+          secondaryColor: '#4d5e6f',
+        },
+      },
+    });
+
+    await fetchBrandingForTenant('org-123');
+    const body = lastFetchBody();
+    expect(body.variables).toEqual({ tenantId: 'org-123' });
+    expect(body.query).toContain('tenantId');
+    expect(body.query).not.toContain('$slug');
   });
 
   it('falls back to vinta default when response is non-200', async () => {
@@ -140,10 +171,10 @@ describe('fetchBrandingForTenant', () => {
 });
 
 // ---------------------------------------------------------------------------
-// fetchValidatedReturnUrl
+// fetchBrandingForSlug
 // ---------------------------------------------------------------------------
 
-describe('fetchValidatedReturnUrl', () => {
+describe('fetchBrandingForSlug', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -152,156 +183,70 @@ describe('fetchValidatedReturnUrl', () => {
     vi.restoreAllMocks();
   });
 
-  function mockFetch(response: Partial<Response & { ok: boolean }>) {
-    global.fetch = vi.fn().mockResolvedValue(response);
-  }
-
-  function jsonFetch(status: number, body: unknown) {
-    mockFetch({
-      ok: status >= 200 && status < 300,
-      json: async () => body,
-    } as Response);
-  }
-
-  it('returns null when tenantId is null — never calls fetch', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch');
-    const result = await fetchValidatedReturnUrl(
-      null,
-      'https://app.example.com/dashboard'
-    );
-    expect(result).toBeNull();
-    expect(fetchSpy).not.toHaveBeenCalled();
+  it('returns vinta default on null slug — never throws', async () => {
+    const result = await fetchBrandingForSlug(null);
+    expect(result).toEqual(VINTA_DEFAULT_BRANDING);
   });
 
-  it('returns null when tenantId is undefined — never calls fetch', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch');
-    const result = await fetchValidatedReturnUrl(
-      undefined,
-      'https://app.example.com/dashboard'
-    );
-    expect(result).toBeNull();
-    expect(fetchSpy).not.toHaveBeenCalled();
+  it('returns vinta default on undefined slug — never throws', async () => {
+    const result = await fetchBrandingForSlug(undefined);
+    expect(result).toEqual(VINTA_DEFAULT_BRANDING);
   });
 
-  it('returns null when tenantId is empty string — never calls fetch', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch');
-    const result = await fetchValidatedReturnUrl(
-      '',
-      'https://app.example.com/dashboard'
-    );
-    expect(result).toBeNull();
-    expect(fetchSpy).not.toHaveBeenCalled();
+  it('returns vinta default on empty string slug', async () => {
+    const result = await fetchBrandingForSlug('');
+    expect(result).toEqual(VINTA_DEFAULT_BRANDING);
   });
 
-  it('returns null when url is null — never calls fetch', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch');
-    const result = await fetchValidatedReturnUrl('org-123', null);
-    expect(result).toBeNull();
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it('returns null when url is undefined — never calls fetch', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch');
-    const result = await fetchValidatedReturnUrl('org-123', undefined);
-    expect(result).toBeNull();
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it('returns null when url is empty string — never calls fetch', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch');
-    const result = await fetchValidatedReturnUrl('org-123', '');
-    expect(result).toBeNull();
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it('returns sanitizedUrl when backend returns allowed:true', async () => {
-    const sanitizedUrl = 'https://app.example.com/dashboard';
+  it('sends the slug GraphQL variable (not tenantId)', async () => {
     jsonFetch(200, {
       data: {
-        validateReturnUrl: { allowed: true, sanitizedUrl },
+        brandingForTenant: {
+          appName: 'Acme Scheduling',
+          logoUrl: 'https://api.example.com/branding/logo/acme/',
+          primaryColor: '#1A73E8',
+          secondaryColor: '#FBBC04FF',
+        },
       },
     });
-    const result = await fetchValidatedReturnUrl('org-123', sanitizedUrl);
-    expect(result).toBe(sanitizedUrl);
-  });
 
-  it('returns null when backend returns allowed:false', async () => {
-    jsonFetch(200, {
-      data: {
-        validateReturnUrl: { allowed: false, sanitizedUrl: null },
-      },
+    const result = await fetchBrandingForSlug('acme');
+    expect(result).toEqual({
+      appName: 'Acme Scheduling',
+      logoUrl: 'https://api.example.com/branding/logo/acme/',
+      primaryColor: '#1A73E8',
+      secondaryColor: '#FBBC04FF',
     });
-    const result = await fetchValidatedReturnUrl(
-      'org-123',
-      'https://evil.com/phish'
-    );
-    expect(result).toBeNull();
+
+    const body = lastFetchBody();
+    expect(body.variables).toEqual({ slug: 'acme' });
+    expect(body.query).toContain('slug');
+    expect(body.query).not.toContain('$tenantId');
   });
 
-  it('returns null when response contains GraphQL errors', async () => {
+  it('falls back to vinta default when brandingForTenant is null (unknown slug)', async () => {
     jsonFetch(200, {
-      errors: [{ message: 'Something went wrong' }],
+      data: { brandingForTenant: null },
+    });
+
+    const result = await fetchBrandingForSlug('no-such-org');
+    expect(result).toEqual(VINTA_DEFAULT_BRANDING);
+  });
+
+  it('falls back to vinta default when response contains GraphQL errors', async () => {
+    jsonFetch(200, {
+      errors: [{ message: 'Invalid slug' }],
       data: null,
     });
-    const result = await fetchValidatedReturnUrl(
-      'org-123',
-      'https://app.example.com/dashboard'
-    );
-    expect(result).toBeNull();
+
+    const result = await fetchBrandingForSlug('bad');
+    expect(result).toEqual(VINTA_DEFAULT_BRANDING);
   });
 
-  it('returns null on a non-200 response', async () => {
-    mockFetch({ ok: false, json: async () => ({}) } as Response);
-    const result = await fetchValidatedReturnUrl(
-      'org-123',
-      'https://app.example.com/dashboard'
-    );
-    expect(result).toBeNull();
-  });
-
-  it('returns null on a network error — never throws', async () => {
+  it('falls back to vinta default on a network error — never throws', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
-    const result = await fetchValidatedReturnUrl(
-      'org-123',
-      'https://app.example.com/dashboard'
-    );
-    expect(result).toBeNull();
-  });
 
-  it('returns null on a fetch timeout / abort — never throws', async () => {
-    global.fetch = vi
-      .fn()
-      .mockRejectedValue(
-        new DOMException('The operation was aborted.', 'AbortError')
-      );
-    const result = await fetchValidatedReturnUrl(
-      'org-123',
-      'https://app.example.com/dashboard'
-    );
-    expect(result).toBeNull();
-  });
-
-  it('returns null when validateReturnUrl data is null in the response', async () => {
-    jsonFetch(200, {
-      data: { validateReturnUrl: null },
-    });
-    const result = await fetchValidatedReturnUrl(
-      'org-123',
-      'https://app.example.com/dashboard'
-    );
-    expect(result).toBeNull();
-  });
-
-  it('returns null when allowed:true but sanitizedUrl is null', async () => {
-    jsonFetch(200, {
-      data: {
-        validateReturnUrl: { allowed: true, sanitizedUrl: null },
-      },
-    });
-    const result = await fetchValidatedReturnUrl(
-      'org-123',
-      'https://app.example.com/dashboard'
-    );
-    expect(result).toBeNull();
+    const result = await fetchBrandingForSlug('acme');
+    expect(result).toEqual(VINTA_DEFAULT_BRANDING);
   });
 });
