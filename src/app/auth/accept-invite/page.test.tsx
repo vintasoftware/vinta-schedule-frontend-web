@@ -212,9 +212,7 @@ describe('AcceptInvitePage', () => {
 
     it('shows Log in / Sign up links instead of the token form', () => {
       renderPage();
-      expect(
-        screen.getByRole('link', { name: /log in/i })
-      ).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /log in/i })).toBeInTheDocument();
       expect(getSignUpCta()).toBeInTheDocument();
       expect(
         screen.queryByRole('textbox', { name: /invitation token/i })
