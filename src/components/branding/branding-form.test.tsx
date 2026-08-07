@@ -667,10 +667,12 @@ describe('BrandingForm', () => {
       );
     });
 
-    it('sends empty string as logo_url when the logo is cleared', async () => {
+    it('PATCHes an empty logo_url immediately when Clear logo is clicked', async () => {
       const user = userEvent.setup();
-      vi.mocked(brandingUpdate).mockResolvedValue(
-        makeBrandingResponse({ app_name: 'TestApp' })
+      vi.mocked(brandingPartialUpdate).mockResolvedValue(
+        makeBrandingResponse({
+          app_name: 'TestApp',
+        }) as unknown as Awaited<ReturnType<typeof brandingPartialUpdate>>
       );
 
       renderForm(
@@ -682,6 +684,40 @@ describe('BrandingForm', () => {
       );
 
       await user.click(screen.getByRole('button', { name: /clear logo/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(brandingPartialUpdate)).toHaveBeenCalledOnce();
+      });
+
+      const callArgs = vi.mocked(brandingPartialUpdate).mock.calls[0][0];
+      expect(callArgs?.body?.logo_url).toBe('');
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('does not PATCH when clearing before branding is configured (defers to the create PUT)', async () => {
+      const user = userEvent.setup();
+      vi.mocked(brandingUpdate).mockResolvedValue(
+        makeBrandingResponse({ app_name: 'TestApp' })
+      );
+
+      renderForm(null, 'acme');
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+
+      const file = new File([new Uint8Array([1, 2, 3])], 'logo.png', {
+        type: 'image/png',
+      });
+      await user.upload(screen.getByLabelText(/upload logo/i), file);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /clear logo/i })
+        ).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /clear logo/i }));
+      expect(vi.mocked(brandingPartialUpdate)).not.toHaveBeenCalled();
+
       await user.click(screen.getByRole('button', { name: /save branding/i }));
 
       await waitFor(() => {

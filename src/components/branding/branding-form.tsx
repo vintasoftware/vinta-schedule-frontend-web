@@ -280,6 +280,7 @@ export function BrandingForm({
     null
   );
   const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
+  const [isClearingLogo, setIsClearingLogo] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [writeForbiddenReason, setWriteForbiddenReason] =
     React.useState<BrandingWriteForbiddenReason | null>(null);
@@ -326,6 +327,17 @@ export function BrandingForm({
     }
   }, []);
 
+  /**
+   * PATCHes `logo_url` on its own (used by both upload and clear) so the
+   * change survives a reload even if the user never clicks "Save branding".
+   * Returns the stable delivery-route URL from the response (or undefined
+   * when cleared) to show as the new preview.
+   */
+  const persistLogoUrl = async (logoUrl: string): Promise<string | undefined> => {
+    const updated = await patchBranding({ logo_url: logoUrl });
+    return updated?.logo_url ?? undefined;
+  };
+
   const onLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -347,16 +359,13 @@ export function BrandingForm({
       );
 
       if (brandingExists) {
-        // S3 has no way to tell the backend the upload happened, so persist
-        // the key immediately — otherwise the logo silently reverts on
-        // reload if the user never clicks "Save branding".
-        const updated = await patchBranding({ logo_url: objectKey });
+        const persistedUrl = await persistLogoUrl(objectKey);
         if (previousLocalPreviewUrl) {
           URL.revokeObjectURL(previousLocalPreviewUrl);
         }
         URL.revokeObjectURL(localUrl);
         localPreviewUrlRef.current = null;
-        setLogoPreviewUrl(updated?.logo_url ?? undefined);
+        setLogoPreviewUrl(persistedUrl);
         setPendingLogoKey(null);
       } else {
         if (previousLocalPreviewUrl) {
@@ -382,10 +391,33 @@ export function BrandingForm({
     }
   };
 
-  const onClearLogo = () => {
+  const onClearLogo = async () => {
+    const previousLogoPreviewUrl = logoPreviewUrl;
+    const previousPendingLogoKey = pendingLogoKey;
+    const previousLocalPreviewUrl = localPreviewUrlRef.current;
+
     revokeLocalPreview();
     setLogoPreviewUrl(undefined);
-    setPendingLogoKey('');
+
+    if (!brandingExists) {
+      // Nothing persisted yet (first-time setup) — just clear local state;
+      // toPayload() sends "" on the eventual create PUT.
+      setPendingLogoKey('');
+      return;
+    }
+
+    setIsClearingLogo(true);
+    try {
+      await persistLogoUrl('');
+      setPendingLogoKey(null);
+    } catch {
+      localPreviewUrlRef.current = previousLocalPreviewUrl;
+      setLogoPreviewUrl(previousLogoPreviewUrl);
+      setPendingLogoKey(previousPendingLogoKey);
+      toast.error('Failed to clear logo — please try again');
+    } finally {
+      setIsClearingLogo(false);
+    }
   };
 
   const focusSlugField = React.useCallback(() => {
@@ -567,7 +599,7 @@ export function BrandingForm({
                   type='button'
                   variant='outline'
                   size='sm'
-                  disabled={isUploadingLogo || isSaving}
+                  disabled={isUploadingLogo || isClearingLogo || isSaving}
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {isUploadingLogo ? (
@@ -587,12 +619,21 @@ export function BrandingForm({
                     type='button'
                     variant='ghost'
                     size='sm'
-                    disabled={isUploadingLogo || isSaving}
+                    disabled={isUploadingLogo || isClearingLogo || isSaving}
                     aria-label='Clear logo'
                     onClick={onClearLogo}
                   >
-                    <X />
-                    Clear logo
+                    {isClearingLogo ? (
+                      <>
+                        <Spinner label='' />
+                        Clearing…
+                      </>
+                    ) : (
+                      <>
+                        <X />
+                        Clear logo
+                      </>
+                    )}
                   </Button>
                 )}
               </HStack>
