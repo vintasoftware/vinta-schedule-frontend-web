@@ -6,7 +6,7 @@
 
 import type {
   ExternalEventChangeRequestStatusEnum,
-  KindEnum,
+  ExternalEventChangeRequestKindEnum,
   ProviderEnum,
 } from '@/client';
 import type { BadgeProps } from 'vinta-schedule-design-system/ui/badge';
@@ -50,7 +50,7 @@ export const STATUS_FILTER_OPTIONS: ExternalEventChangeRequestStatusEnum[] = [
 // Kind
 // ---------------------------------------------------------------------------
 
-export const KIND_LABELS: Record<KindEnum, string> = {
+export const KIND_LABELS: Record<ExternalEventChangeRequestKindEnum, string> = {
   update: 'Update',
   delete: 'Delete',
 };

@@ -21,18 +21,21 @@ vi.mock('next/navigation', () => ({
 // ---------------------------------------------------------------------------
 
 const MEMBERSHIP_ALPHA: MyMembership = {
-  organization: { id: 1, name: 'Alpha Corp' },
+  organization: { id: 1, name: 'Alpha Corp', slug: null },
   role: 'admin',
+  can_manage_branding: false,
 };
 
 const MEMBERSHIP_BETA: MyMembership = {
-  organization: { id: 2, name: 'Beta Ltd' },
+  organization: { id: 2, name: 'Beta Ltd', slug: null },
   role: 'member',
+  can_manage_branding: false,
 };
 
 const MEMBERSHIP_GAMMA: MyMembership = {
-  organization: { id: 3, name: 'Gamma Inc' },
+  organization: { id: 3, name: 'Gamma Inc', slug: null },
   role: 'member',
+  can_manage_branding: false,
 };
 
 // ---------------------------------------------------------------------------

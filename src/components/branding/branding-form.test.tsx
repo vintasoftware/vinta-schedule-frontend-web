@@ -168,51 +168,108 @@ describe('BrandingForm', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Validation — return_url_allowlist
+  // Validation — redirect_url. Rules mirror the API's redirect_url_validation.
   // -------------------------------------------------------------------------
 
-  describe('return_url_allowlist validation', () => {
-    it('rejects a non-URL entry in the allowlist', async () => {
+  describe('redirect_url validation', () => {
+    it('rejects a non-URL value', async () => {
       const user = userEvent.setup();
       renderForm();
 
       await user.type(screen.getByLabelText(/app name/i), 'TestApp');
-
-      // Add a URL entry.
-      await user.click(screen.getByRole('button', { name: /add url/i }));
-
-      // Find the newly added input (placeholder contains "callback").
-      const urlInput = screen.getByPlaceholderText(/callback/i);
-      await user.type(urlInput, 'not-a-valid-url');
+      await user.type(
+        screen.getByLabelText(/redirect url/i),
+        'not-a-valid-url'
+      );
 
       await user.click(screen.getByRole('button', { name: /save branding/i }));
 
       await waitFor(() => {
         expect(
-          screen.getByText(/each entry must be a valid url/i)
+          screen.getByText(/well-formed https url with a host/i)
         ).toBeInTheDocument();
       });
 
       expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
     });
 
-    it('accepts a valid URL in the allowlist', async () => {
+    it('rejects an http URL', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.type(
+        screen.getByLabelText(/redirect url/i),
+        'http://example.com/callback'
+      );
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/must use the https scheme/i)).toBeInTheDocument();
+      });
+
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('rejects a wildcard URL', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.type(
+        screen.getByLabelText(/redirect url/i),
+        'https://*.example.com/callback'
+      );
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/must not contain a wildcard character/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('rejects a path-prefix URL (trailing slash after a path segment)', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.type(screen.getByLabelText(/app name/i), 'TestApp');
+      await user.type(
+        screen.getByLabelText(/redirect url/i),
+        'https://example.com/callback/'
+      );
+
+      await user.click(screen.getByRole('button', { name: /save branding/i }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/must not end with a trailing slash/i)
+        ).toBeInTheDocument();
+      });
+
+      expect(vi.mocked(brandingUpdate)).not.toHaveBeenCalled();
+    });
+
+    it('accepts a valid https URL and sends it in the payload', async () => {
       const user = userEvent.setup();
       vi.mocked(brandingUpdate).mockResolvedValue(
         makeBrandingResponse({
           app_name: 'TestApp',
-          return_url_allowlist: ['https://example.com/callback'],
+          redirect_url: 'https://example.com/callback',
         })
       );
 
       renderForm();
 
       await user.type(screen.getByLabelText(/app name/i), 'TestApp');
-
-      await user.click(screen.getByRole('button', { name: /add url/i }));
-
-      const urlInput = screen.getByPlaceholderText(/callback/i);
-      await user.type(urlInput, 'https://example.com/callback');
+      await user.type(
+        screen.getByLabelText(/redirect url/i),
+        'https://example.com/callback'
+      );
 
       await user.click(screen.getByRole('button', { name: /save branding/i }));
 
@@ -221,9 +278,7 @@ describe('BrandingForm', () => {
       });
 
       const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
-      expect(callArgs?.body?.return_url_allowlist).toEqual([
-        'https://example.com/callback',
-      ]);
+      expect(callArgs?.body?.redirect_url).toBe('https://example.com/callback');
     });
   });
 
@@ -311,34 +366,23 @@ describe('BrandingForm', () => {
       expect(callArgs?.body?.primary_color).toBeUndefined();
       expect(callArgs?.body?.secondary_color).toBeUndefined();
       expect(callArgs?.body?.support_email).toBeUndefined();
-      // An empty allowlist (no URLs added) sends an empty array, not undefined.
-      expect(callArgs?.body?.return_url_allowlist).toEqual([]);
+      // redirect_url is the exception: it is sent as '' rather than stripped,
+      // because '' is how a previously-configured destination gets cleared.
+      expect(callArgs?.body?.redirect_url).toBe('');
     });
 
-    it('transforms {value}-object array to string[] in the payload', async () => {
+    it('clears a configured redirect_url by submitting the field empty', async () => {
       const user = userEvent.setup();
       vi.mocked(brandingUpdate).mockResolvedValue(
-        makeBrandingResponse({
-          app_name: 'App',
-          return_url_allowlist: [
-            'https://example.com/cb1',
-            'https://example.com/cb2',
-          ],
-        })
+        makeBrandingResponse({ app_name: 'App' })
       );
 
-      renderForm();
+      renderForm({
+        app_name: 'App',
+        redirect_url: 'https://example.com/callback',
+      });
 
-      await user.type(screen.getByLabelText(/app name/i), 'App');
-
-      // Add two URLs.
-      await user.click(screen.getByRole('button', { name: /add url/i }));
-      await user.click(screen.getByRole('button', { name: /add url/i }));
-
-      const urlInputs = screen.getAllByPlaceholderText(/callback/i);
-      await user.type(urlInputs[0], 'https://example.com/cb1');
-      await user.type(urlInputs[1], 'https://example.com/cb2');
-
+      await user.clear(screen.getByLabelText(/redirect url/i));
       await user.click(screen.getByRole('button', { name: /save branding/i }));
 
       await waitFor(() => {
@@ -346,11 +390,7 @@ describe('BrandingForm', () => {
       });
 
       const callArgs = vi.mocked(brandingUpdate).mock.calls[0][0];
-      // toPayload maps [{value:'...'}, {value:'...'}] → ['...', '...']
-      expect(callArgs?.body?.return_url_allowlist).toEqual([
-        'https://example.com/cb1',
-        'https://example.com/cb2',
-      ]);
+      expect(callArgs?.body?.redirect_url).toBe('');
     });
 
     it('prefills the form when initialBranding is provided', async () => {

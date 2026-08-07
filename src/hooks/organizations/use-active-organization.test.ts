@@ -42,13 +42,15 @@ import { useActiveOrganization } from './use-active-organization';
 // ---------------------------------------------------------------------------
 
 const FIXTURE_MEMBERSHIP_1: MyMembership = {
-  organization: { id: 1, name: 'Org 1' },
+  organization: { id: 1, name: 'Org 1', slug: null },
   role: 'admin',
+  can_manage_branding: false,
 };
 
 const FIXTURE_MEMBERSHIP_2: MyMembership = {
-  organization: { id: 2, name: 'Org 2' },
+  organization: { id: 2, name: 'Org 2', slug: null },
   role: 'member',
+  can_manage_branding: false,
 };
 
 // ---------------------------------------------------------------------------

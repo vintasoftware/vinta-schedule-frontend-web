@@ -87,11 +87,13 @@ import type { CurrentMembership, MyMembership } from '@/client';
 const MEMBER_MEMBERSHIP: CurrentMembership = {
   role: 'member',
   organization: { id: 1, name: 'Test Org' },
+  can_manage_branding: false,
 };
 
 const ADMIN_MEMBERSHIP: CurrentMembership = {
   role: 'admin',
   organization: { id: 1, name: 'Test Org' },
+  can_manage_branding: false,
 };
 
 // Reseller org: flagged can_invite_organizations. Only these orgs surface the
@@ -99,6 +101,7 @@ const ADMIN_MEMBERSHIP: CurrentMembership = {
 const RESELLER_ADMIN_MEMBERSHIP: CurrentMembership = {
   role: 'admin',
   organization: { id: 1, name: 'Test Org', can_invite_organizations: true },
+  can_manage_branding: true,
 };
 
 function mockOrgSuccess(membership: CurrentMembership) {

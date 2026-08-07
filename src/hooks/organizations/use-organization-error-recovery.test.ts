@@ -67,12 +67,14 @@ import { recoverFromOrganizationQueryError } from './use-organization-error-reco
 // ---------------------------------------------------------------------------
 
 const MEMBERSHIP_A: MyMembership = {
-  organization: { id: 1, name: 'Org A' },
+  organization: { id: 1, name: 'Org A', slug: null },
   role: 'admin',
+  can_manage_branding: false,
 };
 const MEMBERSHIP_B: MyMembership = {
-  organization: { id: 2, name: 'Org B' },
+  organization: { id: 2, name: 'Org B', slug: null },
   role: 'member',
+  can_manage_branding: false,
 };
 
 /** The exact 400 body the backend sends for a missing X-Organization-Id. */
