@@ -1014,6 +1014,32 @@ export type OrganizationBranding = {
 };
 
 /**
+ * Response body for ``OrganizationBrandingLogoUploadParamsView`` — the same
+ * shape ``organizations.branding_logo.sign_branding_logo_upload`` and the
+ * GraphQL ``create_branding_logo_upload`` mutation return.
+ *
+ * ``upload_url`` is a complete SigV4 presigned PUT URL. The client uploads by
+ * PUTting the file body straight to it with a matching Content-Type and no
+ * other headers — no AWS credentials reach the browser and nothing has to be
+ * signed client-side. Mirrors ``users.serializers.ProfilePictureUploadParamsSerializer``.
+ */
+export type OrganizationBrandingLogoUploadParams = {
+    object_key: string;
+    upload_url: string;
+    expires_in: number;
+};
+
+/**
+ * Request body for ``OrganizationBrandingLogoUploadParamsView``. Mirrors
+ * ``users.serializers.ProfilePictureUploadParamsRequestSerializer``.
+ */
+export type OrganizationBrandingLogoUploadParamsRequest = {
+    file_name: string;
+    file_type: string;
+    file_size: number;
+};
+
+/**
  * Lightweight read-only serializer for an Organization.
  *
  * Exposes only the fields needed for the org-switcher list: ``id``, ``name``,
@@ -4762,6 +4788,36 @@ export type BrandingUpdateResponses = {
 };
 
 export type BrandingUpdateResponse = BrandingUpdateResponses[keyof BrandingUpdateResponses];
+
+export type BrandingLogoUploadParamsCreateData = {
+    body: OrganizationBrandingLogoUploadParamsRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/branding/logo-upload-params/';
+};
+
+export type BrandingLogoUploadParamsCreateErrors = {
+    /**
+     * Disallowed content type or file size
+     */
+    400: unknown;
+    /**
+     * Organization has a parent or lacks the entitlement; or not an admin
+     */
+    403: unknown;
+};
+
+export type BrandingLogoUploadParamsCreateResponses = {
+    200: OrganizationBrandingLogoUploadParams;
+};
+
+export type BrandingLogoUploadParamsCreateResponse = BrandingLogoUploadParamsCreateResponses[keyof BrandingLogoUploadParamsCreateResponses];
 
 export type BrandingLogoRetrieveData = {
     body?: never;

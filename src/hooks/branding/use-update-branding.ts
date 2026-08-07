@@ -1,7 +1,7 @@
 import type { OrganizationBranding } from '@/client';
 import { brandingUpdateMutation } from '@/client/@tanstack/react-query.gen';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { BRANDING_QUERY_KEY } from './use-branding';
+import { BRANDING_QUERY_KEY, type BrandingResult } from './use-branding';
 
 /**
  * Wraps PUT /branding/ (create-or-replace) for the acting org's branding.
@@ -11,19 +11,18 @@ import { BRANDING_QUERY_KEY } from './use-branding';
  * (full-replace) semantics; empty form values are mapped to `undefined` in
  * toPayload so they're omitted.
  *
- * On success, invalidates the branding query (using the generated query key so
- * the invalidation actually matches the registered query) so the form prefills
- * with the fresh saved values.
+ * On success, seeds the branding query cache directly with the response
+ * (it's the same shape a GET returns) instead of invalidating and refetching,
+ * so the form prefills with the fresh saved values.
  */
 export function useUpdateBranding() {
   const queryClient = useQueryClient();
 
   const updateBrandingMutation = useMutation({
     ...brandingUpdateMutation(),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: BRANDING_QUERY_KEY,
-      });
+    onSuccess: (data: OrganizationBranding) => {
+      const result: BrandingResult = { status: 'ok', branding: data };
+      queryClient.setQueryData(BRANDING_QUERY_KEY, result);
     },
   });
 
