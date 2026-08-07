@@ -38,6 +38,7 @@ import {
   FormDescription,
 } from 'vinta-schedule-design-system/ui/form';
 import { useUpdateBranding } from '@/hooks/branding/use-update-branding';
+import { usePatchBranding } from '@/hooks/branding/use-patch-branding';
 import {
   useUploadBrandingLogo,
   UploadValidationError,
@@ -260,9 +261,12 @@ export function BrandingForm({
   initialSlug = null,
 }: BrandingFormProps) {
   const { updateBranding, updateBrandingMutation } = useUpdateBranding();
+  const { patchBranding } = usePatchBranding();
   const { uploadBrandingLogo } = useUploadBrandingLogo();
   const { updateOrganizationSlug, updateOrganizationSlugMutation } =
     useUpdateOrganizationSlug();
+  /** PATCH can only update an existing row; a first-time setup has none yet. */
+  const brandingExists = initialBranding !== null;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const localPreviewUrlRef = React.useRef<string | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = React.useState<
@@ -341,10 +345,25 @@ export function BrandingForm({
       const objectKey = await uploadBrandingLogo(file, (pct) =>
         setUploadProgress(pct)
       );
-      if (previousLocalPreviewUrl) {
-        URL.revokeObjectURL(previousLocalPreviewUrl);
+
+      if (brandingExists) {
+        // S3 has no way to tell the backend the upload happened, so persist
+        // the key immediately — otherwise the logo silently reverts on
+        // reload if the user never clicks "Save branding".
+        const updated = await patchBranding({ logo_url: objectKey });
+        if (previousLocalPreviewUrl) {
+          URL.revokeObjectURL(previousLocalPreviewUrl);
+        }
+        URL.revokeObjectURL(localUrl);
+        localPreviewUrlRef.current = null;
+        setLogoPreviewUrl(updated?.logo_url ?? undefined);
+        setPendingLogoKey(null);
+      } else {
+        if (previousLocalPreviewUrl) {
+          URL.revokeObjectURL(previousLocalPreviewUrl);
+        }
+        setPendingLogoKey(objectKey);
       }
-      setPendingLogoKey(objectKey);
     } catch (err) {
       if (localPreviewUrlRef.current) {
         URL.revokeObjectURL(localPreviewUrlRef.current);
