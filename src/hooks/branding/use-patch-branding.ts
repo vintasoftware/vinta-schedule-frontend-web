@@ -1,4 +1,7 @@
-import type { OrganizationBranding, PatchedOrganizationBranding } from '@/client';
+import type {
+  OrganizationBranding,
+  PatchedOrganizationBranding,
+} from '@/client';
 import { brandingPartialUpdateMutation } from '@/client/@tanstack/react-query.gen';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { BRANDING_QUERY_KEY, type BrandingResult } from './use-branding';

@@ -333,7 +333,9 @@ export function BrandingForm({
    * Returns the stable delivery-route URL from the response (or undefined
    * when cleared) to show as the new preview.
    */
-  const persistLogoUrl = async (logoUrl: string): Promise<string | undefined> => {
+  const persistLogoUrl = async (
+    logoUrl: string
+  ): Promise<string | undefined> => {
     const updated = await patchBranding({ logo_url: logoUrl });
     return updated?.logo_url ?? undefined;
   };
