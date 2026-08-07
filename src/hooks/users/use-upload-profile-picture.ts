@@ -18,7 +18,6 @@ function uploadToS3(
   onProgress: (pct: number) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const url = `${params.endpoint}/${params.bucket}/${params.object_key}`;
     const xhr = new XMLHttpRequest();
 
     xhr.upload.addEventListener('progress', (e) => {
@@ -39,11 +38,11 @@ function uploadToS3(
     xhr.addEventListener('error', () => reject(new Error('Upload failed')));
     xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
 
-    xhr.open('PUT', url);
+    // `upload_url` is a complete presigned PUT URL. Content-Type is part of
+    // what the backend signed, so it has to be sent and has to match the file
+    // exactly; any other header would break the signature.
+    xhr.open('PUT', params.upload_url);
     xhr.setRequestHeader('Content-Type', file.type);
-    if (params.acl) {
-      xhr.setRequestHeader('x-amz-acl', params.acl);
-    }
     xhr.send(file);
   });
 }
@@ -53,7 +52,7 @@ export function useUploadProfilePicture() {
     profileProfilePictureUploadParamsCreateMutation()
   );
 
-  /** Validates, uploads to S3, and returns the public picture URL. Does NOT patch the profile. */
+  /** Validates, uploads to S3, and returns the object key. Does NOT patch the profile. */
   const uploadProfilePicture = async (
     file: File,
     onProgress?: (pct: number) => void
@@ -78,7 +77,9 @@ export function useUploadProfilePicture() {
 
     await uploadToS3(params, file, onProgress ?? (() => {}));
 
-    return `${params.endpoint}/${params.bucket}/${params.object_key}`;
+    // The bucket is private and served through signed URLs, so there is no
+    // public URL to build here — the profile takes the S3 key.
+    return params.object_key;
   };
 
   return { uploadProfilePicture };

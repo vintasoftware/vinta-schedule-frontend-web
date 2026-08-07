@@ -11,12 +11,32 @@ export type AcceptInvitation = {
     token: string;
 };
 
+export type AcceptInvitationResponse = {
+    message: string;
+    organization_id: number;
+    organization_name: string;
+};
+
 /**
  * * `create` - create
  * * `update` - update
  * * `delete` - delete
  */
 export type ActionEnum = 'create' | 'update' | 'delete';
+
+/**
+ * Body of ``POST /billing/add-ons/``. See ``ChangePlanRequestSerializer``
+ * for why ``payment_token`` is present despite not being in the documented
+ * request shape -- an add-on purchase is a one-time charge and needs
+ * an instrument to charge, exactly like a first-ever plan upgrade does.
+ */
+export type AddOnPurchaseRequest = {
+    resource_key: ResourceKeyEnum;
+    quantity: number;
+    is_recurring?: boolean;
+    idempotency_key: string;
+    payment_token?: string;
+};
 
 /**
  * * `calendar_event` - Calendar Event
@@ -189,16 +209,48 @@ export type BillingAddress = {
 };
 
 /**
+ * The catalog view behind ``GET /billing/plans/`` — every active plan with
+ * its limits and entitlements, so a client can render an upgrade picker
+ * without a second round trip per plan.
+ */
+export type BillingPlan = {
+    readonly id: number;
+    readonly slug: string;
+    readonly name: string;
+    readonly is_active: boolean;
+    readonly is_default_for_new_organizations: boolean;
+    readonly monthly_price: string;
+    readonly annual_price: string | null;
+    readonly currency: string;
+    readonly grace_period_days: number | null;
+    readonly limits: Array<PlanLimit>;
+    readonly entitlements: Array<PlanEntitlement>;
+};
+
+/**
  * Serializer for BillingProfile virtual model.
  */
 export type BillingProfile = {
     readonly id: number;
+    contact_first_name: string;
+    contact_last_name?: string;
+    contact_email: string;
+    contact_phone?: string;
     document_type: string;
     document_number: string;
     billing_address: BillingAddress;
     readonly created: string;
     readonly modified: string;
 };
+
+/**
+ * * `free` - Free
+ * * `active` - Active
+ * * `grace` - Grace period
+ * * `restricted` - Restricted
+ * * `cancelled` - Cancelled
+ */
+export type BillingStateEnum = 'free' | 'active' | 'grace' | 'restricted' | 'cancelled';
 
 /**
  * Serializer for BlockedTime model with recurring support.
@@ -524,6 +576,27 @@ export type CalendarSyncStatusEnum = 'success' | 'failed' | 'in_progress' | 'not
 export type CalendarTypeEnum = 'personal' | 'resource' | 'virtual' | 'bundle';
 
 /**
+ * Body of ``POST /billing/subscription/change-plan/``.
+ *
+ * ``payment_token`` is not part of the documented request body (only
+ * ``plan_slug``/``billing_interval``/``idempotency_key``) but is required in
+ * practice the *first* time a billing root ever attaches a payment instrument
+ * -- there is otherwise no provider-facing card/token to create the
+ * provider-side subscription against. Optional here (blank by default) because
+ * it is only actually required when ``Subscription.external_id`` is still
+ * blank; see ``SubscriptionService._initiate_upgrade`` for the exact condition
+ * and ``PaymentTokenRequiredError`` for the 400 a caller gets if it omits the
+ * token when one was needed. This is a deliberate deviation from the
+ * documented request shape.
+ */
+export type ChangePlanRequest = {
+    plan_slug: string;
+    billing_interval?: PendingBillingIntervalEnum;
+    idempotency_key: string;
+    payment_token?: string;
+};
+
+/**
  * Read-only representation of a single concept doc's full content.
  *
  * Plain ``Serializer`` over a :class:`public_api.docs_content.ConceptDoc` dict —
@@ -552,8 +625,8 @@ export type ConceptDocSummary = {
  *
  * ``document_type`` is required — the consenting user comes from the
  * authenticated request, and audit metadata (IP, user-agent, source) is
- * captured server-side in the view. ``phone_number`` is optional (Phase 8 —
- * phone-keyed consent): an OAuth user can consent a phone number here,
+ * captured server-side in the view. ``phone_number`` is optional
+ * (phone-keyed consent): an OAuth user can consent a phone number here,
  * before phone verification, so the SMS gate can later be satisfied for
  * that phone.
  */
@@ -582,6 +655,20 @@ export type CurrentMembership = {
     readonly organization: {
         [key: string]: unknown;
     };
+    /**
+     * Whether the membership's organization is branding-eligible.
+     *
+     * Computed as parentless-and-entitled -- deliberately excludes the slug
+     * condition (Organization Auth-Area Branding plan, Phase 4 Capability
+     * signal guiding decision), so an organization missing only a slug still
+     * sees the branding page instead of it being silently absent. Shares
+     * ``organizations.permissions.is_branding_eligible_organization`` rather
+     * than restating the two-condition check, so this tracks the same gate
+     * that governs ``GET /branding/`` (see
+     * ``OrganizationBrandingView._check_branding_read_gate``) rather than
+     * the three-condition write gate.
+     */
+    readonly can_manage_branding: boolean;
 };
 
 /**
@@ -590,6 +677,29 @@ export type CurrentMembership = {
  * * `sms_consent` - SMS Messaging Consent
  */
 export type DocumentTypeEnum = 'privacy_policy' | 'terms_of_use' | 'sms_consent';
+
+/**
+ * One row of ``GET /billing/usage/`` -- an ``EffectiveLimit`` paired with the
+ * ``current_usage`` ``EntitlementService.check_limit`` would compare it
+ * against. Not a ``ModelSerializer``: the source is a dataclass plus a
+ * separately-fetched usage count, not one model instance.
+ */
+export type EffectiveLimitUsage = {
+    resource_key: string;
+    kind: string | null;
+    limit_value: number | null;
+    current_usage: number | null;
+    overage_unit_price: string | null;
+};
+
+/**
+ * * `external_calendar_google` - Google Calendar sync
+ * * `external_calendar_microsoft` - Microsoft Calendar sync
+ * * `partner_api` - Partner / public API access
+ * * `white_label_branding` - White-label branding
+ * * `advanced_scheduling` - Advanced scheduling
+ */
+export type EntitlementKeyEnum = 'external_calendar_google' | 'external_calendar_microsoft' | 'partner_api' | 'white_label_branding' | 'advanced_scheduling';
 
 export type EventAttendance = {
     /**
@@ -692,7 +802,7 @@ export type ExternalAttendee = {
 export type ExternalEventChangeRequest = {
     readonly id: number;
     readonly event_id: number;
-    kind: KindEnum;
+    kind: ExternalEventChangeRequestKindEnum;
     status: ExternalEventChangeRequestStatusEnum;
     provider: ProviderEnum;
     /**
@@ -710,6 +820,12 @@ export type ExternalEventChangeRequest = {
     readonly resolved_at: string | null;
     readonly created: string;
 };
+
+/**
+ * * `update` - Update
+ * * `delete` - Delete
+ */
+export type ExternalEventChangeRequestKindEnum = 'update' | 'delete';
 
 /**
  * * `pending` - Pending
@@ -736,17 +852,12 @@ export type ExternalEventUpdatePolicyEnum = 'allow' | 'change_request' | 'forbid
 export type FrequencyEnum = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
 
 /**
- * * `update` - Update
- * * `delete` - Delete
- */
-export type KindEnum = 'update' | 'delete';
-
-/**
  * Read-only serializer for the caller's active organization memberships.
  *
  * Used by ``GET /organizations/mine/`` to power the frontend org switcher.
- * Returns a list of ``{organization: {id, name}, role}`` entries — one per
- * active membership — without requiring the ``X-Organization-Id`` header.
+ * Returns a list of ``{organization: {id, name}, role, can_manage_branding}``
+ * entries — one per active membership — without requiring the
+ * ``X-Organization-Id`` header.
  */
 export type MyMembership = {
     organization: OrganizationBrief;
@@ -757,13 +868,32 @@ export type MyMembership = {
      * * `admin` - Admin
      */
     role: RoleEnum;
+    /**
+     * Whether this membership's organization is branding-eligible
+     * (parentless-and-entitled, excluding the slug condition) -- see
+     * ``CurrentMembershipSerializer.get_can_manage_branding`` for the full
+     * rationale. Computed per-membership (not per-role): a non-admin
+     * member's entry reports the same organization-level capability as an
+     * admin's, matching the read gate's own admin-agnostic eligibility
+     * check -- role-based write authorization is enforced separately by
+     * ``IsOrganizationAdmin`` on the branding endpoints themselves.
+     *
+     * Reads from the batch ``_MyMembershipListSerializer`` precomputes on the
+     * shared context when serializing a list (the ``many=True`` path this
+     * serializer is actually used on). Falls back to the single-organization
+     * ``is_branding_eligible_organization`` call when there is no such batch
+     * in context (e.g. this serializer instantiated directly against one
+     * membership), which is exactly what the batch entry would have computed
+     * for that one organization anyway.
+     */
+    readonly can_manage_branding: boolean;
 };
 
 /**
  * Read-only serializer for in-app notification objects.
  *
- * Works for both vintasend Notification dataclasses (Phase 1 — returned by
- * get_in_app_unread) and vintasend_django model instances (Phase 2 — ORM rows).
+ * Works for both vintasend Notification dataclasses (returned by
+ * get_in_app_unread) and vintasend_django model instances (ORM rows).
  *
  * Fields:
  * - id, title, notification_type, status: present on both dataclass and model.
@@ -816,6 +946,7 @@ export type Notification = {
 export type Organization = {
     readonly id: number;
     name: string;
+    slug?: string | null;
     /**
      * Whether to sync rooms for this organization.
      */
@@ -846,21 +977,23 @@ export type Organization = {
  * Serializer for OrganizationBranding (reseller-admin REST endpoints).
  *
  * Exposes app_name, logo_url, primary_color, secondary_color, support_email,
- * and return_url_allowlist. NEVER exposes can_invite_organizations or makes
+ * and redirect_url. NEVER exposes can_invite_organizations or makes
  * organization writable (the org is set from the acting org in the view).
  *
  * Validates:
  * - Color format: #RRGGBB or #RRGGBBAA (regex).
- * - Each return_url_allowlist entry is a valid URL (URLValidator).
+ * - redirect_url: HTTPS scheme, no wildcard character, no path-prefix pattern
+ * (organizations.redirect_url_validation).
+ *
+ * ``logo_url`` round-trips through ``organizations.branding_logo``: reads
+ * return the logo delivery route's URL (never a raw or signed S3 URL), writes
+ * accept the uploaded S3 key from the ``branding_logos`` S3Direct destination.
  */
 export type OrganizationBranding = {
     /**
      * The display name of the white-labeled app (e.g., 'MyScheduler').
      */
     app_name: string;
-    /**
-     * URL to the reseller's logo image.
-     */
     logo_url?: string;
     /**
      * Primary color as hex code: #RRGGBB or #RRGGBBAA.
@@ -875,21 +1008,27 @@ export type OrganizationBranding = {
      */
     support_email?: string;
     /**
-     * List of URLs that are allowed as return addresses after OAuth flows.
+     * Single post-authentication redirect destination for this organization. Replaces the old return_url_allowlist: no caller-supplied redirect target is ever honored, so there is nothing to validate at request time and no open-redirect surface. Must be HTTPS with no wildcard character and no path-prefix pattern (organizations.redirect_url_validation).
      */
-    return_url_allowlist?: Array<string>;
+    redirect_url?: string;
 };
 
 /**
  * Lightweight read-only serializer for an Organization.
  *
- * Exposes only the fields needed for the org-switcher list: ``id`` and ``name``.
- * Intentionally avoids the heavier ``OrganizationSerializer`` (which loads the
- * Google service account) to keep ``GET /organizations/mine/`` fast.
+ * Exposes only the fields needed for the org-switcher list: ``id``, ``name``,
+ * and the read-only ``slug`` (so the frontend can render/link the branded login
+ * URL without a second request). Intentionally avoids the heavier
+ * ``OrganizationSerializer`` (which loads the Google service account) to keep
+ * ``GET /organizations/mine/`` fast.
  */
 export type OrganizationBrief = {
     readonly id: number;
     readonly name: string;
+    /**
+     * Public, URL-safe identifier used by the organization's branded login page and by brandingForTenant. Optional until the organization sets one self-serve; stored as NULL (never empty string) when unset — default=None keeps a field left blank in a form/serializer NULL rather than '', which is what lets the unique index admit any number of organizations with no slug. Mutable after set: changing it orphans previously-issued branded login URLs, which then fall back to the default identity rather than erroring. Format, reserved-word, and confusable-character rules live in organizations.slug_validation and are enforced by each write surface (REST serializer, admin form, GraphQL input), not here.
+     */
+    readonly slug: string | null;
 };
 
 /**
@@ -951,6 +1090,13 @@ export type PaginatedAvailableTimeList = {
     next?: string | null;
     previous?: string | null;
     results: Array<AvailableTime>;
+};
+
+export type PaginatedBillingPlanList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<BillingPlan>;
 };
 
 export type PaginatedBlockedTimeList = {
@@ -1108,6 +1254,10 @@ export type PatchedAvailableTime = {
  */
 export type PatchedBillingProfile = {
     readonly id?: number;
+    contact_first_name?: string;
+    contact_last_name?: string;
+    contact_email?: string;
+    contact_phone?: string;
     document_type?: string;
     document_number?: string;
     billing_address?: BillingAddress;
@@ -1287,6 +1437,7 @@ export type PatchedCalendarGroup = {
 export type PatchedOrganization = {
     readonly id?: number;
     name?: string;
+    slug?: string | null;
     /**
      * Whether to sync rooms for this organization.
      */
@@ -1317,21 +1468,23 @@ export type PatchedOrganization = {
  * Serializer for OrganizationBranding (reseller-admin REST endpoints).
  *
  * Exposes app_name, logo_url, primary_color, secondary_color, support_email,
- * and return_url_allowlist. NEVER exposes can_invite_organizations or makes
+ * and redirect_url. NEVER exposes can_invite_organizations or makes
  * organization writable (the org is set from the acting org in the view).
  *
  * Validates:
  * - Color format: #RRGGBB or #RRGGBBAA (regex).
- * - Each return_url_allowlist entry is a valid URL (URLValidator).
+ * - redirect_url: HTTPS scheme, no wildcard character, no path-prefix pattern
+ * (organizations.redirect_url_validation).
+ *
+ * ``logo_url`` round-trips through ``organizations.branding_logo``: reads
+ * return the logo delivery route's URL (never a raw or signed S3 URL), writes
+ * accept the uploaded S3 key from the ``branding_logos`` S3Direct destination.
  */
 export type PatchedOrganizationBranding = {
     /**
      * The display name of the white-labeled app (e.g., 'MyScheduler').
      */
     app_name?: string;
-    /**
-     * URL to the reseller's logo image.
-     */
     logo_url?: string;
     /**
      * Primary color as hex code: #RRGGBB or #RRGGBBAA.
@@ -1346,9 +1499,9 @@ export type PatchedOrganizationBranding = {
      */
     support_email?: string;
     /**
-     * List of URLs that are allowed as return addresses after OAuth flows.
+     * Single post-authentication redirect destination for this organization. Replaces the old return_url_allowlist: no caller-supplied redirect target is ever honored, so there is nothing to validate at request time and no open-redirect surface. Must be HTTPS with no wildcard character and no path-prefix pattern (organizations.redirect_url_validation).
      */
-    return_url_allowlist?: Array<string>;
+    redirect_url?: string;
 };
 
 export type PatchedProfile = {
@@ -1373,7 +1526,7 @@ export type PatchedServiceAccountWrite = {
 };
 
 /**
- * Input serializer for updating a public-API token's resource grants (Phase 15).
+ * Input serializer for updating a public-API token's resource grants.
  *
  * Accepts ``available_resources`` (a non-empty list of valid ``PublicAPIResources`` values)
  * only.  ``integration_name`` and ``token`` are never accepted or changed.
@@ -1390,6 +1543,36 @@ export type PatchedWebhookConfiguration = {
     url?: string;
     headers?: unknown;
 };
+
+/**
+ * * `mercadopago` - MercadoPago
+ * * `stripe` - Stripe
+ */
+export type PaymentProviderEnum = 'mercadopago' | 'stripe';
+
+/**
+ * * `monthly` - Monthly
+ * * `annual` - Annual
+ */
+export type PendingBillingIntervalEnum = 'monthly' | 'annual';
+
+export type PlanEntitlement = {
+    entitlement_key: EntitlementKeyEnum;
+    readonly is_enabled: boolean;
+};
+
+export type PlanLimit = {
+    resource_key: ResourceKeyEnum;
+    readonly limit_value: number | null;
+    kind: PlanLimitKindEnum;
+    readonly overage_unit_price: string | null;
+};
+
+/**
+ * * `prepaid` - Prepaid
+ * * `postpaid` - Postpaid
+ */
+export type PlanLimitKindEnum = 'prepaid' | 'postpaid';
 
 /**
  * Read-only representation of a published :class:`PolicyDocument` version.
@@ -1421,13 +1604,8 @@ export type Profile = {
 
 export type ProfilePictureUploadParams = {
     object_key: string;
-    access_key_id: string | null;
-    session_token: string | null;
-    region: string;
-    bucket: string;
-    endpoint: string;
-    acl: string;
-    allow_existence_optimization: boolean;
+    upload_url: string;
+    expires_in: number;
 };
 
 export type ProfilePictureUploadParamsRequest = {
@@ -1552,6 +1730,18 @@ export type ResourceCalendarCreate = {
 };
 
 /**
+ * * `organization_members` - Organization members
+ * * `resource_calendars` - Resource calendars
+ * * `calendar_groups` - Calendar groups
+ * * `bundle_calendars` - Bundle calendars
+ * * `availability_windows` - Availability windows
+ * * `webhook_subscriptions` - Webhook subscriptions
+ * * `public_api_system_users` - Public API system users
+ * * `event_occurrences` - Event occurrences
+ */
+export type ResourceKeyEnum = 'organization_members' | 'resource_calendars' | 'calendar_groups' | 'bundle_calendars' | 'availability_windows' | 'webhook_subscriptions' | 'public_api_system_users' | 'event_occurrences';
+
+/**
  * * `member` - Member
  * * `admin` - Admin
  */
@@ -1598,6 +1788,34 @@ export type ServiceAccountWrite = {
  * * `api` - API
  */
 export type SourceEnum = 'signup_form' | 'oauth_step' | 'api';
+
+/**
+ * Serializer for Subscription virtual model.
+ */
+export type Subscription = {
+    readonly id: number;
+    plan: BillingPlan;
+    billing_state: BillingStateEnum;
+    billing_interval: PendingBillingIntervalEnum;
+    payment_provider: PaymentProviderEnum;
+    readonly current_period_start: string;
+    readonly current_period_end: string;
+    readonly grace_period_ends_at: string | null;
+    readonly pending_plan_slug: string;
+    pending_billing_interval: PendingBillingIntervalEnum;
+    readonly pending_plan_effective_at: string | null;
+    readonly add_ons: Array<SubscriptionAddOn>;
+};
+
+export type SubscriptionAddOn = {
+    readonly id: number;
+    resource_key: ResourceKeyEnum;
+    readonly quantity: number;
+    readonly is_recurring: boolean;
+    readonly is_active: boolean;
+    readonly external_id: string;
+    readonly created: string;
+};
 
 /**
  * Read-only serializer for listing and retrieving public-API tokens.
@@ -1686,7 +1904,7 @@ export type SystemUserTokenResponse = {
 };
 
 /**
- * Input serializer for updating a public-API token's resource grants (Phase 15).
+ * Input serializer for updating a public-API token's resource grants.
  *
  * Accepts ``available_resources`` (a non-empty list of valid ``PublicAPIResources`` values)
  * only.  ``integration_name`` and ``token`` are never accepted or changed.
@@ -1718,6 +1936,11 @@ export type UnavailableTimeWindow = {
  */
 export type UpdateMembershipRole = {
     role: RoleEnum;
+};
+
+export type UsageResponse = {
+    billing_state: string;
+    limits: Array<EffectiveLimitUsage>;
 };
 
 /**
@@ -1860,6 +2083,10 @@ export type BillingAddressWritable = {
  * Serializer for BillingProfile virtual model.
  */
 export type BillingProfileWritable = {
+    contact_first_name: string;
+    contact_last_name?: string;
+    contact_email: string;
+    contact_phone?: string;
     document_type: string;
     document_number: string;
     billing_address: BillingAddressWritable;
@@ -2097,6 +2324,7 @@ export type ExternalAttendeeWritable = {
  */
 export type OrganizationWritable = {
     name: string;
+    slug?: string | null;
     /**
      * Whether to sync rooms for this organization.
      */
@@ -2125,6 +2353,13 @@ export type PaginatedAvailableTimeListWritable = {
     next?: string | null;
     previous?: string | null;
     results: Array<AvailableTimeWritable>;
+};
+
+export type PaginatedBillingPlanListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<unknown>;
 };
 
 export type PaginatedBlockedTimeListWritable = {
@@ -2251,6 +2486,10 @@ export type PatchedAvailableTimeWritable = {
  * Serializer for BillingProfile virtual model.
  */
 export type PatchedBillingProfileWritable = {
+    contact_first_name?: string;
+    contact_last_name?: string;
+    contact_email?: string;
+    contact_phone?: string;
     document_type?: string;
     document_number?: string;
     billing_address?: BillingAddressWritable;
@@ -2383,6 +2622,7 @@ export type PatchedCalendarGroupWritable = {
  */
 export type PatchedOrganizationWritable = {
     name?: string;
+    slug?: string | null;
     /**
      * Whether to sync rooms for this organization.
      */
@@ -3111,6 +3351,12 @@ export type AvailableTimesExpandedFormattedListResponse = AvailableTimesExpanded
 
 export type BillingProfileCreateBillingProfileCreateData = {
     body: BillingProfileWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/billing-profile/create_billing_profile/';
@@ -3124,6 +3370,12 @@ export type BillingProfileCreateBillingProfileCreateResponse = BillingProfileCre
 
 export type BillingProfileCreateBillingProfileFormattedCreateData = {
     body: BillingProfileWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3139,6 +3391,12 @@ export type BillingProfileCreateBillingProfileFormattedCreateResponse = BillingP
 
 export type BillingProfilePartialUpdateBillingProfilePartialUpdateData = {
     body?: PatchedBillingProfileWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/billing-profile/partial_update_billing_profile/';
@@ -3152,6 +3410,12 @@ export type BillingProfilePartialUpdateBillingProfilePartialUpdateResponse = Bil
 
 export type BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateData = {
     body?: PatchedBillingProfileWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3167,6 +3431,12 @@ export type BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateRespo
 
 export type BillingProfileRetrieveBillingProfileRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/billing-profile/retrieve_billing_profile/';
@@ -3180,6 +3450,12 @@ export type BillingProfileRetrieveBillingProfileRetrieveResponse = BillingProfil
 
 export type BillingProfileRetrieveBillingProfileFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3195,6 +3471,12 @@ export type BillingProfileRetrieveBillingProfileFormattedRetrieveResponse = Bill
 
 export type BillingProfileUpdateBillingProfileUpdateData = {
     body: BillingProfileWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/billing-profile/update_billing_profile/';
@@ -3208,6 +3490,12 @@ export type BillingProfileUpdateBillingProfileUpdateResponse = BillingProfileUpd
 
 export type BillingProfileUpdateBillingProfileFormattedUpdateData = {
     body: BillingProfileWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -3220,6 +3508,299 @@ export type BillingProfileUpdateBillingProfileFormattedUpdateResponses = {
 };
 
 export type BillingProfileUpdateBillingProfileFormattedUpdateResponse = BillingProfileUpdateBillingProfileFormattedUpdateResponses[keyof BillingProfileUpdateBillingProfileFormattedUpdateResponses];
+
+export type BillingAddOnsCreateData = {
+    body: AddOnPurchaseRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/billing/add-ons/';
+};
+
+export type BillingAddOnsCreateResponses = {
+    201: SubscriptionAddOn;
+};
+
+export type BillingAddOnsCreateResponse = BillingAddOnsCreateResponses[keyof BillingAddOnsCreateResponses];
+
+export type BillingAddOnsFormattedCreateData = {
+    body: AddOnPurchaseRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/billing/add-ons{format}';
+};
+
+export type BillingAddOnsFormattedCreateResponses = {
+    201: SubscriptionAddOn;
+};
+
+export type BillingAddOnsFormattedCreateResponse = BillingAddOnsFormattedCreateResponses[keyof BillingAddOnsFormattedCreateResponses];
+
+export type BillingAddOnsDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/billing/add-ons/{id}/';
+};
+
+export type BillingAddOnsDestroyResponses = {
+    200: SubscriptionAddOn;
+};
+
+export type BillingAddOnsDestroyResponse = BillingAddOnsDestroyResponses[keyof BillingAddOnsDestroyResponses];
+
+export type BillingAddOnsFormattedDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/billing/add-ons/{id}{format}';
+};
+
+export type BillingAddOnsFormattedDestroyResponses = {
+    200: SubscriptionAddOn;
+};
+
+export type BillingAddOnsFormattedDestroyResponse = BillingAddOnsFormattedDestroyResponses[keyof BillingAddOnsFormattedDestroyResponses];
+
+export type BillingPlansListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        currency?: string;
+        is_active?: boolean;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/billing/plans/';
+};
+
+export type BillingPlansListResponses = {
+    200: PaginatedBillingPlanList;
+};
+
+export type BillingPlansListResponse = BillingPlansListResponses[keyof BillingPlansListResponses];
+
+export type BillingPlansFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: {
+        currency?: string;
+        is_active?: boolean;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/billing/plans{format}';
+};
+
+export type BillingPlansFormattedListResponses = {
+    200: PaginatedBillingPlanList;
+};
+
+export type BillingPlansFormattedListResponse = BillingPlansFormattedListResponses[keyof BillingPlansFormattedListResponses];
+
+export type BillingSubscriptionCancelCreateData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/billing/subscription/cancel/';
+};
+
+export type BillingSubscriptionCancelCreateResponses = {
+    200: Subscription;
+};
+
+export type BillingSubscriptionCancelCreateResponse = BillingSubscriptionCancelCreateResponses[keyof BillingSubscriptionCancelCreateResponses];
+
+export type BillingSubscriptionCancelFormattedCreateData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/billing/subscription/cancel{format}';
+};
+
+export type BillingSubscriptionCancelFormattedCreateResponses = {
+    200: Subscription;
+};
+
+export type BillingSubscriptionCancelFormattedCreateResponse = BillingSubscriptionCancelFormattedCreateResponses[keyof BillingSubscriptionCancelFormattedCreateResponses];
+
+export type BillingSubscriptionChangePlanCreateData = {
+    body: ChangePlanRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/billing/subscription/change-plan/';
+};
+
+export type BillingSubscriptionChangePlanCreateResponses = {
+    200: Subscription;
+};
+
+export type BillingSubscriptionChangePlanCreateResponse = BillingSubscriptionChangePlanCreateResponses[keyof BillingSubscriptionChangePlanCreateResponses];
+
+export type BillingSubscriptionChangePlanFormattedCreateData = {
+    body: ChangePlanRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/billing/subscription/change-plan{format}';
+};
+
+export type BillingSubscriptionChangePlanFormattedCreateResponses = {
+    200: Subscription;
+};
+
+export type BillingSubscriptionChangePlanFormattedCreateResponse = BillingSubscriptionChangePlanFormattedCreateResponses[keyof BillingSubscriptionChangePlanFormattedCreateResponses];
+
+export type BillingSubscriptionRetrieveSubscriptionRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/billing/subscription/retrieve_subscription/';
+};
+
+export type BillingSubscriptionRetrieveSubscriptionRetrieveResponses = {
+    200: Subscription;
+};
+
+export type BillingSubscriptionRetrieveSubscriptionRetrieveResponse = BillingSubscriptionRetrieveSubscriptionRetrieveResponses[keyof BillingSubscriptionRetrieveSubscriptionRetrieveResponses];
+
+export type BillingSubscriptionRetrieveSubscriptionFormattedRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/billing/subscription/retrieve_subscription{format}';
+};
+
+export type BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses = {
+    200: Subscription;
+};
+
+export type BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponse = BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses[keyof BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses];
+
+export type BillingUsageRetrieveUsageRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/billing/usage/retrieve_usage/';
+};
+
+export type BillingUsageRetrieveUsageRetrieveResponses = {
+    200: UsageResponse;
+};
+
+export type BillingUsageRetrieveUsageRetrieveResponse = BillingUsageRetrieveUsageRetrieveResponses[keyof BillingUsageRetrieveUsageRetrieveResponses];
+
+export type BillingUsageRetrieveUsageFormattedRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/billing/usage/retrieve_usage{format}';
+};
+
+export type BillingUsageRetrieveUsageFormattedRetrieveResponses = {
+    200: UsageResponse;
+};
+
+export type BillingUsageRetrieveUsageFormattedRetrieveResponse = BillingUsageRetrieveUsageFormattedRetrieveResponses[keyof BillingUsageRetrieveUsageFormattedRetrieveResponses];
 
 export type BlockedTimesListData = {
     body?: never;
@@ -4102,7 +4683,7 @@ export type BrandingRetrieveData = {
 
 export type BrandingRetrieveErrors = {
     /**
-     * Not a reseller or not an admin
+     * Organization has a parent or lacks the entitlement; or not an admin. A slug-less-but-otherwise-eligible org is NOT refused here -- see 404.
      */
     403: unknown;
     /**
@@ -4136,7 +4717,7 @@ export type BrandingPartialUpdateErrors = {
      */
     400: unknown;
     /**
-     * Not a reseller or not an admin
+     * Organization has a parent, lacks the entitlement, or has no slug; or not an admin
      */
     403: unknown;
     /**
@@ -4170,7 +4751,7 @@ export type BrandingUpdateErrors = {
      */
     400: unknown;
     /**
-     * Not a reseller or not an admin
+     * Organization has a parent, lacks the entitlement, or has no slug; or not an admin
      */
     403: unknown;
 };
@@ -4181,6 +4762,21 @@ export type BrandingUpdateResponses = {
 };
 
 export type BrandingUpdateResponse = BrandingUpdateResponses[keyof BrandingUpdateResponses];
+
+export type BrandingLogoRetrieveData = {
+    body?: never;
+    path: {
+        org_slug: string;
+    };
+    query?: never;
+    url: '/branding/logo/{org_slug}/';
+};
+
+export type BrandingLogoRetrieveResponses = {
+    200: Blob | File;
+};
+
+export type BrandingLogoRetrieveResponse = BrandingLogoRetrieveResponses[keyof BrandingLogoRetrieveResponses];
 
 export type CalendarListData = {
     body?: never;
@@ -6683,6 +7279,13 @@ export type InvitationsCreateData = {
     url: '/invitations/';
 };
 
+export type InvitationsCreateErrors = {
+    /**
+     * Organization is at its seat limit
+     */
+    402: unknown;
+};
+
 export type InvitationsCreateResponses = {
     201: OrganizationInvitation;
 };
@@ -6748,6 +7351,13 @@ export type InvitationsFormattedCreateData = {
     };
     query?: never;
     url: '/invitations{format}';
+};
+
+export type InvitationsFormattedCreateErrors = {
+    /**
+     * Organization is at its seat limit
+     */
+    402: unknown;
 };
 
 export type InvitationsFormattedCreateResponses = {
@@ -6869,6 +7479,10 @@ export type InvitationsResendCreateErrors = {
      */
     400: unknown;
     /**
+     * Organization is at its seat limit
+     */
+    402: unknown;
+    /**
      * Not an active member
      */
     403: unknown;
@@ -6906,6 +7520,10 @@ export type InvitationsResendFormattedCreateErrors = {
      */
     400: unknown;
     /**
+     * Organization is at its seat limit
+     */
+    402: unknown;
+    /**
      * Not an active member
      */
     403: unknown;
@@ -6928,8 +7546,30 @@ export type InvitationsAcceptCreateData = {
     url: '/invitations/accept';
 };
 
+export type InvitationsAcceptCreateErrors = {
+    /**
+     * Already a member, or invalid token
+     */
+    400: unknown;
+    /**
+     * Organization is at its seat limit
+     */
+    402: unknown;
+    /**
+     * Invitation not found
+     */
+    404: unknown;
+    /**
+     * Duplicate invitation
+     */
+    409: unknown;
+};
+
 export type InvitationsAcceptCreateResponses = {
-    201: AcceptInvitation;
+    /**
+     * Invitation accepted
+     */
+    201: AcceptInvitationResponse;
 };
 
 export type InvitationsAcceptCreateResponse = InvitationsAcceptCreateResponses[keyof InvitationsAcceptCreateResponses];
@@ -7408,6 +8048,10 @@ export type OrganizationMembersReactivateCreateData = {
 
 export type OrganizationMembersReactivateCreateErrors = {
     /**
+     * Organization is at its seat limit
+     */
+    402: unknown;
+    /**
      * Not an admin
      */
     403: unknown;
@@ -7440,6 +8084,10 @@ export type OrganizationMembersReactivateFormattedCreateData = {
 };
 
 export type OrganizationMembersReactivateFormattedCreateErrors = {
+    /**
+     * Organization is at its seat limit
+     */
+    402: unknown;
     /**
      * Not an admin
      */
@@ -7975,6 +8623,21 @@ export type PaymentsPaymentUpdateCreateData = {
     url: '/payments/{id}/payment-update/{provider}/';
 };
 
+export type PaymentsPaymentUpdateCreateErrors = {
+    /**
+     * Malformed payload.
+     */
+    400: unknown;
+    /**
+     * Invalid or missing signature.
+     */
+    403: unknown;
+    /**
+     * Unknown payment provider.
+     */
+    404: unknown;
+};
+
 export type PaymentsPaymentUpdateCreateResponses = {
     /**
      * Payment update received.
@@ -7991,6 +8654,21 @@ export type PaymentsPaymentUpdateFormattedCreateData = {
     };
     query?: never;
     url: '/payments/{id}/payment-update/{provider}{format}';
+};
+
+export type PaymentsPaymentUpdateFormattedCreateErrors = {
+    /**
+     * Malformed payload.
+     */
+    400: unknown;
+    /**
+     * Invalid or missing signature.
+     */
+    403: unknown;
+    /**
+     * Unknown payment provider.
+     */
+    404: unknown;
 };
 
 export type PaymentsPaymentUpdateFormattedCreateResponses = {
@@ -8010,6 +8688,21 @@ export type PaymentsSubscriptionPaymentUpdateCreateData = {
     url: '/payments/{id}/subscription-payment-update/{provider}/';
 };
 
+export type PaymentsSubscriptionPaymentUpdateCreateErrors = {
+    /**
+     * Malformed payload.
+     */
+    400: unknown;
+    /**
+     * Invalid or missing signature.
+     */
+    403: unknown;
+    /**
+     * Unknown payment provider.
+     */
+    404: unknown;
+};
+
 export type PaymentsSubscriptionPaymentUpdateCreateResponses = {
     /**
      * Subscription payment update received.
@@ -8026,6 +8719,21 @@ export type PaymentsSubscriptionPaymentUpdateFormattedCreateData = {
     };
     query?: never;
     url: '/payments/{id}/subscription-payment-update/{provider}{format}';
+};
+
+export type PaymentsSubscriptionPaymentUpdateFormattedCreateErrors = {
+    /**
+     * Malformed payload.
+     */
+    400: unknown;
+    /**
+     * Invalid or missing signature.
+     */
+    403: unknown;
+    /**
+     * Unknown payment provider.
+     */
+    404: unknown;
 };
 
 export type PaymentsSubscriptionPaymentUpdateFormattedCreateResponses = {

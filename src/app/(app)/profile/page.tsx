@@ -80,7 +80,8 @@ export default function ProfilePage() {
     null
   );
   const [isUploading, setIsUploading] = React.useState(false);
-  const [pendingPictureUrl, setPendingPictureUrl] = React.useState<
+  // The S3 key of an already-uploaded picture, saved on the next form submit.
+  const [pendingPictureKey, setPendingPictureKey] = React.useState<
     string | null
   >(null);
 
@@ -103,11 +104,11 @@ export default function ProfilePage() {
       await updateProfile({
         first_name: values.first_name || undefined,
         last_name: values.last_name || undefined,
-        ...(pendingPictureUrl ? { profile_picture: pendingPictureUrl } : {}),
+        ...(pendingPictureKey ? { profile_picture: pendingPictureKey } : {}),
       });
       toast.success('Profile updated');
       setPreviewUrl(null);
-      setPendingPictureUrl(null);
+      setPendingPictureKey(null);
     } catch {
       toast.error('Failed to update profile — please try again');
     }
@@ -124,10 +125,10 @@ export default function ProfilePage() {
     setIsUploading(true);
 
     try {
-      const s3Url = await uploadProfilePicture(file, (pct) =>
+      const objectKey = await uploadProfilePicture(file, (pct) =>
         setUploadProgress(pct)
       );
-      setPendingPictureUrl(s3Url);
+      setPendingPictureKey(objectKey);
     } catch (err) {
       if (err instanceof UploadValidationError) {
         toast.error(err.message);
@@ -136,7 +137,7 @@ export default function ProfilePage() {
       }
       URL.revokeObjectURL(localUrl);
       setPreviewUrl(null);
-      setPendingPictureUrl(null);
+      setPendingPictureKey(null);
     } finally {
       setUploadProgress(null);
       setIsUploading(false);
