@@ -1,18 +1,22 @@
 import { brandingRetrieve } from '@/client/sdk.gen';
 import type { OrganizationBranding } from '@/client';
 import { brandingRetrieveOptions } from '@/client/@tanstack/react-query.gen';
-import { useQuery } from '@tanstack/react-query';
-
-// ---------------------------------------------------------------------------
-// BRANDING_QUERY_KEY — exported so mutations can invalidate this query.
-// Uses the generated key so invalidation matches what useQuery registers.
-// ---------------------------------------------------------------------------
-export const BRANDING_QUERY_KEY = brandingRetrieveOptions().queryKey;
+import { useQuery, type DataTag } from '@tanstack/react-query';
 
 export type BrandingResult =
   | { status: 'ok'; branding: OrganizationBranding }
   | { status: 'not_configured'; branding: null }
   | { status: 'forbidden' };
+
+// ---------------------------------------------------------------------------
+// BRANDING_QUERY_KEY — exported so mutations can read/write this query's cache.
+// Uses the generated key so cache access matches what useQuery registers.
+// Retagged to BrandingResult (not the generated OrganizationBranding tag):
+// the queryFn below wraps the raw GET response in the status envelope below,
+// so that's the type actually held in the cache at this key.
+// ---------------------------------------------------------------------------
+export const BRANDING_QUERY_KEY = brandingRetrieveOptions()
+  .queryKey as unknown as DataTag<readonly unknown[], BrandingResult>;
 
 /**
  * Fetches the acting organization's branding configuration.

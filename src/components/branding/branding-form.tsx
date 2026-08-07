@@ -38,6 +38,7 @@ import {
   FormDescription,
 } from 'vinta-schedule-design-system/ui/form';
 import { useUpdateBranding } from '@/hooks/branding/use-update-branding';
+import { usePatchBranding } from '@/hooks/branding/use-patch-branding';
 import {
   useUploadBrandingLogo,
   UploadValidationError,
@@ -260,9 +261,12 @@ export function BrandingForm({
   initialSlug = null,
 }: BrandingFormProps) {
   const { updateBranding, updateBrandingMutation } = useUpdateBranding();
+  const { patchBranding } = usePatchBranding();
   const { uploadBrandingLogo } = useUploadBrandingLogo();
   const { updateOrganizationSlug, updateOrganizationSlugMutation } =
     useUpdateOrganizationSlug();
+  /** PATCH can only update an existing row; a first-time setup has none yet. */
+  const brandingExists = initialBranding !== null;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const localPreviewUrlRef = React.useRef<string | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = React.useState<
@@ -276,6 +280,7 @@ export function BrandingForm({
     null
   );
   const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
+  const [isClearingLogo, setIsClearingLogo] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [writeForbiddenReason, setWriteForbiddenReason] =
     React.useState<BrandingWriteForbiddenReason | null>(null);
@@ -322,6 +327,19 @@ export function BrandingForm({
     }
   }, []);
 
+  /**
+   * PATCHes `logo_url` on its own (used by both upload and clear) so the
+   * change survives a reload even if the user never clicks "Save branding".
+   * Returns the stable delivery-route URL from the response (or undefined
+   * when cleared) to show as the new preview.
+   */
+  const persistLogoUrl = async (
+    logoUrl: string
+  ): Promise<string | undefined> => {
+    const updated = await patchBranding({ logo_url: logoUrl });
+    return updated?.logo_url ?? undefined;
+  };
+
   const onLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -341,10 +359,22 @@ export function BrandingForm({
       const objectKey = await uploadBrandingLogo(file, (pct) =>
         setUploadProgress(pct)
       );
-      if (previousLocalPreviewUrl) {
-        URL.revokeObjectURL(previousLocalPreviewUrl);
+
+      if (brandingExists) {
+        const persistedUrl = await persistLogoUrl(objectKey);
+        if (previousLocalPreviewUrl) {
+          URL.revokeObjectURL(previousLocalPreviewUrl);
+        }
+        URL.revokeObjectURL(localUrl);
+        localPreviewUrlRef.current = null;
+        setLogoPreviewUrl(persistedUrl);
+        setPendingLogoKey(null);
+      } else {
+        if (previousLocalPreviewUrl) {
+          URL.revokeObjectURL(previousLocalPreviewUrl);
+        }
+        setPendingLogoKey(objectKey);
       }
-      setPendingLogoKey(objectKey);
     } catch (err) {
       if (localPreviewUrlRef.current) {
         URL.revokeObjectURL(localPreviewUrlRef.current);
@@ -363,10 +393,33 @@ export function BrandingForm({
     }
   };
 
-  const onClearLogo = () => {
+  const onClearLogo = async () => {
+    const previousLogoPreviewUrl = logoPreviewUrl;
+    const previousPendingLogoKey = pendingLogoKey;
+    const previousLocalPreviewUrl = localPreviewUrlRef.current;
+
     revokeLocalPreview();
     setLogoPreviewUrl(undefined);
-    setPendingLogoKey('');
+
+    if (!brandingExists) {
+      // Nothing persisted yet (first-time setup) — just clear local state;
+      // toPayload() sends "" on the eventual create PUT.
+      setPendingLogoKey('');
+      return;
+    }
+
+    setIsClearingLogo(true);
+    try {
+      await persistLogoUrl('');
+      setPendingLogoKey(null);
+    } catch {
+      localPreviewUrlRef.current = previousLocalPreviewUrl;
+      setLogoPreviewUrl(previousLogoPreviewUrl);
+      setPendingLogoKey(previousPendingLogoKey);
+      toast.error('Failed to clear logo — please try again');
+    } finally {
+      setIsClearingLogo(false);
+    }
   };
 
   const focusSlugField = React.useCallback(() => {
@@ -548,7 +601,7 @@ export function BrandingForm({
                   type='button'
                   variant='outline'
                   size='sm'
-                  disabled={isUploadingLogo || isSaving}
+                  disabled={isUploadingLogo || isClearingLogo || isSaving}
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {isUploadingLogo ? (
@@ -568,12 +621,21 @@ export function BrandingForm({
                     type='button'
                     variant='ghost'
                     size='sm'
-                    disabled={isUploadingLogo || isSaving}
+                    disabled={isUploadingLogo || isClearingLogo || isSaving}
                     aria-label='Clear logo'
                     onClick={onClearLogo}
                   >
-                    <X />
-                    Clear logo
+                    {isClearingLogo ? (
+                      <>
+                        <Spinner label='' />
+                        Clearing…
+                      </>
+                    ) : (
+                      <>
+                        <X />
+                        Clear logo
+                      </>
+                    )}
                   </Button>
                 )}
               </HStack>

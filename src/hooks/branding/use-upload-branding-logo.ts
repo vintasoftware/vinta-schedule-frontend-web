@@ -1,22 +1,20 @@
 import { useMutation } from '@tanstack/react-query';
 import {
-  getS3DirectUploadParams,
-  type S3DirectUploadParams,
-} from '@/lib/s3direct-get-upload-params';
+  getBrandingLogoUploadParams,
+  type BrandingLogoUploadParams,
+} from '@/lib/branding-logo-upload-params';
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-const BRANDING_LOGOS_DEST = 'branding_logos';
 
 export class UploadValidationError extends Error {}
 
 function uploadToS3(
-  params: S3DirectUploadParams,
+  params: BrandingLogoUploadParams,
   file: File,
   onProgress: (pct: number) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const url = `${params.endpoint}/${params.bucket}/${params.object_key}`;
     const xhr = new XMLHttpRequest();
 
     xhr.upload.addEventListener('progress', (e) => {
@@ -37,11 +35,11 @@ function uploadToS3(
     xhr.addEventListener('error', () => reject(new Error('Upload failed')));
     xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
 
-    xhr.open('PUT', url);
+    // `upload_url` is a complete presigned PUT URL. Content-Type is part of
+    // what the backend signed, so it has to be sent and has to match the file
+    // exactly; any other header would break the signature.
+    xhr.open('PUT', params.upload_url);
     xhr.setRequestHeader('Content-Type', file.type);
-    if (params.acl) {
-      xhr.setRequestHeader('x-amz-acl', params.acl);
-    }
     xhr.send(file);
   });
 }
@@ -72,11 +70,10 @@ function validateLogoFile(file: File): void {
 export function useUploadBrandingLogo() {
   const getUploadParams = useMutation({
     mutationFn: (file: File) =>
-      getS3DirectUploadParams({
-        dest: BRANDING_LOGOS_DEST,
-        name: file.name,
-        type: file.type,
-        size: file.size,
+      getBrandingLogoUploadParams({
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
       }),
   });
 
