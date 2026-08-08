@@ -5,32 +5,33 @@ import { Stack } from 'vinta-schedule-design-system/layout/stack';
 import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { GroupsTable } from '@/components/calendar-groups/groups-table';
-import { useRequireRole } from '@/components/navigation/role-gate';
+import { useRole } from '@/components/navigation/role-gate';
 
 /**
- * GroupsPage — admin-only view of all org calendar groups.
+ * GroupsPage — the calendar groups list.
  *
- * Guarded by useRequireRole('admin'): a member who somehow reaches this URL is
- * redirected to '/' (degrade-don't-loop rule — never redirect back into (app)).
- *
- * Renders a paginated, searchable datatable of calendar groups with columns:
- * - Name
- * - Description
- * - Slot count
+ * Phase 1 admin-gated this route with useRequireRole('admin'). Phase 2
+ * opens it to members too: an admin still sees every group in the
+ * organization, but a member sees only the groups containing a calendar
+ * they own (filtered inside GroupsTable, which is where the ownership
+ * check and the fetched data live) — the entry point for UC-2/UC-3, a
+ * member configuring their own participation. This is the one phase in the
+ * plan that touches an existing surface; it ships alone precisely so a
+ * revert restores the admin-only gate cleanly.
  */
 export default function GroupsPage() {
-  // Gate: redirect non-admins out. The redirect fires in a useEffect, so
-  // we also check isAllowed before rendering the table to avoid firing the
-  // API call and rendering sensitive data before the redirect effect runs.
-  const { isAllowed } = useRequireRole('admin');
-
-  if (!isAllowed) return null;
+  const role = useRole();
+  const isAdmin = role === 'admin';
 
   return (
     <Stack gap={6}>
       <PageHeader
         title='Calendar groups'
-        description='Manage your organization calendar groups.'
+        description={
+          isAdmin
+            ? 'Manage your organization calendar groups.'
+            : 'Calendar groups you belong to.'
+        }
       />
       <DataTableQueryBoundary>
         <GroupsTable />

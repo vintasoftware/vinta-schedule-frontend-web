@@ -66,6 +66,12 @@ const MEMBER_NAV_ITEMS: SidebarNavItem[] = [
     icon: Settings,
     href: '/availability',
   },
+  {
+    id: 'groups',
+    label: 'Calendar groups',
+    icon: UsersRound,
+    href: '/groups',
+  },
 ];
 
 const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
@@ -81,12 +87,6 @@ const ADMIN_ONLY_NAV_ITEMS: SidebarNavItem[] = [
     label: 'Resources',
     icon: DoorOpen,
     href: '/resources',
-  },
-  {
-    id: 'groups',
-    label: 'Calendar groups',
-    icon: UsersRound,
-    href: '/groups',
   },
   { id: 'bundles', label: 'Bundles', icon: Calendar, href: '/bundles' },
   {
@@ -122,7 +122,9 @@ const BRANDING_NAV_ITEM: SidebarNavItem = {
   href: '/branding',
 };
 
-function buildNavGroups(
+// Exported so tests can pin the nav shape directly (which ids each role
+// sees) without mounting the whole gated layout — see app-layout-client.test.tsx.
+export function buildNavGroups(
   role: RoleEnum | null,
   canManageBranding: boolean
 ): SidebarNavGroup[] {

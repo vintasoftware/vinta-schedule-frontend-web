@@ -1,10 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import type { PaginatedCalendarGroupList } from '@/client';
+import type {
+  Calendar,
+  CalendarGroup,
+  PaginatedCalendarGroupList,
+  PaginatedCalendarList,
+  RoleEnum,
+} from '@/client';
 import { GroupsTable, COLUMNS } from './groups-table';
-import type { CalendarGroup } from '@/client';
+import { RoleProvider } from '@/components/navigation/role-gate';
+import { OWNED_CALENDARS_PAGE_SIZE } from '@/hooks/calendars/use-owned-calendar-ids';
 
 // Mutable URL state — shared across all mock calls in a single test.
 let mockSearchParams = new URLSearchParams();
@@ -22,21 +29,27 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     calendarGroupsList: vi.fn(),
+    calendarList: vi.fn(),
   };
 });
 
 // After mocks are hoisted, import the SDK
-import { calendarGroupsList } from '@/client/sdk.gen';
+import { calendarGroupsList, calendarList } from '@/client/sdk.gen';
 
-// Helper to render the table with proper setup
-function renderGroupsTable() {
+// Helper to render the table with proper setup. Role defaults to 'admin' to
+// preserve the org-wide list behaviour existing tests exercise; pass
+// role={null} to exercise the not-yet-resolved state, or 'member' for the
+// scoped list.
+function renderGroupsTable(role: RoleEnum | null = 'admin') {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
     },
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <RoleProvider role={role}>{children}</RoleProvider>
+    </QueryClientProvider>
   );
   return render(<GroupsTable />, { wrapper });
 }
@@ -59,9 +72,58 @@ function makePagedResponse(
   } as unknown as Awaited<ReturnType<typeof calendarGroupsList>>;
 }
 
+function makeCalendarListResponse(
+  results: PaginatedCalendarList['results']
+): Awaited<ReturnType<typeof calendarList>> {
+  const body: PaginatedCalendarList = { count: results.length, results };
+  return {
+    data: body,
+    response: new Response(JSON.stringify(body), { status: 200 }),
+  } as unknown as Awaited<ReturnType<typeof calendarList>>;
+}
+
+function ownedCalendar(id: number): Calendar {
+  return {
+    id,
+    name: `Owned calendar ${id}`,
+    email: `owned-${id}@example.com`,
+    external_id: `ext-${id}`,
+    provider: 'google',
+    calendar_type: 'personal',
+  };
+}
+
+// `count` groups; the group at `ownedGroupIndex` contains a slot with the
+// calendar the member owns (id 999) — every other group is empty (owned by
+// no one in these tests).
+function makeManyGroups(
+  count: number,
+  ownedGroupIndex: number
+): CalendarGroup[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    name: `Group ${i + 1}`,
+    description: '',
+    slots: [
+      {
+        id: i + 1,
+        name: 'Slot 1',
+        required_count: 1,
+        calendars: i === ownedGroupIndex ? [ownedCalendar(999)] : [],
+      },
+    ],
+    created: '2024-01-01T00:00:00Z',
+    modified: '2024-01-01T00:00:00Z',
+  }));
+}
+
 describe('GroupsTable', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
+    vi.clearAllMocks();
+    // Default: no owned calendars, so the member/unresolved-role branch
+    // renders an empty (not hanging) list unless a test overrides this.
+    vi.mocked(calendarList).mockResolvedValue(makeCalendarListResponse([]));
   });
 
   const mockGroups: CalendarGroup[] = [
@@ -86,12 +148,12 @@ describe('GroupsTable', () => {
     },
   ];
 
-  it('renders rows from a mocked calendarGroupsList', async () => {
+  it('renders rows from a mocked calendarGroupsList (admin)', async () => {
     vi.mocked(calendarGroupsList).mockResolvedValueOnce(
       makePagedResponse(mockGroups, 2)
     );
 
-    renderGroupsTable();
+    renderGroupsTable('admin');
 
     // Wait for the table to render
     const nameCell = await screen.findByText('Frontend Team');
@@ -102,12 +164,12 @@ describe('GroupsTable', () => {
     expect(secondNameCell).toBeInTheDocument();
   });
 
-  it('shows empty state when no groups found', async () => {
+  it('shows empty state when no groups found (admin)', async () => {
     vi.mocked(calendarGroupsList).mockResolvedValueOnce(
       makePagedResponse([], 0)
     );
 
-    renderGroupsTable();
+    renderGroupsTable('admin');
 
     const emptyText = await screen.findByText('No calendar groups found.');
     expect(emptyText).toBeInTheDocument();
@@ -118,5 +180,85 @@ describe('GroupsTable', () => {
     expect(COLUMNS[0]?.id).toBe('name');
     expect(COLUMNS[1]?.id).toBe('description');
     expect(COLUMNS[2]?.id).toBe('slots');
+  });
+
+  it('links the name cell to the group detail route', async () => {
+    vi.mocked(calendarGroupsList).mockResolvedValueOnce(
+      makePagedResponse(mockGroups, 2)
+    );
+
+    renderGroupsTable('admin');
+
+    const link = await screen.findByRole('link', { name: 'Frontend Team' });
+    expect(link).toHaveAttribute('href', '/groups/1');
+
+    const secondLink = screen.getByRole('link', { name: 'Backend Team' });
+    expect(secondLink).toHaveAttribute('href', '/groups/2');
+  });
+
+  // -------------------------------------------------------------------
+  // BLOCKER 1 — role === null must fail CLOSED (member-scoped), never
+  // fall open into admin chrome.
+  // -------------------------------------------------------------------
+
+  it('role === null (not yet resolved) renders member-scoped output: no create affordance, and fetches with a member-shaped large single page, never the admin URL-driven page', async () => {
+    vi.mocked(calendarGroupsList).mockResolvedValue(makePagedResponse([], 0));
+
+    renderGroupsTable(null);
+
+    await waitFor(() => expect(calendarGroupsList).toHaveBeenCalled());
+
+    expect(screen.queryByTestId('new-group-button')).not.toBeInTheDocument();
+
+    const call = vi.mocked(calendarGroupsList).mock.calls[0]?.[0] as
+      | { query?: { limit?: number; offset?: number } }
+      | undefined;
+    // The admin-shaped query would use the URL-driven page size (20, from
+    // DEFAULT_DATA_TABLE_QUERY) at offset 0. A member-shaped fetch instead
+    // uses the large single-page limit that mirrors useOwnedCalendarIds.
+    expect(call?.query?.limit).toBe(OWNED_CALENDARS_PAGE_SIZE);
+    expect(call?.query?.offset).toBe(0);
+  });
+
+  it('hides the create action and dialog for a member', async () => {
+    vi.mocked(calendarGroupsList).mockResolvedValue(makePagedResponse([], 0));
+
+    renderGroupsTable('member');
+
+    await screen.findByText('No calendar groups found.');
+    expect(screen.queryByTestId('new-group-button')).not.toBeInTheDocument();
+  });
+
+  // -------------------------------------------------------------------
+  // BLOCKER 2 — a member's owned group must be reachable even when it
+  // falls outside the org's first server-paginated page.
+  // -------------------------------------------------------------------
+
+  it("a member whose owned group falls outside the org's first server page can still find it", async () => {
+    // 25 org groups (server default page size is 20); the member's owned
+    // group is #25 — on server page 2, unreachable if the ownership filter
+    // ran on a single server-paginated page.
+    const allGroups = makeManyGroups(25, 24);
+    vi.mocked(calendarGroupsList).mockImplementation((async (options?: {
+      query?: { limit?: number; offset?: number };
+    }) => {
+      const limit = options?.query?.limit ?? allGroups.length;
+      const offset = options?.query?.offset ?? 0;
+      return makePagedResponse(
+        allGroups.slice(offset, offset + limit),
+        allGroups.length
+      );
+    }) as typeof calendarGroupsList);
+    vi.mocked(calendarList).mockResolvedValue(
+      makeCalendarListResponse([ownedCalendar(999)])
+    );
+
+    renderGroupsTable('member');
+
+    expect(await screen.findByText('Group 25')).toBeInTheDocument();
+    expect(
+      screen.queryByText('No calendar groups found.')
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Showing 1–1 of 1')).toBeInTheDocument();
   });
 });

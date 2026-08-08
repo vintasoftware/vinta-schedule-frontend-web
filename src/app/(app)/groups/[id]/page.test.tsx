@@ -1,0 +1,365 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { Suspense, type ReactNode } from 'react';
+import type { Calendar, CalendarGroup, PaginatedCalendarList } from '@/client';
+import GroupDetailPage from './page';
+
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(),
+  usePathname: vi.fn(() => '/groups/1'),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+}));
+
+vi.mock('@/components/navigation/role-gate', () => ({
+  useRole: vi.fn(() => 'admin'),
+}));
+
+vi.mock('@/client/sdk.gen', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/client/sdk.gen')>();
+  return {
+    ...original,
+    calendarGroupsRetrieve: vi.fn(),
+    calendarGroupsSlotsAvailabilityWindowsList: vi.fn(),
+    calendarGroupsSlotsBlockedTimesList: vi.fn(),
+    calendarGroupsSlotsQuotaRulesList: vi.fn(),
+    calendarList: vi.fn(),
+  };
+});
+
+import { useRole } from '@/components/navigation/role-gate';
+import {
+  calendarGroupsRetrieve,
+  calendarGroupsSlotsAvailabilityWindowsList,
+  calendarGroupsSlotsBlockedTimesList,
+  calendarGroupsSlotsQuotaRulesList,
+  calendarList,
+} from '@/client/sdk.gen';
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
+const FIXTURE_GROUP: CalendarGroup = {
+  id: 1,
+  name: 'Surgery Team',
+  description: 'Operating room coverage',
+  slots: [
+    {
+      id: 10,
+      name: 'Surgeon',
+      required_count: 1,
+      calendars: [
+        {
+          id: 100,
+          name: 'Dr. Smith',
+          email: 'smith@example.com',
+          external_id: 'ext-100',
+          provider: 'google',
+          calendar_type: 'personal',
+        },
+        {
+          id: 101,
+          name: 'Dr. Lee',
+          email: 'lee@example.com',
+          external_id: 'ext-101',
+          provider: 'google',
+          calendar_type: 'personal',
+        },
+      ],
+    },
+  ],
+  created: '2024-01-01T00:00:00Z',
+  modified: '2024-01-01T00:00:00Z',
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+type GroupRetrieveResult = Awaited<ReturnType<typeof calendarGroupsRetrieve>>;
+
+function makeGroupResponse(group: CalendarGroup): GroupRetrieveResult {
+  return {
+    data: group,
+    response: new Response(JSON.stringify(group), { status: 200 }),
+  } as unknown as GroupRetrieveResult;
+}
+
+function make404Response(body: unknown): GroupRetrieveResult {
+  return {
+    data: undefined,
+    response: new Response(JSON.stringify(body), { status: 404 }),
+  } as unknown as GroupRetrieveResult;
+}
+
+function makeEmptyListResponse() {
+  const body = { count: 0, results: [] };
+  return {
+    data: body,
+    response: new Response(JSON.stringify(body), { status: 200 }),
+  } as unknown;
+}
+
+function ownedCalendar(id: number): Calendar {
+  return {
+    id,
+    name: `Owned calendar ${id}`,
+    email: `owned-${id}@example.com`,
+    external_id: `ext-${id}`,
+    provider: 'google',
+    calendar_type: 'personal',
+  };
+}
+
+function makeCalendarListResponse(
+  results: PaginatedCalendarList['results']
+): Awaited<ReturnType<typeof calendarList>> {
+  const body: PaginatedCalendarList = { count: results.length, results };
+  return {
+    data: body,
+    response: new Response(JSON.stringify(body), { status: 200 }),
+  } as unknown as Awaited<ReturnType<typeof calendarList>>;
+}
+
+async function renderPage(id = '1') {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  // GroupDetailPage unwraps `params` with React's `use()`, which suspends on
+  // its first render even for an already-fulfilled promise — a Suspense
+  // boundary is required here for the test to ever commit content, and the
+  // render itself must run inside an awaited `act` so React gets a chance to
+  // retry after the promise settles.
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <Suspense fallback={null}>{children}</Suspense>
+    </QueryClientProvider>
+  );
+  let utils!: ReturnType<typeof render>;
+  await act(async () => {
+    utils = render(<GroupDetailPage params={Promise.resolve({ id })} />, {
+      wrapper,
+    });
+  });
+  return utils;
+}
+
+describe('GroupDetailPage', () => {
+  let mockRouter: { replace: ReturnType<typeof vi.fn> };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRouter = { replace: vi.fn() };
+    vi.mocked(useRouter).mockReturnValue(
+      mockRouter as unknown as ReturnType<typeof useRouter>
+    );
+    vi.mocked(useRole).mockReturnValue('admin');
+    vi.mocked(calendarList).mockResolvedValue(makeCalendarListResponse([]));
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeEmptyListResponse() as Awaited<
+        ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsBlockedTimesList).mockResolvedValue(
+      makeEmptyListResponse() as Awaited<
+        ReturnType<typeof calendarGroupsSlotsBlockedTimesList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsQuotaRulesList).mockResolvedValue(
+      makeEmptyListResponse() as Awaited<
+        ReturnType<typeof calendarGroupsSlotsQuotaRulesList>
+      >
+    );
+  });
+
+  it('renders slots and rosters from a mocked group', async () => {
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      makeGroupResponse(FIXTURE_GROUP)
+    );
+
+    await renderPage();
+
+    expect(await screen.findByText('Surgery Team')).toBeInTheDocument();
+    expect(screen.getByText('Surgeon')).toBeInTheDocument();
+    expect(screen.getByText('Dr. Smith')).toBeInTheDocument();
+    expect(screen.getByText('Dr. Lee')).toBeInTheDocument();
+  });
+
+  it('does not fetch the group until the caller role has resolved', async () => {
+    vi.mocked(useRole).mockReturnValue(null);
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      makeGroupResponse(FIXTURE_GROUP)
+    );
+
+    await renderPage();
+
+    expect(screen.queryByText('Surgery Team')).not.toBeInTheDocument();
+    expect(calendarGroupsRetrieve).not.toHaveBeenCalled();
+  });
+
+  it('renders the not-found state on 404, with no router.replace call', async () => {
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      make404Response({ detail: 'Not found.' })
+    );
+
+    await renderPage();
+
+    expect(await screen.findByTestId('group-not-found')).toBeInTheDocument();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it('renders identical output for missing / other-org / out-of-scope / unauthorized 404s', async () => {
+    // Same HTTP status (404) across all four causes, per the API's shared
+    // error contract — even when the (hypothetical, leaky) body differs, the
+    // page must never surface that difference.
+    const fixtures: unknown[] = [
+      { detail: 'Not found.' }, // missing
+      { detail: 'Not found.', organization: 'other-org' }, // other organization
+      {}, // out of scope
+      { detail: 'Forbidden.' }, // unauthorized
+    ];
+
+    const renders: string[] = [];
+    for (const body of fixtures) {
+      vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+        make404Response(body)
+      );
+      const { container, unmount } = await renderPage();
+      await waitFor(() =>
+        expect(screen.getByTestId('group-not-found')).toBeInTheDocument()
+      );
+      renders.push(container.innerHTML);
+      unmount();
+    }
+
+    expect(new Set(renders).size).toBe(1);
+  });
+
+  it('as an admin, every roster row is editable', async () => {
+    vi.mocked(useRole).mockReturnValue('admin');
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      makeGroupResponse(FIXTURE_GROUP)
+    );
+
+    await renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByText('Dr. Smith');
+    await user.click(screen.getByTestId('roster-row-100'));
+    await user.click(screen.getByTestId('roster-row-101'));
+
+    expect(
+      await screen.findByTestId('roster-panel-editable-100')
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('roster-panel-editable-101')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-row-readonly-badge-100')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-row-readonly-badge-101')
+    ).not.toBeInTheDocument();
+  });
+
+  it("as a member, the owner's own row is editable and every other row exposes no write control", async () => {
+    vi.mocked(useRole).mockReturnValue('member');
+    // Owns calendar 100 (Dr. Smith); does not own 101 (Dr. Lee).
+    vi.mocked(calendarList).mockResolvedValue(
+      makeCalendarListResponse([ownedCalendar(100)])
+    );
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      makeGroupResponse(FIXTURE_GROUP)
+    );
+
+    await renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByText('Dr. Smith');
+    await user.click(screen.getByTestId('roster-row-100'));
+    await user.click(screen.getByTestId('roster-row-101'));
+
+    // Owned row: editable, no read-only badge.
+    expect(
+      await screen.findByTestId('roster-panel-editable-100')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-row-readonly-badge-100')
+    ).not.toBeInTheDocument();
+
+    // Non-owned row: a positive read-only signal is present (so this isn't
+    // trivially satisfied by the row failing to render at all)...
+    expect(
+      await screen.findByTestId('roster-panel-readonly-101')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('roster-row-readonly-badge-101')
+    ).toBeInTheDocument();
+    // ...and no write control/affordance for it.
+    expect(
+      screen.queryByTestId('roster-panel-editable-101')
+    ).not.toBeInTheDocument();
+  });
+
+  it('as a member, the group is not fetched while ownership is still resolving, and nothing renders as editable', async () => {
+    vi.mocked(useRole).mockReturnValue('member');
+    let resolveCalendarList!: (
+      value: Awaited<ReturnType<typeof calendarList>>
+    ) => void;
+    const pending = new Promise<Awaited<ReturnType<typeof calendarList>>>(
+      (resolve) => {
+        resolveCalendarList = resolve;
+      }
+    );
+    vi.mocked(calendarList).mockReturnValueOnce(
+      pending as ReturnType<typeof calendarList>
+    );
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      makeGroupResponse(FIXTURE_GROUP)
+    );
+
+    await renderPage();
+
+    // Ownership fetch (isOwnedCalendarsLoading) is still in flight — the
+    // group fetch must not have fired yet (permissionsReady gate), and
+    // nothing editable can have rendered as a result.
+    expect(calendarGroupsRetrieve).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId('roster-panel-editable-100')
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveCalendarList(makeCalendarListResponse([ownedCalendar(100)]));
+      await pending;
+    });
+
+    expect(await screen.findByText('Surgery Team')).toBeInTheDocument();
+    expect(calendarGroupsRetrieve).toHaveBeenCalled();
+  });
+
+  it('as a member, a failed ownership fetch surfaces an error instead of silently rendering every row read-only', async () => {
+    vi.mocked(useRole).mockReturnValue('member');
+    vi.mocked(calendarList).mockRejectedValue(new Error('network error'));
+    vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
+      makeGroupResponse(FIXTURE_GROUP)
+    );
+
+    await renderPage();
+
+    expect(
+      await screen.findByText("Couldn't check which calendars you own.")
+    ).toBeInTheDocument();
+    // The owned row must not silently render as read-only, indistinguishable
+    // from "owns nothing" — nothing from the roster renders at all here.
+    expect(
+      screen.queryByTestId('roster-panel-editable-100')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('roster-panel-readonly-100')
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+});
