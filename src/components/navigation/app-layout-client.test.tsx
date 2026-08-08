@@ -3,6 +3,10 @@
  * Phase 2 "Calendar groups" nav move (member section) or an accidental
  * widening of the admin-only group would be caught here rather than only
  * visually.
+ *
+ * The second argument gates the Branding item inside the Admin group. It is
+ * unrelated to this phase, but pinned here because both concerns live in
+ * `buildNavGroups` and a change to one can silently reshape the other.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -50,15 +54,21 @@ describe('buildNavGroups', () => {
     expect(idsOf(adminGroup?.items ?? [])).not.toContain('groups');
   });
 
-  it('adds the reseller Branding group only when canInviteOrganizations is true, independent of role', () => {
+  it('appends Branding to the Admin group only when canManageBranding, and never for a member', () => {
+    const adminItems = (canManageBranding: boolean) =>
+      idsOf(
+        buildNavGroups('admin', canManageBranding).find(
+          (group) => group.label === 'Admin'
+        )?.items ?? []
+      );
+
+    expect(adminItems(false)).not.toContain('branding');
+    expect(adminItems(true)).toContain('branding');
+
+    // A member has no Admin group at all, so the flag cannot expose branding
+    // to them regardless of its value.
     expect(
-      buildNavGroups('member', false).some((g) => g.label === 'Reseller')
-    ).toBe(false);
-    expect(
-      buildNavGroups('member', true).some((g) => g.label === 'Reseller')
-    ).toBe(true);
-    expect(
-      buildNavGroups('admin', true).some((g) => g.label === 'Reseller')
-    ).toBe(true);
+      buildNavGroups('member', true).flatMap((group) => idsOf(group.items))
+    ).not.toContain('branding');
   });
 });
