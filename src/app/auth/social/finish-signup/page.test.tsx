@@ -141,7 +141,9 @@ describe('finish-signup page (pending social signup)', () => {
 
     await fillPhoneAndSubmit('+14155552671');
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/'));
+    // No `destination` on this fixture, so the fallback applies — the
+    // dashboard, never `/` (the public marketing page).
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/dashboard'));
     // Access token lives in memory only; refresh token goes to an httpOnly
     // cookie via the (mocked) server action — neither touches localStorage.
     await expect(
@@ -159,6 +161,24 @@ describe('finish-signup page (pending social signup)', () => {
       accepted_terms: true,
       accepted_sms_consent: true,
     });
+  });
+
+  it('lands on the backend-resolved branding destination when one is sent', async () => {
+    document.cookie = 'sessionToken=rotated-session; path=/';
+    installFetch(() =>
+      jsonResponse(200, { ...AUTHENTICATED, destination: '/welcome/acme' })
+    );
+
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByDisplayValue('ada@example.com')).toBeInTheDocument()
+    );
+
+    await fillPhoneAndSubmit('+14155552671');
+
+    // The org's configured redirect_url wins over the dashboard fallback.
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/welcome/acme'));
+    expect(push).not.toHaveBeenCalledWith('/dashboard');
   });
 
   it('rejects a non-E.164 phone number before submitting', async () => {

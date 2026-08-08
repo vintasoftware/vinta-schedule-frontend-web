@@ -42,8 +42,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMemo, useState } from 'react';
-import type { Signup } from '@/auth-client';
+import type { ErrorResponse, Signup } from '@/auth-client';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
+import { isAuthenticationResponse } from '@/lib/authentication-response-type-checks';
 import { useAuthConfig } from '@/hooks/authentication/use-auth-config';
 import { useProviderLogin } from '@/hooks/authentication/use-provider-login';
 import type { TenantBranding } from '@/lib/branding-shared';
@@ -65,10 +66,13 @@ const makeSignupSchema = (isInvited: boolean) =>
             .string()
             .min(1, { message: 'Organization name is required' })
             .max(255, { message: 'Organization name is too long' }),
-      phone: z
-        .string()
-        .min(8, { message: 'Phone number must be at least 8 digits' })
-        .regex(/^[\d\s()+-]+$/, { message: 'Invalid phone number' }),
+      // E.164, matching allauth's own `^\+[1-9]\d{5,14}$` server-side rule.
+      // A looser client rule (spaces, parens, dashes) only defers the
+      // rejection to the server after the user has filled the whole form.
+      phone: z.string().regex(/^\+[1-9]\d{5,14}$/, {
+        message:
+          'Enter a phone number in international format, e.g. +14155552671',
+      }),
       password: z
         .string()
         .min(8, { message: 'Password must be at least 8 characters' })
@@ -93,6 +97,23 @@ const makeSignupSchema = (isInvited: boolean) =>
     });
 
 type SignupSchema = z.infer<ReturnType<typeof makeSignupSchema>>;
+
+// Maps a backend 400's `param` onto the matching form field. `confirm_password`
+// is deliberately absent — it is client-only and the API never names it.
+const FIELD_NAMES: Array<keyof SignupSchema> = [
+  'first_name',
+  'last_name',
+  'email',
+  'organization_name',
+  'phone',
+  'password',
+  'accepted_terms',
+  'accepted_sms_consent',
+];
+
+function isFieldName(param: string): param is keyof SignupSchema {
+  return (FIELD_NAMES as string[]).includes(param);
+}
 
 export interface SignupFormProps {
   /**
@@ -131,6 +152,12 @@ export default function SignupForm({
   // The invite path wins: it removes the field entirely, so there is nothing
   // to lock.
   const lockedOrgName = isInvited ? undefined : lockedOrganizationName;
+
+  // The invitation was issued to one specific address, and the backend matches
+  // the pending invitation on it — letting the visitor edit it here silently
+  // turns "accept this invite" into "create an unrelated account". Locked the
+  // same way the branded link locks the organization.
+  const lockedEmail = isInvited && invitedEmail ? invitedEmail : undefined;
 
   const authenticationFlowControl = useAuthenticationFlowControl(router);
   const { signUp, signUpMutation } = useSignUp();
@@ -186,6 +213,41 @@ export default function SignupForm({
       const response = await signUp(signupValues as Signup);
       authenticationFlowControl(response);
     } catch (err) {
+      const status = (err as { status?: number })?.status;
+
+      // 400: allauth rejected a field (a phone that isn't E.164, an email
+      // already taken, …). Render it against the input that caused it and
+      // stop here — handing a 400 to flow control falls through its
+      // unhandled-response branch, which clears the session and pushes the
+      // visitor to the social-signup error page, losing the whole form.
+      if (status === 400) {
+        const errors =
+          (err as ErrorResponse).errors ||
+          (err as { data?: ErrorResponse }).data?.errors ||
+          [];
+        let formLevelMessage: string | null = null;
+        errors.forEach((fieldError) => {
+          if (fieldError.param && isFieldName(fieldError.param)) {
+            form.setError(fieldError.param, { message: fieldError.message });
+          } else {
+            formLevelMessage = fieldError.message;
+          }
+        });
+        setError(
+          formLevelMessage || 'Please fix the highlighted fields and try again.'
+        );
+        return;
+      }
+
+      // 401 with pending flows: signup was accepted but more steps remain
+      // (verify_email). Flow control threads the session token and routes to
+      // the right step — there is no error to show.
+      if (isAuthenticationResponse(err)) {
+        authenticationFlowControl(err);
+        return;
+      }
+
+      // Anything else (410 invalid session, unexpected) -> flow control.
       authenticationFlowControl(err);
       setError(err instanceof Error ? err.message : 'Signup failed');
     }
@@ -384,14 +446,25 @@ export default function SignupForm({
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
+                          {/*
+                           * `disabled` only greys out the control — the value
+                           * still submits, because react-hook-form holds it in
+                           * form state rather than reading the DOM node.
+                           */}
                           <Input
                             type='email'
                             autoComplete='email'
                             placeholder='Email'
-                            readOnly={isInvited && Boolean(invitedEmail)}
+                            disabled={Boolean(lockedEmail)}
+                            data-testid='email-input'
                             {...field}
                           />
                         </FormControl>
+                        {lockedEmail && (
+                          <FormDescription>
+                            Set by your invitation.
+                          </FormDescription>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -405,12 +478,15 @@ export default function SignupForm({
                         <FormLabel>Phone</FormLabel>
                         <FormControl>
                           <Input
-                            type='text'
+                            type='tel'
                             autoComplete='tel'
-                            placeholder='Phone'
+                            placeholder='+14155552671'
                             {...field}
                           />
                         </FormControl>
+                        <FormDescription>
+                          Include the country code, digits only.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

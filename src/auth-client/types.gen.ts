@@ -37,6 +37,11 @@ export type AuthenticatedMeta = BaseAuthenticationMeta & {
 
 export type AuthenticatedResponse = {
     data: Authenticated;
+    /**
+     * Absolute URL the client should navigate to now that the user is authenticated: the organization's configured `redirect_url`, or our dashboard when it has none. Resolved server-side from the organization's branding — never from a client-supplied `next`/`callback_url`. Always present on a completed authentication (this schema), and never present on the interim/failed `AuthenticationResponse`.
+     *
+     */
+    destination: string;
     meta: AuthenticationMeta;
     status: StatusOk;
 };

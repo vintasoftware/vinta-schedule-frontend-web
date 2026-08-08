@@ -91,8 +91,9 @@ function fillRequiredFields() {
   fireEvent.change(screen.getByPlaceholderText('Email'), {
     target: { value: 'ada@example.com' },
   });
-  fireEvent.change(screen.getByPlaceholderText('Phone'), {
-    target: { value: '14155552671' },
+  // E.164 — the client rule now matches allauth's `^\+[1-9]\d{5,14}$`.
+  fireEvent.change(screen.getByPlaceholderText('+14155552671'), {
+    target: { value: '+14155552671' },
   });
   fireEvent.change(screen.getByPlaceholderText('••••••••'), {
     target: { value: 'Str0ng!Pass' },

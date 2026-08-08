@@ -7,6 +7,7 @@ import {
 } from '@/lib/authentication-response-type-checks';
 import { cookies } from 'next/headers';
 import type { AuthenticationResponse, Flow } from '@/auth-client';
+import { getSafeDestination } from '@/lib/safe-destination';
 // Removed invalid import of CookieOptions
 
 export async function POST(
@@ -76,14 +77,6 @@ type CookieOptions = {
   sameSite?: 'lax' | 'strict' | 'none';
   // Add other cookie options if needed
 };
-
-// A backend-resolved `destination` must be either an absolute http(s) URL or
-// a same-origin relative path (a single leading `/`, not `//…`, which browsers
-// treat as protocol-relative to an arbitrary host). Anything else is rejected
-// and falls back to the interstitial rather than being used as a redirect.
-function isSafeDestination(destination: string): boolean {
-  return /^https?:\/\//i.test(destination) || /^\/(?!\/)/.test(destination);
-}
 
 type CallbackResult = {
   url: string;
@@ -222,11 +215,12 @@ export async function handleProviderLoginCallback(
       })
     ).json();
 
-    // Read `destination` before the type guard narrows `response` to the
-    // generated `AuthenticatedResponse` shape, which doesn't know about it.
-    // Trim so a whitespace-only value falls through to the interstitial
-    // instead of being treated as a truthy destination.
-    const destination = response.destination?.trim() || null;
+    // `AuthenticatedResponse.destination` is required by the schema, but this
+    // body is untrusted JSON off the wire — an older backend, or an interim
+    // response that never carries the field, still reaches here. Read it
+    // defensively and trim, so a missing or whitespace-only value falls
+    // through to the interstitial instead of being treated as a destination.
+    const destination = getSafeDestination(response.destination);
 
     if (isAuthenticatedResponse(response)) {
       if (!response.meta?.access_token) {
@@ -300,9 +294,9 @@ export async function handleProviderLoginCallback(
       // destination"). An absent/empty `destination` falls back to the
       // success interstitial.
       let successUrl: string;
-      if (destination && isSafeDestination(destination)) {
-        // `destination` is either an absolute URL or a same-origin relative
-        // path — no origin prefix needed either way.
+      if (destination) {
+        // Already validated by `getSafeDestination`: either an absolute URL or
+        // a same-origin relative path — no origin prefix needed either way.
         successUrl = destination;
       } else {
         const base = `/auth/social/${provider}/success`;
