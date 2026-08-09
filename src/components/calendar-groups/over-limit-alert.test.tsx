@@ -5,7 +5,8 @@
  * - resource, current_usage, and limit from the typed body all render on
  *   screen, and changing them changes what's rendered (not a static
  *   string a deleted feature could still pass);
- * - no upgrade link is rendered, ever -- the app has no billing surface;
+ * - an upgrade link is rendered into the billing plan picker, carrying the
+ *   offending resource as a query param (the app now has a billing surface);
  * - `otherWritesSucceeded` changes the copy: 0 (the default) says nothing
  *   else in the save was applied; a positive count says what was actually
  *   kept, rather than wording the alert as though nothing was written.
@@ -53,11 +54,14 @@ describe('OverLimitAlert', () => {
     expect(screen.queryByText(/50 of 50/)).not.toBeInTheDocument();
   });
 
-  it('renders no upgrade link', () => {
-    render(<OverLimitAlert error={makeError()} />);
+  it('deep-links into the billing plan picker carrying the offending resource', () => {
+    render(<OverLimitAlert error={makeError({ resource: 'blocked_time' })} />);
 
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    expect(screen.queryByText(/upgrade/i)).not.toBeInTheDocument();
+    const link = screen.getByRole('link', { name: /upgrade/i });
+    expect(link).toHaveAttribute(
+      'href',
+      '/billing/plans?resource=blocked_time'
+    );
   });
 
   it('states nothing else was applied when no other write succeeded', () => {
