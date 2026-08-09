@@ -59,10 +59,13 @@ function statement(
   };
 }
 
-function mockPeriods(periods: BillingPeriodSummary[]) {
+function mockPeriods(
+  periods: BillingPeriodSummary[],
+  totalCount: number = periods.length
+) {
   vi.mocked(useBillingPeriods).mockReturnValue({
     periods,
-    totalCount: periods.length,
+    totalCount,
     isLoading: false,
     isError: false,
     error: null,
@@ -123,6 +126,39 @@ describe('BillingPeriodsPage (Phase 7)', () => {
 
     await waitFor(() => {
       expect(lastFilters()).toMatchObject({ charged: true });
+    });
+  });
+
+  it('advances the offset one page on Next and steps back on Prev', async () => {
+    // totalCount (25) exceeds PAGE_SIZE (20), so Next is enabled and the
+    // pagination controls render at all.
+    mockPeriods([statement()], 25);
+
+    const user = userEvent.setup();
+    render(<BillingPeriodsPage />);
+
+    // Fresh page: Prev is disabled, Next enabled.
+    const prev = screen.getByTestId('statements-prev');
+    const next = screen.getByTestId('statements-next');
+    expect(prev).toBeDisabled();
+    expect(next).toBeEnabled();
+    expect(lastFilters()).toMatchObject({ offset: 0 });
+
+    await user.click(next);
+
+    // One page forward: the hook is re-queried with offset === PAGE_SIZE.
+    await waitFor(() => {
+      expect(lastFilters()).toMatchObject({ offset: 20 });
+    });
+    // Prev is now enabled; we are on the last page so Next disables.
+    expect(screen.getByTestId('statements-prev')).toBeEnabled();
+    expect(screen.getByTestId('statements-next')).toBeDisabled();
+
+    await user.click(screen.getByTestId('statements-prev'));
+
+    // Back to the first page.
+    await waitFor(() => {
+      expect(lastFilters()).toMatchObject({ offset: 0 });
     });
   });
 
