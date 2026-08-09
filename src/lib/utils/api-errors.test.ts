@@ -20,6 +20,7 @@ import {
   readOverLimitError,
   isNotFoundError,
   readNonFieldError,
+  readBillingConflict,
 } from './api-errors';
 
 describe('readOverLimitError', () => {
@@ -184,5 +185,53 @@ describe('readNonFieldError', () => {
     expect(readNonFieldError(null)).toBeNull();
     expect(readNonFieldError(undefined)).toBeNull();
     expect(readNonFieldError(42)).toBeNull();
+  });
+});
+
+describe('readBillingConflict', () => {
+  it('reads a plan-change-in-flight 409 body into its typed shape', () => {
+    expect(
+      readBillingConflict({
+        detail: 'a plan change is already awaiting confirmation',
+      })
+    ).toEqual({ detail: 'a plan change is already awaiting confirmation' });
+  });
+
+  it('reads a provider-unconfigured 409 body', () => {
+    expect(readBillingConflict({ detail: 'provider not configured' })).toEqual({
+      detail: 'provider not configured',
+    });
+  });
+
+  it('returns null for a 402 over-limit body (also carries detail)', () => {
+    expect(
+      readBillingConflict({
+        code: 'limit_exceeded',
+        resource: 'availability_windows',
+        current_usage: 50,
+        limit: 50,
+        detail: 'Organization is at its limit for availability windows.',
+      })
+    ).toBeNull();
+  });
+
+  it('returns null for a DRF field-error 400', () => {
+    expect(readBillingConflict({ cap: ['Must be at least 1.'] })).toBeNull();
+  });
+
+  it('returns null when detail is not a string', () => {
+    expect(readBillingConflict({ detail: 42 })).toBeNull();
+    expect(readBillingConflict({ detail: ['x'] })).toBeNull();
+  });
+
+  it('returns null for a plain-text/500-style rejection', () => {
+    expect(readBillingConflict('Internal Server Error')).toBeNull();
+    expect(readBillingConflict(new Error('boom'))).toBeNull();
+  });
+
+  it('returns null for null, undefined, and non-object values', () => {
+    expect(readBillingConflict(null)).toBeNull();
+    expect(readBillingConflict(undefined)).toBeNull();
+    expect(readBillingConflict(42)).toBeNull();
   });
 });
