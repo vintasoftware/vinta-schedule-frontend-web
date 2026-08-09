@@ -102,6 +102,72 @@ export function readBillingConflict(
 }
 
 /**
+ * Reads whether a thrown error body is change-plan's `400
+ * PaymentTokenRequiredError` — the rejection a caller gets when the billing root
+ * is attaching a payment instrument for the first time (its
+ * `Subscription.external_id` is still blank) but omitted `payment_token` (see
+ * the `ChangePlanRequest` schema note + `SubscriptionService._initiate_upgrade`).
+ * The change-plan flow branches on this to REVEAL the card field and retry with
+ * the SAME idempotency key — never minting a second key, so the retry can't
+ * double-charge.
+ *
+ * The API does not document the 400 body shape in `schema.yml`, so this reader
+ * matches defensively on either a `code` discriminator (the repo's handoff
+ * convention, cf. `limit_exceeded`) or a `detail`/`message` string mentioning a
+ * required payment token/method. It is deliberately checked BEFORE
+ * `readBillingConflict` (which matches any `{ detail }`) so a token-required 400
+ * is never misread as a 409 conflict. It excludes the `limit_exceeded` 402 body
+ * so an over-limit rejection is never misread as token-required.
+ */
+export function isPaymentTokenRequiredError(error: unknown): boolean {
+  if (error === null || typeof error !== 'object' || error instanceof Error) {
+    // A network/JS `Error` carries a `.message` that could coincidentally
+    // mention a payment token — it is never the API's typed 400 body.
+    return false;
+  }
+  const body = error as Record<string, unknown>;
+  if (body.code === 'limit_exceeded') {
+    return false;
+  }
+  if (
+    body.code === 'payment_token_required' ||
+    body.code === 'payment_token_required_error'
+  ) {
+    return true;
+  }
+  const message =
+    typeof body.detail === 'string'
+      ? body.detail
+      : typeof body.message === 'string'
+        ? body.message
+        : null;
+  if (message === null) {
+    return false;
+  }
+  const normalized = message.toLowerCase();
+  const mentionsPaymentInstrument =
+    normalized.includes('payment token') ||
+    normalized.includes('payment method') ||
+    normalized.includes('payment_token');
+  if (!mentionsPaymentInstrument) {
+    return false;
+  }
+  // Only classify as token-required when the message ASSERTS the token is
+  // required/missing — merely mentioning a "payment method" is too broad (a 409
+  // like "payment method change already processing" mentions one but is a
+  // conflict, not a first-time-attach 400).
+  return (
+    normalized.includes('required') ||
+    normalized.includes('missing') ||
+    normalized.includes('must be') ||
+    normalized.includes('provide') ||
+    normalized.includes('supply') ||
+    normalized.includes('supplied') ||
+    normalized.includes('needed')
+  );
+}
+
+/**
  * Reads whether a thrown error body is the API's non-disclosure 404
  * (`{ "detail": "Not found." }`) — returned byte-identically for a missing,
  * other-organization, out-of-slot, or unauthorized row (handoff doc's

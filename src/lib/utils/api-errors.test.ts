@@ -21,6 +21,7 @@ import {
   isNotFoundError,
   readNonFieldError,
   readBillingConflict,
+  isPaymentTokenRequiredError,
 } from './api-errors';
 
 describe('readOverLimitError', () => {
@@ -233,5 +234,68 @@ describe('readBillingConflict', () => {
     expect(readBillingConflict(null)).toBeNull();
     expect(readBillingConflict(undefined)).toBeNull();
     expect(readBillingConflict(42)).toBeNull();
+  });
+});
+
+describe('isPaymentTokenRequiredError', () => {
+  it('matches a code discriminator', () => {
+    expect(
+      isPaymentTokenRequiredError({ code: 'payment_token_required' })
+    ).toBe(true);
+    expect(
+      isPaymentTokenRequiredError({ code: 'payment_token_required_error' })
+    ).toBe(true);
+  });
+
+  it('matches a detail/message mentioning a required payment token or method', () => {
+    expect(
+      isPaymentTokenRequiredError({ detail: 'A payment token is required.' })
+    ).toBe(true);
+    expect(
+      isPaymentTokenRequiredError({
+        message: 'Please provide a payment method.',
+      })
+    ).toBe(true);
+    expect(
+      isPaymentTokenRequiredError({ detail: 'payment_token must be supplied' })
+    ).toBe(true);
+  });
+
+  it('does not misread a 402 over-limit body', () => {
+    expect(
+      isPaymentTokenRequiredError({
+        code: 'limit_exceeded',
+        resource: 'organization_members',
+        current_usage: 10,
+        limit: 5,
+        detail: 'over limit',
+      })
+    ).toBe(false);
+  });
+
+  it('does not misread an unrelated 409 conflict', () => {
+    expect(
+      isPaymentTokenRequiredError({
+        detail: 'A plan change is already awaiting confirmation.',
+      })
+    ).toBe(false);
+  });
+
+  it('does not misread a 409 that merely mentions a payment method', () => {
+    // The substring fallback must not classify a body that only mentions a
+    // "payment method" without asserting a token is required/missing — this is
+    // a conflict body, checked before readBillingConflict.
+    expect(
+      isPaymentTokenRequiredError({
+        detail: 'A payment method change is already processing.',
+      })
+    ).toBe(false);
+  });
+
+  it('returns false for null / non-object / error values', () => {
+    expect(isPaymentTokenRequiredError(null)).toBe(false);
+    expect(isPaymentTokenRequiredError(undefined)).toBe(false);
+    expect(isPaymentTokenRequiredError('payment token')).toBe(false);
+    expect(isPaymentTokenRequiredError(new Error('payment token'))).toBe(false);
   });
 });
