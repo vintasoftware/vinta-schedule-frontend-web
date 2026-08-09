@@ -51,8 +51,20 @@ const USAGE: UsageResponse = {
   },
   estimated_overage_total: '0.0000',
   limits: [
+    // Near its limit (95/100) AND prepaid → the "Buy more" affordance shows.
     {
       resource_key: 'event_occurrences',
+      kind: 'prepaid',
+      limit_value: 100,
+      current_usage: 95,
+      overage_unit_price: null,
+      included_in_plan: 100,
+      add_on_quantity: 0,
+      by_organization: [],
+    },
+    // Postpaid (overage billed automatically) → no affordance, even for admin.
+    {
+      resource_key: 'organization_members',
       kind: 'postpaid',
       limit_value: 100,
       current_usage: 40,
@@ -117,6 +129,14 @@ describe('BillingOverview — buy-more affordance', () => {
     expect(screen.getByTestId('dialog-resource')).toHaveTextContent(
       'event_occurrences'
     );
+  });
+
+  it('scopes "Buy more" to the near-limit prepaid row — never the postpaid one', () => {
+    renderOverview('admin');
+
+    // Exactly the prepaid, near-limit row exposes the affordance; the postpaid
+    // row (overage billed automatically) shows none.
+    expect(screen.getAllByTestId('resource-buy-more')).toHaveLength(1);
   });
 
   it('hides the "Buy more" affordance from a member', () => {

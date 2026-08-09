@@ -167,6 +167,25 @@ describe('PurchaseAddOnDialog', () => {
     );
   });
 
+  it('shows the still-processing state and re-polls on "Check again"', async () => {
+    // The ~60s window elapses without the webhook landing → still_processing.
+    h.start.mockResolvedValue({ status: 'still_processing' });
+
+    renderDialog(null);
+    fireEvent.click(screen.getByTestId('purchase-add-on-submit'));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('purchase-add-on-still-processing')
+      ).toBeInTheDocument()
+    );
+    expect(h.start).toHaveBeenCalledTimes(1);
+
+    // "Check again" re-polls: a SECOND start() call.
+    fireEvent.click(screen.getByText('Check again'));
+    await waitFor(() => expect(h.start).toHaveBeenCalledTimes(2));
+  });
+
   it('renders the provider-unavailable message on a 409', async () => {
     h.purchaseAddOn.mockRejectedValueOnce({
       detail: 'The payment provider is not configured.',

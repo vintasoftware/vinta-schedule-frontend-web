@@ -223,6 +223,15 @@ export function PurchaseAddOnDialog({
   const isPending = purchaseAddOnMutation.isPending;
   const canSubmit = effectiveResource !== '' && quantity >= 1;
 
+  // The confirming→settle transition rule, in one place: enter the polling
+  // state, then land on `confirmed` only when the poll resolved, else fall back
+  // to `still_processing` (the ~60s window elapsed without the webhook landing).
+  const runConfirmation = async () => {
+    setPhase('confirming');
+    const result = await confirmation.start();
+    setPhase(result.status === 'confirmed' ? 'confirmed' : 'still_processing');
+  };
+
   const handleSubmit = async () => {
     setErrorMessage(null);
 
@@ -294,15 +303,11 @@ export function PurchaseAddOnDialog({
     // Record the returned add-on id so the predicate can find it in the poll,
     // then poll until the webhook flips `is_active` — never "done" off the 201.
     purchasedAddOnIdRef.current = addOn.id;
-    setPhase('confirming');
-    const result = await confirmation.start();
-    setPhase(result.status === 'confirmed' ? 'confirmed' : 'still_processing');
+    await runConfirmation();
   };
 
   const handleCheckAgain = async () => {
-    setPhase('confirming');
-    const result = await confirmation.start();
-    setPhase(result.status === 'confirmed' ? 'confirmed' : 'still_processing');
+    await runConfirmation();
   };
 
   const resourceName =

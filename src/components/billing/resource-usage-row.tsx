@@ -62,7 +62,16 @@ export function ResourceUsageRow({
   const label = resourceLabel(limit.resource_key);
   const isUnlimited = limit.limit_value === null;
   const used = limit.current_usage ?? 0;
-  const showBuyMore = onBuyMore !== undefined && !isUnlimited;
+  // "Buy more" is scoped to a PRE-PAID resource near or over its limit (>=80%
+  // used, over-limit included). A postpaid resource bills overage automatically
+  // — there is nothing to pre-buy — and a comfortably-under-limit prepaid row
+  // needs no prompt. Unlimited rows fall out via the null-limit guard.
+  const isNearLimit =
+    limit.limit_value !== null &&
+    limit.current_usage !== null &&
+    limit.current_usage / limit.limit_value >= 0.8;
+  const showBuyMore =
+    onBuyMore !== undefined && limit.kind === 'prepaid' && isNearLimit;
 
   const showSplit = !isUnlimited && limit.included_in_plan !== null;
   const overagePrice =
