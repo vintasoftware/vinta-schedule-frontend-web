@@ -112,10 +112,20 @@ function hasPaidInstrument(subscription: Subscription | null): boolean {
   );
 }
 
-/** A pending change is settled once the webhook clears `pending_plan_slug`. */
-function isPendingCleared(subscription: Subscription | null): boolean {
-  if (subscription === null) {
-    return true;
+/**
+ * The confirmation predicate: a pending change is settled ONLY once a real
+ * subscription object comes back with `pending_plan_slug` cleared. A
+ * null/undefined/missing read must NEVER resolve as confirmed — on a first-time
+ * upgrade the new subscription is not readable for a beat (the free org's
+ * `GET /billing/subscription/` 404s and the post-initiate refetch can resolve
+ * before the row exists), and treating that absence as success would render
+ * "done" BEFORE the webhook confirms the charge. So an absent read keeps polling.
+ */
+function isPendingChangeConfirmed(
+  subscription: Subscription | null | undefined
+): boolean {
+  if (subscription === null || subscription === undefined) {
+    return false;
   }
   return !subscription.pending_plan_slug;
 }
@@ -143,12 +153,17 @@ export function ChangePlanDialog({
   // refetch as the confirmation poll.
   const { subscriptionQuery } = useSubscription();
 
-  const confirmation = useAwaitPaymentConfirmation<Subscription | null>({
+  const confirmation = useAwaitPaymentConfirmation<
+    Subscription | null | undefined
+  >({
     poll: async () => {
+      // Do NOT coalesce a missing/absent read into a resolvable sentinel: a
+      // not-yet-readable subscription must keep polling, never settle. The
+      // predicate below rejects null/undefined for the same reason.
       const { data } = await subscriptionQuery.refetch();
-      return data ?? null;
+      return data;
     },
-    isResolved: isPendingCleared,
+    isResolved: isPendingChangeConfirmed,
   });
 
   // One key per attempt, reused across every retry within this attempt. The key

@@ -209,6 +209,11 @@ export function BillingPlansPicker() {
 
       {changePlan !== null && (
         <ChangePlanDialog
+          // Per-attempt identity: keying on the target slug forces a fresh mount
+          // (fresh idempotency holder + phase + card field) on an A→B switch
+          // without an intervening close, so a distinct plan selection can never
+          // reuse the previous attempt's idempotency key for a different plan.
+          key={changePlan.slug}
           open={changePlan !== null}
           onOpenChange={(open) => {
             if (!open) setChangePlan(null);

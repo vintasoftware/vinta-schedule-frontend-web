@@ -145,10 +145,25 @@ export function isPaymentTokenRequiredError(error: unknown): boolean {
     return false;
   }
   const normalized = message.toLowerCase();
-  return (
+  const mentionsPaymentInstrument =
     normalized.includes('payment token') ||
     normalized.includes('payment method') ||
-    normalized.includes('payment_token')
+    normalized.includes('payment_token');
+  if (!mentionsPaymentInstrument) {
+    return false;
+  }
+  // Only classify as token-required when the message ASSERTS the token is
+  // required/missing — merely mentioning a "payment method" is too broad (a 409
+  // like "payment method change already processing" mentions one but is a
+  // conflict, not a first-time-attach 400).
+  return (
+    normalized.includes('required') ||
+    normalized.includes('missing') ||
+    normalized.includes('must be') ||
+    normalized.includes('provide') ||
+    normalized.includes('supply') ||
+    normalized.includes('supplied') ||
+    normalized.includes('needed')
   );
 }
 

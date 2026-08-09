@@ -281,6 +281,17 @@ describe('isPaymentTokenRequiredError', () => {
     ).toBe(false);
   });
 
+  it('does not misread a 409 that merely mentions a payment method', () => {
+    // The substring fallback must not classify a body that only mentions a
+    // "payment method" without asserting a token is required/missing — this is
+    // a conflict body, checked before readBillingConflict.
+    expect(
+      isPaymentTokenRequiredError({
+        detail: 'A payment method change is already processing.',
+      })
+    ).toBe(false);
+  });
+
   it('returns false for null / non-object / error values', () => {
     expect(isPaymentTokenRequiredError(null)).toBe(false);
     expect(isPaymentTokenRequiredError(undefined)).toBe(false);
