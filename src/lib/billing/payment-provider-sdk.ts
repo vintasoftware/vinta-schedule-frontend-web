@@ -15,12 +15,28 @@
  * required, that becomes an `add-env-var` change touching only these two
  * constants).
  *
- * NOTE FOR REVIEW: the Stripe adapter mirrors the well-established
- * Elements + `createToken` flow. The MercadoPago Secure Fields adapter
- * (`createCardToken`) is written to the documented v2 API shape but has no
- * repo precedent and no live test here; its exact `createCardToken` payload
- * must be verified against a live MercadoPago integration before Phase 3/4
- * ship a real charge through it.
+ * The Stripe adapter mirrors the well-established Elements + `createToken` flow.
+ * The MercadoPago Secure Fields adapter (`createCardToken`) is written to the
+ * documented v2 API shape but has no repo precedent and no live test here.
+ *
+ * LIVE-VERIFICATION CHECKLIST (MercadoPago) — must be confirmed against a live
+ * MercadoPago account before Phase 3/4 ship a real charge through this adapter.
+ * The field names below are the documented MercadoPago.js v2 shape but are
+ * UNVERIFIED here; do not treat them as confirmed:
+ *   1. `fields.create('cardNumber' | 'expirationDate' | 'securityCode')` are the
+ *      correct Secure Field types, and the SDK reads their values automatically
+ *      at `createCardToken` time (i.e. they are NOT passed in the payload).
+ *   2. `fields.createCardToken(payload)` requires, at minimum, the non-iframe
+ *      inputs modelled by `MpCardTokenInputs`:
+ *        - `cardholderName`       (string; name printed on the card)
+ *        - `identificationType`   (string; e.g. 'CPF' — country-dependent)
+ *        - `identificationNumber` (string; the document number)
+ *      Confirm the exact key names, whether any are optional per country, and
+ *      whether `cardholderName` can instead be a fourth Secure Field.
+ *   3. The success shape is `{ id: string }` (the token id read below).
+ * Until a real purchase flow (Phase 3/4) collects and threads those inputs, the
+ * payload fields are blank and the call FAILS CLOSED — a missing/blank token
+ * maps to `incomplete`, never a silent success.
  */
 
 import type { PaymentProvider } from '@/client';
@@ -164,7 +180,9 @@ interface MpFields {
     type: 'cardNumber' | 'expirationDate' | 'securityCode',
     options?: unknown
   ): MpField;
-  createCardToken(data: unknown): Promise<{ id?: string } | undefined>;
+  createCardToken(
+    data: MpCardTokenInputs
+  ): Promise<{ id?: string } | undefined>;
 }
 interface MercadoPagoInstance {
   fields: MpFields;
@@ -173,18 +191,37 @@ interface MercadoPagoConstructor {
   new (publicKey: string, options?: unknown): MercadoPagoInstance;
 }
 
-// MercadoPago Secure Fields mount into elements addressed by id, so the adapter
-// builds three child mount targets inside the single container the contract
-// hands it — keeping the multi-field provider behind the one-element interface.
-const MP_FIELD_IDS = {
-  cardNumber: 'mp-card-number',
-  expirationDate: 'mp-expiration-date',
-  securityCode: 'mp-security-code',
-} as const;
+/**
+ * The non-iframe inputs `fields.createCardToken` needs in addition to the Secure
+ * Fields (card number, expiry, CVV) it reads automatically from the mounted
+ * iframes. These key names are the documented MercadoPago.js v2 shape but are
+ * TO-BE-VERIFIED — see the LIVE-VERIFICATION CHECKLIST in the module doc.
+ */
+interface MpCardTokenInputs {
+  cardholderName: string;
+  identificationType: string;
+  identificationNumber: string;
+}
+
+// MercadoPago Secure Fields mount into elements addressed by id. Two fields on
+// one page would collide on a fixed global id (getElementById resolves the first
+// match), so every adapter instance gets a unique id suffix from this counter.
+let mpInstanceCounter = 0;
+
+const MP_FIELD_TYPES = [
+  'cardNumber',
+  'expirationDate',
+  'securityCode',
+] as const;
 
 function createMercadoPagoSdk(publicKey: string): PaymentProviderSdk {
   let mp: MercadoPagoInstance | null = null;
   const mounted: MpField[] = [];
+  // Track the mount-target nodes this adapter appended so `unmount` can remove
+  // them — otherwise an effect re-run (provider/createSdk change) orphans the
+  // divs and leaves duplicate ids behind.
+  const targets: HTMLElement[] = [];
+  const instanceId = ++mpInstanceCounter;
 
   return {
     async load() {
@@ -201,13 +238,13 @@ function createMercadoPagoSdk(publicKey: string): PaymentProviderSdk {
     },
     async mountCardElement(container: HTMLElement) {
       if (!mp) throw new Error('MercadoPago SDK not loaded before mount.');
-      for (const [type, id] of Object.entries(MP_FIELD_IDS)) {
+      for (const type of MP_FIELD_TYPES) {
+        const id = `mp-${type}-${instanceId}`;
         const target = document.createElement('div');
         target.id = id;
         container.appendChild(target);
-        mounted.push(
-          mp.fields.create(type as keyof typeof MP_FIELD_IDS).mount(id)
-        );
+        targets.push(target);
+        mounted.push(mp.fields.create(type).mount(id));
       }
     },
     async tokenize(): Promise<PaymentInstrumentResult> {
@@ -219,17 +256,28 @@ function createMercadoPagoSdk(publicKey: string): PaymentProviderSdk {
         };
       }
       try {
-        // Payload shape must be verified against a live MercadoPago
-        // integration (see module NOTE FOR REVIEW).
-        const token = await mp.fields.createCardToken({});
-        if (!token?.id) {
+        // The Secure Fields (card number, expiry, CVV) are read by the SDK from
+        // the mounted iframes; `createCardToken` additionally needs the explicit
+        // non-iframe inputs below. A real purchase flow (Phase 3/4) must collect
+        // and thread these; until then they are blank and the call FAILS CLOSED
+        // (blank/missing token → `incomplete`). See the module LIVE-VERIFICATION
+        // CHECKLIST — the key names are UNVERIFIED against a live MercadoPago
+        // account.
+        const inputs: MpCardTokenInputs = {
+          cardholderName: '',
+          identificationType: '',
+          identificationNumber: '',
+        };
+        const token = await mp.fields.createCardToken(inputs);
+        const tokenId = token?.id?.trim();
+        if (!tokenId) {
           return {
             status: 'error',
             reason: 'incomplete',
             message: 'Please complete the card details.',
           };
         }
-        return { status: 'tokenized', token: asPaymentToken(token.id) };
+        return { status: 'tokenized', token: asPaymentToken(tokenId) };
       } catch (error) {
         return {
           status: 'error',
@@ -244,6 +292,10 @@ function createMercadoPagoSdk(publicKey: string): PaymentProviderSdk {
     unmount() {
       for (const field of mounted) field.unmount();
       mounted.length = 0;
+      // Remove the divs we appended so an effect re-run leaves no orphan nodes
+      // or duplicate ids in the container.
+      for (const target of targets) target.remove();
+      targets.length = 0;
     },
   };
 }

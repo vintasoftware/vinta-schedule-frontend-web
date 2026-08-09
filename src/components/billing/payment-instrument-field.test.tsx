@@ -222,6 +222,37 @@ describe('PaymentInstrumentField', () => {
     });
   });
 
+  it('renders a distinct load-failed error state and tokenize() still returns sdk_load_failed', async () => {
+    mockProvider(STRIPE_PROVIDER);
+    const { factory, load } = makeFakeFactory({ loadRejects: true });
+    const ref = createRef<PaymentInstrumentFieldHandle>();
+
+    render(<PaymentInstrumentField ref={ref} createSdk={factory} />);
+
+    await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+
+    // A visible error state — distinct from the unavailable state — appears.
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('payment-field-load-failed')
+      ).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByTestId('payment-field-unavailable')
+    ).not.toBeInTheDocument();
+    // The bare card container is not left showing behind the error.
+    expect(
+      screen.queryByTestId('payment-card-element')
+    ).not.toBeInTheDocument();
+
+    const result = await ref.current!.tokenize();
+    expect(result).toEqual({
+      status: 'error',
+      reason: 'sdk_load_failed',
+      message: expect.any(String),
+    });
+  });
+
   it('shows a skeleton while the provider is still loading', () => {
     mockProvider(null, { isLoading: true });
     const { factory } = makeFakeFactory();

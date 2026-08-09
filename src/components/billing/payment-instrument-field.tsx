@@ -31,6 +31,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from 'vinta-schedule-design-system/ui/alert';
+import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Icon } from 'vinta-schedule-design-system/ui/icon';
 import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
 import { Box, Text, VStack } from 'vinta-schedule-design-system/layout';
@@ -89,6 +90,10 @@ export const PaymentInstrumentField = React.forwardRef<
   const containerRef = React.useRef<HTMLElement | null>(null);
   const sdkRef = React.useRef<PaymentProviderSdk | null>(null);
   const [sdkState, setSdkState] = React.useState<SdkState>('idle');
+  // Bumped by the load-failed "Try again" action to re-run the load effect. The
+  // state flips back to 'loading' first so the card container re-renders and the
+  // effect finds a live mount target.
+  const [reloadNonce, setReloadNonce] = React.useState(0);
 
   React.useEffect(() => {
     if (
@@ -121,7 +126,12 @@ export const PaymentInstrumentField = React.forwardRef<
       sdk.unmount?.();
       if (sdkRef.current === sdk) sdkRef.current = null;
     };
-  }, [available, paymentProvider, createSdk]);
+  }, [available, paymentProvider, createSdk, reloadNonce]);
+
+  const handleRetry = React.useCallback(() => {
+    setSdkState('loading');
+    setReloadNonce((nonce) => nonce + 1);
+  }, []);
 
   React.useImperativeHandle(
     ref,
@@ -171,26 +181,51 @@ export const PaymentInstrumentField = React.forwardRef<
       <Text as='label' size='sm' weight='medium' color='foreground'>
         {label}
       </Text>
-      <Box
-        ref={containerRef}
-        p={3}
-        radius='md'
-        bg='background'
-        border
-        className='min-h-11'
-        data-testid='payment-card-element'
-      >
-        {sdkState === 'loading' ? (
-          <Skeleton
-            className='h-5 w-full'
-            data-testid='payment-card-mounting'
-          />
-        ) : null}
-      </Box>
-      <Text size='xs' color='muted-foreground'>
-        <Icon icon={CreditCard} size='xs' /> Your card is handled directly by
-        our payment provider.
-      </Text>
+      {sdkState === 'load_failed' ? (
+        <Alert variant='destructive' data-testid='payment-field-load-failed'>
+          <Icon icon={TriangleAlert} />
+          <AlertTitle>We couldn&apos;t load the payment field</AlertTitle>
+          <AlertDescription>
+            <VStack gap={2} align='start'>
+              <Text size='sm'>
+                Something went wrong loading our payment provider. Please try
+                again.
+              </Text>
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                onClick={handleRetry}
+              >
+                Try again
+              </Button>
+            </VStack>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <>
+          <Box
+            ref={containerRef}
+            p={3}
+            radius='md'
+            bg='background'
+            border
+            className='min-h-11'
+            data-testid='payment-card-element'
+          >
+            {sdkState === 'loading' ? (
+              <Skeleton
+                className='h-5 w-full'
+                data-testid='payment-card-mounting'
+              />
+            ) : null}
+          </Box>
+          <Text size='xs' color='muted-foreground'>
+            <Icon icon={CreditCard} size='xs' /> Your card is handled directly
+            by our payment provider.
+          </Text>
+        </>
+      )}
     </VStack>
   );
 });

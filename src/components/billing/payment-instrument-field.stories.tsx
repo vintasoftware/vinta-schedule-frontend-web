@@ -25,6 +25,19 @@ const fakeSdk: PaymentProviderSdkFactory = () => ({
   }),
 });
 
+// A factory whose SDK fails to load → the component's load-failed error state.
+const failingSdk: PaymentProviderSdkFactory = () => ({
+  load: async () => {
+    throw new Error('mock: provider SDK failed to load');
+  },
+  mountCardElement: async () => {},
+  tokenize: async () => ({
+    status: 'error',
+    reason: 'sdk_load_failed',
+    message: 'The payment field failed to load. Please try again.',
+  }),
+});
+
 const STRIPE_PROVIDER: PaymentProvider = {
   provider: 'stripe',
   stripe: { publishable_key: 'pk_test_story' },
@@ -47,7 +60,13 @@ const UNCONFIGURED_PROVIDER: PaymentProvider = {
 
 // Seeds the payment-provider query so `usePaymentProvider` resolves from cache
 // instead of fetching.
-function SeededField({ provider }: { provider: PaymentProvider }) {
+function SeededField({
+  provider,
+  createSdk = fakeSdk,
+}: {
+  provider: PaymentProvider;
+  createSdk?: PaymentProviderSdkFactory;
+}) {
   const [client] = useState(() => {
     const c = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -58,7 +77,7 @@ function SeededField({ provider }: { provider: PaymentProvider }) {
   return (
     <QueryClientProvider client={client}>
       <div className='w-full max-w-md'>
-        <PaymentInstrumentField createSdk={fakeSdk} />
+        <PaymentInstrumentField createSdk={createSdk} />
       </div>
     </QueryClientProvider>
   );
@@ -83,6 +102,12 @@ export const MercadoPago: Story = {
 
 export const Unavailable: Story = {
   render: () => <SeededField provider={UNCONFIGURED_PROVIDER} />,
+};
+
+export const LoadFailed: Story = {
+  render: () => (
+    <SeededField provider={STRIPE_PROVIDER} createSdk={failingSdk} />
+  ),
 };
 
 export const Mobile: Story = {

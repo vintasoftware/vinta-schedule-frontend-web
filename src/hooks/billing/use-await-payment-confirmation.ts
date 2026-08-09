@@ -83,6 +83,11 @@ export function useAwaitPaymentConfirmation<T>({
 
   const intervalIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Resolver for the in-flight `start()` promise, so teardown can settle a wait
+  // that would otherwise hang the awaiting caller. Cleared on every settle.
+  const resolveRef = useRef<
+    ((result: PaymentConfirmationResult) => void) | null
+  >(null);
   // Guards every post-await state write: once cleared (resolution or unmount),
   // an in-flight poll that resolves later is a no-op — no leaked timer, no
   // set-state-after-unmount, no confirming a wait that was already torn down.
@@ -116,9 +121,12 @@ export function useAwaitPaymentConfirmation<T>({
     setStatus('awaiting');
 
     return new Promise<PaymentConfirmationResult>((resolve) => {
+      resolveRef.current = resolve;
+
       const settle = (result: PaymentConfirmationResult) => {
         if (!activeRef.current) return;
         stop();
+        resolveRef.current = null;
         setStatus(result.status);
         resolve(result);
       };
@@ -137,6 +145,10 @@ export function useAwaitPaymentConfirmation<T>({
         if (isResolvedRef.current(value)) settle({ status: 'confirmed' });
       };
 
+      // Poll once immediately so an already-settled webhook resolves without
+      // waiting a full interval; the interval then covers the not-yet-settled
+      // case up to the ceiling.
+      void tick();
       intervalIdRef.current = setInterval(() => {
         void tick();
       }, intervalMs);
@@ -146,9 +158,17 @@ export function useAwaitPaymentConfirmation<T>({
     });
   }, [stop, intervalMs, timeoutMs]);
 
-  // Clear timers if the component unmounts mid-wait — the assertion the tests
-  // pin down: no poll fires after unmount.
-  useEffect(() => stop, [stop]);
+  // On unmount mid-wait: stop timers (no poll fires after unmount) AND resolve
+  // the in-flight promise with `still_processing` so an awaiting caller doesn't
+  // hang. The `activeRef` guard still blocks any post-unmount state write.
+  useEffect(
+    () => () => {
+      stop();
+      resolveRef.current?.({ status: 'still_processing' });
+      resolveRef.current = null;
+    },
+    [stop]
+  );
 
   return { status, start, reset };
 }
