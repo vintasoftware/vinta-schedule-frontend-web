@@ -1,19 +1,25 @@
 import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 
+import { BillingOverview } from '@/components/billing/billing-overview';
+
 /**
- * BillingPage — placeholder billing overview.
+ * BillingPage — the billing overview & current-usage dashboard (Phase 2).
  *
- * Phase 0 ships only the route skeleton: a heading, reachable by direct URL
- * with no sidebar entry (Phase 9 wires nav). The real current-usage dashboard
- * — plan snapshot, period bounds, billing_state, per-resource usage,
- * reseller attribution, accrued overage — lands in Phase 2 via the Phase 0
- * read hooks. A Server Component: nothing here needs client state yet.
+ * A server-first page: it stays a Server Component (no 'use client') and renders
+ * the `BillingOverview` client island, which calls the read hooks
+ * (`useBillingUsage` / `useSubscription`) and composes the dashboard. This keeps
+ * the route thin and lets Next.js stream the header while the data island
+ * resolves. The free / subscription-less path and the no-active-org `403` are
+ * handled inside `BillingOverview` — the page never crashes on either.
  */
 export default function BillingPage() {
   return (
-    <PageHeader
-      title='Billing'
-      description='Your plan, usage, and billing history.'
-    />
+    <>
+      <PageHeader
+        title='Billing'
+        description='Your plan, usage, and billing history.'
+      />
+      <BillingOverview />
+    </>
   );
 }
