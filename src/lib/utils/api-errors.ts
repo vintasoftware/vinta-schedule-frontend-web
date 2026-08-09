@@ -168,6 +168,69 @@ export function isPaymentTokenRequiredError(error: unknown): boolean {
 }
 
 /**
+ * Reads whether a thrown error body is the add-on purchase endpoint's `400
+ * AddOnNotPurchasableError` — the rejection a caller gets when the chosen
+ * `resource_key` cannot be bought as an add-on (the resource is not a pre-paid,
+ * purchasable capacity). The purchase flow branches on this to show a clear
+ * "this resource can't be purchased" message instead of the generic failure.
+ *
+ * The API does not document this 400 body shape in `schema.yml` (only the `409`
+ * provider-unconfigured error is listed), so this reader matches DEFENSIVELY on
+ * either a `code` discriminator (the repo's handoff convention, cf.
+ * `limit_exceeded`) or a `detail`/`message` string asserting the resource isn't
+ * purchasable as an add-on. It is deliberately checked BEFORE
+ * `readBillingConflict` (which matches any `{ detail }`) so a not-purchasable
+ * 400 is never misread as a 409 conflict. It excludes the `limit_exceeded` 402
+ * body so an over-limit rejection is never misread as not-purchasable.
+ */
+export function isAddOnNotPurchasableError(error: unknown): boolean {
+  if (error === null || typeof error !== 'object' || error instanceof Error) {
+    // A network/JS `Error` carries a `.message` that could coincidentally
+    // mention "add-on" — it is never the API's typed 400 body.
+    return false;
+  }
+  const body = error as Record<string, unknown>;
+  if (body.code === 'limit_exceeded') {
+    return false;
+  }
+  if (
+    body.code === 'add_on_not_purchasable' ||
+    body.code === 'add_on_not_purchasable_error'
+  ) {
+    return true;
+  }
+  const message =
+    typeof body.detail === 'string'
+      ? body.detail
+      : typeof body.message === 'string'
+        ? body.message
+        : null;
+  if (message === null) {
+    return false;
+  }
+  const normalized = message.toLowerCase();
+  const mentionsAddOn =
+    normalized.includes('add-on') ||
+    normalized.includes('add on') ||
+    normalized.includes('add_on') ||
+    normalized.includes('addon');
+  if (!mentionsAddOn) {
+    return false;
+  }
+  // Only classify as not-purchasable when the message ASSERTS the resource
+  // cannot be bought — merely mentioning "add-on" is too broad (a 409 like
+  // "an add-on purchase is already processing" mentions one but is a conflict).
+  return (
+    normalized.includes('not purchasable') ||
+    normalized.includes("can't be purchased") ||
+    normalized.includes('cannot be purchased') ||
+    normalized.includes('cannot purchase') ||
+    normalized.includes('not available for purchase') ||
+    normalized.includes('not a purchasable')
+  );
+}
+
+/**
  * Reads whether a thrown error body is the API's non-disclosure 404
  * (`{ "detail": "Not found." }`) — returned byte-identically for a missing,
  * other-organization, out-of-slot, or unauthorized row (handoff doc's

@@ -13,8 +13,12 @@
  * client component, but this row holds no state of its own).
  */
 
+import { Plus } from 'lucide-react';
+
 import { Card, CardContent } from 'vinta-schedule-design-system/ui/card';
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
 import { Progress } from 'vinta-schedule-design-system/ui/progress';
 import { HStack, Text, VStack } from 'vinta-schedule-design-system/layout';
 
@@ -32,6 +36,14 @@ export interface ResourceUsageRowProps {
    * org — there is no money to format then, and such rows are unlimited anyway.
    */
   currency: string | null;
+  /**
+   * Opens the add-on purchase dialog pre-selected to this row's resource
+   * (Phase 4). Provided by the parent ONLY for a caller allowed to buy (admin);
+   * when absent, no "Buy more" affordance renders — so the row stays a pure
+   * presentational Server Component and the role gate lives with the parent that
+   * owns the dialog state. Not shown for an unlimited resource (nothing to buy).
+   */
+  onBuyMore?: (resourceKey: string) => void;
 }
 
 /** Clamps the usage-vs-limit ratio to a 0–100 bar percentage. */
@@ -42,10 +54,15 @@ function usagePercent(used: number, limitValue: number): number {
   return Math.min(100, Math.round((used / limitValue) * 100));
 }
 
-export function ResourceUsageRow({ limit, currency }: ResourceUsageRowProps) {
+export function ResourceUsageRow({
+  limit,
+  currency,
+  onBuyMore,
+}: ResourceUsageRowProps) {
   const label = resourceLabel(limit.resource_key);
   const isUnlimited = limit.limit_value === null;
   const used = limit.current_usage ?? 0;
+  const showBuyMore = onBuyMore !== undefined && !isUnlimited;
 
   const showSplit = !isUnlimited && limit.included_in_plan !== null;
   const overagePrice =
@@ -59,21 +76,34 @@ export function ResourceUsageRow({ limit, currency }: ResourceUsageRowProps) {
     <Card data-testid='resource-usage-row'>
       <CardContent className='pt-6'>
         <VStack gap={2} align='stretch'>
-          <HStack justify='between' gap={4}>
+          <HStack justify='between' gap={4} align='center'>
             <Text weight='medium'>{label}</Text>
-            {isUnlimited ? (
-              <Badge variant='teal' data-testid='resource-unlimited'>
-                Unlimited
-              </Badge>
-            ) : (
-              <Text
-                size='sm'
-                color='muted-foreground'
-                data-testid='resource-usage-count'
-              >
-                {used} / {limit.limit_value}
-              </Text>
-            )}
+            <HStack gap={3} align='center'>
+              {isUnlimited ? (
+                <Badge variant='teal' data-testid='resource-unlimited'>
+                  Unlimited
+                </Badge>
+              ) : (
+                <Text
+                  size='sm'
+                  color='muted-foreground'
+                  data-testid='resource-usage-count'
+                >
+                  {used} / {limit.limit_value}
+                </Text>
+              )}
+              {showBuyMore ? (
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='xs'
+                  onClick={() => onBuyMore?.(limit.resource_key)}
+                  data-testid='resource-buy-more'
+                >
+                  <Icon icon={Plus} size='xs' /> Buy more
+                </Button>
+              ) : null}
+            </HStack>
           </HStack>
 
           {!isUnlimited && limit.limit_value !== null ? (
