@@ -215,6 +215,173 @@ export type BillingAddress = {
 };
 
 /**
+ * The ``[start, end)`` bounds of the cycle in progress right now, resolved
+ * through the same anchor (``resolve_billing_period`` /
+ * ``current_billing_period_start``) the meter and the usage counters use --
+ * never read off ``Subscription.current_period_start`` directly, which goes
+ * stale the moment one cycle elapses. ``null`` when there is no subscription.
+ */
+export type BillingPeriodBounds = {
+    /**
+     * Inclusive start of the current billing period.
+     */
+    start: string;
+    /**
+     * Exclusive end of the current billing period.
+     */
+    end: string;
+};
+
+/**
+ * One resource's snapshot as of a closed billing period
+ * (``BillingPeriodResourceUsage``), nested under ``GET
+ * /billing/usage/periods/{id}/``'s ``resources`` key.
+ *
+ * ``reconciliation_unmetered``/``reconciliation_orphaned`` live on the parent
+ * ``BillingPeriodSummary`` row, not here, and neither is serialized anywhere
+ * in this module -- internal investigation data, surfaced only in Django
+ * admin (see the plan's Non-goals).
+ */
+export type BillingPeriodResourceUsage = {
+    /**
+     * The LimitedResource member this row reports on.
+     */
+    resource_key: string;
+    /**
+     * prepaid or postpaid, as classified at close time. null when this resource's limit could not be resolved at close.
+     */
+    kind: string | null;
+    /**
+     * This resource's usage as counted at close, summed across the pooled subtree. null means the count was **not recorded** -- a period that closed before this feature shipped, or a LimitedResource member added after this period closed -- and must never be displayed as 0. A recorded usage of zero serializes as the integer 0, distinct from null.
+     */
+    total: number | null;
+    /**
+     * The effective ceiling in force at close time. null means **unlimited** -- a different null than total's; a client must not collapse the two into the same meaning.
+     */
+    limit_value: number | null;
+    /**
+     * Price per unit of overage. For event_occurrences with at least one overage row this period, stamped from those MeteredOccurrence rows rather than the live effective limit, so a later price change cannot make this row disagree with overage_total. null for a prepaid resource, or when no single stamped price applies to this period.
+     */
+    overage_unit_price: string | null;
+    /**
+     * Per-organization contribution to total, across the pooled subtree at close time. An organization that contributed nothing is omitted, never present with usage: 0. Ordered by organization_id ascending -- the identical shape GET /billing/usage/'s by_organization uses. Names are resolved at **read time** against the organizations table, so they reflect each organization's current name, not its name as of when this period closed -- this row has no name snapshot. An organization that no longer exists renders with name: "" rather than being dropped from the list; its count still counts toward total.
+     */
+    by_organization: Array<UsageByOrganization>;
+};
+
+/**
+ * One closed billing period, as a durable statement -- one row of ``GET
+ * /billing/usage/periods/``. See ``BillingPeriodSummaryDetailSerializer`` for
+ * the ``resources`` breakdown the detail action adds.
+ *
+ * ``reconciliation_unmetered``/``reconciliation_orphaned`` are deliberately
+ * absent from every field below -- internal investigation data, surfaced only
+ * in Django admin (see the plan's Non-goals).
+ */
+export type BillingPeriodSummary = {
+    /**
+     * pk of this statement.
+     */
+    id: number;
+    /**
+     * Inclusive start of the closed period.
+     */
+    billing_period_start: string;
+    /**
+     * Exclusive end of the closed period.
+     */
+    billing_period_end: string;
+    /**
+     * The billing plan in force for this period, snapshotted at close time -- a later plan change does not rewrite this.
+     */
+    plan_slug: string;
+    /**
+     * Display name of the plan in force for this period.
+     */
+    plan_name: string;
+    /**
+     * The subscription's billing interval for this period.
+     */
+    billing_interval: string;
+    /**
+     * The plan's currency for this period, e.g. "USD".
+     */
+    currency: string;
+    /**
+     * Overage money charged for this period.
+     */
+    overage_total: string;
+    /**
+     * Whether an overage charge was actually made for this period.
+     */
+    charged: boolean;
+    /**
+     * pk of the Payment that settled this period's overage. null when charged is false.
+     */
+    payment_id: number | null;
+    /**
+     * When CycleCloseService wrote this statement.
+     */
+    closed_at: string;
+};
+
+/**
+ * ``GET /billing/usage/periods/{id}/`` -- one statement's full detail,
+ * adding its per-resource breakdown to every field
+ * ``BillingPeriodSummarySerializer`` already reports.
+ */
+export type BillingPeriodSummaryDetail = {
+    /**
+     * pk of this statement.
+     */
+    id: number;
+    /**
+     * Inclusive start of the closed period.
+     */
+    billing_period_start: string;
+    /**
+     * Exclusive end of the closed period.
+     */
+    billing_period_end: string;
+    /**
+     * The billing plan in force for this period, snapshotted at close time -- a later plan change does not rewrite this.
+     */
+    plan_slug: string;
+    /**
+     * Display name of the plan in force for this period.
+     */
+    plan_name: string;
+    /**
+     * The subscription's billing interval for this period.
+     */
+    billing_interval: string;
+    /**
+     * The plan's currency for this period, e.g. "USD".
+     */
+    currency: string;
+    /**
+     * Overage money charged for this period.
+     */
+    overage_total: string;
+    /**
+     * Whether an overage charge was actually made for this period.
+     */
+    charged: boolean;
+    /**
+     * pk of the Payment that settled this period's overage. null when charged is false.
+     */
+    payment_id: number | null;
+    /**
+     * When CycleCloseService wrote this statement.
+     */
+    closed_at: string;
+    /**
+     * Every LimitedResource member recorded for this period. Prefetched, so retrieving one statement is a bounded number of queries regardless of how many resources exist.
+     */
+    readonly resources: Array<BillingPeriodResourceUsage>;
+};
+
+/**
  * The catalog view behind ``GET /billing/plans/`` — every active plan with
  * its limits and entitlements, so a client can render an upgrade picker
  * without a second round trip per plan.
@@ -231,6 +398,26 @@ export type BillingPlan = {
     readonly grace_period_days: number | null;
     readonly limits: Array<PlanLimit>;
     readonly entitlements: Array<PlanEntitlement>;
+};
+
+/**
+ * The plan in force for the current billing cycle, as reported by ``GET
+ * /billing/usage/``. ``null`` when the caller's billing root has no
+ * ``Subscription`` (``billing_state: "free"``).
+ */
+export type BillingPlanSnapshot = {
+    /**
+     * The billing plan's slug.
+     */
+    slug: string;
+    /**
+     * The billing plan's display name.
+     */
+    name: string;
+    /**
+     * The billing plan's currency, e.g. "USD".
+     */
+    currency: string;
 };
 
 /**
@@ -696,6 +883,18 @@ export type EffectiveLimitUsage = {
     limit_value: number | null;
     current_usage: number | null;
     overage_unit_price: string | null;
+    /**
+     * The plan-only portion of limit_value (SubscriptionPlanLimit.limit_value), before any add-on capacity. null under the same fail-open rule limit_value follows: no subscription, no plan-limit row for this resource, or an explicitly unlimited row.
+     */
+    included_in_plan: number | null;
+    /**
+     * The sum of every active SubscriptionAddOn's quantity for this resource. included_in_plan + add_on_quantity == limit_value whenever limit_value is non-null -- these two fields decompose limit_value, they do not redefine it.
+     */
+    add_on_quantity: number;
+    /**
+     * Per-organization attribution of current_usage across the caller's pooled billing subtree. An organization that contributed nothing is omitted, never present with usage: 0. Ordered by organization_id ascending.
+     */
+    by_organization: Array<UsageByOrganization>;
 };
 
 /**
@@ -1068,6 +1267,115 @@ export type GroupScopedQuotaRuleCreate = {
 };
 
 /**
+ * The calendar a ledger row's event lives on -- nested under
+ * ``LedgerEventSerializer``.
+ */
+export type LedgerCalendar = {
+    /**
+     * pk of the calendar.
+     */
+    id: number;
+    /**
+     * The calendar's display name.
+     */
+    name: string;
+};
+
+/**
+ * The event a ``GET /billing/usage/occurrences/`` row was metered
+ * against. Resolved by the view in one batched query per page --
+ * ``MeteredOccurrence.event_id`` is a soft reference (``BigIntegerField``,
+ * not a ``ForeignKey``) precisely so the billing record outlives the event
+ * (see the ``MeteredOccurrence`` model docstring); this can never become a
+ * per-row lookup.
+ */
+export type LedgerEvent = {
+    /**
+     * pk of the event.
+     */
+    id: number;
+    /**
+     * The series root's title, not the individual occurrence's own. event_id stores the series root -- following bulk_modification_parent back through any splits -- so a modified occurrence's row shows the master's title rather than its own current one.
+     */
+    title: string;
+    /**
+     * The calendar this event lives on.
+     */
+    calendar: LedgerCalendar | null;
+    /**
+     * Owners of the event's calendar (CalendarOwnership). CalendarEvent carries no organizer field of its own -- ownership is calendar-level, and a calendar can have several owners.
+     */
+    owners: Array<LedgerEventOwner>;
+};
+
+/**
+ * One owner of a ledger row's event's calendar (``CalendarOwnership``).
+ * ``CalendarEvent`` has no organizer field of its own -- ownership is
+ * calendar-level, and a calendar can have several owners.
+ */
+export type LedgerEventOwner = {
+    /**
+     * pk of the owning membership's user.
+     */
+    user_id: number;
+    /**
+     * The owning user's display name.
+     */
+    name: string;
+};
+
+/**
+ * The browser-safe half of MercadoPago's credentials -- never the secret access token.
+ */
+export type MercadoPagoPublicCredentials = {
+    public_key: string;
+};
+
+/**
+ * One row of ``GET /billing/usage/occurrences/`` -- the post-paid ledger
+ * behind an overage charge, so a customer disputing an invoice can tie every
+ * unit of money to a specific occurrence.
+ *
+ * ``event``/``organization`` are not model relations on ``MeteredOccurrence``
+ * (``event_id`` is a soft reference; ``organization`` has no name of its own
+ * here) -- both are built in ``to_representation`` from maps the view
+ * resolves once per page and threads through ``context`` (``event_map``,
+ * ``organization_names``), never a per-row query.
+ */
+export type MeteredOccurrence = {
+    readonly id: number;
+    /**
+     * The organization this occurrence is attributed to.
+     */
+    organization: MeteredOccurrenceOrganization;
+    /**
+     * null when the referenced event no longer exists -- an expected state (a MeteredOccurrence outlives its event by design, see the model docstring), not an error. The charge still stands; unit_price is unaffected either way.
+     */
+    event: LedgerEvent | null;
+    readonly occurrence_start: string;
+    readonly billing_period_start: string;
+    readonly is_within_allowance: boolean;
+    readonly unit_price: string;
+};
+
+/**
+ * The organization a ledger row is attributed to -- ``GET
+ * /billing/usage/occurrences/``'s ``organization`` field. Names are batch
+ * resolved by the view (``MeteredOccurrenceViewSet``) once per page, the
+ * same pattern ``UsageByOrganizationSerializer`` uses.
+ */
+export type MeteredOccurrenceOrganization = {
+    /**
+     * pk of the attributed organization.
+     */
+    id: number;
+    /**
+     * The attributed organization's name.
+     */
+    name: string;
+};
+
+/**
  * Read-only serializer for the caller's active organization memberships.
  *
  * Used by ``GET /organizations/mine/`` to power the frontend org switcher.
@@ -1348,6 +1656,13 @@ export type PaginatedAvailableTimeList = {
     results: Array<AvailableTime>;
 };
 
+export type PaginatedBillingPeriodSummaryList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<BillingPeriodSummary>;
+};
+
 export type PaginatedBillingPlanList = {
     count: number;
     next?: string | null;
@@ -1430,6 +1745,13 @@ export type PaginatedGroupScopedQuotaRuleList = {
     next?: string | null;
     previous?: string | null;
     results: Array<GroupScopedQuotaRule>;
+};
+
+export type PaginatedMeteredOccurrenceList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<MeteredOccurrence>;
 };
 
 export type PaginatedOrganizationInvitationList = {
@@ -1874,6 +2196,25 @@ export type PatchedWebhookConfiguration = {
 };
 
 /**
+ * Response shape for ``GET /billing/payment-provider/`` and its unauthenticated
+ * ``/default/`` sibling: the resolved provider slug plus that provider's public
+ * credentials. Only the object matching ``provider`` is populated; the other is
+ * ``null``, so a client never receives keys for a provider it did not resolve to.
+ *
+ * Plain ``serializers.Serializer`` -- nothing here is DB-backed. Serializes a
+ * ``payments.services.provider_credentials.PublicProviderCredentials`` instance, not a
+ * model, hence the explicit ``to_representation`` rather than attribute-matching nested
+ * serializers (the dataclass's flat ``stripe_publishable_key``/``mercadopago_public_key``
+ * fields don't line up 1:1 with this serializer's nested ``stripe``/``mercadopago``
+ * objects).
+ */
+export type PaymentProvider = {
+    provider: PaymentProviderEnum;
+    stripe: StripePublicCredentials | null;
+    mercadopago: MercadoPagoPublicCredentials | null;
+};
+
+/**
  * * `mercadopago` - MercadoPago
  * * `stripe` - Stripe
  */
@@ -2137,6 +2478,13 @@ export type ServiceAccountWrite = {
 export type SourceEnum = 'signup_form' | 'oauth_step' | 'api';
 
 /**
+ * The browser-safe half of Stripe's credentials -- never the secret API key.
+ */
+export type StripePublicCredentials = {
+    publishable_key: string;
+};
+
+/**
  * Serializer for Subscription virtual model.
  */
 export type Subscription = {
@@ -2285,8 +2633,48 @@ export type UpdateMembershipRole = {
     role: RoleEnum;
 };
 
+/**
+ * One organization's contribution to a pooled ``GET /billing/usage/`` figure.
+ *
+ * Sourced from ``EntitlementService.get_usage_breakdown`` / the ``usage_breakdown_for_root``
+ * entry point it shares with ``CycleCloseService``. An organization in the pool
+ * that contributed **nothing** to this resource is **omitted from the list
+ * entirely** -- never present with ``usage: 0`` -- matching that breakdown's
+ * absent-not-zero contract.
+ */
+export type UsageByOrganization = {
+    /**
+     * pk of the contributing organization, within the caller's pooled billing subtree.
+     */
+    organization_id: number;
+    /**
+     * The contributing organization's name.
+     */
+    name: string;
+    /**
+     * This organization's share of the resource's usage.
+     */
+    usage: number;
+};
+
 export type UsageResponse = {
     billing_state: string;
+    /**
+     * pk of the billing root this response was resolved against.
+     */
+    billing_root_organization_id: number;
+    /**
+     * The plan in force this cycle. null when there is no subscription.
+     */
+    plan: BillingPlanSnapshot | null;
+    /**
+     * Bounds of the cycle in progress now. null when there is no subscription.
+     */
+    billing_period: BillingPeriodBounds | null;
+    /**
+     * Overage money accrued so far in the current, open billing period -- MeteredOccurrenceQuerySet.overage_total() over the caller's pooled subtree. Accrued-to-date, never a projection of the whole cycle. "0.0000" when there is no subscription.
+     */
+    estimated_overage_total: string;
     limits: Array<EffectiveLimitUsage>;
 };
 
@@ -2413,6 +2801,58 @@ export type BillingAddressWritable = {
     state: string;
     country: string;
     zip_code: string;
+};
+
+/**
+ * ``GET /billing/usage/periods/{id}/`` -- one statement's full detail,
+ * adding its per-resource breakdown to every field
+ * ``BillingPeriodSummarySerializer`` already reports.
+ */
+export type BillingPeriodSummaryDetailWritable = {
+    /**
+     * pk of this statement.
+     */
+    id: number;
+    /**
+     * Inclusive start of the closed period.
+     */
+    billing_period_start: string;
+    /**
+     * Exclusive end of the closed period.
+     */
+    billing_period_end: string;
+    /**
+     * The billing plan in force for this period, snapshotted at close time -- a later plan change does not rewrite this.
+     */
+    plan_slug: string;
+    /**
+     * Display name of the plan in force for this period.
+     */
+    plan_name: string;
+    /**
+     * The subscription's billing interval for this period.
+     */
+    billing_interval: string;
+    /**
+     * The plan's currency for this period, e.g. "USD".
+     */
+    currency: string;
+    /**
+     * Overage money charged for this period.
+     */
+    overage_total: string;
+    /**
+     * Whether an overage charge was actually made for this period.
+     */
+    charged: boolean;
+    /**
+     * pk of the Payment that settled this period's overage. null when charged is false.
+     */
+    payment_id: number | null;
+    /**
+     * When CycleCloseService wrote this statement.
+     */
+    closed_at: string;
 };
 
 /**
@@ -2649,6 +3089,28 @@ export type ExternalAttendeeWritable = {
 };
 
 /**
+ * One row of ``GET /billing/usage/occurrences/`` -- the post-paid ledger
+ * behind an overage charge, so a customer disputing an invoice can tie every
+ * unit of money to a specific occurrence.
+ *
+ * ``event``/``organization`` are not model relations on ``MeteredOccurrence``
+ * (``event_id`` is a soft reference; ``organization`` has no name of its own
+ * here) -- both are built in ``to_representation`` from maps the view
+ * resolves once per page and threads through ``context`` (``event_map``,
+ * ``organization_names``), never a per-row query.
+ */
+export type MeteredOccurrenceWritable = {
+    /**
+     * The organization this occurrence is attributed to.
+     */
+    organization: MeteredOccurrenceOrganization;
+    /**
+     * null when the referenced event no longer exists -- an expected state (a MeteredOccurrence outlives its event by design, see the model docstring), not an error. The charge still stands; unit_price is unaffected either way.
+     */
+    event: LedgerEvent | null;
+};
+
+/**
  * Serializer for Organization instances.
  *
  * The ``google_service_account`` field supports both reading and writing:
@@ -2773,6 +3235,13 @@ export type PaginatedGroupScopedQuotaRuleListWritable = {
     next?: string | null;
     previous?: string | null;
     results: Array<unknown>;
+};
+
+export type PaginatedMeteredOccurrenceListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<MeteredOccurrenceWritable>;
 };
 
 export type PaginatedOrganizationInvitationListWritable = {
@@ -3893,6 +4362,13 @@ export type BillingAddOnsCreateData = {
     url: '/billing/add-ons/';
 };
 
+export type BillingAddOnsCreateErrors = {
+    /**
+     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven.
+     */
+    409: unknown;
+};
+
 export type BillingAddOnsCreateResponses = {
     201: SubscriptionAddOn;
 };
@@ -3912,6 +4388,13 @@ export type BillingAddOnsFormattedCreateData = {
     };
     query?: never;
     url: '/billing/add-ons{format}';
+};
+
+export type BillingAddOnsFormattedCreateErrors = {
+    /**
+     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven.
+     */
+    409: unknown;
 };
 
 export type BillingAddOnsFormattedCreateResponses = {
@@ -3962,6 +4445,60 @@ export type BillingAddOnsFormattedDestroyResponses = {
 };
 
 export type BillingAddOnsFormattedDestroyResponse = BillingAddOnsFormattedDestroyResponses[keyof BillingAddOnsFormattedDestroyResponses];
+
+export type BillingPaymentProviderRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/billing/payment-provider/';
+};
+
+export type BillingPaymentProviderRetrieveErrors = {
+    /**
+     * No active organization.
+     */
+    403: unknown;
+    /**
+     * The resolved provider is unknown or has no public credentials configured in this deployment.
+     */
+    409: unknown;
+};
+
+export type BillingPaymentProviderRetrieveResponses = {
+    200: PaymentProvider;
+};
+
+export type BillingPaymentProviderRetrieveResponse = BillingPaymentProviderRetrieveResponses[keyof BillingPaymentProviderRetrieveResponses];
+
+export type BillingPaymentProviderDefaultRetrieveData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/billing/payment-provider/default/';
+};
+
+export type BillingPaymentProviderDefaultRetrieveErrors = {
+    /**
+     * Throttled.
+     */
+    429: unknown;
+    /**
+     * The default provider has no public credentials configured.
+     */
+    503: unknown;
+};
+
+export type BillingPaymentProviderDefaultRetrieveResponses = {
+    200: PaymentProvider;
+};
+
+export type BillingPaymentProviderDefaultRetrieveResponse = BillingPaymentProviderDefaultRetrieveResponses[keyof BillingPaymentProviderDefaultRetrieveResponses];
 
 export type BillingPlansListData = {
     body?: never;
@@ -4026,6 +4563,13 @@ export type BillingSubscriptionCancelCreateData = {
     url: '/billing/subscription/cancel/';
 };
 
+export type BillingSubscriptionCancelCreateErrors = {
+    /**
+     * The provider this subscription is stamped with is not configured in this deployment, so the provider-side cancellation cannot be driven.
+     */
+    409: unknown;
+};
+
 export type BillingSubscriptionCancelCreateResponses = {
     200: Subscription;
 };
@@ -4047,6 +4591,13 @@ export type BillingSubscriptionCancelFormattedCreateData = {
     url: '/billing/subscription/cancel{format}';
 };
 
+export type BillingSubscriptionCancelFormattedCreateErrors = {
+    /**
+     * The provider this subscription is stamped with is not configured in this deployment, so the provider-side cancellation cannot be driven.
+     */
+    409: unknown;
+};
+
 export type BillingSubscriptionCancelFormattedCreateResponses = {
     200: Subscription;
 };
@@ -4064,6 +4615,13 @@ export type BillingSubscriptionChangePlanCreateData = {
     path?: never;
     query?: never;
     url: '/billing/subscription/change-plan/';
+};
+
+export type BillingSubscriptionChangePlanCreateErrors = {
+    /**
+     * Either another plan change is already awaiting payment confirmation, or the provider this organization resolves to is not configured in this deployment (`PaymentProviderNotConfiguredError`, mapped centrally in `common.exception_handlers.vinta_exception_handler`).
+     */
+    409: unknown;
 };
 
 export type BillingSubscriptionChangePlanCreateResponses = {
@@ -4085,6 +4643,13 @@ export type BillingSubscriptionChangePlanFormattedCreateData = {
     };
     query?: never;
     url: '/billing/subscription/change-plan{format}';
+};
+
+export type BillingSubscriptionChangePlanFormattedCreateErrors = {
+    /**
+     * Either another plan change is already awaiting payment confirmation, or the provider this organization resolves to is not configured in this deployment (`PaymentProviderNotConfiguredError`, mapped centrally in `common.exception_handlers.vinta_exception_handler`).
+     */
+    409: unknown;
 };
 
 export type BillingSubscriptionChangePlanFormattedCreateResponses = {
@@ -4132,6 +4697,243 @@ export type BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses = 
 };
 
 export type BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponse = BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses[keyof BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses];
+
+export type BillingUsageOccurrencesListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Only rows billed to this exact period. Defaults to the current, open billing period when omitted.
+         */
+        billing_period_start?: string;
+        /**
+         * Filter by whether the occurrence fell inside the included allowance
+         */
+        is_within_allowance?: boolean;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * Only occurrences starting on or after this instant (inclusive).
+         */
+        occurrence_start_after?: string;
+        /**
+         * Only occurrences starting on or before this instant (inclusive).
+         */
+        occurrence_start_before?: string;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * Order by occurrence_start. Prefix with '-' for descending. Defaults to -occurrence_start (newest first).
+         *
+         * * `occurrence_start` - Occurrence start
+         * * `-occurrence_start` - Occurrence start (descending)
+         */
+        ordering?: Array<'-occurrence_start' | 'occurrence_start'>;
+        /**
+         * Only rows attributed to this organization. Must be inside the caller's pooled billing subtree -- an id outside it is a validation error, not an empty result.
+         */
+        organization?: number;
+    };
+    url: '/billing/usage/occurrences/';
+};
+
+export type BillingUsageOccurrencesListResponses = {
+    200: PaginatedMeteredOccurrenceList;
+};
+
+export type BillingUsageOccurrencesListResponse = BillingUsageOccurrencesListResponses[keyof BillingUsageOccurrencesListResponses];
+
+export type BillingUsageOccurrencesFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Only rows billed to this exact period. Defaults to the current, open billing period when omitted.
+         */
+        billing_period_start?: string;
+        /**
+         * Filter by whether the occurrence fell inside the included allowance
+         */
+        is_within_allowance?: boolean;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * Only occurrences starting on or after this instant (inclusive).
+         */
+        occurrence_start_after?: string;
+        /**
+         * Only occurrences starting on or before this instant (inclusive).
+         */
+        occurrence_start_before?: string;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * Order by occurrence_start. Prefix with '-' for descending. Defaults to -occurrence_start (newest first).
+         *
+         * * `occurrence_start` - Occurrence start
+         * * `-occurrence_start` - Occurrence start (descending)
+         */
+        ordering?: Array<'-occurrence_start' | 'occurrence_start'>;
+        /**
+         * Only rows attributed to this organization. Must be inside the caller's pooled billing subtree -- an id outside it is a validation error, not an empty result.
+         */
+        organization?: number;
+    };
+    url: '/billing/usage/occurrences{format}';
+};
+
+export type BillingUsageOccurrencesFormattedListResponses = {
+    200: PaginatedMeteredOccurrenceList;
+};
+
+export type BillingUsageOccurrencesFormattedListResponse = BillingUsageOccurrencesFormattedListResponses[keyof BillingUsageOccurrencesFormattedListResponses];
+
+export type BillingUsagePeriodsListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Only periods starting on or after this instant (inclusive).
+         */
+        billing_period_start_after?: string;
+        /**
+         * Only periods starting on or before this instant (inclusive).
+         */
+        billing_period_start_before?: string;
+        /**
+         * Filter by whether the period's overage was charged
+         */
+        charged?: boolean;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/billing/usage/periods/';
+};
+
+export type BillingUsagePeriodsListResponses = {
+    200: PaginatedBillingPeriodSummaryList;
+};
+
+export type BillingUsagePeriodsListResponse = BillingUsagePeriodsListResponses[keyof BillingUsagePeriodsListResponses];
+
+export type BillingUsagePeriodsFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Only periods starting on or after this instant (inclusive).
+         */
+        billing_period_start_after?: string;
+        /**
+         * Only periods starting on or before this instant (inclusive).
+         */
+        billing_period_start_before?: string;
+        /**
+         * Filter by whether the period's overage was charged
+         */
+        charged?: boolean;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/billing/usage/periods{format}';
+};
+
+export type BillingUsagePeriodsFormattedListResponses = {
+    200: PaginatedBillingPeriodSummaryList;
+};
+
+export type BillingUsagePeriodsFormattedListResponse = BillingUsagePeriodsFormattedListResponses[keyof BillingUsagePeriodsFormattedListResponses];
+
+export type BillingUsagePeriodsRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/billing/usage/periods/{id}/';
+};
+
+export type BillingUsagePeriodsRetrieveResponses = {
+    200: BillingPeriodSummaryDetail;
+};
+
+export type BillingUsagePeriodsRetrieveResponse = BillingUsagePeriodsRetrieveResponses[keyof BillingUsagePeriodsRetrieveResponses];
+
+export type BillingUsagePeriodsFormattedRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/billing/usage/periods/{id}{format}';
+};
+
+export type BillingUsagePeriodsFormattedRetrieveResponses = {
+    200: BillingPeriodSummaryDetail;
+};
+
+export type BillingUsagePeriodsFormattedRetrieveResponse = BillingUsagePeriodsFormattedRetrieveResponses[keyof BillingUsagePeriodsFormattedRetrieveResponses];
 
 export type BillingUsageRetrieveUsageRetrieveData = {
     body?: never;
