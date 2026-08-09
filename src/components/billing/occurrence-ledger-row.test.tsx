@@ -94,6 +94,31 @@ describe('OccurrenceLedgerRow', () => {
     );
   });
 
+  it('renders "—" for a null calendar while keeping the title and caveat', () => {
+    // The event is present but its calendar was cleared/deleted — the calendar
+    // cell falls back to the em-dash while the title and its series-root caveat
+    // still render.
+    renderRow({
+      occurrence: occurrence({
+        event: {
+          id: 100,
+          title: 'Weekly sync',
+          calendar: null,
+          owners: [{ user_id: 1, name: 'Ada Lovelace' }],
+        },
+      }),
+      currency: 'USD',
+    });
+
+    expect(screen.getByTestId('occurrence-row-calendar')).toHaveTextContent(
+      '—'
+    );
+    expect(screen.getByTestId('occurrence-row-event')).toHaveTextContent(
+      'Weekly sync'
+    );
+    expect(screen.getByLabelText(SERIES_ROOT_TITLE_CAVEAT)).toBeInTheDocument();
+  });
+
   it('surfaces the series-root-title caveat on a titled row', () => {
     renderRow({ occurrence: occurrence(), currency: 'USD' });
 

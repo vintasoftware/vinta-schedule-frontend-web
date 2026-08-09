@@ -169,6 +169,8 @@ describe('BillingOccurrencesPage (Phase 8)', () => {
     expect(
       screen.queryByTestId('occurrence-ledger-access-denied')
     ).not.toBeInTheDocument();
+    // And no fetch is issued while the role is still resolving.
+    expect(lastEnabled()).toBe(false);
   });
 
   it('renders the table for an admin and enables the query', () => {
@@ -178,7 +180,11 @@ describe('BillingOccurrencesPage (Phase 8)', () => {
     expect(lastEnabled()).toBe(true);
   });
 
-  it('SECURITY: a mocked 403 renders the access-denied state, not the table', () => {
+  it('SECURITY: a mocked unclassified error (403/500/network) renders a neutral load error, not the table', () => {
+    // The client throws only the body, so a genuine 403 is indistinguishable
+    // from a 500 or a network failure. An entitled admin must NOT be told they
+    // lack access — a neutral load-failure message shows instead, and still no
+    // table.
     mockLedger({
       occurrences: [],
       isError: true,
@@ -188,8 +194,11 @@ describe('BillingOccurrencesPage (Phase 8)', () => {
     renderPage('admin');
 
     expect(
-      screen.getByTestId('occurrence-ledger-access-denied')
+      screen.getByTestId('occurrence-ledger-load-error')
     ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('occurrence-ledger-access-denied')
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('occurrence-ledger-table')
     ).not.toBeInTheDocument();
@@ -270,6 +279,62 @@ describe('BillingOccurrencesPage (Phase 8)', () => {
 
     await waitFor(() => {
       expect(lastFilters()).toMatchObject({ organization: 11 });
+    });
+  });
+
+  it('keeps the org filter mounted and clearable after the result set collapses to one org', async () => {
+    // Usage carries no `by_organization` attribution, so the org options come
+    // ONLY from the observed rows — the case where selecting an org collapses
+    // the observed set (and `poolOrgs`) to length 1 and would otherwise unmount
+    // the Select, stranding the user on one org.
+    mockUsage(makeUsage());
+
+    const acme = occurrence({
+      id: 1,
+      organization: { id: 10, name: 'Acme Inc.' },
+    });
+    const beta = occurrence({
+      id: 2,
+      organization: { id: 11, name: 'Beta LLC' },
+    });
+    vi.mocked(useOccurrenceLedger).mockImplementation((args) => {
+      const org = args?.filters?.organization;
+      const rows =
+        org === undefined
+          ? [acme, beta]
+          : [acme, beta].filter((row) => row.organization.id === org);
+      return {
+        occurrences: rows,
+        totalCount: rows.length,
+        isLoading: false,
+        isError: false,
+        error: null,
+        ledgerQuery: {} as ReturnType<
+          typeof useOccurrenceLedger
+        >['ledgerQuery'],
+      };
+    });
+
+    const user = userEvent.setup();
+    renderPage('admin');
+
+    // Two observed orgs → the Select renders and offers both.
+    await user.click(screen.getByTestId('filter-organization'));
+    await user.click(screen.getByRole('option', { name: 'Beta LLC' }));
+
+    await waitFor(() => {
+      expect(lastFilters()).toMatchObject({ organization: 11 });
+    });
+
+    // The observed set has now collapsed to a single org, but the Select stays
+    // mounted so the user can still get back to "All".
+    expect(screen.getByTestId('filter-organization')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('filter-organization'));
+    await user.click(screen.getByRole('option', { name: 'All organizations' }));
+
+    await waitFor(() => {
+      expect(lastFilters()).not.toHaveProperty('organization');
     });
   });
 

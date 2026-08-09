@@ -179,6 +179,25 @@ export default function BillingOccurrencesPage() {
       .sort((a, b) => a.id - b.id);
   }, [usage, occurrences]);
 
+  // Options the org Select actually offers. Once an org is selected the result
+  // set (and thus `poolOrgs`) can collapse to just that org — or, if its rows
+  // disappear, drop it entirely. Either way the active org must stay a
+  // selectable option so its label still shows and the user can return to
+  // "All"; add a synthetic entry if it's no longer in `poolOrgs`.
+  const orgOptions = React.useMemo(() => {
+    if (organization === ALL_ORGS) {
+      return poolOrgs;
+    }
+    const selectedId = Number(organization);
+    if (poolOrgs.some((org) => org.id === selectedId)) {
+      return poolOrgs;
+    }
+    return [
+      ...poolOrgs,
+      { id: selectedId, name: `Organization ${selectedId}` },
+    ].sort((a, b) => a.id - b.id);
+  }, [poolOrgs, organization]);
+
   const hasPrev = offset > 0;
   const hasNext = offset + PAGE_SIZE < totalCount;
 
@@ -251,7 +270,7 @@ export default function BillingOccurrencesPage() {
               data-testid='filter-start-before'
             />
           </VStack>
-          {poolOrgs.length > 1 && (
+          {(poolOrgs.length > 1 || organization !== ALL_ORGS) && (
             <VStack gap={1} align='start'>
               <Label htmlFor='occurrence-organization'>Organization</Label>
               <Select
@@ -266,7 +285,7 @@ export default function BillingOccurrencesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL_ORGS}>All organizations</SelectItem>
-                  {poolOrgs.map((org) => (
+                  {orgOptions.map((org) => (
                     <SelectItem key={org.id} value={String(org.id)}>
                       {org.name}
                     </SelectItem>
@@ -299,9 +318,21 @@ export default function BillingOccurrencesPage() {
               <AlertDescription>{validationMessage}</AlertDescription>
             </Alert>
           ) : (
-            // A `403` (or any other error) degrades to the access-denied state —
-            // the server is the real gate, and a member never sees a row.
-            <AccessDenied />
+            // This branch is admin-only: the member/non-admin access-denied
+            // state is rendered earlier by the role gate, with no fetch. An
+            // admin who hits an unclassified error — a `403`, a `500`, or a
+            // network failure, all indistinguishable since the client throws
+            // only the response body — must NOT be told they lack access; a
+            // legitimately-entitled admin could see that during an outage.
+            // Show a neutral load-failure message instead. Still no rows on any
+            // error — the security property is unchanged.
+            <Alert data-testid='occurrence-ledger-load-error'>
+              <AlertTitle>Couldn&apos;t load the ledger</AlertTitle>
+              <AlertDescription>
+                We couldn&apos;t load the occurrence ledger right now. Please
+                try again in a moment.
+              </AlertDescription>
+            </Alert>
           )
         ) : (
           <OccurrenceLedgerTable
