@@ -5,16 +5,21 @@
  * account menu.
  */
 
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { RoleEnum } from '@/client';
 import { AppSidebar } from './app-sidebar';
 import { RoleProvider } from './role-gate';
 
+let mockPathname = '/';
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
+  usePathname: () => mockPathname,
 }));
+
+beforeEach(() => {
+  mockPathname = '/';
+});
 
 function renderWithRole(role: RoleEnum | null) {
   return render(
@@ -136,5 +141,67 @@ describe('AppSidebar — billing nav', () => {
     expect(
       screen.queryByRole('link', { name: 'Ledger' })
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('AppSidebar — billing active state (most-specific wins)', () => {
+  // SidebarItem marks the active row with aria-current="page".
+  it('activates only Overview on /billing, not the nested items', () => {
+    mockPathname = '/billing';
+    renderWithRole('admin');
+
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    for (const name of ['Plans', 'Statements', 'Ledger', 'Profile']) {
+      expect(screen.getByRole('link', { name })).not.toHaveAttribute(
+        'aria-current'
+      );
+    }
+  });
+
+  it('activates only Plans on /billing/plans, and never Overview', () => {
+    mockPathname = '/billing/plans';
+    renderWithRole('admin');
+
+    expect(screen.getByRole('link', { name: 'Plans' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
+      'aria-current'
+    );
+    for (const name of ['Statements', 'Ledger', 'Profile']) {
+      expect(screen.getByRole('link', { name })).not.toHaveAttribute(
+        'aria-current'
+      );
+    }
+  });
+
+  it('activates only the Ledger on /billing/occurrences', () => {
+    mockPathname = '/billing/occurrences';
+    renderWithRole('admin');
+
+    expect(screen.getByRole('link', { name: 'Ledger' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
+      'aria-current'
+    );
+  });
+
+  it('keeps parent-highlights-child for a deep non-nested route (/billing/periods/123 → Statements)', () => {
+    mockPathname = '/billing/periods/123';
+    renderWithRole('admin');
+
+    expect(screen.getByRole('link', { name: 'Statements' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
+      'aria-current'
+    );
   });
 });

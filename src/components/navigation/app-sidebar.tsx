@@ -388,20 +388,35 @@ function AppSidebarInner(
   // disturbs the caller's other nav groups.
   const renderedGroups = [...groups, buildBillingGroup(role)];
 
+  // Most-specific-wins: an href "matches" when the pathname equals it or is a
+  // child of it. When routes nest (e.g. '/billing' is a prefix of
+  // '/billing/plans') several hrefs can match at once, so we pick the single
+  // longest match and highlight only that item. This keeps the old "child route
+  // highlights its parent" behavior for non-nested items ('/billing/periods/123'
+  // still resolves to '/billing/periods') while stopping the parent Overview row
+  // from lighting up on every '/billing/*' subpage.
+  const bestMatchHref = renderedGroups
+    .flatMap((group) => group.items)
+    .reduce<string | null>((best, item) => {
+      if (item.href == null) return best;
+      const matches =
+        pathname === item.href || pathname.startsWith(item.href + '/');
+      if (!matches) return best;
+      return best == null || item.href.length > best.length ? item.href : best;
+    }, null);
+
   return (
     <Sidebar ref={ref} width={244} brand={BRAND} footer={footer} {...props}>
       {renderedGroups.map((group, i) => (
         <SidebarGroup key={group.label ?? i} label={group.label}>
           {group.items.map((item) => {
             // An item is active if it matches the explicit activeId prop OR
-            // (when it has an href) if the current pathname is exactly that href
-            // OR starts with that href followed by '/'. The latter guard
-            // prevents '/team' from falsely matching '/team-x'.
+            // (when it has an href) if it is the single most-specific href match
+            // for the current pathname (see bestMatchHref above). Matching on the
+            // longest href avoids two rows lighting up when routes nest.
             const active =
               item.id === activeId ||
-              (item.href != null &&
-                (pathname === item.href ||
-                  pathname.startsWith(item.href + '/')));
+              (item.href != null && item.href === bestMatchHref);
 
             if (item.href) {
               // asChild: the Link becomes the row element (a real <a> with
