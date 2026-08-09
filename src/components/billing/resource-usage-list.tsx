@@ -19,11 +19,18 @@ export interface ResourceUsageListProps {
   limits: EffectiveLimitUsage[];
   /** The plan's currency, threaded to each row's overage formatting. */
   currency: string | null;
+  /**
+   * Opens the add-on purchase dialog pre-selected to a row's resource (Phase 4),
+   * threaded to each row. Provided by the parent only for a caller allowed to
+   * buy (admin); absent means no "Buy more" affordance renders.
+   */
+  onBuyMore?: (resourceKey: string) => void;
 }
 
 export function ResourceUsageList({
   limits,
   currency,
+  onBuyMore,
 }: ResourceUsageListProps) {
   if (limits.length === 0) {
     return (
@@ -44,6 +51,7 @@ export function ResourceUsageList({
           key={limit.resource_key}
           limit={limit}
           currency={currency}
+          onBuyMore={onBuyMore}
         />
       ))}
     </VStack>

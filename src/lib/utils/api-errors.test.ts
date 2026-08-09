@@ -22,6 +22,7 @@ import {
   readNonFieldError,
   readBillingConflict,
   isPaymentTokenRequiredError,
+  isAddOnNotPurchasableError,
 } from './api-errors';
 
 describe('readOverLimitError', () => {
@@ -297,5 +298,56 @@ describe('isPaymentTokenRequiredError', () => {
     expect(isPaymentTokenRequiredError(undefined)).toBe(false);
     expect(isPaymentTokenRequiredError('payment token')).toBe(false);
     expect(isPaymentTokenRequiredError(new Error('payment token'))).toBe(false);
+  });
+});
+
+describe('isAddOnNotPurchasableError', () => {
+  it('matches a code discriminator', () => {
+    expect(isAddOnNotPurchasableError({ code: 'add_on_not_purchasable' })).toBe(
+      true
+    );
+    expect(
+      isAddOnNotPurchasableError({ code: 'add_on_not_purchasable_error' })
+    ).toBe(true);
+  });
+
+  it('matches a detail/message asserting the resource is not purchasable', () => {
+    expect(
+      isAddOnNotPurchasableError({
+        detail: 'This resource is not purchasable as an add-on.',
+      })
+    ).toBe(true);
+    expect(
+      isAddOnNotPurchasableError({
+        message: "Calendar groups can't be purchased as an add-on.",
+      })
+    ).toBe(true);
+  });
+
+  it('does not match a bare add-on mention without a not-purchasable assertion', () => {
+    // A 409 conflict mentioning an add-on is NOT this 400.
+    expect(
+      isAddOnNotPurchasableError({
+        detail: 'An add-on purchase is already processing.',
+      })
+    ).toBe(false);
+  });
+
+  it('excludes the 402 over-limit body', () => {
+    expect(
+      isAddOnNotPurchasableError({
+        code: 'limit_exceeded',
+        detail: 'not purchasable add-on',
+      })
+    ).toBe(false);
+  });
+
+  it('returns false for a non-object, a plain string, or an Error', () => {
+    expect(isAddOnNotPurchasableError(null)).toBe(false);
+    expect(isAddOnNotPurchasableError(undefined)).toBe(false);
+    expect(isAddOnNotPurchasableError('add-on not purchasable')).toBe(false);
+    expect(
+      isAddOnNotPurchasableError(new Error('add-on not purchasable'))
+    ).toBe(false);
   });
 });

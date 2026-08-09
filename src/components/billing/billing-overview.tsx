@@ -28,6 +28,8 @@
  *     shapes.
  */
 
+import * as React from 'react';
+
 import {
   Alert,
   AlertDescription,
@@ -41,12 +43,16 @@ import {
   VStack,
 } from 'vinta-schedule-design-system/layout';
 
+import type { ResourceKeyEnum } from '@/client';
 import { useBillingUsage } from '@/hooks/billing/use-billing-usage';
 import { useSubscription } from '@/hooks/billing/use-subscription';
+import { useRole } from '@/components/navigation/role-gate';
 
+import { ActiveAddOnsList } from './active-add-ons-list';
 import { BillingStateBanner } from './billing-state-banner';
 import { OverageEstimate } from './overage-estimate';
 import { PlanSummaryCard } from './plan-summary-card';
+import { PurchaseAddOnDialog } from './purchase-add-on-dialog';
 import { ResourceUsageList } from './resource-usage-list';
 
 export function BillingOverview() {
@@ -55,6 +61,15 @@ export function BillingOverview() {
   // banner shows in GRACE/RESTRICTED. A free/no-sub org answers 404 here, so
   // this never gates the dashboard — we read `grace_period_ends_at` optionally.
   const { subscription } = useSubscription();
+  // Role gating is defense-in-depth: only an admin gets the "Buy more"
+  // affordance; the server `403` on the purchase endpoint is the real gate.
+  const isAdmin = useRole() === 'admin';
+
+  // The resource a "Buy more" click targets — drives the pre-selected purchase
+  // dialog. `null` when closed; the dialog unmounts on close (and remounts with
+  // a fresh idempotency holder next open), so each attempt is a clean instance.
+  const [buyMoreResource, setBuyMoreResource] =
+    React.useState<ResourceKeyEnum | null>(null);
 
   if (isLoading) {
     return (
@@ -102,8 +117,34 @@ export function BillingOverview() {
 
       <VStack gap={3} align='stretch'>
         <Text weight='semibold'>Resource usage</Text>
-        <ResourceUsageList limits={usage.limits} currency={currency} />
+        <ResourceUsageList
+          limits={usage.limits}
+          currency={currency}
+          onBuyMore={
+            isAdmin
+              ? (resourceKey) =>
+                  setBuyMoreResource(resourceKey as ResourceKeyEnum)
+              : undefined
+          }
+        />
       </VStack>
+
+      <ActiveAddOnsList />
+
+      {buyMoreResource !== null && (
+        <PurchaseAddOnDialog
+          // Per-attempt identity: a fresh mount (fresh idempotency holder +
+          // phase + card field) each time the dialog opens for a resource, so a
+          // distinct purchase can never reuse a previous attempt's key.
+          key={buyMoreResource}
+          open
+          onOpenChange={(open) => {
+            if (!open) setBuyMoreResource(null);
+          }}
+          resourceKey={buyMoreResource}
+          subscription={subscription}
+        />
+      )}
     </Stack>
   );
 }
