@@ -8,7 +8,11 @@
  *   • the UPDATE path (existing profile) prefills and PATCHes;
  *   • a non-admin sees the read-only view (no inputs, no submit);
  *   • a 409-on-create surfaces "a billing profile already exists" and refetches,
- *     with no unhandled error.
+ *     with no unhandled error;
+ *   • a 403/429-shaped `{ detail }` on create is NOT misread as "already exists" —
+ *     it renders the error toast and does not refetch;
+ *   • clearing an optional field on the update path PATCHes the cleared value as
+ *     "" so the clear persists (an omitted key would leave the old value).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -21,6 +25,8 @@ import { RoleProvider } from '@/components/navigation/role-gate';
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
 }));
+
+import { toast } from 'sonner';
 
 vi.mock('@/hooks/billing/use-billing-profile', () => ({
   useBillingProfile: vi.fn(),
@@ -234,5 +240,44 @@ describe('BillingProfileForm (Phase 6)', () => {
       await screen.findByTestId('billing-profile-exists')
     ).toBeInTheDocument();
     expect(refetch).toHaveBeenCalled();
+  });
+
+  it('shows the error toast (not "already exists") for a 403/429-shaped { detail } on create', async () => {
+    mockProfile(null);
+    // A 403 admin-gate / 429 throttle body also carries a `detail` — it must not
+    // be misread as a profile-already-exists conflict.
+    createBillingProfile.mockRejectedValue({
+      detail: 'You do not have permission to perform this action.',
+    });
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    await fillCreateForm(user);
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(
+      screen.queryByTestId('billing-profile-exists')
+    ).not.toBeInTheDocument();
+    expect(refetch).not.toHaveBeenCalled();
+  });
+
+  it('PATCHes a cleared optional as "" on the update path so the clear persists', async () => {
+    mockProfile(EXISTING_PROFILE);
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    // Blank the existing phone and save.
+    expect(screen.getByLabelText('Phone (optional)')).toHaveValue(
+      '+1 555 000 0000'
+    );
+    await user.clear(screen.getByLabelText('Phone (optional)'));
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    await waitFor(() => expect(updateBillingProfile).toHaveBeenCalledTimes(1));
+    // Sent as "" (not omitted) so the PATCH round-trips the clear.
+    expect(updateBillingProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ contact_phone: '' })
+    );
   });
 });

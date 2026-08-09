@@ -11,10 +11,13 @@
  * exists it prefills and PATCHes (partial update — see use-update-billing-profile).
  *
  * 409-ON-CREATE is handled gracefully: another admin may have created the profile
- * between this form's read and its submit. The API answers `409`; we read its
- * `detail` via `readBillingConflict`, surface "a billing profile already exists",
- * and refetch — the refetch resolves the now-existing profile, which flips the
- * form into the update path (no unhandled error, no lost input).
+ * between this form's read and its submit. The API answers `409`; we narrow it to
+ * a genuine profile-already-exists conflict (a 403 admin-gate, a 429 throttle, or
+ * a 5xx that also carries a `detail` must NOT take this branch — they fall through
+ * to the error toast), surface "a billing profile already exists", and refetch.
+ * The refetch resolves the now-existing profile and flips the form into the update
+ * path — this REPLACES the user's unsaved edits with the existing server profile,
+ * so the alert tells them to review the loaded values and re-save.
  *
  * ROLE GATING is defense-in-depth: billing-profile writes are org-admin only
  * server-side (reads are open to any member). A non-admin sees a READ-ONLY view
@@ -69,7 +72,10 @@ import { useBillingProfile } from '@/hooks/billing/use-billing-profile';
 import { useCreateBillingProfile } from '@/hooks/billing/use-create-billing-profile';
 import { useUpdateBillingProfile } from '@/hooks/billing/use-update-billing-profile';
 import { useRole } from '@/components/navigation/role-gate';
-import { readBillingConflict } from '@/lib/utils/api-errors';
+import {
+  readBillingConflict,
+  type BillingConflictBody,
+} from '@/lib/utils/api-errors';
 
 // ---------------------------------------------------------------------------
 // Zod schema — maps 1:1 to `BillingProfileWritable`.
@@ -78,8 +84,9 @@ import { readBillingConflict } from '@/lib/utils/api-errors';
 //             city / state / country / zip_code.
 //   Optional: contact_last_name, contact_phone, and the address's neighborhood /
 //             address_line_2.
-// Every field is edited as a string; optional empties are dropped at the API
-// boundary (see `toWritable`) so an empty phone is omitted, not sent as "".
+// Every field is edited as a string. On CREATE, optional empties are dropped at
+// the API boundary (see `toWritable`) so an empty phone is omitted; on UPDATE a
+// cleared optional is sent as "" so the clear round-trips through the PATCH.
 // ---------------------------------------------------------------------------
 
 const billingProfileSchema = z.object({
@@ -147,8 +154,21 @@ function profileToFormValues(profile: BillingProfile): BillingProfileSchema {
   };
 }
 
-/** Trims to the API shape, dropping optional fields left blank. */
-function toWritable(values: BillingProfileSchema): BillingProfileWritable {
+/**
+ * Trims form values to the API shape. On CREATE, optional fields left blank are
+ * omitted (a fresh profile just has no value). On UPDATE, a cleared optional is
+ * sent as "" instead of being omitted — an omitted key would leave the old
+ * server value in place, so the clear would silently not persist through the
+ * PATCH. The writable type accepts "" for these (they're `string` optionals).
+ */
+function toWritable(
+  values: BillingProfileSchema,
+  mode: 'create' | 'update'
+): BillingProfileWritable {
+  // On UPDATE always send the optional (incl. "") so a clear round-trips; on
+  // CREATE only send it when non-empty.
+  const keepOptional = (value: string | undefined) =>
+    mode === 'update' || Boolean(value);
   const address: BillingAddressWritable = {
     street_name: values.billing_address.street_name,
     street_number: values.billing_address.street_number,
@@ -156,10 +176,10 @@ function toWritable(values: BillingProfileSchema): BillingProfileWritable {
     state: values.billing_address.state,
     country: values.billing_address.country,
     zip_code: values.billing_address.zip_code,
-    ...(values.billing_address.neighborhood
+    ...(keepOptional(values.billing_address.neighborhood)
       ? { neighborhood: values.billing_address.neighborhood }
       : {}),
-    ...(values.billing_address.address_line_2
+    ...(keepOptional(values.billing_address.address_line_2)
       ? { address_line_2: values.billing_address.address_line_2 }
       : {}),
   };
@@ -169,11 +189,32 @@ function toWritable(values: BillingProfileSchema): BillingProfileWritable {
     document_type: values.document_type,
     document_number: values.document_number,
     billing_address: address,
-    ...(values.contact_last_name
+    ...(keepOptional(values.contact_last_name)
       ? { contact_last_name: values.contact_last_name }
       : {}),
-    ...(values.contact_phone ? { contact_phone: values.contact_phone } : {}),
+    ...(keepOptional(values.contact_phone)
+      ? { contact_phone: values.contact_phone }
+      : {}),
   };
+}
+
+/**
+ * Narrows a create-path rejection to a genuine profile-already-exists 409.
+ * `readBillingConflict` matches ANY `{ detail }` body, so a `billing-write` 429
+ * throttle, the 403 admin-gate backstop, and a 5xx-with-detail would otherwise
+ * be misread as "already exists" + refetch. Mirroring how
+ * `isPaymentTokenRequiredError` narrows on its message, we only take the
+ * conflict branch when the `detail` asserts the profile already exists;
+ * everything else falls through to the generic error toast.
+ */
+function readProfileExistsConflict(error: unknown): BillingConflictBody | null {
+  const conflict = readBillingConflict(error);
+  if (conflict === null) {
+    return null;
+  }
+  return conflict.detail.toLowerCase().includes('already exists')
+    ? conflict
+    : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -286,7 +327,7 @@ export function BillingProfileForm() {
     updateBillingProfileMutation.isPending;
 
   const onSubmit = async (values: BillingProfileSchema) => {
-    const body = toWritable(values);
+    const body = toWritable(values, isUpdate ? 'update' : 'create');
     setAlreadyExists(null);
     try {
       if (isUpdate) {
@@ -297,10 +338,13 @@ export function BillingProfileForm() {
         toast.success('Billing profile created');
       }
     } catch (err) {
-      // A 409 on create means another admin created the profile meanwhile.
-      // Surface it calmly and refetch — the refetch resolves the existing
-      // profile and flips this form into the update path (no lost input).
-      const conflict = !isUpdate ? readBillingConflict(err) : null;
+      // A genuine 409 on create means another admin created the profile
+      // meanwhile. Surface it calmly and refetch — the refetch resolves the
+      // existing profile and flips this form into the update path, REPLACING the
+      // user's unsaved edits with the server values (the alert tells them to
+      // review and re-save). A 403/429/5xx that also carries a `detail` is NOT a
+      // conflict and falls through to the error toast below.
+      const conflict = !isUpdate ? readProfileExistsConflict(err) : null;
       if (conflict) {
         setAlreadyExists(
           conflict.detail || 'A billing profile already exists.'
@@ -347,239 +391,245 @@ export function BillingProfileForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {alreadyExists !== null && (
-          <Alert data-testid='billing-profile-exists'>
-            <AlertTitle>A billing profile already exists</AlertTitle>
-            <AlertDescription>
-              {alreadyExists} We&apos;ve loaded it below — review and save your
-              changes.
-            </AlertDescription>
-          </Alert>
-        )}
+        <Stack gap={6}>
+          {alreadyExists !== null && (
+            <Alert data-testid='billing-profile-exists'>
+              <AlertTitle>A billing profile already exists</AlertTitle>
+              <AlertDescription>
+                {alreadyExists} We&apos;ve loaded it below — review and save
+                your changes.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        <Form {...form}>
-          <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={6} noValidate>
-            <Stack gap={4}>
-              <Text weight='semibold' size='sm'>
-                Payer contact
-              </Text>
-              <Grid columns={{ base: 1, '@md/content': 2 }} gap={4}>
-                <FormField
-                  control={form.control}
-                  name='contact_first_name'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='contact_last_name'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last name (optional)</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='contact_email'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type='email' {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='contact_phone'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone (optional)</FormLabel>
-                      <FormControl>
-                        <Input type='tel' {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Grid>
-            </Stack>
+          <Form {...form}>
+            <FormLayout
+              onSubmit={form.handleSubmit(onSubmit)}
+              gap={6}
+              noValidate
+            >
+              <Stack gap={4}>
+                <Text weight='semibold' size='sm'>
+                  Payer contact
+                </Text>
+                <Grid columns={{ base: 1, '@md/content': 2 }} gap={4}>
+                  <FormField
+                    control={form.control}
+                    name='contact_first_name'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='contact_last_name'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last name (optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='contact_email'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type='email' {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='contact_phone'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone (optional)</FormLabel>
+                        <FormControl>
+                          <Input type='tel' {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </Grid>
+              </Stack>
 
-            <Stack gap={4}>
-              <Text weight='semibold' size='sm'>
-                Tax document
-              </Text>
-              <Grid columns={{ base: 1, '@md/content': 2 }} gap={4}>
-                <FormField
-                  control={form.control}
-                  name='document_type'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Document type</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='document_number'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Document number</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Grid>
-            </Stack>
+              <Stack gap={4}>
+                <Text weight='semibold' size='sm'>
+                  Tax document
+                </Text>
+                <Grid columns={{ base: 1, '@md/content': 2 }} gap={4}>
+                  <FormField
+                    control={form.control}
+                    name='document_type'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Document type</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='document_number'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Document number</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </Grid>
+              </Stack>
 
-            <Stack gap={4}>
-              <Text weight='semibold' size='sm'>
-                Billing address
-              </Text>
-              <Grid columns={{ base: 1, '@md/content': 2 }} gap={4}>
-                <FormField
-                  control={form.control}
-                  name='billing_address.street_name'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Street</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='billing_address.street_number'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Number</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='billing_address.neighborhood'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Neighborhood (optional)</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='billing_address.address_line_2'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address line 2 (optional)</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='billing_address.city'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='billing_address.state'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>State / region</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='billing_address.country'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Country</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='billing_address.zip_code'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Postal code</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Grid>
-            </Stack>
+              <Stack gap={4}>
+                <Text weight='semibold' size='sm'>
+                  Billing address
+                </Text>
+                <Grid columns={{ base: 1, '@md/content': 2 }} gap={4}>
+                  <FormField
+                    control={form.control}
+                    name='billing_address.street_name'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Street</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='billing_address.street_number'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Number</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='billing_address.neighborhood'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Neighborhood (optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='billing_address.address_line_2'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address line 2 (optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='billing_address.city'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='billing_address.state'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State / region</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='billing_address.country'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='billing_address.zip_code'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Postal code</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </Grid>
+              </Stack>
 
-            <Flex>
-              <Button
-                type='submit'
-                disabled={isPending}
-                data-testid='billing-profile-submit'
-              >
-                {isPending
-                  ? 'Saving…'
-                  : isUpdate
-                    ? 'Save changes'
-                    : 'Create profile'}
-              </Button>
-            </Flex>
-          </FormLayout>
-        </Form>
+              <Flex>
+                <Button
+                  type='submit'
+                  disabled={isPending}
+                  data-testid='billing-profile-submit'
+                >
+                  {isPending
+                    ? 'Saving…'
+                    : isUpdate
+                      ? 'Save changes'
+                      : 'Create profile'}
+                </Button>
+              </Flex>
+            </FormLayout>
+          </Form>
+        </Stack>
       </CardContent>
     </Card>
   );
