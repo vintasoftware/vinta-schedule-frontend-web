@@ -62,7 +62,10 @@ export default function ResolvePaymentPage() {
   }
 
   // Redirecting away (nothing to resolve). Render nothing rather than flash the
-  // form or an access-denied state while the replace lands.
+  // form or an access-denied state while the replace lands. The `subscription
+  // === null` disjunct is runtime-redundant (a null subscription already yields
+  // `needsResolution === false`) but load-bearing for the type system: it narrows
+  // `subscription` to non-null for the `<ResolvePaymentForm>` render below.
   if (!needsResolution || subscription === null) {
     return null;
   }

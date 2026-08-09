@@ -19,9 +19,16 @@
 
 import * as React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 
 import type { Subscription } from '@/client';
+import { CONFIRMATION_TIMEOUT_MS } from '@/hooks/billing/use-await-payment-confirmation';
 
 import { isRecoveryConfirmed } from './resolve-payment-form';
 
@@ -183,6 +190,49 @@ describe('ResolvePaymentForm', () => {
     expect(
       screen.queryByTestId('resolve-payment-confirmed')
     ).not.toBeInTheDocument();
+  });
+
+  it('falls back to still-processing at the ceiling, then re-confirms on "Check again"', async () => {
+    vi.useFakeTimers();
+    try {
+      // The webhook never lands: every read stays GRACE through the ceiling.
+      h.refetch.mockResolvedValue({ data: GRACE_SUBSCRIPTION });
+
+      renderForm();
+      fireEvent.click(screen.getByTestId('resolve-payment-submit'));
+
+      // Flush tokenize + initiate + the immediate poll → confirming.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(
+        screen.getByTestId('resolve-payment-confirming')
+      ).toBeInTheDocument();
+
+      // Run out the confirmation ceiling without recovery → still-processing.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(CONFIRMATION_TIMEOUT_MS);
+      });
+      expect(
+        screen.getByTestId('resolve-payment-still-processing')
+      ).toBeInTheDocument();
+
+      const pollsBeforeCheckAgain = h.refetch.mock.calls.length;
+
+      // "Check again" re-enters the confirming state — a SECOND poll cycle.
+      fireEvent.click(screen.getByTestId('resolve-payment-check-again'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(
+        screen.getByTestId('resolve-payment-confirming')
+      ).toBeInTheDocument();
+      expect(h.refetch.mock.calls.length).toBeGreaterThan(
+        pollsBeforeCheckAgain
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('reuses the SAME idempotency key across a retried submit', async () => {

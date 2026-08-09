@@ -32,11 +32,14 @@ vi.mock('@/components/billing/resolve-payment-form', () => ({
 import { useSubscription } from '@/hooks/billing/use-subscription';
 import ResolvePaymentPage from './page';
 
-function mockSubscription(subscription: Subscription | null) {
+function mockSubscription(
+  subscription: Subscription | null,
+  isLoading = false
+) {
   vi.mocked(useSubscription).mockReturnValue({
     subscription,
-    isLoading: false,
-    isError: subscription === null,
+    isLoading,
+    isError: subscription === null && !isLoading,
     error: null,
     subscriptionQuery: {} as ReturnType<
       typeof useSubscription
@@ -113,6 +116,31 @@ describe('ResolvePaymentPage (Phase 5)', () => {
         screen.getByTestId('resolve-payment-form-marker')
       ).toBeInTheDocument()
     );
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('does not flash the form or access-denied, nor redirect, while the role is still loading', () => {
+    mockSubscription(makeSubscription('grace'));
+
+    // role === null → the role signal is still loading: gate not yet decided.
+    renderPage(null);
+
+    expect(
+      screen.queryByTestId('resolve-payment-form-marker')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('resolve-payment-access-denied')
+    ).not.toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('does not redirect while the subscription read is in flight', () => {
+    // Mid-flight read: isLoading true even though the settled state (active)
+    // would otherwise redirect. The `!isLoading` guard must hold the redirect.
+    mockSubscription(makeSubscription('active'), true);
+
+    renderPage('admin');
+
     expect(replace).not.toHaveBeenCalled();
   });
 
