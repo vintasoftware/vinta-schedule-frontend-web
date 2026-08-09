@@ -1,0 +1,238 @@
+/**
+ * BillingProfileForm (Phase 6) tests.
+ *
+ * The read + write hooks are mocked; the test drives real react-hook-form + zod
+ * validation and asserts:
+ *   • zod rejects an invalid email / a missing required field (no write fires);
+ *   • the CREATE path (no existing profile) POSTs the full trimmed body;
+ *   • the UPDATE path (existing profile) prefills and PATCHes;
+ *   • a non-admin sees the read-only view (no inputs, no submit);
+ *   • a 409-on-create surfaces "a billing profile already exists" and refetches,
+ *     with no unhandled error.
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+import type { BillingProfile } from '@/client';
+import { RoleProvider } from '@/components/navigation/role-gate';
+
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
+}));
+
+vi.mock('@/hooks/billing/use-billing-profile', () => ({
+  useBillingProfile: vi.fn(),
+}));
+vi.mock('@/hooks/billing/use-create-billing-profile', () => ({
+  useCreateBillingProfile: vi.fn(),
+}));
+vi.mock('@/hooks/billing/use-update-billing-profile', () => ({
+  useUpdateBillingProfile: vi.fn(),
+}));
+
+import { useBillingProfile } from '@/hooks/billing/use-billing-profile';
+import { useCreateBillingProfile } from '@/hooks/billing/use-create-billing-profile';
+import { useUpdateBillingProfile } from '@/hooks/billing/use-update-billing-profile';
+import { BillingProfileForm } from './billing-profile-form';
+
+const refetch = vi.fn();
+const createBillingProfile = vi.fn();
+const updateBillingProfile = vi.fn();
+
+const EXISTING_PROFILE: BillingProfile = {
+  id: 1,
+  contact_first_name: 'Ada',
+  contact_last_name: 'Lovelace',
+  contact_email: 'ada@example.com',
+  contact_phone: '+1 555 000 0000',
+  document_type: 'tax_id',
+  document_number: '123456789',
+  billing_address: {
+    id: 10,
+    street_name: 'Main',
+    street_number: '42',
+    neighborhood: 'Center',
+    address_line_2: 'Suite 5',
+    city: 'London',
+    state: 'LDN',
+    country: 'GB',
+    zip_code: 'EC1A',
+  },
+  created: '2026-08-09T00:00:00Z',
+  modified: '2026-08-09T00:00:00Z',
+};
+
+function mockProfile(profile: BillingProfile | null, isLoading = false) {
+  vi.mocked(useBillingProfile).mockReturnValue({
+    billingProfile: profile,
+    isLoading,
+    isError: profile === null && !isLoading,
+    error: null,
+    billingProfileQuery: { refetch } as unknown as ReturnType<
+      typeof useBillingProfile
+    >['billingProfileQuery'],
+  });
+}
+
+async function fillCreateForm(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText('First name'), 'Grace');
+  await user.type(screen.getByLabelText('Last name (optional)'), 'Hopper');
+  await user.type(screen.getByLabelText('Email'), 'grace@example.com');
+  await user.type(screen.getByLabelText('Phone (optional)'), '+1 555 111 2222');
+  await user.type(screen.getByLabelText('Document type'), 'tax_id');
+  await user.type(screen.getByLabelText('Document number'), '987654321');
+  await user.type(screen.getByLabelText('Street'), 'Second');
+  await user.type(screen.getByLabelText('Number'), '7');
+  await user.type(screen.getByLabelText('Neighborhood (optional)'), 'Downtown');
+  await user.type(screen.getByLabelText('Address line 2 (optional)'), 'Apt 2');
+  await user.type(screen.getByLabelText('City'), 'Baltimore');
+  await user.type(screen.getByLabelText('State / region'), 'MD');
+  await user.type(screen.getByLabelText('Country'), 'US');
+  await user.type(screen.getByLabelText('Postal code'), '21201');
+}
+
+const FULL_BODY = {
+  contact_first_name: 'Grace',
+  contact_last_name: 'Hopper',
+  contact_email: 'grace@example.com',
+  contact_phone: '+1 555 111 2222',
+  document_type: 'tax_id',
+  document_number: '987654321',
+  billing_address: {
+    street_name: 'Second',
+    street_number: '7',
+    neighborhood: 'Downtown',
+    address_line_2: 'Apt 2',
+    city: 'Baltimore',
+    state: 'MD',
+    country: 'US',
+    zip_code: '21201',
+  },
+};
+
+function renderForm(role: 'admin' | 'member' | null = 'admin') {
+  return render(
+    <RoleProvider role={role}>
+      <BillingProfileForm />
+    </RoleProvider>
+  );
+}
+
+describe('BillingProfileForm (Phase 6)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useCreateBillingProfile).mockReturnValue({
+      createBillingProfile,
+      createBillingProfileMutation: { isPending: false } as ReturnType<
+        typeof useCreateBillingProfile
+      >['createBillingProfileMutation'],
+    });
+    vi.mocked(useUpdateBillingProfile).mockReturnValue({
+      updateBillingProfile,
+      updateBillingProfileMutation: { isPending: false } as ReturnType<
+        typeof useUpdateBillingProfile
+      >['updateBillingProfileMutation'],
+    });
+    createBillingProfile.mockResolvedValue({ id: 1 });
+    updateBillingProfile.mockResolvedValue({ id: 1 });
+  });
+
+  it('rejects an invalid email and does not submit', async () => {
+    mockProfile(null);
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    await fillCreateForm(user);
+    // Overwrite the email with an invalid value.
+    await user.clear(screen.getByLabelText('Email'));
+    await user.type(screen.getByLabelText('Email'), 'not-an-email');
+
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    expect(
+      await screen.findByText('Enter a valid email address.')
+    ).toBeInTheDocument();
+    expect(createBillingProfile).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing required field and does not submit', async () => {
+    mockProfile(null);
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    // Leave first name empty; fill the rest.
+    await user.type(screen.getByLabelText('Email'), 'grace@example.com');
+    await user.type(screen.getByLabelText('Document type'), 'tax_id');
+    await user.type(screen.getByLabelText('Document number'), '987654321');
+
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    expect(await screen.findByText('Enter a first name.')).toBeInTheDocument();
+    expect(createBillingProfile).not.toHaveBeenCalled();
+  });
+
+  it('POSTs the full trimmed body on the create path (no existing profile)', async () => {
+    mockProfile(null);
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    await fillCreateForm(user);
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    await waitFor(() => expect(createBillingProfile).toHaveBeenCalledTimes(1));
+    expect(createBillingProfile).toHaveBeenCalledWith(FULL_BODY);
+    expect(updateBillingProfile).not.toHaveBeenCalled();
+  });
+
+  it('prefills and PATCHes on the update path (existing profile)', async () => {
+    mockProfile(EXISTING_PROFILE);
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    // Prefilled from the existing profile.
+    expect(screen.getByLabelText('First name')).toHaveValue('Ada');
+    expect(screen.getByLabelText('Email')).toHaveValue('ada@example.com');
+
+    await user.clear(screen.getByLabelText('Document number'));
+    await user.type(screen.getByLabelText('Document number'), '555');
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    await waitFor(() => expect(updateBillingProfile).toHaveBeenCalledTimes(1));
+    expect(updateBillingProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ document_number: '555' })
+    );
+    expect(createBillingProfile).not.toHaveBeenCalled();
+  });
+
+  it('renders a read-only view for a non-admin member (no submit)', () => {
+    mockProfile(EXISTING_PROFILE);
+    renderForm('member');
+
+    expect(screen.getByTestId('billing-profile-readonly')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('billing-profile-submit')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('First name')).not.toBeInTheDocument();
+    // The profile values are still shown.
+    expect(screen.getByText('ada@example.com')).toBeInTheDocument();
+  });
+
+  it('surfaces "a billing profile already exists" on a 409-on-create and refetches', async () => {
+    mockProfile(null);
+    createBillingProfile.mockRejectedValue({
+      detail: 'a billing profile already exists',
+    });
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    await fillCreateForm(user);
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    expect(
+      await screen.findByTestId('billing-profile-exists')
+    ).toBeInTheDocument();
+    expect(refetch).toHaveBeenCalled();
+  });
+});
