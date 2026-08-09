@@ -13,10 +13,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // `error` is required -- there's no rendered-nothing state to show here the
-// way OrphanedBookingsAlert has for an empty booking list. The two stories
-// below instead cover the alert's two copy branches: the rejected write was
-// the only thing attempted, vs. other writes in the same batch already
-// landed (see the module doc comment on `otherWritesSucceeded`).
+// way OrphanedBookingsAlert has for an empty booking list. Every story renders
+// the upgrade deep-link into the billing plan picker (carrying the offending
+// `resource`); the stories below cover the alert's two copy branches: the
+// rejected write was the only thing attempted, vs. other writes in the same
+// batch already landed (see the module doc comment on `otherWritesSucceeded`).
 export const Default: Story = {
   args: {
     error: {

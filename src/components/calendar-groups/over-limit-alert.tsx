@@ -5,9 +5,11 @@
  * group-scoped write (spec UC-6): which resource is metered, current usage,
  * and the plan limit, straight from the typed body (`@/lib/utils/api-errors`).
  *
- * Deliberately no upgrade link -- the app has no billing surface to send an
- * admin to (Non-goals, CALENDAR_GROUP_SCOPED_AVAILABILITY plan). Inventing
- * one would either 404 or point at nothing.
+ * It also deep-links into the billing surface: the app now has a plan picker
+ * (`/billing/plans`), and being blocked should never be the only signal a limit
+ * exists (Billing Frontend plan, Use-case 8). The link carries the offending
+ * `resource` via the shared `billingUpgradePath` helper so every
+ * `readOverLimitError` consumer points at one destination.
  *
  * `otherWritesSucceeded` exists because the caller's save is diff-based and
  * batches several writes with `Promise.allSettled` (group-window-grid.tsx):
@@ -20,6 +22,7 @@
  * succeeded.
  */
 
+import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 
 import {
@@ -28,7 +31,12 @@ import {
   AlertDescription,
 } from 'vinta-schedule-design-system/ui/alert';
 import { Icon } from 'vinta-schedule-design-system/ui/icon';
-import type { OverLimitErrorBody } from '@/lib/utils/api-errors';
+import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
+import { Text, VStack } from 'vinta-schedule-design-system/layout';
+import {
+  billingUpgradePath,
+  type OverLimitErrorBody,
+} from '@/lib/utils/api-errors';
 
 // Friendlier labels for the resource names the backend sends -- falls back
 // to a humanized version of the raw slug for anything not listed here, so
@@ -58,11 +66,21 @@ export function OverLimitAlert({
       <Icon icon={AlertCircle} />
       <AlertTitle>Plan limit reached</AlertTitle>
       <AlertDescription>
-        Your organization is at its plan limit for {label}:{' '}
-        {error.current_usage} of {error.limit} used. This change was not saved.{' '}
-        {otherWritesSucceeded > 0
-          ? `${otherWritesSucceeded} other change${otherWritesSucceeded === 1 ? '' : 's'} in this save already went through and ${otherWritesSucceeded === 1 ? 'was' : 'were'} kept.`
-          : 'Nothing else in this save was applied.'}
+        <VStack gap={2} align='start'>
+          <Text size='sm'>
+            Your organization is at its plan limit for {label}:{' '}
+            {error.current_usage} of {error.limit} used. This change was not
+            saved.{' '}
+            {otherWritesSucceeded > 0
+              ? `${otherWritesSucceeded} other change${otherWritesSucceeded === 1 ? '' : 's'} in this save already went through and ${otherWritesSucceeded === 1 ? 'was' : 'were'} kept.`
+              : 'Nothing else in this save was applied.'}
+          </Text>
+          <TextLink asChild variant='inherit' underline='always'>
+            <Link href={billingUpgradePath(error.resource)}>
+              Upgrade your plan to raise this limit
+            </Link>
+          </TextLink>
+        </VStack>
       </AlertDescription>
     </Alert>
   );

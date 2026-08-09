@@ -4,12 +4,17 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Building2,
   Calendar,
   CalendarSync,
   ChevronsUpDown,
+  CreditCard,
+  FileText,
+  Layers,
   ListChecks,
   LogOut,
   Moon,
+  ScrollText,
   Settings,
   Shield,
   Sun,
@@ -31,8 +36,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from 'vinta-schedule-design-system/ui/dropdown-menu';
-import type { MyMembership } from '@/client';
+import type { MyMembership, RoleEnum } from '@/client';
 import { OrgSwitcher } from '@/components/organizations/org-switcher';
+import { useRole } from '@/components/navigation/role-gate';
 import {
   Box,
   Center,
@@ -123,6 +129,50 @@ const DEFAULT_GROUPS: SidebarNavGroup[] = [
   },
 ];
 
+// The Billing nav section. Reads (Overview / Plans / Statements / Profile) are
+// open to any authenticated member; the occurrence Ledger is billing-owner/admin
+// gated server-side, so its entry is hidden from non-admins here (client-side
+// role gate — the server 403 is the real backstop, per the Billing Frontend
+// plan's Guiding Decisions). Computed from the current role rather than baked
+// into a static array so a member never sees the Ledger link.
+function buildBillingGroup(role: RoleEnum | null): SidebarNavGroup {
+  const items: SidebarNavItem[] = [
+    {
+      id: 'billing-overview',
+      label: 'Overview',
+      icon: CreditCard,
+      href: '/billing',
+    },
+    {
+      id: 'billing-plans',
+      label: 'Plans',
+      icon: Layers,
+      href: '/billing/plans',
+    },
+    {
+      id: 'billing-statements',
+      label: 'Statements',
+      icon: FileText,
+      href: '/billing/periods',
+    },
+  ];
+  if (role === 'admin') {
+    items.push({
+      id: 'billing-ledger',
+      label: 'Ledger',
+      icon: ScrollText,
+      href: '/billing/occurrences',
+    });
+  }
+  items.push({
+    id: 'billing-profile',
+    label: 'Profile',
+    icon: Building2,
+    href: '/billing/profile',
+  });
+  return { label: 'Billing', items };
+}
+
 /** Top of the rail: the wordmark + product name. */
 const BRAND = (
   <HStack align='center' style={BRAND_STYLE}>
@@ -192,6 +242,7 @@ function AppSidebarInner(
   ref: React.Ref<HTMLElement>
 ) {
   const pathname = usePathname();
+  const role = useRole();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -332,20 +383,40 @@ function AppSidebarInner(
     </VStack>
   );
 
+  // Billing is always reachable from the rail (role-gated per item); it is
+  // appended to whatever groups the shell passes, so wiring it here never
+  // disturbs the caller's other nav groups.
+  const renderedGroups = [...groups, buildBillingGroup(role)];
+
+  // Most-specific-wins: an href "matches" when the pathname equals it or is a
+  // child of it. When routes nest (e.g. '/billing' is a prefix of
+  // '/billing/plans') several hrefs can match at once, so we pick the single
+  // longest match and highlight only that item. This keeps the old "child route
+  // highlights its parent" behavior for non-nested items ('/billing/periods/123'
+  // still resolves to '/billing/periods') while stopping the parent Overview row
+  // from lighting up on every '/billing/*' subpage.
+  const bestMatchHref = renderedGroups
+    .flatMap((group) => group.items)
+    .reduce<string | null>((best, item) => {
+      if (item.href == null) return best;
+      const matches =
+        pathname === item.href || pathname.startsWith(item.href + '/');
+      if (!matches) return best;
+      return best == null || item.href.length > best.length ? item.href : best;
+    }, null);
+
   return (
     <Sidebar ref={ref} width={244} brand={BRAND} footer={footer} {...props}>
-      {groups.map((group, i) => (
+      {renderedGroups.map((group, i) => (
         <SidebarGroup key={group.label ?? i} label={group.label}>
           {group.items.map((item) => {
             // An item is active if it matches the explicit activeId prop OR
-            // (when it has an href) if the current pathname is exactly that href
-            // OR starts with that href followed by '/'. The latter guard
-            // prevents '/team' from falsely matching '/team-x'.
+            // (when it has an href) if it is the single most-specific href match
+            // for the current pathname (see bestMatchHref above). Matching on the
+            // longest href avoids two rows lighting up when routes nest.
             const active =
               item.id === activeId ||
-              (item.href != null &&
-                (pathname === item.href ||
-                  pathname.startsWith(item.href + '/')));
+              (item.href != null && item.href === bestMatchHref);
 
             if (item.href) {
               // asChild: the Link becomes the row element (a real <a> with

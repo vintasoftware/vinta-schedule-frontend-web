@@ -23,6 +23,7 @@ import {
   readBillingConflict,
   isPaymentTokenRequiredError,
   isAddOnNotPurchasableError,
+  billingUpgradePath,
 } from './api-errors';
 
 describe('readOverLimitError', () => {
@@ -102,6 +103,25 @@ describe('readOverLimitError', () => {
     expect(readOverLimitError(null)).toBeNull();
     expect(readOverLimitError(undefined)).toBeNull();
     expect(readOverLimitError(42)).toBeNull();
+  });
+});
+
+describe('billingUpgradePath', () => {
+  it('maps to the plan picker carrying the resource as a query param', () => {
+    expect(billingUpgradePath('availability_windows')).toBe(
+      '/billing/plans?resource=availability_windows'
+    );
+  });
+
+  it('returns the bare plan picker when no resource is given', () => {
+    expect(billingUpgradePath()).toBe('/billing/plans');
+    expect(billingUpgradePath(undefined)).toBe('/billing/plans');
+  });
+
+  it('url-encodes a resource with unsafe characters', () => {
+    expect(billingUpgradePath('a resource/with&chars')).toBe(
+      '/billing/plans?resource=a%20resource%2Fwith%26chars'
+    );
   });
 });
 

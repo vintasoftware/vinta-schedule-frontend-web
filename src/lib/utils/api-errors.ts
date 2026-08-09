@@ -61,6 +61,26 @@ export function readOverLimitError(error: unknown): OverLimitErrorBody | null {
   };
 }
 
+/**
+ * Maps an over-limit `resource` (from a 402 `OverLimitErrorBody`) to the billing
+ * destination that lifts the limit: the plan picker, the general "upgrade to
+ * raise your limits / buy more capacity" surface. The offending `resource` is
+ * carried as a query param so the destination can highlight or pre-select it.
+ *
+ * Defined once here so every `readOverLimitError` consumer deep-links to the
+ * same place instead of hard-coding a path: the calendar-groups `OverLimitAlert`
+ * uses it today, and any future consumer reuses it. Kept alongside
+ * `readOverLimitError` (rather than in a component) precisely so the reader and
+ * the destination it maps to travel together.
+ */
+export function billingUpgradePath(resource?: string): string {
+  const base = '/billing/plans';
+  if (!resource) {
+    return base;
+  }
+  return `${base}?resource=${encodeURIComponent(resource)}`;
+}
+
 /** The billing write endpoints' 409 conflict body. */
 export interface BillingConflictBody {
   detail: string;

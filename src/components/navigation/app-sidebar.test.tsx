@@ -5,14 +5,29 @@
  * account menu.
  */
 
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { RoleEnum } from '@/client';
 import { AppSidebar } from './app-sidebar';
+import { RoleProvider } from './role-gate';
 
+let mockPathname = '/';
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
+  usePathname: () => mockPathname,
 }));
+
+beforeEach(() => {
+  mockPathname = '/';
+});
+
+function renderWithRole(role: RoleEnum | null) {
+  return render(
+    <RoleProvider role={role}>
+      <AppSidebar groups={[{ items: [] }]} />
+    </RoleProvider>
+  );
+}
 
 beforeAll(() => {
   // Radix DropdownMenu uses ResizeObserver + pointer APIs under jsdom.
@@ -73,5 +88,120 @@ describe('AppSidebar — account', () => {
     await user.click(logoutItem);
 
     expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AppSidebar — billing nav', () => {
+  it('renders every billing item, including the Ledger, for an admin', () => {
+    renderWithRole('admin');
+
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
+      'href',
+      '/billing'
+    );
+    expect(screen.getByRole('link', { name: 'Plans' })).toHaveAttribute(
+      'href',
+      '/billing/plans'
+    );
+    expect(screen.getByRole('link', { name: 'Statements' })).toHaveAttribute(
+      'href',
+      '/billing/periods'
+    );
+    expect(screen.getByRole('link', { name: 'Ledger' })).toHaveAttribute(
+      'href',
+      '/billing/occurrences'
+    );
+    expect(screen.getByRole('link', { name: 'Profile' })).toHaveAttribute(
+      'href',
+      '/billing/profile'
+    );
+  });
+
+  it('hides the admin-only Ledger from a member but keeps the read items', () => {
+    renderWithRole('member');
+
+    // Reads stay visible to members.
+    expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Plans' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Statements' })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Profile' })).toBeInTheDocument();
+
+    // The ledger is billing-owner/admin gated — hidden from a plain member.
+    expect(
+      screen.queryByRole('link', { name: 'Ledger' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the Ledger while the role is still unresolved (null)', () => {
+    renderWithRole(null);
+
+    expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Ledger' })
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('AppSidebar — billing active state (most-specific wins)', () => {
+  // SidebarItem marks the active row with aria-current="page".
+  it('activates only Overview on /billing, not the nested items', () => {
+    mockPathname = '/billing';
+    renderWithRole('admin');
+
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    for (const name of ['Plans', 'Statements', 'Ledger', 'Profile']) {
+      expect(screen.getByRole('link', { name })).not.toHaveAttribute(
+        'aria-current'
+      );
+    }
+  });
+
+  it('activates only Plans on /billing/plans, and never Overview', () => {
+    mockPathname = '/billing/plans';
+    renderWithRole('admin');
+
+    expect(screen.getByRole('link', { name: 'Plans' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
+      'aria-current'
+    );
+    for (const name of ['Statements', 'Ledger', 'Profile']) {
+      expect(screen.getByRole('link', { name })).not.toHaveAttribute(
+        'aria-current'
+      );
+    }
+  });
+
+  it('activates only the Ledger on /billing/occurrences', () => {
+    mockPathname = '/billing/occurrences';
+    renderWithRole('admin');
+
+    expect(screen.getByRole('link', { name: 'Ledger' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
+      'aria-current'
+    );
+  });
+
+  it('keeps parent-highlights-child for a deep non-nested route (/billing/periods/123 → Statements)', () => {
+    mockPathname = '/billing/periods/123';
+    renderWithRole('admin');
+
+    expect(screen.getByRole('link', { name: 'Statements' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
+      'aria-current'
+    );
   });
 });
