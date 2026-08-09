@@ -61,6 +61,46 @@ export function readOverLimitError(error: unknown): OverLimitErrorBody | null {
   };
 }
 
+/** The billing write endpoints' 409 conflict body. */
+export interface BillingConflictBody {
+  detail: string;
+}
+
+/**
+ * Reads a 409 conflict body the billing write endpoints return — e.g.
+ * `{ "detail": "a plan change is already awaiting confirmation" }` or
+ * `{ "detail": "provider not configured" }` (change-plan / add-on purchase).
+ *
+ * Returns the `{ detail }` shape on a well-formed body, or `null` for anything
+ * else: a 402 over-limit body (which also carries `detail` but is keyed by
+ * `code`), a DRF field-error 400, a 500/network `Error`, or a null/non-object
+ * value — so a caller can only treat a genuine billing conflict as one. See
+ * readOverLimitError's doc comment above for why these readers work off the
+ * thrown body's shape rather than a status code.
+ *
+ * A body that is only `{ detail: "Not found." }` — the non-disclosure 404 —
+ * has a valid `detail` string and so is NOT distinguished here; callers that
+ * need to separate a 404 from a 409 should read the response status directly
+ * (throwOnError:false), exactly as isNotFoundError's doc comment notes.
+ */
+export function readBillingConflict(
+  error: unknown
+): BillingConflictBody | null {
+  if (error === null || typeof error !== 'object') {
+    return null;
+  }
+  const body = error as Record<string, unknown>;
+  // A 402 over-limit body also carries `detail` but is a different rejection —
+  // exclude it so a caller branching on a 409 conflict never misreads one.
+  if (body.code === 'limit_exceeded') {
+    return null;
+  }
+  if (typeof body.detail !== 'string') {
+    return null;
+  }
+  return { detail: body.detail };
+}
+
 /**
  * Reads whether a thrown error body is the API's non-disclosure 404
  * (`{ "detail": "Not found." }`) — returned byte-identically for a missing,
