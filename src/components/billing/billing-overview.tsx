@@ -15,8 +15,12 @@
  *
  * States:
  *   • Loading — the usage query is in flight.
- *   • Access denied — usage errored (the `403` for no active organization, or a
- *     member without billing read access): a friendly alert, never a crash.
+ *   • Error — the usage read errored (a `403` for no active organization or a
+ *     member without billing read access, but also a transient 500/network
+ *     blip): a friendly, neutral alert, never a crash. The generated client
+ *     throws only the response body — no status code — so we can't cheaply tell
+ *     a genuine access denial from a transient failure, hence the copy asserts
+ *     no cause.
  *   • Rendered — the full dashboard. The free / subscription-less path
  *     (`billing_state: "free"`, null plan/period, unlimited rows,
  *     `estimated_overage_total: "0.0000"`) renders cleanly through the same
@@ -63,11 +67,10 @@ export function BillingOverview() {
   if (isError || usage === null) {
     return (
       <Alert data-testid='billing-access-denied'>
-        <AlertTitle>Billing isn&apos;t available</AlertTitle>
+        <AlertTitle>Couldn&apos;t load billing</AlertTitle>
         <AlertDescription>
-          We couldn&apos;t load your billing information. You may not have an
-          active organization selected, or you may not have access to billing
-          for this organization.
+          We couldn&apos;t load your billing information right now. Please try
+          again in a moment.
         </AlertDescription>
       </Alert>
     );
@@ -82,7 +85,11 @@ export function BillingOverview() {
         gracePeriodEndsAt={subscription?.grace_period_ends_at ?? null}
       />
 
-      <Grid columns={{ base: 1, md: 2 }} gap={4} align='start'>
+      {/* Column count reacts to the CONTENT container's width
+          (@container/content on the AppShell main), not the viewport —
+          collapsing the sidebar widens the container and the grid reflows off
+          that. Mirrors the dashboard tile grid. */}
+      <Grid columns={{ base: 1, '@xl/content': 2 }} gap={4} align='start'>
         <PlanSummaryCard
           plan={usage.plan}
           billingPeriod={usage.billing_period}
