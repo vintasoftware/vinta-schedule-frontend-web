@@ -74,6 +74,21 @@ describe('parseBillingError', () => {
         original: expect.any(Object),
       });
     });
+
+    it('returns unrecognized for limit_exceeded with unknown remedy', () => {
+      const error = parseBillingError({
+        code: 'limit_exceeded',
+        resource: 'organization_members',
+        current_usage: 1,
+        limit: 5,
+        remedy: 'not_a_real_remedy',
+      });
+
+      expect(error).toEqual({
+        type: 'unrecognized',
+        original: expect.any(Object),
+      });
+    });
   });
 
   describe('CodedBillingError', () => {
@@ -241,6 +256,24 @@ describe('parseBillingError', () => {
       expect(error).toEqual({
         type: 'unrecognized',
         original: 42,
+      });
+    });
+
+    it('returns unrecognized for an array', () => {
+      const error = parseBillingError([]);
+
+      expect(error).toEqual({
+        type: 'unrecognized',
+        original: [],
+      });
+    });
+
+    it('returns unrecognized for a boolean', () => {
+      const error = parseBillingError(true);
+
+      expect(error).toEqual({
+        type: 'unrecognized',
+        original: true,
       });
     });
   });

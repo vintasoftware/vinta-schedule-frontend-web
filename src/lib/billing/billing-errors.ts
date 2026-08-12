@@ -109,14 +109,14 @@ export function parseBillingError(response: unknown): BillingError {
     typeof err.resource === 'string' &&
     typeof err.current_usage === 'number' &&
     (typeof err.limit === 'number' || err.limit === null) &&
-    typeof err.remedy === 'string'
+    isKnownRemedy(err.remedy)
   ) {
     return {
       code: 'limit_exceeded',
       resource: err.resource as ResourceKeyEnum,
       current_usage: err.current_usage,
       limit: err.limit as number | null,
-      remedy: err.remedy as Remedy,
+      remedy: err.remedy,
     };
   }
 
@@ -163,6 +163,22 @@ function isKnownBillingErrorCode(
   ];
   return (
     typeof code === 'string' && (knownCodes as readonly string[]).includes(code)
+  );
+}
+
+/**
+ * Check if a value is one of the known remedy values.
+ */
+function isKnownRemedy(value: unknown): value is Remedy {
+  const knownRemedies: readonly Remedy[] = [
+    'purchase_add_on',
+    'upgrade_plan',
+    'add_payment_method',
+    'resolve_billing',
+  ];
+  return (
+    typeof value === 'string' &&
+    (knownRemedies as readonly string[]).includes(value)
   );
 }
 
