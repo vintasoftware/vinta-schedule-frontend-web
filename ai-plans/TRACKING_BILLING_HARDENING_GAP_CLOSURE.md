@@ -70,8 +70,15 @@ Client regen no longer needed; `main` already has `billingSubscriptionRetryPayme
 - **Summary:** Deleted the unverified/broken MercadoPago Secure-Fields adapter (+ its interfaces + `MERCADOPAGO_SDK_URL`) from `payment-provider-sdk.ts`. Added `createUnsupportedProviderSdk()` — inert `mount`/`unmount`, `tokenize()` returns `{ reason: 'unsupported_provider' }` (new reason on `PaymentInstrumentErrorReason` in `payment-token.ts`). The factory returns it for any non-stripe provider and never throws. `payment-instrument-field.tsx` renders a clear "not available" Alert for an unsupported provider (loading → unsupported → unavailable → mounted branch order) instead of mounting a dead form. Stripe path byte-unchanged. Net −168 lines.
 - **Gate:** typecheck clean; full suite green (app 224/1822, DS 82).
 
+### Phase 7 — Grace recovery via the real retry-payment endpoint ✅
+- **Status:** PASS · **Branch:** `plan/billing-hardening-gap-closure/phase-7` (base: phase-6) · **Commit:** `fec6828`
+- **Models:** impl T3 (sonnet) · **reviewer T4 (opus, money-path)** · fixer T2 (haiku)
+- **Summary:** New `use-retry-payment.ts` hook wraps `billingSubscriptionRetryPaymentCreate` (invalidates the subscription read on success). `resolve-payment-form.tsx` now submits to the real retry-payment endpoint (dropping the old `useChangePlan` workaround), polls `useSubscription` to `active` (never success off the 2xx — recovery is webhook-driven). Coded handling: `charge_declined` re-prompts for a different card; the four 409s each get a distinct message; `subscription_not_attached` routes to a `needs_upgrade` state linking to `/billing/plans`. Idempotency: one key per attempt, `.reset()` called on exactly the `charge_declined` path so a new card mints a fresh key (the double-charge/dropped-charge guard).
+- **Review note (T4/opus):** verdict **money-path SAFE, no BLOCKER** — traced every submit sequence: key read fresh per submit (no stale closure), `.reset()` only on `charge_declined`, 402 codes disambiguated by `code` before the broader conflict check, 2xx never success, same-key retries replay safely. Tests assert same-key on same-attempt retry + different-key after decline. SHOULD-FIX (added a `NeedsUpgrade` story) + NIT (reworded a stale doc comment) applied.
+- **Gate:** typecheck clean; full suite green (app 225/1830, DS 82).
+
 ## Current phase
-- **Phase 7 — Grace recovery via real retry-payment** (next; reviewer T4)
+- **Phase 8 — Global over-limit handler + remedy routing** (final executable phase; reviewer T4)
 
 ## Remaining phases
 - Phase 4 — Billing profile form hardening (T3) — capability-gated
