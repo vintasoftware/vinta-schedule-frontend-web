@@ -7,20 +7,25 @@
  * It resolves the deployment's provider from `usePaymentProvider`
  * (`GET /billing/payment-provider/`), lazy-loads THAT provider's JS SDK, mounts
  * its secure card element (a provider iframe) into a design-system-styled
- * container, and exposes an imperative `tokenize()` on a ref. Both Stripe and
- * MercadoPago sit behind this single contract, so parent flows never branch on
- * provider — they hold a ref and call `tokenize()`.
+ * container, and exposes an imperative `tokenize()` on a ref. Every resolved
+ * provider outcome sits behind this single contract, so parent flows never
+ * branch on provider — they hold a ref and call `tokenize()`.
  *
  * DESIGN-FOR-TEST: the SDK is acquired through an INJECTED `createSdk` factory
  * (default: the real script-injecting `createProviderSdk`). Tests and stories
- * pass a fake `PaymentProviderSdk`, so no real Stripe/MercadoPago script is
- * loaded and no network is touched. See `payment-provider-sdk.ts`.
+ * pass a fake `PaymentProviderSdk`, so no real Stripe script is loaded and no
+ * network is touched. See `payment-provider-sdk.ts`.
  *
  * When the provider is unconfigured (the endpoint's `409`, surfaced as
  * `isError`) or its credentials are missing, the field renders a calm
  * "payments unavailable" state and NEVER mounts a card element — and its
  * `tokenize()` returns `{ status: 'error', reason: 'unconfigured' }` so the
  * parent flow degrades safely instead of charging.
+ *
+ * When the provider resolves to anything other than Stripe (MercadoPago is a
+ * documented non-goal — see `payment-provider-sdk.ts`), the field renders a
+ * distinct "not available" state and likewise NEVER mounts a card element —
+ * `tokenize()` returns `{ status: 'error', reason: 'unsupported_provider' }`.
  */
 
 import * as React from 'react';
@@ -65,14 +70,14 @@ export interface PaymentInstrumentFieldProps {
 type SdkState = 'idle' | 'loading' | 'ready' | 'load_failed';
 
 /**
- * Returns whether the resolved provider carries the credential its SDK needs.
- * A provider slug without its matching public key is treated as unavailable —
- * we never mount a card field we can't tokenize.
+ * Returns whether a resolved Stripe provider carries the publishable key its
+ * SDK needs. A `stripe` provider without its key is treated as unavailable —
+ * we never mount a card field we can't tokenize. (Only Stripe has a working
+ * adapter; any other provider is handled as `unsupported_provider` before this
+ * is ever consulted — see `isUnsupportedProvider` below.)
  */
 function hasCredential(provider: PaymentProvider): boolean {
-  return provider.provider === 'stripe'
-    ? provider.stripe !== null
-    : provider.mercadopago !== null;
+  return provider.provider === 'stripe' && provider.stripe !== null;
 }
 
 export const PaymentInstrumentField = React.forwardRef<
@@ -84,8 +89,17 @@ export const PaymentInstrumentField = React.forwardRef<
 ) {
   const { paymentProvider, isLoading, isError } = usePaymentProvider();
 
+  const providerResolved = !isError && paymentProvider !== null;
+  // Stripe is the only provider with a working adapter (MercadoPago is a
+  // documented non-goal — see `payment-provider-sdk.ts`). Any other resolved
+  // provider renders the "not available" state below and never mounts a card
+  // field.
+  const isUnsupportedProvider =
+    providerResolved && paymentProvider.provider !== 'stripe';
   const available =
-    !isError && paymentProvider !== null && hasCredential(paymentProvider);
+    providerResolved &&
+    paymentProvider.provider === 'stripe' &&
+    hasCredential(paymentProvider);
 
   const containerRef = React.useRef<HTMLElement | null>(null);
   const sdkRef = React.useRef<PaymentProviderSdk | null>(null);
@@ -137,6 +151,20 @@ export const PaymentInstrumentField = React.forwardRef<
     ref,
     () => ({
       async tokenize(): Promise<PaymentInstrumentResult> {
+        if (!providerResolved) {
+          return {
+            status: 'error',
+            reason: 'unconfigured',
+            message: 'Payments are unavailable right now.',
+          };
+        }
+        if (isUnsupportedProvider) {
+          return {
+            status: 'error',
+            reason: 'unsupported_provider',
+            message: "Card payment isn't available for this payment provider.",
+          };
+        }
         if (!available) {
           return {
             status: 'error',
@@ -154,12 +182,25 @@ export const PaymentInstrumentField = React.forwardRef<
         return sdkRef.current.tokenize();
       },
     }),
-    [available, sdkState]
+    [providerResolved, isUnsupportedProvider, available, sdkState]
   );
 
   if (isLoading) {
     return (
       <Skeleton className='h-24 w-full' data-testid='payment-field-loading' />
+    );
+  }
+
+  if (isUnsupportedProvider) {
+    return (
+      <Alert variant='warning' data-testid='payment-field-unsupported'>
+        <Icon icon={TriangleAlert} />
+        <AlertTitle>Card payment isn&apos;t available</AlertTitle>
+        <AlertDescription>
+          Card payment isn&apos;t available for this deployment&apos;s payment
+          provider. Contact support.
+        </AlertDescription>
+      </Alert>
     );
   }
 

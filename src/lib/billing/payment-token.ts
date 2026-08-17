@@ -3,9 +3,10 @@
  * Data Model Changes → 3.3).
  *
  * `change-plan` and `add-ons` hand the API a `payment_token` minted client-side
- * by whichever provider the deployment resolves to (Stripe.js or MercadoPago.js).
- * This module fixes the ONE contract both providers sit behind so the purchase
- * flows never branch on provider:
+ * by the deployment's resolved provider (Stripe.js today; any other resolved
+ * provider is a clean "not supported" outcome — see `payment-provider-sdk.ts`).
+ * This module fixes the ONE contract every provider outcome sits behind so the
+ * purchase flows never branch on provider:
  *
  * - `PaymentToken` — an opaque, branded string. It is not interchangeable with a
  *   plain `string`, so a raw literal can't be passed where a minted token is
@@ -31,6 +32,8 @@ export function asPaymentToken(raw: string): PaymentToken {
  * - `unconfigured` — no provider is configured for this deployment (the
  *   `409` from `GET /billing/payment-provider/`), or its credentials are
  *   missing, so no card field was ever mounted.
+ * - `unsupported_provider` — the resolved provider has no working adapter
+ *   (today: anything other than Stripe). No card field was ever mounted.
  * - `sdk_load_failed` — the provider's JS SDK failed to load or its secure
  *   card element failed to mount.
  * - `incomplete` — the card element is mounted but the entered card data is
@@ -40,6 +43,7 @@ export function asPaymentToken(raw: string): PaymentToken {
  */
 export type PaymentInstrumentErrorReason =
   | 'unconfigured'
+  | 'unsupported_provider'
   | 'sdk_load_failed'
   | 'incomplete'
   | 'tokenization_failed';
@@ -51,9 +55,10 @@ export type PaymentInstrumentResult =
 
 /**
  * The provider-agnostic SDK surface `PaymentInstrumentField` drives. The
- * production adapters (Stripe.js / MercadoPago.js, in `payment-provider-sdk.ts`)
- * implement this by injecting the provider script and wrapping its element +
- * tokenization APIs; tests and stories inject a fake implementing the same shape.
+ * production Stripe adapter (in `payment-provider-sdk.ts`) implements this by
+ * injecting the Stripe.js script and wrapping its element + tokenization APIs;
+ * an unsupported provider gets a no-op adapter of the same shape. Tests and
+ * stories inject a fake implementing the same shape.
  */
 export interface PaymentProviderSdk {
   /** Load/initialize the underlying provider SDK. Idempotent; may inject a script. */

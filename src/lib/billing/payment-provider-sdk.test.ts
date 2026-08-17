@@ -2,29 +2,26 @@
  * payment-provider-sdk tests — the PRODUCTION adapters.
  *
  * Every `PaymentInstrumentField` test injects a fake SDK, so the real
- * `createProviderSdk` / `createStripeSdk` / `createMercadoPagoSdk` adapters had
- * no coverage. These drive them directly against a FAKE `window.Stripe` and a
- * fake `window.MercadoPago` global — never a real provider script or network.
- * The provider `<script>` is pre-seeded as already-loaded so `loadScript`
- * resolves without a real injection.
+ * `createProviderSdk` / `createStripeSdk` adapters had no coverage. These
+ * drive them directly against a FAKE `window.Stripe` global — never a real
+ * provider script or network. The provider `<script>` is pre-seeded as
+ * already-loaded so `loadScript` resolves without a real injection.
  *
  * Pins:
- * - credential selection per provider (right key handed to the right SDK);
+ * - credential selection for the Stripe adapter (right key handed to the SDK);
  * - the Stripe error→reason mapping (`incomplete_*` → `incomplete`, else
  *   `tokenization_failed`) and token minting;
- * - the throw when a resolved provider is missing its credential;
- * - the MercadoPago per-instance field ids + node cleanup, and its fail-closed
- *   `incomplete` on a missing/blank token.
+ * - the throw when a resolved Stripe provider is missing its credential;
+ * - the factory returns the unsupported-provider adapter for MercadoPago and
+ *   for an unrecognized provider, and that adapter's `mount()`/`unmount()`
+ *   are safe no-ops and its `tokenize()` returns the typed
+ *   `unsupported_provider` error.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import type { PaymentProvider } from '@/client';
-import {
-  createProviderSdk,
-  STRIPE_SDK_URL,
-  MERCADOPAGO_SDK_URL,
-} from './payment-provider-sdk';
+import { createProviderSdk, STRIPE_SDK_URL } from './payment-provider-sdk';
 
 const STRIPE_PROVIDER: PaymentProvider = {
   provider: 'stripe',
@@ -38,9 +35,16 @@ const MERCADOPAGO_PROVIDER: PaymentProvider = {
   mercadopago: { public_key: 'MP_PUB_123' },
 };
 
+// A provider value the resolved-provider union doesn't (yet) declare — the
+// factory must degrade to the unsupported adapter rather than throw.
+const UNKNOWN_PROVIDER = {
+  provider: 'unknown_provider',
+  stripe: null,
+  mercadopago: null,
+} as unknown as PaymentProvider;
+
 type WindowWithProviders = typeof window & {
   Stripe?: unknown;
-  MercadoPago?: unknown;
 };
 
 /**
@@ -67,50 +71,20 @@ function makeFakeStripe() {
   return { ctor, card, create, createToken };
 }
 
-function makeMpField() {
-  const field: { mount: ReturnType<typeof vi.fn>; unmount: () => void } = {
-    mount: vi.fn(() => field),
-    unmount: vi.fn(),
-  };
-  return field;
-}
-
-function makeFakeMp() {
-  const createCardToken = vi.fn();
-  const create = vi.fn(() => makeMpField());
-  // A real function (not an arrow) so the adapter's `new ctor(publicKey)` works.
-  const ctor = vi.fn(function () {
-    return { fields: { create, createCardToken } };
-  });
-  return { ctor, create, createCardToken };
-}
-
 beforeEach(() => {
   seedLoadedScript(STRIPE_SDK_URL);
-  seedLoadedScript(MERCADOPAGO_SDK_URL);
 });
 
 afterEach(() => {
   delete (window as WindowWithProviders).Stripe;
-  delete (window as WindowWithProviders).MercadoPago;
   vi.clearAllMocks();
 });
 
-describe('createProviderSdk credential selection', () => {
+describe('createProviderSdk', () => {
   it('throws when the Stripe credential is missing', () => {
     expect(() =>
       createProviderSdk({ provider: 'stripe', stripe: null, mercadopago: null })
     ).toThrow(/publishable key/i);
-  });
-
-  it('throws when the MercadoPago credential is missing', () => {
-    expect(() =>
-      createProviderSdk({
-        provider: 'mercadopago',
-        stripe: null,
-        mercadopago: null,
-      })
-    ).toThrow(/public key/i);
   });
 
   it('hands the publishable key to Stripe for a stripe provider', async () => {
@@ -123,14 +97,34 @@ describe('createProviderSdk credential selection', () => {
     expect(fake.ctor).toHaveBeenCalledWith('pk_test_123');
   });
 
-  it('hands the public key to MercadoPago for a mercadopago provider', async () => {
-    const fake = makeFakeMp();
-    (window as WindowWithProviders).MercadoPago = fake.ctor;
-
+  it('returns the unsupported-provider adapter for a mercadopago provider (no throw)', async () => {
+    const scriptCountBefore = document.querySelectorAll('script').length;
     const sdk = createProviderSdk(MERCADOPAGO_PROVIDER);
-    await sdk.load();
 
-    expect(fake.ctor).toHaveBeenCalledWith('MP_PUB_123');
+    // Never injects a script, never mounts anything, and tokenize() is safe.
+    await expect(sdk.load()).resolves.toBeUndefined();
+    const container = document.createElement('div');
+    await expect(sdk.mountCardElement(container)).resolves.toBeUndefined();
+    expect(container.children).toHaveLength(0);
+    expect(document.querySelectorAll('script')).toHaveLength(scriptCountBefore);
+
+    expect(await sdk.tokenize()).toEqual({
+      status: 'error',
+      reason: 'unsupported_provider',
+      message: expect.any(String),
+    });
+
+    expect(() => sdk.unmount?.()).not.toThrow();
+  });
+
+  it('returns the unsupported-provider adapter for an unrecognized provider (no throw)', async () => {
+    const sdk = createProviderSdk(UNKNOWN_PROVIDER);
+
+    await expect(sdk.load()).resolves.toBeUndefined();
+    expect(await sdk.tokenize()).toMatchObject({
+      status: 'error',
+      reason: 'unsupported_provider',
+    });
   });
 });
 
@@ -205,108 +199,6 @@ describe('createStripeSdk', () => {
     expect(await sdk.tokenize()).toMatchObject({
       status: 'error',
       reason: 'tokenization_failed',
-    });
-  });
-});
-
-describe('createMercadoPagoSdk', () => {
-  it('mounts three secure-field targets and removes them on unmount', async () => {
-    const fake = makeFakeMp();
-    (window as WindowWithProviders).MercadoPago = fake.ctor;
-
-    const sdk = createProviderSdk(MERCADOPAGO_PROVIDER);
-    await sdk.load();
-    const container = document.createElement('div');
-    await sdk.mountCardElement(container);
-
-    expect(container.children).toHaveLength(3);
-
-    sdk.unmount?.();
-    // No orphan nodes / duplicate ids left behind after teardown.
-    expect(container.children).toHaveLength(0);
-  });
-
-  it('gives each adapter instance unique field ids so two fields never collide', async () => {
-    const fake = makeFakeMp();
-    (window as WindowWithProviders).MercadoPago = fake.ctor;
-
-    const first = createProviderSdk(MERCADOPAGO_PROVIDER);
-    const second = createProviderSdk(MERCADOPAGO_PROVIDER);
-    await first.load();
-    await second.load();
-
-    const firstContainer = document.createElement('div');
-    const secondContainer = document.createElement('div');
-    await first.mountCardElement(firstContainer);
-    await second.mountCardElement(secondContainer);
-
-    const firstIds = Array.from(firstContainer.children).map((el) => el.id);
-    const secondIds = Array.from(secondContainer.children).map((el) => el.id);
-
-    expect(firstIds).toHaveLength(3);
-    expect(secondIds).toHaveLength(3);
-    // All six ids distinct — no global collision.
-    expect(new Set([...firstIds, ...secondIds]).size).toBe(6);
-  });
-
-  it('mints a token from a successful createCardToken', async () => {
-    const fake = makeFakeMp();
-    fake.createCardToken.mockResolvedValue({ id: 'mp_tok' });
-    (window as WindowWithProviders).MercadoPago = fake.ctor;
-
-    const sdk = createProviderSdk(MERCADOPAGO_PROVIDER);
-    await sdk.load();
-    await sdk.mountCardElement(document.createElement('div'));
-
-    expect(await sdk.tokenize()).toEqual({
-      status: 'tokenized',
-      token: 'mp_tok',
-    });
-  });
-
-  it('fails closed to "incomplete" on a missing token', async () => {
-    const fake = makeFakeMp();
-    fake.createCardToken.mockResolvedValue(undefined);
-    (window as WindowWithProviders).MercadoPago = fake.ctor;
-
-    const sdk = createProviderSdk(MERCADOPAGO_PROVIDER);
-    await sdk.load();
-    await sdk.mountCardElement(document.createElement('div'));
-
-    expect(await sdk.tokenize()).toMatchObject({
-      status: 'error',
-      reason: 'incomplete',
-    });
-  });
-
-  it('fails closed to "incomplete" on a blank token id', async () => {
-    const fake = makeFakeMp();
-    fake.createCardToken.mockResolvedValue({ id: '   ' });
-    (window as WindowWithProviders).MercadoPago = fake.ctor;
-
-    const sdk = createProviderSdk(MERCADOPAGO_PROVIDER);
-    await sdk.load();
-    await sdk.mountCardElement(document.createElement('div'));
-
-    expect(await sdk.tokenize()).toMatchObject({
-      status: 'error',
-      reason: 'incomplete',
-    });
-  });
-
-  it('maps a thrown createCardToken to "tokenization_failed"', async () => {
-    const fake = makeFakeMp();
-    fake.createCardToken.mockRejectedValue(new Error('mp boom'));
-    (window as WindowWithProviders).MercadoPago = fake.ctor;
-
-    const sdk = createProviderSdk(MERCADOPAGO_PROVIDER);
-    await sdk.load();
-    await sdk.mountCardElement(document.createElement('div'));
-
-    expect(await sdk.tokenize()).toMatchObject({
-      status: 'error',
-      reason: 'tokenization_failed',
-      message: 'mp boom',
     });
   });
 });

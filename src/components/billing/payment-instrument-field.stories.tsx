@@ -44,6 +44,9 @@ const STRIPE_PROVIDER: PaymentProvider = {
   mercadopago: null,
 };
 
+// A non-Stripe provider (MercadoPago is a documented non-goal — see
+// payment-provider-sdk.ts) → the component's "card payment isn't available"
+// branch. No SDK is ever built for this outcome, so `fakeSdk` is never invoked.
 const MERCADOPAGO_PROVIDER: PaymentProvider = {
   provider: 'mercadopago',
   stripe: null,
@@ -96,7 +99,7 @@ export const Stripe: Story = {
   render: () => <SeededField provider={STRIPE_PROVIDER} />,
 };
 
-export const MercadoPago: Story = {
+export const UnsupportedProvider: Story = {
   render: () => <SeededField provider={MERCADOPAGO_PROVIDER} />,
 };
 
