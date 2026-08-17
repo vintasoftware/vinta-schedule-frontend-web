@@ -57,8 +57,15 @@ Client regen no longer needed; `main` already has `billingSubscriptionRetryPayme
 - **Review note:** two BLOCKERs fixed. (1) `alreadyExists` state lived inside the keyed editor → destroyed on the 409→refetch remount (banner vanished); lifted to the outer component + regression test. (2) the 403 was detected by exact `detail` text (the anti-pattern Phase 1 removed) → the two hooks now call the raw op with `throwOnError:false` and attach HTTP `status`; new `readErrorStatus` + the form branches on `status === 403`. SHOULD-FIX: read-view label map; prefill + remount tests. NIT: FieldPath cast comment.
 - **Gate:** typecheck clean; full suite green (app 224/1821, DS 82).
 
+### Phase 5 — Downgrade-vs-upgrade distinction ✅
+- **Status:** PASS · **Branch:** `plan/billing-hardening-gap-closure/phase-5` (base: phase-4) · **Commit:** `a11d507`
+- **Models:** impl T3 (sonnet) · reviewer T3 · **fixer T3 (sonnet, money-path BLOCKER)**
+- **Summary:** `change-plan-dialog.tsx` no longer polls a scheduled downgrade to the "taking longer than usual" timeout. After initiate it branches on the response: `updated.pending_plan_effective_at !== null` → a terminal "scheduled for {date}" state, no poll; null → the existing charge/upgrade poll unchanged. `billing-plans-picker.tsx` labels each card "Downgrade"/"Upgrade" mirroring the backend's interval semantics (current plan at the subscription's own interval vs target at the toggle interval).
+- **Review note:** the reviewer read the backend service and caught a money-path BLOCKER — the original client-side price heuristic (both plans at the target interval) disagreed with the backend (current-own-interval vs target-requested-interval), so a cross-interval "cheaper" pick could skip the confirmation poll on an actually-charged upgrade (`pending_plan_effective_at=null`) and equal-price switches were misclassified. Fixed by branching on the authoritative response field instead of client price math; `isDowngrade`/`planPrice` deleted from the dialog. Added response-driven regression tests.
+- **Gate:** typecheck clean; full suite green (app 224/1828, DS 82).
+
 ## Current phase
-- **Phase 5 — Downgrade-vs-upgrade distinction** (next)
+- **Phase 6 — Payment-provider unsupported fallback** (next)
 
 ## Remaining phases
 - Phase 4 — Billing profile form hardening (T3) — capability-gated
