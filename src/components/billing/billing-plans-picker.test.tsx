@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 import type { BillingPlan, Subscription } from '@/client';
 import { PermissionProvider } from '@/components/navigation/permission-gate';
@@ -64,6 +64,7 @@ const SUBSCRIPTION = {
   id: 1,
   plan: { ...TEAM, slug: 'team' },
   billing_state: 'active',
+  billing_interval: 'monthly',
   pending_plan_slug: '',
 } as unknown as Subscription;
 
@@ -151,5 +152,67 @@ describe('BillingPlansPicker', () => {
     expect(
       screen.queryByTestId('plan-entitlements-team')
     ).not.toBeInTheDocument();
+  });
+
+  it('labels a lower-priced target plan "Downgrade"', () => {
+    const BASIC: BillingPlan = {
+      ...TEAM,
+      slug: 'basic',
+      name: 'Basic',
+      monthly_price: '5.0000',
+      annual_price: '50.0000',
+    };
+    // The org's current plan (in SUBSCRIPTION) prices at 20.0000/month.
+    mockSubscription(SUBSCRIPTION);
+    mockPlans([TEAM, BASIC]);
+
+    renderPicker();
+
+    expect(screen.getByTestId('plan-change-basic')).toHaveTextContent(
+      'Downgrade'
+    );
+  });
+
+  it('labels a higher-priced target plan "Upgrade"', () => {
+    const ENTERPRISE: BillingPlan = {
+      ...TEAM,
+      slug: 'enterprise',
+      name: 'Enterprise',
+      monthly_price: '50.0000',
+      annual_price: '500.0000',
+    };
+    // The org's current plan (in SUBSCRIPTION) prices at 20.0000/month.
+    mockSubscription(SUBSCRIPTION);
+    mockPlans([TEAM, ENTERPRISE]);
+
+    renderPicker();
+
+    expect(screen.getByTestId('plan-change-enterprise')).toHaveTextContent(
+      'Upgrade'
+    );
+  });
+
+  it('mirrors the backend by pricing the CURRENT plan at its own interval, not the toggle interval', () => {
+    // The subscription is on Team, MONTHLY (20.0000). The picker's toggle is
+    // switched to Annual, and the target's annual price (150.0000) is lower
+    // than Team's annual price (200.0000) — a same-interval (both-annual)
+    // comparison would call this a "Downgrade". But the org is only ever
+    // charged for the switch relative to what it's ACTUALLY paying today
+    // (Team monthly, 20.0000), so mirroring the backend calls this an
+    // "Upgrade".
+    const PLUS: BillingPlan = {
+      ...TEAM,
+      slug: 'plus',
+      name: 'Plus',
+      monthly_price: '30.0000',
+      annual_price: '150.0000',
+    };
+    mockSubscription(SUBSCRIPTION); // billing_interval: 'monthly'
+    mockPlans([TEAM, PLUS]);
+
+    renderPicker();
+    fireEvent.click(screen.getByTestId('interval-annual'));
+
+    expect(screen.getByTestId('plan-change-plus')).toHaveTextContent('Upgrade');
   });
 });

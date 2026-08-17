@@ -50,7 +50,11 @@ import {
   VStack,
 } from 'vinta-schedule-design-system/layout';
 
-import type { BillingPlan, PendingBillingIntervalEnum } from '@/client';
+import type {
+  BillingPlan,
+  PendingBillingIntervalEnum,
+  Subscription,
+} from '@/client';
 import { useBillingPlans } from '@/hooks/billing/use-billing-plans';
 import { useSubscription } from '@/hooks/billing/use-subscription';
 import {
@@ -70,6 +74,51 @@ function priceForInterval(
   interval: PendingBillingIntervalEnum
 ): string | null {
   return interval === 'annual' ? plan.annual_price : plan.monthly_price;
+}
+
+/** The per-plan, per-interval price parsed to a number, or `null` when not offered/unparseable. */
+function numericPriceForInterval(
+  plan: BillingPlan,
+  interval: PendingBillingIntervalEnum
+): number | null {
+  const raw = priceForInterval(plan, interval);
+  if (raw === null) {
+    return null;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+/**
+ * The action label for a card's change-plan button, by direction relative to
+ * the org's current plan. The backend decides upgrade vs. downgrade by
+ * comparing the current plan at the SUBSCRIPTION'S OWN interval against the
+ * target plan at the requested (toggle) interval — not both plans at the same
+ * interval — so this mirrors that as closely as a pre-initiate label can:
+ * `subscription.billing_interval` prices the current plan, `interval` prices
+ * the target. This is still only a label, never a gate — the actual decision
+ * is read off the initiate response (see `ChangePlanDialog`). When a robust
+ * comparison isn't possible (no subscription, or a missing price on either
+ * side) this defaults to "Upgrade" — the safer label when direction is
+ * ambiguous.
+ */
+function changeActionLabel(
+  targetPlan: BillingPlan,
+  targetInterval: PendingBillingIntervalEnum,
+  subscription: Subscription | null
+): string {
+  if (subscription === null) {
+    return 'Upgrade';
+  }
+  const currentPrice = numericPriceForInterval(
+    subscription.plan,
+    subscription.billing_interval
+  );
+  const targetPrice = numericPriceForInterval(targetPlan, targetInterval);
+  if (currentPrice === null || targetPrice === null) {
+    return 'Upgrade';
+  }
+  return targetPrice < currentPrice ? 'Downgrade' : 'Upgrade';
 }
 
 export function BillingPlansPicker() {
@@ -263,7 +312,9 @@ export function BillingPlansPicker() {
                         disabled={price === null}
                         data-testid={`plan-change-${plan.slug}`}
                       >
-                        {hasPaidPlan ? 'Switch to this plan' : 'Upgrade'}
+                        {hasPaidPlan
+                          ? changeActionLabel(plan, interval, subscription)
+                          : 'Upgrade'}
                       </Button>
                     ) : null)}
                 </VStack>
