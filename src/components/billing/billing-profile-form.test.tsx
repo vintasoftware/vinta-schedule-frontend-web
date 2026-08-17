@@ -53,7 +53,7 @@ const EXISTING_PROFILE: BillingProfile = {
   contact_last_name: 'Lovelace',
   contact_email: 'ada@example.com',
   contact_phone: '+1 555 000 0000',
-  document_type: 'tax_id',
+  document_type: 'SSN',
   document_number: '123456789',
   billing_address: {
     id: 10,
@@ -87,7 +87,7 @@ async function fillCreateForm(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Last name (optional)'), 'Hopper');
   await user.type(screen.getByLabelText('Email'), 'grace@example.com');
   await user.type(screen.getByLabelText('Phone (optional)'), '+1 555 111 2222');
-  await user.type(screen.getByLabelText('Document type'), 'tax_id');
+  await user.type(screen.getByLabelText('Document type'), 'SSN');
   await user.type(screen.getByLabelText('Document number'), '987654321');
   await user.type(screen.getByLabelText('Street'), 'Second');
   await user.type(screen.getByLabelText('Number'), '7');
@@ -104,7 +104,7 @@ const FULL_BODY = {
   contact_last_name: 'Hopper',
   contact_email: 'grace@example.com',
   contact_phone: '+1 555 111 2222',
-  document_type: 'tax_id',
+  document_type: 'SSN',
   document_number: '987654321',
   billing_address: {
     street_name: 'Second',

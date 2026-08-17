@@ -34,7 +34,7 @@ type Result = Awaited<
 const BODY: PatchedBillingProfileWritable = {
   contact_first_name: 'Grace',
   contact_email: 'grace@example.com',
-  document_type: 'tax_id',
+  document_type: 'SSN',
   document_number: '987654321',
   billing_address: {
     street_name: 'Second',

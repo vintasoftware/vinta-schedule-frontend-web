@@ -67,6 +67,7 @@ import type {
   BillingProfile,
   BillingProfileWritable,
   BillingAddressWritable,
+  BillingProfileDocumentTypeEnum,
 } from '@/client';
 import { useBillingProfile } from '@/hooks/billing/use-billing-profile';
 import { useCreateBillingProfile } from '@/hooks/billing/use-create-billing-profile';
@@ -186,7 +187,7 @@ function toWritable(
   return {
     contact_first_name: values.contact_first_name,
     contact_email: values.contact_email,
-    document_type: values.document_type,
+    document_type: values.document_type as BillingProfileDocumentTypeEnum,
     document_number: values.document_number,
     billing_address: address,
     ...(keepOptional(values.contact_last_name)

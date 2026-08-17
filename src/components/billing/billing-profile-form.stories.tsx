@@ -16,7 +16,7 @@ const PROFILE: BillingProfile = {
   contact_last_name: 'Lovelace',
   contact_email: 'ada@example.com',
   contact_phone: '+1 555 000 0000',
-  document_type: 'tax_id',
+  document_type: 'SSN',
   document_number: '123456789',
   billing_address: {
     id: 10,
