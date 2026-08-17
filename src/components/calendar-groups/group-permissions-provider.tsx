@@ -9,20 +9,19 @@
  */
 
 import * as React from 'react';
-import type { RoleEnum } from '@/client';
 import { canEditCalendar } from './group-permissions';
 
 interface GroupPermissionsContextValue {
-  role: RoleEnum | null;
+  permissions: readonly string[] | null;
   ownedCalendarIds: ReadonlySet<number>;
 }
 
-// Default (no provider in the tree) is the fail-closed state: role null,
+// Default (no provider in the tree) is the fail-closed state: permissions null,
 // no owned calendars — every row reads as read-only until a real provider
-// supplies the resolved role and ownership set.
+// supplies the resolved permissions and ownership set.
 const GroupPermissionsContext =
   React.createContext<GroupPermissionsContextValue>({
-    role: null,
+    permissions: null,
     ownedCalendarIds: new Set(),
   });
 
@@ -31,13 +30,13 @@ export interface GroupPermissionsProviderProps extends GroupPermissionsContextVa
 }
 
 export function GroupPermissionsProvider({
-  role,
+  permissions,
   ownedCalendarIds,
   children,
 }: GroupPermissionsProviderProps) {
   const value = React.useMemo(
-    () => ({ role, ownedCalendarIds }),
-    [role, ownedCalendarIds]
+    () => ({ permissions, ownedCalendarIds }),
+    [permissions, ownedCalendarIds]
   );
   return (
     <GroupPermissionsContext.Provider value={value}>
@@ -48,6 +47,8 @@ export function GroupPermissionsProvider({
 
 /** Whether the current viewer may edit `calendarId`'s group-scoped rows. */
 export function useCanEditCalendar(calendarId: number): boolean {
-  const { role, ownedCalendarIds } = React.useContext(GroupPermissionsContext);
-  return canEditCalendar({ role, ownedCalendarIds, calendarId });
+  const { permissions, ownedCalendarIds } = React.useContext(
+    GroupPermissionsContext
+  );
+  return canEditCalendar({ permissions, ownedCalendarIds, calendarId });
 }

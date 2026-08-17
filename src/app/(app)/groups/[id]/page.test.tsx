@@ -13,9 +13,28 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
-vi.mock('@/components/navigation/role-gate', () => ({
-  useRole: vi.fn(() => 'admin'),
-}));
+// The four capabilities an "admin" (manage_members) holds; a plain member holds
+// none.
+const ADMIN_PERMISSIONS = [
+  'organizations.manage_members',
+  'organizations.manage_organization',
+  'organizations.manage_branding',
+  'payments.manage_billing',
+];
+const MEMBER_PERMISSIONS: string[] = [];
+
+// GroupDetailPage reads the caller's capabilities via usePermissions. Preserve
+// PERMISSIONS (and the rest) so the source's manage_members check resolves.
+vi.mock('@/components/navigation/permission-gate', async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import('@/components/navigation/permission-gate')
+    >();
+  return {
+    ...original,
+    usePermissions: vi.fn(() => ADMIN_PERMISSIONS),
+  };
+});
 
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/client/sdk.gen')>();
@@ -29,7 +48,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   };
 });
 
-import { useRole } from '@/components/navigation/role-gate';
+import { usePermissions } from '@/components/navigation/permission-gate';
 import {
   calendarGroupsRetrieve,
   calendarGroupsSlotsAvailabilityWindowsList,
@@ -156,7 +175,7 @@ describe('GroupDetailPage', () => {
     vi.mocked(useRouter).mockReturnValue(
       mockRouter as unknown as ReturnType<typeof useRouter>
     );
-    vi.mocked(useRole).mockReturnValue('admin');
+    vi.mocked(usePermissions).mockReturnValue(ADMIN_PERMISSIONS);
     vi.mocked(calendarList).mockResolvedValue(makeCalendarListResponse([]));
     vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
       makeEmptyListResponse() as Awaited<
@@ -189,7 +208,7 @@ describe('GroupDetailPage', () => {
   });
 
   it('does not fetch the group until the caller role has resolved', async () => {
-    vi.mocked(useRole).mockReturnValue(null);
+    vi.mocked(usePermissions).mockReturnValue(null);
     vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
       makeGroupResponse(FIXTURE_GROUP)
     );
@@ -239,7 +258,7 @@ describe('GroupDetailPage', () => {
   });
 
   it('as an admin, every roster row is editable', async () => {
-    vi.mocked(useRole).mockReturnValue('admin');
+    vi.mocked(usePermissions).mockReturnValue(ADMIN_PERMISSIONS);
     vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
       makeGroupResponse(FIXTURE_GROUP)
     );
@@ -266,7 +285,7 @@ describe('GroupDetailPage', () => {
   });
 
   it("as a member, the owner's own row is editable and every other row exposes no write control", async () => {
-    vi.mocked(useRole).mockReturnValue('member');
+    vi.mocked(usePermissions).mockReturnValue(MEMBER_PERMISSIONS);
     // Owns calendar 100 (Dr. Smith); does not own 101 (Dr. Lee).
     vi.mocked(calendarList).mockResolvedValue(
       makeCalendarListResponse([ownedCalendar(100)])
@@ -305,7 +324,7 @@ describe('GroupDetailPage', () => {
   });
 
   it('as a member, the group is not fetched while ownership is still resolving, and nothing renders as editable', async () => {
-    vi.mocked(useRole).mockReturnValue('member');
+    vi.mocked(usePermissions).mockReturnValue(MEMBER_PERMISSIONS);
     let resolveCalendarList!: (
       value: Awaited<ReturnType<typeof calendarList>>
     ) => void;
@@ -341,7 +360,7 @@ describe('GroupDetailPage', () => {
   });
 
   it('as a member, a failed ownership fetch surfaces an error instead of silently rendering every row read-only', async () => {
-    vi.mocked(useRole).mockReturnValue('member');
+    vi.mocked(usePermissions).mockReturnValue(MEMBER_PERMISSIONS);
     vi.mocked(calendarList).mockRejectedValue(new Error('network error'));
     vi.mocked(calendarGroupsRetrieve).mockResolvedValue(
       makeGroupResponse(FIXTURE_GROUP)

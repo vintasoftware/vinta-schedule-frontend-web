@@ -168,7 +168,7 @@ function renderGrid(queryClient: QueryClient, readOnly = false) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       <GroupPermissionsProvider
-        role={readOnly ? null : 'admin'}
+        permissions={readOnly ? null : ['organizations.manage_members']}
         ownedCalendarIds={new Set()}
       >
         {children}
@@ -506,7 +506,10 @@ describe('GroupWindowGrid', () => {
     const user = userEvent.setup();
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           {children}
         </GroupPermissionsProvider>
       </QueryClientProvider>

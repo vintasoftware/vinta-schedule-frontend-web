@@ -57,7 +57,8 @@ export function useCurrentOrganization({
     isOnboarded: result?.status === 'onboarded',
     isDisabled: result?.status === 'disabled',
     membership: result?.status === 'onboarded' ? result.membership : null,
-    role: result?.status === 'onboarded' ? result.membership.role : null,
+    permissions:
+      result?.status === 'onboarded' ? result.membership.permissions : null,
     organization:
       result?.status === 'onboarded' ? result.membership.organization : null,
     isLoading: query.isLoading,

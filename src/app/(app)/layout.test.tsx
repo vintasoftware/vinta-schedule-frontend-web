@@ -84,34 +84,44 @@ function renderLayout(ui: ReactNode = <div>page content</div>) {
 
 import type { CurrentMembership, MyMembership } from '@/client';
 
+// A plain member holds no elevated capabilities.
+const MEMBER_PERMISSIONS: string[] = [];
+// An "admin" (manage_members) holds the full capability set.
+const ADMIN_PERMISSIONS = [
+  'organizations.manage_members',
+  'organizations.manage_organization',
+  'organizations.manage_branding',
+  'payments.manage_billing',
+];
+
 const MEMBER_MEMBERSHIP: CurrentMembership = {
-  role: 'member',
+  permissions: MEMBER_PERMISSIONS,
   can_manage_branding: false,
   organization: { id: 1, name: 'Test Org' },
 };
 
 const ADMIN_MEMBERSHIP: CurrentMembership = {
-  role: 'admin',
+  permissions: ADMIN_PERMISSIONS,
   can_manage_branding: false,
   organization: { id: 1, name: 'Test Org' },
 };
 
 // Eligible org: can_manage_branding on membership drives the Branding nav link.
 const BRANDING_ADMIN_MEMBERSHIP: CurrentMembership = {
-  role: 'admin',
+  permissions: ADMIN_PERMISSIONS,
   can_manage_branding: true,
   organization: { id: 1, name: 'Test Org' },
 };
 
 const BRANDING_MEMBER_MEMBERSHIP: CurrentMembership = {
-  role: 'member',
+  permissions: MEMBER_PERMISSIONS,
   can_manage_branding: true,
   organization: { id: 1, name: 'Test Org' },
 };
 
 // Branding eligibility is independent of can_invite_organizations (reseller flag).
 const BRANDING_ADMIN_NON_RESELLER_MEMBERSHIP: CurrentMembership = {
-  role: 'admin',
+  permissions: ADMIN_PERMISSIONS,
   can_manage_branding: true,
   organization: { id: 1, name: 'Test Org', can_invite_organizations: false },
 };
@@ -370,8 +380,8 @@ describe('AppLayout (integration)', () => {
       // activeMembership becomes non-null and the recovery effect can fire.
       mockMineList([
         {
-          organization: { id: 1, name: 'Test Org', slug: null },
-          role: 'member',
+          organization: { id: 1, name: 'Test Org', slug: 'test-org' },
+          permissions: MEMBER_PERMISSIONS,
           can_manage_branding: false,
         } as MyMembership,
       ]);
@@ -400,8 +410,8 @@ describe('AppLayout (integration)', () => {
       mockOrg403();
       mockMineList([
         {
-          organization: { id: 2, name: 'Org B', slug: null },
-          role: 'member',
+          organization: { id: 2, name: 'Org B', slug: 'org-b' },
+          permissions: MEMBER_PERMISSIONS,
           can_manage_branding: false,
         } as MyMembership,
       ]);

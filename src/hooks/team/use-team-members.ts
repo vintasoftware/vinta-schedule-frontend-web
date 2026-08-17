@@ -20,7 +20,7 @@ export interface TeamMember {
   id: number;
   name: string;
   email: string;
-  role: OrganizationMembership['role'];
+  permissions: OrganizationMembership['permissions'];
   status: TeamMemberStatus;
 }
 
@@ -79,7 +79,7 @@ export function useTeamMembers(query: DataTableQuery) {
       [m.user_first_name, m.user_last_name].filter(Boolean).join(' ') ||
       m.user_email,
     email: m.user_email,
-    role: m.role,
+    permissions: m.permissions,
     status: m.is_active ? 'active' : 'disabled',
   }));
 

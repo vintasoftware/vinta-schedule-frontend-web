@@ -36,9 +36,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from 'vinta-schedule-design-system/ui/dropdown-menu';
-import type { MyMembership, RoleEnum } from '@/client';
+import type { MyMembership } from '@/client';
 import { OrgSwitcher } from '@/components/organizations/org-switcher';
-import { useRole } from '@/components/navigation/role-gate';
+import {
+  usePermissions,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import {
   Box,
   Center,
@@ -131,11 +134,14 @@ const DEFAULT_GROUPS: SidebarNavGroup[] = [
 
 // The Billing nav section. Reads (Overview / Plans / Statements / Profile) are
 // open to any authenticated member; the occurrence Ledger is billing-owner/admin
-// gated server-side, so its entry is hidden from non-admins here (client-side
-// role gate — the server 403 is the real backstop, per the Billing Frontend
-// plan's Guiding Decisions). Computed from the current role rather than baked
-// into a static array so a member never sees the Ledger link.
-function buildBillingGroup(role: RoleEnum | null): SidebarNavGroup {
+// gated server-side, so its entry is hidden here from members without
+// `payments.manage_billing` (client-side capability gate — the server 403 is
+// the real backstop, per the Billing Frontend plan's Guiding Decisions).
+// Computed from the current permissions rather than baked into a static array
+// so a plain member never sees the Ledger link.
+function buildBillingGroup(
+  permissions: readonly string[] | null
+): SidebarNavGroup {
   const items: SidebarNavItem[] = [
     {
       id: 'billing-overview',
@@ -156,7 +162,7 @@ function buildBillingGroup(role: RoleEnum | null): SidebarNavGroup {
       href: '/billing/periods',
     },
   ];
-  if (role === 'admin') {
+  if (permissions?.includes(PERMISSIONS.manageBilling)) {
     items.push({
       id: 'billing-ledger',
       label: 'Ledger',
@@ -242,7 +248,7 @@ function AppSidebarInner(
   ref: React.Ref<HTMLElement>
 ) {
   const pathname = usePathname();
-  const role = useRole();
+  const permissions = usePermissions();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -383,10 +389,10 @@ function AppSidebarInner(
     </VStack>
   );
 
-  // Billing is always reachable from the rail (role-gated per item); it is
-  // appended to whatever groups the shell passes, so wiring it here never
+  // Billing is always reachable from the rail (capability-gated per item); it
+  // is appended to whatever groups the shell passes, so wiring it here never
   // disturbs the caller's other nav groups.
-  const renderedGroups = [...groups, buildBillingGroup(role)];
+  const renderedGroups = [...groups, buildBillingGroup(permissions)];
 
   // Most-specific-wins: an href "matches" when the pathname equals it or is a
   // child of it. When routes nest (e.g. '/billing' is a prefix of

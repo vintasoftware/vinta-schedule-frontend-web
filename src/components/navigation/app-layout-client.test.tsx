@@ -11,14 +11,24 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildNavGroups } from './app-layout-client';
+import { PERMISSIONS } from './permission-gate';
+
+// Capability arrays standing in for the old 'admin' / 'member' roles.
+const ADMIN_PERMISSIONS = [
+  PERMISSIONS.manageMembers,
+  PERMISSIONS.manageOrganization,
+  PERMISSIONS.manageBranding,
+  PERMISSIONS.manageBilling,
+];
+const MEMBER_PERMISSIONS: string[] = [];
 
 function idsOf(items: { id: string }[]): string[] {
   return items.map((item) => item.id);
 }
 
 describe('buildNavGroups', () => {
-  it('a member role gets a single group containing /groups, no Admin group', () => {
-    const groups = buildNavGroups('member', false);
+  it('a member gets a single group containing /groups, no Admin group', () => {
+    const groups = buildNavGroups(MEMBER_PERMISSIONS, false);
 
     expect(groups).toHaveLength(1);
     expect(groups[0]?.label).toBeUndefined();
@@ -29,8 +39,8 @@ describe('buildNavGroups', () => {
     expect(groups.some((group) => group.label === 'Admin')).toBe(false);
   });
 
-  it('an admin role gets the member group plus an unchanged Admin-only group', () => {
-    const groups = buildNavGroups('admin', false);
+  it('an admin gets the member group plus an unchanged Admin-only group', () => {
+    const groups = buildNavGroups(ADMIN_PERMISSIONS, false);
 
     expect(groups).toHaveLength(2);
     expect(groups[0]?.label).toBeUndefined();
@@ -57,7 +67,7 @@ describe('buildNavGroups', () => {
   it('appends Branding to the Admin group only when canManageBranding, and never for a member', () => {
     const adminItems = (canManageBranding: boolean) =>
       idsOf(
-        buildNavGroups('admin', canManageBranding).find(
+        buildNavGroups(ADMIN_PERMISSIONS, canManageBranding).find(
           (group) => group.label === 'Admin'
         )?.items ?? []
       );
@@ -68,7 +78,9 @@ describe('buildNavGroups', () => {
     // A member has no Admin group at all, so the flag cannot expose branding
     // to them regardless of its value.
     expect(
-      buildNavGroups('member', true).flatMap((group) => idsOf(group.items))
+      buildNavGroups(MEMBER_PERMISSIONS, true).flatMap((group) =>
+        idsOf(group.items)
+      )
     ).not.toContain('branding');
   });
 });

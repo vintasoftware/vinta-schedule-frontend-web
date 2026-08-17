@@ -4,9 +4,9 @@ import { useState } from 'react';
 
 import { Box } from 'vinta-schedule-design-system/layout';
 
-import type { BillingProfile, RoleEnum } from '@/client';
+import type { BillingProfile } from '@/client';
 import { billingProfileRetrieveBillingProfileRetrieveOptions } from '@/client/@tanstack/react-query.gen';
-import { RoleProvider } from '@/components/navigation/role-gate';
+import { PermissionProvider } from '@/components/navigation/permission-gate';
 
 import { BillingProfileForm } from './billing-profile-form';
 
@@ -16,7 +16,7 @@ const PROFILE: BillingProfile = {
   contact_last_name: 'Lovelace',
   contact_email: 'ada@example.com',
   contact_phone: '+1 555 000 0000',
-  document_type: 'tax_id',
+  document_type: 'OTHER',
   document_number: '123456789',
   billing_address: {
     id: 10,
@@ -38,8 +38,9 @@ function SeededForm({
   role,
 }: {
   profile: BillingProfile | null;
-  role: RoleEnum;
+  role: 'admin' | 'member';
 }) {
+  const permissions = role === 'admin' ? ['payments.manage_billing'] : [];
   const [client] = useState(() => {
     const c = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -56,11 +57,11 @@ function SeededForm({
   });
   return (
     <QueryClientProvider client={client}>
-      <RoleProvider role={role}>
+      <PermissionProvider permissions={permissions}>
         <Box className='w-full max-w-2xl'>
           <BillingProfileForm />
         </Box>
-      </RoleProvider>
+      </PermissionProvider>
     </QueryClientProvider>
   );
 }

@@ -4,7 +4,10 @@ import { use } from 'react';
 import { Spinner } from 'vinta-schedule-design-system/ui/spinner';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { VStack, Text } from 'vinta-schedule-design-system/layout';
-import { useRole } from '@/components/navigation/role-gate';
+import {
+  usePermissions,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import { useCalendarGroup } from '@/hooks/calendar-groups/use-calendar-group';
 import { useOwnedCalendarIds } from '@/hooks/calendars/use-owned-calendar-ids';
 import { GroupDetailView } from '@/components/calendar-groups/group-detail-view';
@@ -37,8 +40,12 @@ export default function GroupDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const role = useRole();
-  const isMember = role === 'member';
+  const permissions = usePermissions();
+  // A "member" here is any resolved viewer who cannot manage members — they may
+  // edit only calendars they own, so they need the ownership set. Admins
+  // (manage_members) and the unresolved (null) state do not fetch it.
+  const isMember =
+    permissions !== null && !permissions.includes(PERMISSIONS.manageMembers);
   const {
     ownedCalendarIds,
     isLoading: isOwnedCalendarsLoading,
@@ -47,9 +54,9 @@ export default function GroupDetailPage({
   } = useOwnedCalendarIds({ enabled: isMember });
 
   // Admins don't need ownedCalendarIds (canEditCalendar short-circuits on
-  // role), so their readiness doesn't depend on that query settling.
+  // manage_members), so their readiness doesn't depend on that query settling.
   const permissionsReady =
-    role !== null && (!isMember || !isOwnedCalendarsLoading);
+    permissions !== null && (!isMember || !isOwnedCalendarsLoading);
 
   const { group, isNotFound, isLoading, isError, error } = useCalendarGroup(
     id,
@@ -112,7 +119,10 @@ export default function GroupDetailPage({
   }
 
   return (
-    <GroupPermissionsProvider role={role} ownedCalendarIds={ownedCalendarIds}>
+    <GroupPermissionsProvider
+      permissions={permissions}
+      ownedCalendarIds={ownedCalendarIds}
+    >
       <GroupDetailView group={group} />
     </GroupPermissionsProvider>
   );

@@ -8,14 +8,17 @@ import { ExternalEventUpdatePolicyForm } from '@/components/sync/external-event-
 import { TriggerRoomsSyncButton } from '@/components/sync/trigger-rooms-sync-button';
 import { TriggerOrgCalendarSyncButton } from '@/components/sync/trigger-org-calendar-sync-button';
 import { ServiceAccountCard } from '@/components/sync/service-account-card';
-import { useRequireRole } from '@/components/navigation/role-gate';
+import {
+  useRequirePermission,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import { Box } from 'vinta-schedule-design-system/layout/box';
 import { HStack, Text } from 'vinta-schedule-design-system/layout';
 
 /**
  * SyncSettingsPage — admin-only view for configuring sync settings.
  *
- * Guarded by useRequireRole('admin'): a member who somehow reaches this URL is
+ * Guarded by useRequirePermission(PERMISSIONS.manageMembers): a member who somehow reaches this URL is
  * redirected to '/' (degrade-don't-loop rule — never redirect back into (app)).
  *
  * Renders:
@@ -33,7 +36,7 @@ export default function SyncSettingsPage() {
   // Gate: redirect non-admins out. The redirect fires in a useEffect, so
   // we also check isAllowed before rendering the form to avoid firing the
   // API call and rendering sensitive data before the redirect effect runs.
-  const { isAllowed } = useRequireRole('admin');
+  const { isAllowed } = useRequirePermission(PERMISSIONS.manageMembers);
 
   if (!isAllowed) return null;
 

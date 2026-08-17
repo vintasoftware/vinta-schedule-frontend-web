@@ -12,12 +12,15 @@ import {
   TabsTrigger,
   TabsContent,
 } from 'vinta-schedule-design-system/ui/tabs';
-import { useRequireRole } from '@/components/navigation/role-gate';
+import {
+  useRequirePermission,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 
 /**
  * TeamPage — admin-only view of all org members and pending invitations.
  *
- * Guarded by useRequireRole('admin'): a member who somehow reaches this URL is
+ * Guarded by useRequirePermission(PERMISSIONS.manageMembers): a member who somehow reaches this URL is
  * redirected to '/' (degrade-don't-loop rule — never redirect back into (app)).
  *
  * Renders two tabs:
@@ -28,7 +31,7 @@ export default function TeamPage() {
   // Gate: redirect non-admins out. The redirect fires in a useEffect, so
   // we also check isAllowed before rendering the tables to avoid firing the
   // API call and rendering sensitive data before the redirect effect runs.
-  const { isAllowed } = useRequireRole('admin');
+  const { isAllowed } = useRequirePermission(PERMISSIONS.manageMembers);
 
   if (!isAllowed) return null;
 

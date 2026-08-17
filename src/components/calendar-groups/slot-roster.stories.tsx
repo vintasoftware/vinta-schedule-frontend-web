@@ -177,7 +177,10 @@ export const Populated: Story = {
     });
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           <SlotRoster groupId={GROUP_ID} slot={SLOT} />
         </GroupPermissionsProvider>
       </QueryClientProvider>
@@ -195,7 +198,10 @@ export const NoConfiguration: Story = {
     });
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           <SlotRoster groupId={GROUP_ID} slot={SLOT} />
         </GroupPermissionsProvider>
       </QueryClientProvider>
@@ -217,7 +223,7 @@ export const MemberPartialOwnership: Story = {
     return (
       <QueryClientProvider client={client}>
         <GroupPermissionsProvider
-          role='member'
+          permissions={[]}
           ownedCalendarIds={new Set([100])}
         >
           <SlotRoster groupId={GROUP_ID} slot={SLOT} />

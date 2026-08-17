@@ -71,13 +71,18 @@ import {
 const ACCEPT_TOKEN_RESPONSE: AcceptInvitation = { token: 'test-token-123' };
 
 const MEMBERSHIP_A: MyMembership = {
-  organization: { id: 1, name: 'Org A', slug: null },
-  role: 'admin',
+  organization: { id: 1, name: 'Org A', slug: 'org-a' },
+  permissions: [
+    'organizations.manage_members',
+    'organizations.manage_organization',
+    'organizations.manage_branding',
+    'payments.manage_billing',
+  ],
   can_manage_branding: false,
 };
 const MEMBERSHIP_B: MyMembership = {
-  organization: { id: 2, name: 'Org B', slug: null },
-  role: 'member',
+  organization: { id: 2, name: 'Org B', slug: 'org-b' },
+  permissions: [],
   can_manage_branding: false,
 };
 

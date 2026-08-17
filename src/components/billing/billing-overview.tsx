@@ -46,7 +46,10 @@ import {
 import type { ResourceKeyEnum } from '@/client';
 import { useBillingUsage } from '@/hooks/billing/use-billing-usage';
 import { useSubscription } from '@/hooks/billing/use-subscription';
-import { useRole } from '@/components/navigation/role-gate';
+import {
+  useHasPermission,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 
 import { ActiveAddOnsList } from './active-add-ons-list';
 import { BillingStateBanner } from './billing-state-banner';
@@ -63,7 +66,7 @@ export function BillingOverview() {
   const { subscription } = useSubscription();
   // Role gating is defense-in-depth: only an admin gets the "Buy more"
   // affordance; the server `403` on the purchase endpoint is the real gate.
-  const isAdmin = useRole() === 'admin';
+  const canManageBilling = useHasPermission(PERMISSIONS.manageBilling);
 
   // The resource a "Buy more" click targets — drives the pre-selected purchase
   // dialog. `null` when closed; the dialog unmounts on close (and remounts with
@@ -121,7 +124,7 @@ export function BillingOverview() {
           limits={usage.limits}
           currency={currency}
           onBuyMore={
-            isAdmin
+            canManageBilling
               ? (resourceKey) =>
                   setBuyMoreResource(resourceKey as ResourceKeyEnum)
               : undefined

@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import type { Subscription } from '@/client';
 import { billingSubscriptionRetrieveSubscriptionRetrieveOptions } from '@/client/@tanstack/react-query.gen';
-import { RoleProvider } from '@/components/navigation/role-gate';
+import { PermissionProvider } from '@/components/navigation/permission-gate';
 
 import { ActiveAddOnsList } from './active-add-ons-list';
 
@@ -54,11 +54,12 @@ function Seeded({ role }: { role: 'admin' | 'member' }) {
     );
     return c;
   });
+  const permissions = role === 'admin' ? ['payments.manage_billing'] : [];
   return (
     <QueryClientProvider client={client}>
-      <RoleProvider role={role}>
+      <PermissionProvider permissions={permissions}>
         <ActiveAddOnsList />
-      </RoleProvider>
+      </PermissionProvider>
     </QueryClientProvider>
   );
 }

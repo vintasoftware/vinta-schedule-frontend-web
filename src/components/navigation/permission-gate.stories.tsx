@@ -1,18 +1,31 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { RoleProvider, RoleGate } from './role-gate';
+import {
+  PermissionProvider,
+  PermissionGate,
+  PERMISSIONS,
+} from './permission-gate';
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Stack } from 'vinta-schedule-design-system/layout/stack';
 import { Text } from 'vinta-schedule-design-system/layout/text';
 import { Heading } from 'vinta-schedule-design-system/layout/heading';
 
 const meta: Meta = {
-  title: 'Navigation/RoleGate',
+  title: 'Navigation/PermissionGate',
   tags: ['autodocs'],
   parameters: { layout: 'centered' },
 };
 
 export default meta;
 type Story = StoryObj;
+
+// Capability arrays standing in for the old 'admin' / 'member' roles.
+const ADMIN_PERMISSIONS = [
+  PERMISSIONS.manageMembers,
+  PERMISSIONS.manageOrganization,
+  PERMISSIONS.manageBranding,
+  PERMISSIONS.manageBilling,
+];
+const MEMBER_PERMISSIONS: string[] = [];
 
 function NavItem({ label, adminOnly }: { label: string; adminOnly?: boolean }) {
   return (
@@ -27,9 +40,13 @@ function NavItem({ label, adminOnly }: { label: string; adminOnly?: boolean }) {
   );
 }
 
-function NavSection({ role }: { role: 'admin' | 'member' | null }) {
+function NavSection({
+  permissions,
+}: {
+  permissions: readonly string[] | null;
+}) {
   return (
-    <RoleProvider role={role}>
+    <PermissionProvider permissions={permissions}>
       <Stack
         gap={4}
         className='border-border bg-sidebar w-56 rounded-xl border p-4'
@@ -48,7 +65,7 @@ function NavSection({ role }: { role: 'admin' | 'member' | null }) {
           <NavItem label='Events' />
         </Stack>
 
-        <RoleGate role='admin'>
+        <PermissionGate permission={PERMISSIONS.manageMembers}>
           <Stack gap={1}>
             <Text
               weight='semibold'
@@ -62,56 +79,56 @@ function NavSection({ role }: { role: 'admin' | 'member' | null }) {
             <NavItem label='All Calendars' adminOnly />
             <NavItem label='API Tokens' adminOnly />
           </Stack>
-        </RoleGate>
+        </PermissionGate>
       </Stack>
-    </RoleProvider>
+    </PermissionProvider>
   );
 }
 
-export const AdminRole: Story = {
+export const AdminPermissions: Story = {
   name: 'Admin — sees admin section',
   render: () => (
     <Stack gap={3}>
       <Heading level={3} size='sm'>
-        Role: <code>admin</code>
+        Permissions: <code>manage_members</code>
       </Heading>
-      <NavSection role='admin' />
+      <NavSection permissions={ADMIN_PERMISSIONS} />
     </Stack>
   ),
 };
 
-export const MemberRole: Story = {
+export const MemberPermissions: Story = {
   name: 'Member — admin section hidden',
   render: () => (
     <Stack gap={3}>
       <Heading level={3} size='sm'>
-        Role: <code>member</code>
+        Permissions: <code>[]</code>
       </Heading>
-      <NavSection role='member' />
+      <NavSection permissions={MEMBER_PERMISSIONS} />
     </Stack>
   ),
 };
 
-export const NullRole: Story = {
-  name: 'Loading (null role) — admin section hidden',
+export const NullPermissions: Story = {
+  name: 'Loading (null permissions) — admin section hidden',
   render: () => (
     <Stack gap={3}>
       <Heading level={3} size='sm'>
-        Role: <code>null</code> (loading)
+        Permissions: <code>null</code> (loading)
       </Heading>
-      <NavSection role={null} />
+      <NavSection permissions={null} />
     </Stack>
   ),
 };
 
 export const WithFallback: Story = {
-  name: 'RoleGate with fallback',
+  name: 'PermissionGate with fallback',
   render: () => (
-    <RoleProvider role='member'>
+    <PermissionProvider permissions={MEMBER_PERMISSIONS}>
       <Stack gap={4} className='border-border w-56 rounded-xl border p-4'>
         <Text weight='medium'>Restricted area:</Text>
-        <RoleGate
-          role='admin'
+        <PermissionGate
+          permission={PERMISSIONS.manageMembers}
           fallback={
             <div className='border-border bg-muted text-muted-foreground rounded-md border px-3 py-2 text-sm'>
               You need admin access to view this.
@@ -121,8 +138,8 @@ export const WithFallback: Story = {
           <div className='bg-primary text-primary-foreground rounded-md px-3 py-2 text-sm'>
             Admin-only content
           </div>
-        </RoleGate>
+        </PermissionGate>
       </Stack>
-    </RoleProvider>
+    </PermissionProvider>
   ),
 };

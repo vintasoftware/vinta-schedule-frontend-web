@@ -11,7 +11,7 @@
  * `invalidateCalendarEvents` helper so both source and destination calendars
  * reflect the change without a hard reload.
  *
- * Admin-only operation — gate this hook via RoleGate in the UI.
+ * Admin-only operation — gate this hook via PermissionGate in the UI.
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';

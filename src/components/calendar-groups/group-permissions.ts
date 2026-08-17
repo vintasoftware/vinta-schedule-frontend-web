@@ -34,25 +34,26 @@
  * ---------------------------------------------------------------------
  */
 
-import type { RoleEnum } from '@/client';
+import { PERMISSIONS } from '@/lib/permissions';
 
 export interface CanEditCalendarParams {
-  role: RoleEnum | null;
+  permissions: readonly string[] | null;
   ownedCalendarIds: ReadonlySet<number>;
   calendarId: number;
 }
 
 /**
- * Admins may edit any calendar's group-scoped configuration. Members may
- * edit only calendars they own. Any other role value (including `null` —
- * not yet resolved) edits nothing: this predicate fails closed.
+ * Members who can manage members (the old "admin") may edit any calendar's
+ * group-scoped configuration. Everyone else may edit only calendars they own.
+ * An unresolved permission set (`null`) edits nothing: this predicate fails
+ * closed.
  */
 export function canEditCalendar({
-  role,
+  permissions,
   ownedCalendarIds,
   calendarId,
 }: CanEditCalendarParams): boolean {
-  if (role === 'admin') return true;
-  if (role === 'member') return ownedCalendarIds.has(calendarId);
-  return false;
+  if (permissions === null) return false;
+  if (permissions.includes(PERMISSIONS.manageMembers)) return true;
+  return ownedCalendarIds.has(calendarId);
 }

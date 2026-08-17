@@ -21,7 +21,10 @@ import {
   useOwnedCalendarIds,
   OWNED_CALENDARS_PAGE_SIZE,
 } from '@/hooks/calendars/use-owned-calendar-ids';
-import { useRole } from '@/components/navigation/role-gate';
+import {
+  usePermissions,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import { CreateGroupDialog } from './create-group-dialog';
 
 // ---------------------------------------------------------------------------
@@ -118,16 +121,15 @@ function GroupsTableInner() {
   );
 
   // Admins see every group in the organization, unchanged from before this
-  // phase. Everyone else — members, and role === null while the role is
-  // still resolving — sees only groups containing a calendar they own, and
-  // gets neither the create action nor the create dialog, since creating a
-  // group is an admin roster task this page never offers a member a
-  // control for (Non-goals, plan §1: editing groups/slots/rosters). Gating
-  // on `isAdmin` (rather than `isMember`) means an unresolved or unknown
-  // role value fails CLOSED into the scoped branch instead of falling open
-  // into admin chrome.
-  const role = useRole();
-  const isAdmin = role === 'admin';
+  // phase. Everyone else — members, and the null (not-yet-resolved) permission
+  // set — sees only groups containing a calendar they own, and gets neither the
+  // create action nor the create dialog, since creating a group is an admin
+  // roster task this page never offers a member a control for (Non-goals,
+  // plan §1: editing groups/slots/rosters). Gating on `isAdmin` (rather than
+  // `isMember`) means an unresolved or unknown permission set fails CLOSED into
+  // the scoped branch instead of falling open into admin chrome.
+  const permissions = usePermissions();
+  const isAdmin = permissions?.includes(PERMISSIONS.manageMembers) ?? false;
   const {
     ownedCalendarIds,
     isLoading: isOwnedCalendarsLoading,
@@ -178,11 +180,13 @@ function GroupsTableInner() {
         query.page * query.pageSize
       );
 
-  // role === null (not yet resolved) must never render admin chrome or
+  // A null (not yet resolved) permission set must never render admin chrome or
   // fetched-but-unfiltered data — hold the table in its loading state until
   // we know which branch applies.
   const isLoading =
-    role === null || isGroupsLoading || (!isAdmin && isOwnedCalendarsLoading);
+    permissions === null ||
+    isGroupsLoading ||
+    (!isAdmin && isOwnedCalendarsLoading);
 
   if (isError) {
     return (

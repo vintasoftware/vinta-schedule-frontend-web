@@ -28,7 +28,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     organizationMembersList: vi.fn(),
     organizationMembersDeactivateCreate: vi.fn(),
     organizationMembersReactivateCreate: vi.fn(),
-    organizationMembersUpdateRoleCreate: vi.fn(),
+    organizationMembersGroupsCreate: vi.fn(),
   };
 });
 
@@ -37,7 +37,7 @@ import {
   organizationMembersList,
   organizationMembersDeactivateCreate,
   organizationMembersReactivateCreate,
-  organizationMembersUpdateRoleCreate,
+  organizationMembersGroupsCreate,
 } from '@/client/sdk.gen';
 import { TeamTable } from './team-table';
 
@@ -87,7 +87,7 @@ const MEMBER_FIXTURE: PaginatedOrganizationMembershipList['results'] = [
   {
     user_id: 1,
     organization_id: 1,
-    role: 'admin',
+    permissions: ['organizations.manage_members'],
     is_active: true,
     user_email: 'alice@acme.com',
     user_first_name: 'Alice',
@@ -96,7 +96,7 @@ const MEMBER_FIXTURE: PaginatedOrganizationMembershipList['results'] = [
   {
     user_id: 2,
     organization_id: 1,
-    role: 'member',
+    permissions: [],
     is_active: true,
     user_email: 'bob@acme.com',
     user_first_name: 'Bob',
@@ -105,7 +105,7 @@ const MEMBER_FIXTURE: PaginatedOrganizationMembershipList['results'] = [
   {
     user_id: 3,
     organization_id: 1,
-    role: 'member',
+    permissions: [],
     is_active: false,
     user_email: 'carol@acme.com',
     user_first_name: 'Carol',
@@ -165,9 +165,9 @@ describe('TeamTable', () => {
       });
 
       // admin badge
-      expect(screen.getByText('admin')).toBeInTheDocument();
+      expect(screen.getByText('Admin')).toBeInTheDocument();
       // member badge (two members — use getAllByText)
-      const memberBadges = screen.getAllByText('member');
+      const memberBadges = screen.getAllByText('Member');
       expect(memberBadges.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -193,7 +193,7 @@ describe('TeamTable', () => {
         {
           user_id: 9,
           organization_id: 1,
-          role: 'member',
+          permissions: [],
           is_active: true,
           user_email: 'noname@acme.com',
           user_first_name: '',
@@ -338,34 +338,35 @@ describe('TeamTable', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Role gating — verify a non-admin is redirected from /team
+// Permission gating — verify a non-admin is redirected from /team
 // ---------------------------------------------------------------------------
 
-describe('TeamPage role gating', () => {
+describe('TeamPage permission gating', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('useRequireRole redirects a member out of /team', async () => {
+  it('useRequirePermission redirects a member out of /team', async () => {
     // Never resolve the query — we're testing gating, not data.
     vi.mocked(organizationMembersList).mockReturnValue(
       new Promise(() => {}) as never
     );
 
     const { default: TeamPage } = await import('@/app/(app)/team/page');
-    const { RoleProvider } = await import('@/components/navigation/role-gate');
+    const { PermissionProvider } =
+      await import('@/components/navigation/permission-gate');
 
     const queryClient = makeQueryClient();
 
     render(
       <QueryClientProvider client={queryClient}>
-        <RoleProvider role='member'>
+        <PermissionProvider permissions={[]}>
           <TeamPage />
-        </RoleProvider>
+        </PermissionProvider>
       </QueryClientProvider>
     );
 
-    // useRequireRole fires replace in a useEffect — wait for it.
+    // useRequirePermission fires replace in a useEffect — wait for it.
     await act(async () => {});
 
     await waitFor(() => {
@@ -373,7 +374,7 @@ describe('TeamPage role gating', () => {
     });
   });
 
-  it('does not redirect when the user is admin', async () => {
+  it('does not redirect when the user can manage members', async () => {
     vi.mocked(organizationMembersList).mockResolvedValue(
       makePagedResponse([]) as Awaited<
         ReturnType<typeof organizationMembersList>
@@ -381,15 +382,23 @@ describe('TeamPage role gating', () => {
     );
 
     const { default: TeamPage } = await import('@/app/(app)/team/page');
-    const { RoleProvider } = await import('@/components/navigation/role-gate');
+    const { PermissionProvider } =
+      await import('@/components/navigation/permission-gate');
 
     const queryClient = makeQueryClient();
 
     render(
       <QueryClientProvider client={queryClient}>
-        <RoleProvider role='admin'>
+        <PermissionProvider
+          permissions={[
+            'organizations.manage_members',
+            'organizations.manage_organization',
+            'organizations.manage_branding',
+            'payments.manage_billing',
+          ]}
+        >
           <TeamPage />
-        </RoleProvider>
+        </PermissionProvider>
       </QueryClientProvider>
     );
 
@@ -509,7 +518,7 @@ describe('TeamTable change-role action', () => {
     vi.mocked(organizationMembersList).mockResolvedValue(
       makePagedResponse(MEMBER_FIXTURE)
     );
-    vi.mocked(organizationMembersUpdateRoleCreate).mockResolvedValue(
+    vi.mocked(organizationMembersGroupsCreate).mockResolvedValue(
       makePagedResponse([]) as never
     );
 
@@ -537,14 +546,13 @@ describe('TeamTable change-role action', () => {
 
     await waitFor(() => {
       expect(
-        vi.mocked(organizationMembersUpdateRoleCreate).mock.calls.length
+        vi.mocked(organizationMembersGroupsCreate).mock.calls.length
       ).toBeGreaterThan(0);
     });
 
-    const call = vi.mocked(organizationMembersUpdateRoleCreate).mock
-      .calls[0][0];
+    const call = vi.mocked(organizationMembersGroupsCreate).mock.calls[0][0];
     expect(call?.path).toEqual({ user_id: '2' });
-    expect(call?.body).toEqual({ role: 'admin' });
+    expect(call?.body).toEqual({ groups: ['organization_admin'] });
   });
 
   it('cancels the change-role dialog without calling the API', async () => {
@@ -574,8 +582,8 @@ describe('TeamTable change-role action', () => {
       cancelButton.click();
     });
 
-    expect(
-      vi.mocked(organizationMembersUpdateRoleCreate).mock.calls
-    ).toHaveLength(0);
+    expect(vi.mocked(organizationMembersGroupsCreate).mock.calls).toHaveLength(
+      0
+    );
   });
 });

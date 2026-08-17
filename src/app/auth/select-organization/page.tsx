@@ -15,6 +15,7 @@ import {
 } from 'vinta-schedule-design-system/layout';
 import { AuthNavbar } from '@/components/authentication/auth-navbar';
 import { useActiveOrganization } from '@/hooks/organizations/use-active-organization';
+import { membershipLabel } from '@/components/navigation/permission-gate';
 
 // ---------------------------------------------------------------------------
 // SelectOrganizationPage
@@ -115,7 +116,7 @@ export default function SelectOrganizationPage() {
                 {/* <Badge> exposes no margin/shrink props, and `capitalize` has
                     no Text equivalent (only `uppercase`). */}
                 <Badge variant='secondary' className='ml-2 shrink-0 capitalize'>
-                  {membership.role}
+                  {membershipLabel(membership.permissions)}
                 </Badge>
               </Button>
             ))}

@@ -71,7 +71,10 @@ export const Empty: Story = {
     const client = makeSeededQueryClient([]);
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           <GroupBlockList
             groupId={GROUP_ID}
             slotId={SLOT_ID}
@@ -107,7 +110,10 @@ export const Populated: Story = {
     ]);
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           <GroupBlockList
             groupId={GROUP_ID}
             slotId={SLOT_ID}
@@ -125,7 +131,7 @@ export const ReadOnly: Story = {
     const client = makeSeededQueryClient([makeBlock({ reason: 'Conference' })]);
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='member' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider permissions={[]} ownedCalendarIds={new Set()}>
           <GroupBlockList
             groupId={GROUP_ID}
             slotId={SLOT_ID}

@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SyncSettingsPage from './page';
-import * as roleGateModule from '@/components/navigation/role-gate';
+import * as roleGateModule from '@/components/navigation/permission-gate';
 
-// Mock useRequireRole
-vi.spyOn(roleGateModule, 'useRequireRole').mockImplementation(() => ({
+// Mock useRequirePermission
+vi.spyOn(roleGateModule, 'useRequirePermission').mockImplementation(() => ({
   isAllowed: true,
 }));
 
@@ -26,7 +26,7 @@ beforeEach(() => {
 
 describe('SyncSettingsPage', () => {
   it('renders the page when user is admin', () => {
-    vi.mocked(roleGateModule.useRequireRole).mockReturnValue({
+    vi.mocked(roleGateModule.useRequirePermission).mockReturnValue({
       isAllowed: true,
     });
 
@@ -46,7 +46,7 @@ describe('SyncSettingsPage', () => {
   });
 
   it('returns null when user is not admin', () => {
-    vi.mocked(roleGateModule.useRequireRole).mockReturnValue({
+    vi.mocked(roleGateModule.useRequirePermission).mockReturnValue({
       isAllowed: false,
     });
 

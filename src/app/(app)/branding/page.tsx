@@ -17,6 +17,7 @@ import {
 import { BrandingForm } from '@/components/branding/branding-form';
 import { useBranding } from '@/hooks/branding/use-branding';
 import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
+import { PERMISSIONS } from '@/components/navigation/permission-gate';
 
 /**
  * BrandingPage — white-label branding console for eligible organizations.
@@ -41,12 +42,13 @@ export default function BrandingPage() {
   const router = useRouter();
   const {
     membership,
+    permissions,
     isOnboarded,
     isLoading: isOrgLoading,
   } = useCurrentOrganization();
   const isEligibleBrandingAdmin =
     isOnboarded &&
-    membership?.role === 'admin' &&
+    (permissions?.includes(PERMISSIONS.manageMembers) ?? false) &&
     membership?.can_manage_branding === true;
 
   const { brandingQuery } = useBranding({

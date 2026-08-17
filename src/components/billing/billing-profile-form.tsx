@@ -19,10 +19,11 @@
  * path — this REPLACES the user's unsaved edits with the existing server profile,
  * so the alert tells them to review the loaded values and re-save.
  *
- * ROLE GATING is defense-in-depth: billing-profile writes are org-admin only
- * server-side (reads are open to any member). A non-admin sees a READ-ONLY view
- * of the profile values with no inputs and no submit; the server `403` on the
- * write endpoints is the real backstop.
+ * CAPABILITY GATING is defense-in-depth: billing-profile writes require
+ * `payments.manage_billing` server-side (reads are open to any member). A member
+ * without that capability sees a READ-ONLY view of the profile values with no
+ * inputs and no submit; the server `403` on the write endpoints is the real
+ * backstop.
  */
 
 import * as React from 'react';
@@ -71,7 +72,10 @@ import type {
 import { useBillingProfile } from '@/hooks/billing/use-billing-profile';
 import { useCreateBillingProfile } from '@/hooks/billing/use-create-billing-profile';
 import { useUpdateBillingProfile } from '@/hooks/billing/use-update-billing-profile';
-import { useRole } from '@/components/navigation/role-gate';
+import {
+  usePermissions,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import {
   readBillingConflict,
   type BillingConflictBody,
@@ -186,7 +190,11 @@ function toWritable(
   return {
     contact_first_name: values.contact_first_name,
     contact_email: values.contact_email,
-    document_type: values.document_type,
+    // The field is a free-text input (the server owns the enum's validity), but
+    // the generated writable type now narrows `document_type` to the enum —
+    // cast at the boundary rather than constrain the input.
+    document_type:
+      values.document_type as BillingProfileWritable['document_type'],
     document_number: values.document_number,
     billing_address: address,
     ...(keepOptional(values.contact_last_name)
@@ -299,7 +307,7 @@ function ReadOnlyProfile({ profile }: { profile: BillingProfile | null }) {
 export function BillingProfileForm() {
   const { billingProfile, isLoading, billingProfileQuery } =
     useBillingProfile();
-  const role = useRole();
+  const permissions = usePermissions();
   const { createBillingProfile, createBillingProfileMutation } =
     useCreateBillingProfile();
   const { updateBillingProfile, updateBillingProfileMutation } =
@@ -366,9 +374,10 @@ export function BillingProfileForm() {
     }
   };
 
-  // Wait for the role signal before deciding the gate — a null (still-loading)
-  // role must not flash the read-only view over an admin's editable form.
-  if (isLoading || role === null) {
+  // Wait for the permission signal before deciding the gate — a null
+  // (still-loading) permission set must not flash the read-only view over a
+  // billing manager's editable form.
+  if (isLoading || permissions === null) {
     return (
       <Center grow>
         <Text color='muted-foreground'>Loading…</Text>
@@ -376,7 +385,7 @@ export function BillingProfileForm() {
     );
   }
 
-  if (role !== 'admin') {
+  if (!permissions.includes(PERMISSIONS.manageBilling)) {
     return <ReadOnlyProfile profile={billingProfile} />;
   }
 

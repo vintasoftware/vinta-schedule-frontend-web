@@ -55,7 +55,10 @@ const meta = {
   decorators: [
     (Story) => (
       <QueryClientProvider client={makeQueryClient()}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           <div className='w-full max-w-lg'>
             <Story />
           </div>

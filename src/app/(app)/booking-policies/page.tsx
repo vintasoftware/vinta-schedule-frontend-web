@@ -7,12 +7,15 @@ import { Plus } from 'lucide-react';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { BookingPoliciesTable } from '@/components/booking-policies/booking-policies-table';
 import { BookingPolicyDialog } from '@/components/booking-policies/booking-policy-dialog';
-import { useRequireRole } from '@/components/navigation/role-gate';
+import {
+  useRequirePermission,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 
 /**
  * BookingPoliciesPage — admin-only view for managing booking policies.
  *
- * Guarded by useRequireRole('admin'): a member who reaches this URL is
+ * Guarded by useRequirePermission(PERMISSIONS.manageMembers): a member who reaches this URL is
  * redirected to '/'.
  *
  * Shows a paginated table of the org's booking policies (targeting calendars,
@@ -21,7 +24,7 @@ import { useRequireRole } from '@/components/navigation/role-gate';
  * actions.
  */
 export default function BookingPoliciesPage() {
-  const { isAllowed } = useRequireRole('admin');
+  const { isAllowed } = useRequirePermission(PERMISSIONS.manageMembers);
   const [newPolicyDialogOpen, setNewPolicyDialogOpen] = React.useState(false);
 
   if (!isAllowed) return null;

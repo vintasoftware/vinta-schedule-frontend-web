@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import BookingPoliciesPage from './page';
-import * as roleGateModule from '@/components/navigation/role-gate';
+import * as roleGateModule from '@/components/navigation/permission-gate';
 
-vi.spyOn(roleGateModule, 'useRequireRole').mockImplementation(() => ({
+vi.spyOn(roleGateModule, 'useRequirePermission').mockImplementation(() => ({
   isAllowed: true,
 }));
 
@@ -36,7 +36,7 @@ beforeEach(() => {
 
 describe('BookingPoliciesPage', () => {
   it('renders the page and the New policy action when the user is admin', () => {
-    vi.mocked(roleGateModule.useRequireRole).mockReturnValue({
+    vi.mocked(roleGateModule.useRequirePermission).mockReturnValue({
       isAllowed: true,
     });
 
@@ -48,7 +48,7 @@ describe('BookingPoliciesPage', () => {
   });
 
   it('returns null when the user is not admin', () => {
-    vi.mocked(roleGateModule.useRequireRole).mockReturnValue({
+    vi.mocked(roleGateModule.useRequirePermission).mockReturnValue({
       isAllowed: false,
     });
 

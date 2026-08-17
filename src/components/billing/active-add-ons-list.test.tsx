@@ -5,14 +5,15 @@
  *   • a RECURRING add-on exposes "Stop renewing" and, on confirm, calls the
  *     DELETE mutation with the add-on id;
  *   • a ONE-TIME pack exposes no such action (it isn't renewable);
- *   • the action is admin-only — a member sees no "Stop renewing" control.
+ *   • the action is billing-manager-only — a member sees no "Stop renewing"
+ *     control.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import type { Subscription, SubscriptionAddOn } from '@/client';
-import { RoleProvider } from '@/components/navigation/role-gate';
+import { PermissionProvider } from '@/components/navigation/permission-gate';
 
 // ---- mocks -----------------------------------------------------------------
 
@@ -60,11 +61,20 @@ function subscriptionWith(addOns: SubscriptionAddOn[]): Subscription {
   } as unknown as Subscription;
 }
 
+// A billing manager holds `payments.manage_billing`; a plain member holds no
+// capabilities; `null` models the still-loading permission set.
+function permissionsFor(
+  role: 'admin' | 'member' | null
+): readonly string[] | null {
+  if (role === null) return null;
+  return role === 'admin' ? ['payments.manage_billing'] : [];
+}
+
 function renderList(role: 'admin' | 'member' | null) {
   return render(
-    <RoleProvider role={role}>
+    <PermissionProvider permissions={permissionsFor(role)}>
       <ActiveAddOnsList />
-    </RoleProvider>
+    </PermissionProvider>
   );
 }
 

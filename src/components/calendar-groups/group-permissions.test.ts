@@ -2,20 +2,21 @@
  * canEditCalendar tests.
  *
  * Covers:
- * - Admin edits any calendar, regardless of ownership.
- * - Member edits only calendars in their ownedCalendarIds set.
- * - Unknown / null role edits nothing (fail closed).
+ * - A viewer who can manage members edits any calendar, regardless of
+ *   ownership.
+ * - A member (no manage-members capability) edits only calendars in their
+ *   ownedCalendarIds set.
+ * - Unknown / null permissions edit nothing (fail closed).
  */
 
 import { describe, it, expect } from 'vitest';
 import { canEditCalendar } from './group-permissions';
-import type { RoleEnum } from '@/client';
 
 describe('canEditCalendar', () => {
-  it('admin can edit any calendar, owned or not', () => {
+  it('a manage-members viewer can edit any calendar, owned or not', () => {
     expect(
       canEditCalendar({
-        role: 'admin',
+        permissions: ['organizations.manage_members'],
         ownedCalendarIds: new Set(),
         calendarId: 100,
       })
@@ -23,50 +24,57 @@ describe('canEditCalendar', () => {
 
     expect(
       canEditCalendar({
-        role: 'admin',
+        permissions: ['organizations.manage_members'],
         ownedCalendarIds: new Set([999]),
         calendarId: 100,
       })
     ).toBe(true);
   });
 
-  it('member can edit only a calendar in ownedCalendarIds', () => {
+  it('a member can edit only a calendar in ownedCalendarIds', () => {
     const ownedCalendarIds = new Set([100]);
 
     expect(
-      canEditCalendar({ role: 'member', ownedCalendarIds, calendarId: 100 })
+      canEditCalendar({ permissions: [], ownedCalendarIds, calendarId: 100 })
     ).toBe(true);
     expect(
-      canEditCalendar({ role: 'member', ownedCalendarIds, calendarId: 101 })
+      canEditCalendar({ permissions: [], ownedCalendarIds, calendarId: 101 })
     ).toBe(false);
   });
 
-  it('member with an empty ownedCalendarIds set edits nothing', () => {
+  it('a member with an empty ownedCalendarIds set edits nothing', () => {
     expect(
       canEditCalendar({
-        role: 'member',
+        permissions: [],
         ownedCalendarIds: new Set(),
         calendarId: 100,
       })
     ).toBe(false);
   });
 
-  it('null role (not yet resolved) edits nothing, even if the id is owned', () => {
+  it('null permissions (not yet resolved) edit nothing, even if the id is owned', () => {
     expect(
       canEditCalendar({
-        role: null,
+        permissions: null,
         ownedCalendarIds: new Set([100]),
         calendarId: 100,
       })
     ).toBe(false);
   });
 
-  it('an unrecognized role value edits nothing', () => {
+  it('a non-empty set without manage-members edits only owned calendars', () => {
     expect(
       canEditCalendar({
-        role: 'not-a-real-role' as RoleEnum,
+        permissions: ['some.other_capability'],
         ownedCalendarIds: new Set([100]),
         calendarId: 100,
+      })
+    ).toBe(true);
+    expect(
+      canEditCalendar({
+        permissions: ['some.other_capability'],
+        ownedCalendarIds: new Set([100]),
+        calendarId: 101,
       })
     ).toBe(false);
   });

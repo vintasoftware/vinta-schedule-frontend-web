@@ -12,7 +12,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 import type { BillingProfile } from '@/client';
-import { RoleProvider } from '@/components/navigation/role-gate';
+import { PermissionProvider } from '@/components/navigation/permission-gate';
 
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
@@ -39,7 +39,7 @@ const PROFILE: BillingProfile = {
   contact_last_name: 'Lovelace',
   contact_email: 'ada@example.com',
   contact_phone: '+1 555 000 0000',
-  document_type: 'tax_id',
+  document_type: 'OTHER',
   document_number: '123456789',
   billing_address: {
     id: 10,
@@ -70,9 +70,9 @@ function mockProfile(profile: BillingProfile | null) {
 
 function renderPage() {
   return render(
-    <RoleProvider role='admin'>
+    <PermissionProvider permissions={['payments.manage_billing']}>
       <BillingProfilePage />
-    </RoleProvider>
+    </PermissionProvider>
   );
 }
 

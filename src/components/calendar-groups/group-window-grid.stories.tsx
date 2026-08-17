@@ -70,7 +70,10 @@ export const Empty: Story = {
     const client = makeSeededQueryClient([]);
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           <GroupWindowGrid
             groupId={GROUP_ID}
             slotId={SLOT_ID}
@@ -98,7 +101,10 @@ export const Configured: Story = {
     ]);
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           <GroupWindowGrid
             groupId={GROUP_ID}
             slotId={SLOT_ID}
@@ -138,7 +144,10 @@ export const WithUnrepresentableRowsPresent: Story = {
     ]);
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           <GroupWindowGrid
             groupId={GROUP_ID}
             slotId={SLOT_ID}
@@ -161,7 +170,7 @@ export const ReadOnly: Story = {
     ]);
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='member' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider permissions={[]} ownedCalendarIds={new Set()}>
           <GroupWindowGrid
             groupId={GROUP_ID}
             slotId={SLOT_ID}

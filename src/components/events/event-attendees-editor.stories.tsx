@@ -33,7 +33,7 @@ function QueryWrapper({ children }: { children: React.ReactNode }) {
 const SAMPLE_INTERNAL: EventAttendance[] = [
   {
     id: 1,
-    membership: { user_id: 10, organization_id: 1, role: 'member' },
+    membership: { user_id: 10, organization_id: 1 },
     status: 'accepted',
     created: '2024-01-01T00:00:00Z',
     modified: '2024-01-01T00:00:00Z',
