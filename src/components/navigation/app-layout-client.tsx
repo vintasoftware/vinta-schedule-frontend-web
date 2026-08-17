@@ -19,6 +19,7 @@ import {
 
 import { CreateOrganizationDialog } from '@/components/organizations/create-organization-dialog';
 import { AppBillingBanner } from '@/components/billing/app-billing-banner';
+import { RemedyRouter } from '@/components/billing/remedy-router';
 
 import {
   useCurrentOrganization,
@@ -426,6 +427,12 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
           {children}
         </Stack>
       </AppShell>
+      {/* Global over-limit remedy routing (Phase 8) — subscribes to the
+          remedy bus the shared QueryClient's MutationCache.onError emits to
+          and acts on it (navigate, or open PurchaseAddOnDialog). Mounted once
+          here so every guarded write anywhere in the authenticated shell is
+          covered without a per-page mount. */}
+      <RemedyRouter />
       <CreateOrganizationDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}

@@ -74,7 +74,10 @@ import { usePurchaseAddOn } from '@/hooks/billing/use-purchase-add-on';
 import { useSubscription } from '@/hooks/billing/use-subscription';
 import { useAwaitPaymentConfirmation } from '@/hooks/billing/use-await-payment-confirmation';
 import { createIdempotencyKeyHolder } from '@/lib/billing/idempotency';
-import { RESOURCE_LABELS, resourceLabel } from '@/lib/billing/resource-labels';
+import {
+  ADD_ON_PURCHASABLE_RESOURCE_KEYS,
+  resourceLabel,
+} from '@/lib/billing/resource-labels';
 import type { PaymentProviderSdkFactory } from '@/lib/billing/payment-provider-sdk';
 import type { PaymentInstrumentResult } from '@/lib/billing/payment-token';
 import {
@@ -90,10 +93,12 @@ import {
 
 type Phase = 'form' | 'confirming' | 'confirmed' | 'still_processing';
 
-/** The resource keys offered when the dialog is opened without a preselection. */
-const DEFAULT_RESOURCE_OPTIONS = Object.keys(
-  RESOURCE_LABELS
-) as ResourceKeyEnum[];
+/**
+ * The resource keys offered when the dialog is opened without a
+ * preselection — the same set the global over-limit handler treats as
+ * "add-on-purchasable" (see resource-labels.ts's doc comment).
+ */
+const DEFAULT_RESOURCE_OPTIONS = ADD_ON_PURCHASABLE_RESOURCE_KEYS;
 
 export interface PurchaseAddOnDialogProps {
   open: boolean;

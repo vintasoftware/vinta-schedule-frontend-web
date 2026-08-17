@@ -156,6 +156,12 @@ export function useGroupScopedWindows({
   const createWindowMutation = useMutation({
     ...calendarGroupsSlotsAvailabilityWindowsCreateMutation(),
     onSuccess: invalidateWindowsList,
+    // group-window-grid.tsx renders an inline, batch-aware OverLimitAlert for
+    // this write's 402 rejection (see over-limit-alert.tsx) — opt out of the
+    // global MutationCache.onError remedy routing (query-client-provider.tsx,
+    // Phase 8) so the same rejection is never both shown inline AND routed
+    // away with a disruptive navigation.
+    meta: { overLimitHandledInline: true },
   });
   const createWindow = async (
     input: CreateWindowInput
@@ -173,6 +179,8 @@ export function useGroupScopedWindows({
   const updateWindowMutation = useMutation({
     ...calendarGroupsSlotsAvailabilityWindowsPartialUpdateMutation(),
     onSuccess: invalidateWindowsList,
+    // See createWindowMutation's comment above.
+    meta: { overLimitHandledInline: true },
   });
   const updateWindow = async (
     input: UpdateWindowInput
