@@ -44,11 +44,16 @@ Client regen no longer needed; `main` already has `billingSubscriptionRetryPayme
 - **Summary:** `plan-summary-card` shows `billing_interval` + a pending-change line (only when `pending_plan_slug` set); `billing-plans-picker` filters the catalog to `subscription.plan.currency` and renders each plan's limits + enabled entitlements (new `entitlement-labels.ts`); `resource-usage-row` renders an explicit "not included" state for `limit_value === 0`. `billing-overview` threads the subscription into the summary card.
 - **Rebase note:** resolved conflicts with #113's capability migration in `billing-plans-picker.tsx`; the new picker test uses `PermissionProvider`.
 
+### Phase 3 — App-wide billing-state banner ✅
+- **Status:** PASS · **Branch:** `plan/billing-hardening-gap-closure/phase-3` (base: phase-2) · **Commit:** `9d2ba40`
+- **Models:** impl T3 (sonnet) · reviewer T3 · fixer T2
+- **Summary:** New client wrapper `app-billing-banner.tsx` reads `useSubscription()` and renders `BillingStateBanner` for `grace`/`restricted`/`cancelled` (null for free/active/no-sub), mounted once in `app-layout-client.tsx` above `{children}` inside `<AppShell>` so it shows on every authenticated page. Removed the redundant in-section mount from `billing-overview.tsx`. Added colocated story + unit/integration tests (single-render on `/billing` asserted).
+- **Review note:** no BLOCKER. SHOULD-FIX: original wrapper rendered only grace/restricted, dropping the `cancelled` surface entirely (the plan hides only free/active) → fixed to include `cancelled`; corrected a stale docstring; added the missing story; NIT flash comment. Behavior change (plan-sanctioned): `/billing` no longer shows the active/free informational banner.
+
 ## Current phase
-- **Phase 2 — final review, then integrate**
+- **Phase 4 — Billing profile form hardening** (next)
 
 ## Remaining phases
-- Phase 3 — App-wide billing-state banner (T3) — mounts into #113's reworked app-layout-client
 - Phase 4 — Billing profile form hardening (T3) — capability-gated
 - Phase 5 — Downgrade-vs-upgrade distinction (T3)
 - Phase 6 — Payment-provider unsupported fallback (T2/T3)
