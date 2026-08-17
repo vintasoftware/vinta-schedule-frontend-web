@@ -1,8 +1,6 @@
 /**
- * api-errors.ts — narrow readers for a couple of API error shapes shared
- * across the group-scoped availability surfaces (windows, blocks, quota
- * rules — CALENDAR_GROUP_SCOPED_AVAILABILITY), so callers branch on a typed
- * result instead of pattern-matching strings out of a caught error.
+ * api-errors.ts — narrow readers for API error shapes shared across the
+ * availability surfaces (windows, blocks, quota rules) and billing flows.
  *
  * The generated hey-api client's mutation factories use `throwOnError:true`
  * (this repo's default for mutations — see AGENTS.md's canonical hook
@@ -11,7 +9,59 @@
  * only the body — see isConsentRequiredError in `@/lib/consent-errors.ts`
  * for the same convention applied to a different endpoint family. These
  * readers work off the body's shape for exactly that reason.
+ *
+ * Hardened billing error discrimination (Phase 1, billing-hardening plan):
+ * Branch on stable `code` fields, never `detail`/`message` substrings. The
+ * full recognized set of billing error codes is exactly these ten:
+ * `limit_exceeded`, `charge_declined`, `payment_token_required`,
+ * `unconfirmed_plan_change`, `payment_provider_not_configured`,
+ * `add_on_not_purchasable`, `retry_payment_not_applicable`,
+ * `subscription_not_attached`, `no_outstanding_balance`,
+ * `collection_not_supported`.
  */
+
+/** The stable set of hardened billing error codes. */
+export type BillingErrorCode =
+  | 'limit_exceeded'
+  | 'charge_declined'
+  | 'payment_token_required'
+  | 'unconfirmed_plan_change'
+  | 'payment_provider_not_configured'
+  | 'add_on_not_purchasable'
+  | 'retry_payment_not_applicable'
+  | 'subscription_not_attached'
+  | 'no_outstanding_balance'
+  | 'collection_not_supported';
+
+/**
+ * Reads a billing error's stable `code` field, or null if the error is not
+ * an object or lacks the `code` field. Billing errors discriminate solely on
+ * the `code` field; this reader extracts it so callers can branch without
+ * repeating the null-check and type-guard.
+ */
+export function readBillingErrorCode(error: unknown): BillingErrorCode | null {
+  if (error === null || typeof error !== 'object') {
+    return null;
+  }
+  const body = error as Record<string, unknown>;
+  const code = body.code;
+  // Narrow to the recognized set — unknown codes return null.
+  if (
+    code === 'limit_exceeded' ||
+    code === 'charge_declined' ||
+    code === 'payment_token_required' ||
+    code === 'unconfirmed_plan_change' ||
+    code === 'payment_provider_not_configured' ||
+    code === 'add_on_not_purchasable' ||
+    code === 'retry_payment_not_applicable' ||
+    code === 'subscription_not_attached' ||
+    code === 'no_outstanding_balance' ||
+    code === 'collection_not_supported'
+  ) {
+    return code;
+  }
+  return null;
+}
 
 /** The shared over-limit rejection body (402), documented in the handoff doc. */
 export interface OverLimitErrorBody {
@@ -122,132 +172,89 @@ export function readBillingConflict(
 }
 
 /**
- * Reads whether a thrown error body is change-plan's `400
- * PaymentTokenRequiredError` — the rejection a caller gets when the billing root
- * is attaching a payment instrument for the first time (its
- * `Subscription.external_id` is still blank) but omitted `payment_token` (see
- * the `ChangePlanRequest` schema note + `SubscriptionService._initiate_upgrade`).
- * The change-plan flow branches on this to REVEAL the card field and retry with
- * the SAME idempotency key — never minting a second key, so the retry can't
- * double-charge.
+ * Reads whether a thrown error body is the `payment_token_required` error —
+ * the rejection a caller gets when attaching a payment instrument for the
+ * first time but the `payment_token` was omitted. The flow branches on this
+ * to reveal the card field and retry with the same idempotency key.
  *
- * The API does not document the 400 body shape in `schema.yml`, so this reader
- * matches defensively on either a `code` discriminator (the repo's handoff
- * convention, cf. `limit_exceeded`) or a `detail`/`message` string mentioning a
- * required payment token/method. It is deliberately checked BEFORE
- * `readBillingConflict` (which matches any `{ detail }`) so a token-required 400
- * is never misread as a 409 conflict. It excludes the `limit_exceeded` 402 body
- * so an over-limit rejection is never misread as token-required.
+ * Branches on the stable `code` field only — no substring fallback on
+ * `detail`/`message` (the hardened contract guarantees the code).
  */
 export function isPaymentTokenRequiredError(error: unknown): boolean {
-  if (error === null || typeof error !== 'object' || error instanceof Error) {
-    // A network/JS `Error` carries a `.message` that could coincidentally
-    // mention a payment token — it is never the API's typed 400 body.
-    return false;
-  }
-  const body = error as Record<string, unknown>;
-  if (body.code === 'limit_exceeded') {
-    return false;
-  }
-  if (
-    body.code === 'payment_token_required' ||
-    body.code === 'payment_token_required_error'
-  ) {
-    return true;
-  }
-  const message =
-    typeof body.detail === 'string'
-      ? body.detail
-      : typeof body.message === 'string'
-        ? body.message
-        : null;
-  if (message === null) {
-    return false;
-  }
-  const normalized = message.toLowerCase();
-  const mentionsPaymentInstrument =
-    normalized.includes('payment token') ||
-    normalized.includes('payment method') ||
-    normalized.includes('payment_token');
-  if (!mentionsPaymentInstrument) {
-    return false;
-  }
-  // Only classify as token-required when the message ASSERTS the token is
-  // required/missing — merely mentioning a "payment method" is too broad (a 409
-  // like "payment method change already processing" mentions one but is a
-  // conflict, not a first-time-attach 400).
-  return (
-    normalized.includes('required') ||
-    normalized.includes('missing') ||
-    normalized.includes('must be') ||
-    normalized.includes('provide') ||
-    normalized.includes('supply') ||
-    normalized.includes('supplied') ||
-    normalized.includes('needed')
-  );
+  return readBillingErrorCode(error) === 'payment_token_required';
 }
 
 /**
- * Reads whether a thrown error body is the add-on purchase endpoint's `400
- * AddOnNotPurchasableError` — the rejection a caller gets when the chosen
- * `resource_key` cannot be bought as an add-on (the resource is not a pre-paid,
- * purchasable capacity). The purchase flow branches on this to show a clear
- * "this resource can't be purchased" message instead of the generic failure.
+ * Reads whether a thrown error body is the `add_on_not_purchasable` error —
+ * the rejection a caller gets when the chosen resource cannot be bought as
+ * an add-on. The flow branches on this to show a clear message.
  *
- * The API does not document this 400 body shape in `schema.yml` (only the `409`
- * provider-unconfigured error is listed), so this reader matches DEFENSIVELY on
- * either a `code` discriminator (the repo's handoff convention, cf.
- * `limit_exceeded`) or a `detail`/`message` string asserting the resource isn't
- * purchasable as an add-on. It is deliberately checked BEFORE
- * `readBillingConflict` (which matches any `{ detail }`) so a not-purchasable
- * 400 is never misread as a 409 conflict. It excludes the `limit_exceeded` 402
- * body so an over-limit rejection is never misread as not-purchasable.
+ * Branches on the stable `code` field only — no substring fallback on
+ * `detail`/`message` (the hardened contract guarantees the code).
  */
 export function isAddOnNotPurchasableError(error: unknown): boolean {
-  if (error === null || typeof error !== 'object' || error instanceof Error) {
-    // A network/JS `Error` carries a `.message` that could coincidentally
-    // mention "add-on" — it is never the API's typed 400 body.
-    return false;
-  }
-  const body = error as Record<string, unknown>;
-  if (body.code === 'limit_exceeded') {
-    return false;
-  }
-  if (
-    body.code === 'add_on_not_purchasable' ||
-    body.code === 'add_on_not_purchasable_error'
-  ) {
-    return true;
-  }
-  const message =
-    typeof body.detail === 'string'
-      ? body.detail
-      : typeof body.message === 'string'
-        ? body.message
-        : null;
-  if (message === null) {
-    return false;
-  }
-  const normalized = message.toLowerCase();
-  const mentionsAddOn =
-    normalized.includes('add-on') ||
-    normalized.includes('add on') ||
-    normalized.includes('add_on') ||
-    normalized.includes('addon');
-  if (!mentionsAddOn) {
-    return false;
-  }
-  // Only classify as not-purchasable when the message ASSERTS the resource
-  // cannot be bought — merely mentioning "add-on" is too broad (a 409 like
-  // "an add-on purchase is already processing" mentions one but is a conflict).
-  return (
-    normalized.includes('not purchasable') ||
-    normalized.includes("can't be purchased") ||
-    normalized.includes('cannot be purchased') ||
-    normalized.includes('cannot purchase') ||
-    normalized.includes('not available for purchase') ||
-    normalized.includes('not a purchasable')
-  );
+  return readBillingErrorCode(error) === 'add_on_not_purchasable';
+}
+
+/**
+ * Reads whether a thrown error body is the `charge_declined` error — the
+ * rejection when a payment provider declines the charge or refuses to attempt
+ * it. Distinct from `limit_exceeded` (both use 402 status; `code` disambiguates).
+ */
+export function isChargeDeclinedError(error: unknown): boolean {
+  return readBillingErrorCode(error) === 'charge_declined';
+}
+
+/**
+ * Reads whether a thrown error body is the `unconfirmed_plan_change` error —
+ * the rejection when a plan change is already awaiting confirmation.
+ */
+export function isUnconfirmedPlanChangeError(error: unknown): boolean {
+  return readBillingErrorCode(error) === 'unconfirmed_plan_change';
+}
+
+/**
+ * Reads whether a thrown error body is the `payment_provider_not_configured` error —
+ * the rejection when the payment provider (e.g. Stripe) is not configured
+ * in the deployment.
+ */
+export function isPaymentProviderNotConfiguredError(error: unknown): boolean {
+  return readBillingErrorCode(error) === 'payment_provider_not_configured';
+}
+
+/**
+ * Reads whether a thrown error body is the `retry_payment_not_applicable` error —
+ * the rejection when retry-payment is not applicable (e.g. no outstanding
+ * balance to retry).
+ */
+export function isRetryPaymentNotApplicableError(error: unknown): boolean {
+  return readBillingErrorCode(error) === 'retry_payment_not_applicable';
+}
+
+/**
+ * Reads whether a thrown error body is the `subscription_not_attached` error —
+ * the rejection when a subscription has never attached a payment instrument
+ * at the provider.
+ */
+export function isSubscriptionNotAttachedError(error: unknown): boolean {
+  return readBillingErrorCode(error) === 'subscription_not_attached';
+}
+
+/**
+ * Reads whether a thrown error body is the `no_outstanding_balance` error —
+ * the rejection when there is no outstanding balance to retry.
+ */
+export function isNoOutstandingBalanceError(error: unknown): boolean {
+  return readBillingErrorCode(error) === 'no_outstanding_balance';
+}
+
+/**
+ * Reads whether a thrown error body is the `collection_not_supported` error —
+ * the rejection when the resolved payment provider (e.g. MercadoPago) does not
+ * support collection.
+ */
+export function isCollectionNotSupportedError(error: unknown): boolean {
+  return readBillingErrorCode(error) === 'collection_not_supported';
 }
 
 /**
@@ -296,4 +303,73 @@ export function readNonFieldError(error: unknown): string | null {
   }
   const first = messages[0];
   return typeof first === 'string' ? first : null;
+}
+
+/**
+ * Reads a DRF field-validation 400 error body into a field-keyed map of
+ * error messages. E.g. `{ "email": ["Invalid email address."],
+ * "name": ["This field is required."] }` → `{ email: "Invalid email address.",
+ * name: "This field is required." }` (one message per field).
+ *
+ * Also handles nested field errors (e.g. from nested serializers):
+ * `{ "billing_address": { "street_name": ["This field is required."] } }`
+ * → `{ "billing_address.street_name": "This field is required." }`.
+ *
+ * Returns `null` for anything else: a billing error (which carries a `code`),
+ * a non-field-errors 400, a 500/network error, or a non-object value. Used
+ * by the billing profile form to surface per-field validation errors from the
+ * server directly on their form fields (Phase 4).
+ */
+export function readFieldValidationErrors(
+  error: unknown
+): Record<string, string> | null {
+  if (error === null || typeof error !== 'object') {
+    return null;
+  }
+  const body = error as Record<string, unknown>;
+
+  // Exclude billing errors (which have a code field).
+  if (body.code !== undefined) {
+    return null;
+  }
+
+  // Exclude non-field-errors structure.
+  if (body.non_field_errors !== undefined) {
+    return null;
+  }
+
+  // Parse field-level errors: expect a Record<string, string[]> for top-level fields
+  // and Record<string, Record<string, string[]>> for nested objects.
+  // Flatten to Record<string, string> (first message per field).
+  const result: Record<string, string> = {};
+  let foundAnyField = false;
+
+  for (const [key, value] of Object.entries(body)) {
+    if (Array.isArray(value) && value.length > 0) {
+      // Top-level field with array of messages
+      const first = value[0];
+      if (typeof first === 'string') {
+        result[key] = first;
+        foundAnyField = true;
+      }
+    } else if (
+      typeof value === 'object' &&
+      value !== null &&
+      !Array.isArray(value)
+    ) {
+      // Nested object case (e.g. from a nested serializer)
+      for (const [nestedKey, nestedValue] of Object.entries(value)) {
+        if (Array.isArray(nestedValue) && nestedValue.length > 0) {
+          const first = nestedValue[0];
+          if (typeof first === 'string') {
+            result[`${key}.${nestedKey}`] = first;
+            foundAnyField = true;
+          }
+        }
+      }
+    }
+  }
+
+  // Return the map only if we found at least one valid field error.
+  return foundAnyField ? result : null;
 }

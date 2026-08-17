@@ -151,7 +151,10 @@ describe('ChangePlanDialog', () => {
     // First initiate: the API rejects because a token is required (first-time
     // attach). Second initiate (after the card field appears): succeeds.
     h.changePlan
-      .mockRejectedValueOnce({ detail: 'A payment token is required.' })
+      .mockRejectedValueOnce({
+        code: 'payment_token_required',
+        detail: 'A payment token is required.',
+      })
       .mockResolvedValueOnce({
         ...PAID_SUBSCRIPTION,
         pending_plan_slug: 'team',
