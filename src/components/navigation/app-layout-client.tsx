@@ -37,8 +37,11 @@ import { AppTopbar } from 'vinta-schedule-design-system/layout/app-topbar';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import { Center } from 'vinta-schedule-design-system/layout/center';
 import { Text } from 'vinta-schedule-design-system/layout/text';
-import { RoleProvider } from '@/components/navigation/role-gate';
-import type { RoleEnum } from '@/client';
+import {
+  PermissionProvider,
+  PERMISSIONS,
+  membershipLabel,
+} from '@/components/navigation/permission-gate';
 
 // ---------------------------------------------------------------------------
 // Nav groups — member sees the base set, admin additionally sees the team and
@@ -125,12 +128,12 @@ const BRANDING_NAV_ITEM: SidebarNavItem = {
 // Exported so tests can pin the nav shape directly (which ids each role
 // sees) without mounting the whole gated layout — see app-layout-client.test.tsx.
 export function buildNavGroups(
-  role: RoleEnum | null,
+  permissions: readonly string[] | null,
   canManageBranding: boolean
 ): SidebarNavGroup[] {
   const groups: SidebarNavGroup[] = [{ items: MEMBER_NAV_ITEMS }];
 
-  if (role === 'admin') {
+  if (permissions?.includes(PERMISSIONS.manageMembers)) {
     const adminItems = canManageBranding
       ? [...ADMIN_ONLY_NAV_ITEMS, BRANDING_NAV_ITEM]
       : ADMIN_ONLY_NAV_ITEMS;
@@ -162,13 +165,13 @@ function LoadingView() {
 }
 
 // ---------------------------------------------------------------------------
-// AppLayoutClient — wraps every (app) route in the app shell + role context.
+// AppLayoutClient — wraps every (app) route in the app shell + permission context.
 //
 // Gating behaviour:
 //   • Unauthenticated: passed through (auth is enforced by the login flow).
 //   • Org-less (gated): redirect to /auth/onboarding (matches OnboardingGate).
 //   • Disabled membership (403 from the org endpoint): redirect to /no-access.
-//   • Onboarded: render the shell, expose role via RoleProvider.
+//   • Onboarded: render the shell, expose permissions via PermissionProvider.
 // ---------------------------------------------------------------------------
 
 export function AppLayoutClient({ children }: { children: React.ReactNode }) {
@@ -357,7 +360,9 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
     return <LoadingView />;
   }
 
-  const role: RoleEnum | null = isOnboarded ? (membership?.role ?? null) : null;
+  const permissions: readonly string[] | null = isOnboarded
+    ? (membership?.permissions ?? null)
+    : null;
   const orgName =
     isOnboarded && membership?.organization
       ? typeof membership.organization.name === 'string'
@@ -368,7 +373,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   const canManageBranding =
     isOnboarded && membership?.can_manage_branding === true;
 
-  const navGroups = buildNavGroups(role, canManageBranding);
+  const navGroups = buildNavGroups(permissions, canManageBranding);
 
   const sessionUser = session?.data?.user;
   const userEmail =
@@ -385,7 +390,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   const emailLocalPart = userEmail.includes('@') ? userEmail.split('@')[0] : '';
   const userName = profileName || sessionDisplay || emailLocalPart || 'Account';
 
-  const orgMeta = role === 'admin' ? 'Admin' : 'Member';
+  const orgMeta = membershipLabel(permissions);
 
   const sidebar = (
     <AppSidebar
@@ -411,7 +416,7 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <RoleProvider role={role}>
+    <PermissionProvider permissions={permissions}>
       <AppShell sidebar={sidebar} topbar={topbar}>
         {children}
       </AppShell>
@@ -423,6 +428,6 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
           setActive(String(newOrg.id));
         }}
       />
-    </RoleProvider>
+    </PermissionProvider>
   );
 }

@@ -9,10 +9,10 @@
  * capacity stays for the current period. One-time packs are not renewable, so
  * they show no such action.
  *
- * Role gating is defense-in-depth: the "Stop renewing" action renders only for
- * org ADMINS (the existing `useRole()` membership signal); the server `403` on
- * the DELETE is the real gate. The list of add-ons is itself a read, so a
- * member still sees what the org owns — they just can't manage it.
+ * Capability gating is defense-in-depth: the "Stop renewing" action renders
+ * only for members who hold `payments.manage_billing`; the server `403` on the
+ * DELETE is the real gate. The list of add-ons is itself a read, so a member
+ * still sees what the org owns — they just can't manage it.
  *
  * The `useCancelAddOn` mutation lives in the per-row `StopRenewingAction`, not
  * at the list root, so a subscription with no add-ons (or a non-admin viewer)
@@ -48,7 +48,10 @@ import { HStack, Text, VStack } from 'vinta-schedule-design-system/layout';
 import type { SubscriptionAddOn } from '@/client';
 import { useSubscription } from '@/hooks/billing/use-subscription';
 import { useCancelAddOn } from '@/hooks/billing/use-cancel-add-on';
-import { useRole } from '@/components/navigation/role-gate';
+import {
+  useHasPermission,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import { resourceLabel } from '@/lib/billing/resource-labels';
 
 /**
@@ -179,8 +182,7 @@ function AddOnRow({
 
 export function ActiveAddOnsList() {
   const { subscription } = useSubscription();
-  const role = useRole();
-  const isAdmin = role === 'admin';
+  const canManageBilling = useHasPermission(PERMISSIONS.manageBilling);
 
   const addOns = subscription?.add_ons ?? [];
   if (addOns.length === 0) {
@@ -192,7 +194,7 @@ export function ActiveAddOnsList() {
     <VStack gap={3} align='stretch' data-testid='active-add-ons-list'>
       <Text weight='semibold'>Add-ons</Text>
       {addOns.map((addOn) => (
-        <AddOnRow key={addOn.id} addOn={addOn} canManage={isAdmin} />
+        <AddOnRow key={addOn.id} addOn={addOn} canManage={canManageBilling} />
       ))}
     </VStack>
   );

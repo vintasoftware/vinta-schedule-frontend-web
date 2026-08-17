@@ -33,12 +33,15 @@ import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 
 import { ResolvePaymentForm } from '@/components/billing/resolve-payment-form';
 import { useSubscription } from '@/hooks/billing/use-subscription';
-import { useRole } from '@/components/navigation/role-gate';
+import {
+  usePermissions,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 
 export default function ResolvePaymentPage() {
   const router = useRouter();
   const { subscription, isLoading } = useSubscription();
-  const role = useRole();
+  const permissions = usePermissions();
 
   const billingState = subscription?.billing_state ?? null;
   const needsResolution =
@@ -70,9 +73,9 @@ export default function ResolvePaymentPage() {
     return null;
   }
 
-  // Wait for the role signal before deciding the gate — a null (still-loading)
-  // role must not flash the access-denied state.
-  if (role === null) {
+  // Wait for the permission signal before deciding the gate — a null
+  // (still-loading) permission set must not flash the access-denied state.
+  if (permissions === null) {
     return (
       <Center grow>
         <Text color='muted-foreground'>Loading…</Text>
@@ -80,7 +83,7 @@ export default function ResolvePaymentPage() {
     );
   }
 
-  if (role !== 'admin') {
+  if (!permissions.includes(PERMISSIONS.manageBilling)) {
     return (
       <Stack gap={6}>
         <PageHeader

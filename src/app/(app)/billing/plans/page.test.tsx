@@ -15,7 +15,23 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import type { BillingPlan, Subscription } from '@/client';
-import { RoleProvider } from '@/components/navigation/role-gate';
+import { PermissionProvider } from '@/components/navigation/permission-gate';
+
+// Map the legacy admin/member/null role param onto the resolved capability set
+// the PermissionProvider now takes. An "admin" (manage_members) holds the full
+// set; a plain member holds none; null models the still-loading state.
+const ADMIN_PERMISSIONS = [
+  'organizations.manage_members',
+  'organizations.manage_organization',
+  'organizations.manage_branding',
+  'payments.manage_billing',
+];
+function permissionsForRole(
+  role: 'admin' | 'member' | null
+): readonly string[] | null {
+  if (role === null) return null;
+  return role === 'admin' ? ADMIN_PERMISSIONS : [];
+}
 
 vi.mock('@/hooks/billing/use-billing-plans', () => ({
   useBillingPlans: vi.fn(),
@@ -108,9 +124,9 @@ function mockSubscription(subscription: Subscription | null) {
 
 function renderPage(role: 'admin' | 'member' | null) {
   return render(
-    <RoleProvider role={role}>
+    <PermissionProvider permissions={permissionsForRole(role)}>
       <BillingPlansPage />
-    </RoleProvider>
+    </PermissionProvider>
   );
 }
 

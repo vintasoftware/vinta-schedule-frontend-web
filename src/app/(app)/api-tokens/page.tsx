@@ -7,12 +7,15 @@ import { Plus } from 'lucide-react';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { TokensTable } from '@/components/api-tokens/tokens-table';
 import { NewTokenDialog } from '@/components/api-tokens/new-token-dialog';
-import { useRequireRole } from '@/components/navigation/role-gate';
+import {
+  useRequirePermission,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 
 /**
  * ApiTokensPage — admin-only view for managing public API tokens.
  *
- * Guarded by useRequireRole('admin'): a member who somehow reaches this URL
+ * Guarded by useRequirePermission(PERMISSIONS.manageMembers): a member who somehow reaches this URL
  * is redirected to '/' (degrade-don't-loop rule).
  *
  * Shows a paginated table of token metadata (name, scopes, status) with a
@@ -21,7 +24,7 @@ import { useRequireRole } from '@/components/navigation/role-gate';
  * The table renders NO secret column — the list API returns only metadata.
  */
 export default function ApiTokensPage() {
-  const { isAllowed } = useRequireRole('admin');
+  const { isAllowed } = useRequirePermission(PERMISSIONS.manageMembers);
   const [newTokenDialogOpen, setNewTokenDialogOpen] = React.useState(false);
 
   if (!isAllowed) return null;

@@ -7,10 +7,9 @@ import type {
   CalendarGroup,
   PaginatedCalendarGroupList,
   PaginatedCalendarList,
-  RoleEnum,
 } from '@/client';
 import { GroupsTable, COLUMNS } from './groups-table';
-import { RoleProvider } from '@/components/navigation/role-gate';
+import { PermissionProvider } from '@/components/navigation/permission-gate';
 import { OWNED_CALENDARS_PAGE_SIZE } from '@/hooks/calendars/use-owned-calendar-ids';
 
 // Mutable URL state — shared across all mock calls in a single test.
@@ -36,11 +35,30 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
 // After mocks are hoisted, import the SDK
 import { calendarGroupsList, calendarList } from '@/client/sdk.gen';
 
+// The full admin capability set — a member who can manage members reads as
+// "admin" for this table's org-wide list behaviour.
+const ADMIN_PERMISSIONS = [
+  'organizations.manage_members',
+  'organizations.manage_organization',
+  'organizations.manage_branding',
+  'payments.manage_billing',
+];
+
+// Maps the old role labels the tests read in terms of onto the permission
+// arrays the provider now takes. 'admin' → the full admin set, 'member' → an
+// empty set, null → the not-yet-resolved state.
+function permissionsForRole(
+  role: 'admin' | 'member' | null
+): readonly string[] | null {
+  if (role === null) return null;
+  return role === 'admin' ? ADMIN_PERMISSIONS : [];
+}
+
 // Helper to render the table with proper setup. Role defaults to 'admin' to
 // preserve the org-wide list behaviour existing tests exercise; pass
 // role={null} to exercise the not-yet-resolved state, or 'member' for the
 // scoped list.
-function renderGroupsTable(role: RoleEnum | null = 'admin') {
+function renderGroupsTable(role: 'admin' | 'member' | null = 'admin') {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -48,7 +66,9 @@ function renderGroupsTable(role: RoleEnum | null = 'admin') {
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <RoleProvider role={role}>{children}</RoleProvider>
+      <PermissionProvider permissions={permissionsForRole(role)}>
+        {children}
+      </PermissionProvider>
     </QueryClientProvider>
   );
   return render(<GroupsTable />, { wrapper });

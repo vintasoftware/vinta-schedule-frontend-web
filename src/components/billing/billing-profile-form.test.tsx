@@ -20,7 +20,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import type { BillingProfile } from '@/client';
-import { RoleProvider } from '@/components/navigation/role-gate';
+import { PermissionProvider } from '@/components/navigation/permission-gate';
 
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
@@ -53,7 +53,7 @@ const EXISTING_PROFILE: BillingProfile = {
   contact_last_name: 'Lovelace',
   contact_email: 'ada@example.com',
   contact_phone: '+1 555 000 0000',
-  document_type: 'tax_id',
+  document_type: 'OTHER',
   document_number: '123456789',
   billing_address: {
     id: 10,
@@ -87,7 +87,7 @@ async function fillCreateForm(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Last name (optional)'), 'Hopper');
   await user.type(screen.getByLabelText('Email'), 'grace@example.com');
   await user.type(screen.getByLabelText('Phone (optional)'), '+1 555 111 2222');
-  await user.type(screen.getByLabelText('Document type'), 'tax_id');
+  await user.type(screen.getByLabelText('Document type'), 'OTHER');
   await user.type(screen.getByLabelText('Document number'), '987654321');
   await user.type(screen.getByLabelText('Street'), 'Second');
   await user.type(screen.getByLabelText('Number'), '7');
@@ -104,7 +104,7 @@ const FULL_BODY = {
   contact_last_name: 'Hopper',
   contact_email: 'grace@example.com',
   contact_phone: '+1 555 111 2222',
-  document_type: 'tax_id',
+  document_type: 'OTHER',
   document_number: '987654321',
   billing_address: {
     street_name: 'Second',
@@ -118,11 +118,20 @@ const FULL_BODY = {
   },
 };
 
+// A billing manager holds `payments.manage_billing`; a plain member holds no
+// capabilities; `null` models the still-loading permission set.
+function permissionsFor(
+  role: 'admin' | 'member' | null
+): readonly string[] | null {
+  if (role === null) return null;
+  return role === 'admin' ? ['payments.manage_billing'] : [];
+}
+
 function renderForm(role: 'admin' | 'member' | null = 'admin') {
   return render(
-    <RoleProvider role={role}>
+    <PermissionProvider permissions={permissionsFor(role)}>
       <BillingProfileForm />
-    </RoleProvider>
+    </PermissionProvider>
   );
 }
 
@@ -170,7 +179,7 @@ describe('BillingProfileForm (Phase 6)', () => {
 
     // Leave first name empty; fill the rest.
     await user.type(screen.getByLabelText('Email'), 'grace@example.com');
-    await user.type(screen.getByLabelText('Document type'), 'tax_id');
+    await user.type(screen.getByLabelText('Document type'), 'OTHER');
     await user.type(screen.getByLabelText('Document number'), '987654321');
 
     await user.click(screen.getByTestId('billing-profile-submit'));

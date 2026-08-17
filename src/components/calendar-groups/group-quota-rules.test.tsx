@@ -77,7 +77,7 @@ function renderRules(readOnly = false) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       <GroupPermissionsProvider
-        role={readOnly ? null : 'admin'}
+        permissions={readOnly ? null : ['organizations.manage_members']}
         ownedCalendarIds={new Set()}
       >
         {children}

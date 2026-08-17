@@ -25,17 +25,22 @@ import SelectOrganizationPage from './page';
 
 const MEMBERSHIP_A = {
   organization: { id: 1, name: 'Acme Corp' },
-  role: 'admin' as const,
+  permissions: [
+    'organizations.manage_members',
+    'organizations.manage_organization',
+    'organizations.manage_branding',
+    'payments.manage_billing',
+  ] as const,
 };
 
 const MEMBERSHIP_B = {
   organization: { id: 2, name: 'Globex' },
-  role: 'member' as const,
+  permissions: [] as const,
 };
 
 const MEMBERSHIP_SINGLE = {
   organization: { id: 3, name: 'Solo Org' },
-  role: 'member' as const,
+  permissions: [] as const,
 };
 
 function baseReturn(
@@ -194,9 +199,9 @@ describe('SelectOrganizationPage', () => {
         screen.getByRole('button', { name: /globex/i })
       ).toBeInTheDocument();
 
-      // Role badges rendered.
-      expect(screen.getByText('admin')).toBeInTheDocument();
-      expect(screen.getByText('member')).toBeInTheDocument();
+      // Standing badges rendered (derived from capabilities via membershipLabel).
+      expect(screen.getByText('Admin')).toBeInTheDocument();
+      expect(screen.getByText('Member')).toBeInTheDocument();
     });
 
     it('calls setActive with String(org.id) and redirects to / when an org is clicked', async () => {

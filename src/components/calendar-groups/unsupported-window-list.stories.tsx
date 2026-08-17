@@ -80,7 +80,10 @@ export const NoUnrepresentableRows: Story = {
     ]);
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           <UnsupportedWindowList
             groupId={GROUP_ID}
             slotId={SLOT_ID}
@@ -110,7 +113,10 @@ export const Populated: Story = {
     ]);
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='admin' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider
+          permissions={['organizations.manage_members']}
+          ownedCalendarIds={new Set()}
+        >
           <UnsupportedWindowList
             groupId={GROUP_ID}
             slotId={SLOT_ID}
@@ -134,7 +140,7 @@ export const ReadOnly: Story = {
     ]);
     return (
       <QueryClientProvider client={client}>
-        <GroupPermissionsProvider role='member' ownedCalendarIds={new Set()}>
+        <GroupPermissionsProvider permissions={[]} ownedCalendarIds={new Set()}>
           <UnsupportedWindowList
             groupId={GROUP_ID}
             slotId={SLOT_ID}

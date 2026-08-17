@@ -8,9 +8,17 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { RoleEnum } from '@/client';
 import { AppSidebar } from './app-sidebar';
-import { RoleProvider } from './role-gate';
+import { PermissionProvider, PERMISSIONS } from './permission-gate';
+
+// Capability arrays standing in for the old 'admin' / 'member' roles.
+const ADMIN_PERMISSIONS = [
+  PERMISSIONS.manageMembers,
+  PERMISSIONS.manageOrganization,
+  PERMISSIONS.manageBranding,
+  PERMISSIONS.manageBilling,
+];
+const MEMBER_PERMISSIONS: string[] = [];
 
 let mockPathname = '/';
 vi.mock('next/navigation', () => ({
@@ -21,11 +29,11 @@ beforeEach(() => {
   mockPathname = '/';
 });
 
-function renderWithRole(role: RoleEnum | null) {
+function renderWithPermissions(permissions: readonly string[] | null) {
   return render(
-    <RoleProvider role={role}>
+    <PermissionProvider permissions={permissions}>
       <AppSidebar groups={[{ items: [] }]} />
-    </RoleProvider>
+    </PermissionProvider>
   );
 }
 
@@ -93,7 +101,7 @@ describe('AppSidebar — account', () => {
 
 describe('AppSidebar — billing nav', () => {
   it('renders every billing item, including the Ledger, for an admin', () => {
-    renderWithRole('admin');
+    renderWithPermissions(ADMIN_PERMISSIONS);
 
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'href',
@@ -118,7 +126,7 @@ describe('AppSidebar — billing nav', () => {
   });
 
   it('hides the admin-only Ledger from a member but keeps the read items', () => {
-    renderWithRole('member');
+    renderWithPermissions(MEMBER_PERMISSIONS);
 
     // Reads stay visible to members.
     expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument();
@@ -135,7 +143,7 @@ describe('AppSidebar — billing nav', () => {
   });
 
   it('hides the Ledger while the role is still unresolved (null)', () => {
-    renderWithRole(null);
+    renderWithPermissions(null);
 
     expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument();
     expect(
@@ -148,7 +156,7 @@ describe('AppSidebar — billing active state (most-specific wins)', () => {
   // SidebarItem marks the active row with aria-current="page".
   it('activates only Overview on /billing, not the nested items', () => {
     mockPathname = '/billing';
-    renderWithRole('admin');
+    renderWithPermissions(ADMIN_PERMISSIONS);
 
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'aria-current',
@@ -163,7 +171,7 @@ describe('AppSidebar — billing active state (most-specific wins)', () => {
 
   it('activates only Plans on /billing/plans, and never Overview', () => {
     mockPathname = '/billing/plans';
-    renderWithRole('admin');
+    renderWithPermissions(ADMIN_PERMISSIONS);
 
     expect(screen.getByRole('link', { name: 'Plans' })).toHaveAttribute(
       'aria-current',
@@ -181,7 +189,7 @@ describe('AppSidebar — billing active state (most-specific wins)', () => {
 
   it('activates only the Ledger on /billing/occurrences', () => {
     mockPathname = '/billing/occurrences';
-    renderWithRole('admin');
+    renderWithPermissions(ADMIN_PERMISSIONS);
 
     expect(screen.getByRole('link', { name: 'Ledger' })).toHaveAttribute(
       'aria-current',
@@ -194,7 +202,7 @@ describe('AppSidebar — billing active state (most-specific wins)', () => {
 
   it('keeps parent-highlights-child for a deep non-nested route (/billing/periods/123 → Statements)', () => {
     mockPathname = '/billing/periods/123';
-    renderWithRole('admin');
+    renderWithPermissions(ADMIN_PERMISSIONS);
 
     expect(screen.getByRole('link', { name: 'Statements' })).toHaveAttribute(
       'aria-current',

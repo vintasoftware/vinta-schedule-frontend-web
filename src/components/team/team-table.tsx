@@ -20,12 +20,17 @@ import {
   AlertDialogTitle,
 } from 'vinta-schedule-design-system/ui/alert-dialog';
 import { VStack, Text, HStack } from 'vinta-schedule-design-system/layout';
+import type { GroupsEnum } from '@/client';
 import { useTeamMembers, type TeamMember } from '@/hooks/team/use-team-members';
 import {
   useDisableUser,
   useReactivateUser,
 } from '@/hooks/team/use-disable-user';
-import { useUpdateMemberRole } from '@/hooks/team/use-update-member-role';
+import { useSetMemberGroups } from '@/hooks/team/use-set-member-groups';
+import {
+  PERMISSIONS,
+  membershipLabel,
+} from '@/components/navigation/permission-gate';
 
 // ---------------------------------------------------------------------------
 // Column definitions
@@ -33,11 +38,22 @@ import { useUpdateMemberRole } from '@/hooks/team/use-update-member-role';
 // duplicating the definitions (which would let them silently drift).
 // ---------------------------------------------------------------------------
 
-export const ROLE_VARIANT: Record<TeamMember['role'], 'default' | 'secondary'> =
-  {
-    admin: 'default',
-    member: 'secondary',
-  };
+// A member's standing is derived from its capabilities, not a `role` field:
+// `manage_members` reads as "Admin", `manage_billing` (alone) as "Billing",
+// anyone else as "Member". See `membershipLabel`.
+export const STANDING_VARIANT: Record<
+  ReturnType<typeof membershipLabel>,
+  'default' | 'secondary'
+> = {
+  Admin: 'default',
+  Billing: 'secondary',
+  Member: 'secondary',
+};
+
+/** Whether a member holds the member-management capability (the old "admin"). */
+function canManageMembers(member: TeamMember): boolean {
+  return member.permissions.includes(PERMISSIONS.manageMembers);
+}
 
 export const STATUS_VARIANT: Record<
   TeamMember['status'],
@@ -54,7 +70,7 @@ export function createColumns(
   pendingRowIds: Set<number>,
   onDisable: (member: TeamMember) => Promise<void>,
   onReactivate: (member: TeamMember) => Promise<void>,
-  onChangeRole: (member: TeamMember, role: TeamMember['role']) => Promise<void>
+  onSetGroups: (member: TeamMember, groups: GroupsEnum[]) => Promise<void>
 ): DataTableColumn<TeamMember>[] {
   return [
     {
@@ -75,15 +91,14 @@ export function createColumns(
       ),
     },
     {
-      accessorKey: 'role',
+      accessorKey: 'permissions',
       id: 'role',
       header: 'Role',
       enableSorting: false,
-      cell: ({ row }) => (
-        <Badge variant={ROLE_VARIANT[row.original.role]}>
-          {row.original.role}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const standing = membershipLabel(row.original.permissions);
+        return <Badge variant={STANDING_VARIANT[standing]}>{standing}</Badge>;
+      },
     },
     {
       accessorKey: 'status',
@@ -106,7 +121,7 @@ export function createColumns(
             <ChangeRoleButton
               member={row.original}
               isLoading={pendingRowIds.has(row.original.id)}
-              onChangeRole={onChangeRole}
+              onSetGroups={onSetGroups}
             />
           )}
           {row.original.status === 'active' ? (
@@ -203,32 +218,36 @@ function DisableButton({ member, isLoading, onDisable }: DisableButtonProps) {
 }
 
 // ---------------------------------------------------------------------------
-// ChangeRoleButton — per-row action to promote/demote a member's role.
-// Roles are binary (member <-> admin) so the button toggles to the opposite of
-// the current role behind a confirmation dialog.
+// ChangeRoleButton — per-row action to promote/demote a member.
+// The control is binary (member <-> admin), so it toggles to the opposite of
+// the member's current standing behind a confirmation dialog. "Make admin"
+// assigns the `organization_admin` group; "Make member" assigns
+// `organization_member` (which carries no capabilities), stripping any
+// elevated access the member held.
 // ---------------------------------------------------------------------------
 
 interface ChangeRoleButtonProps {
   member: TeamMember;
   isLoading: boolean;
-  onChangeRole: (member: TeamMember, role: TeamMember['role']) => Promise<void>;
+  onSetGroups: (member: TeamMember, groups: GroupsEnum[]) => Promise<void>;
 }
 
 function ChangeRoleButton({
   member,
   isLoading,
-  onChangeRole,
+  onSetGroups,
 }: ChangeRoleButtonProps) {
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
-  const nextRole: TeamMember['role'] =
-    member.role === 'admin' ? 'member' : 'admin';
-  const promoting = nextRole === 'admin';
+  const promoting = !canManageMembers(member);
 
   const handleConfirm = React.useCallback(async () => {
-    await onChangeRole(member, nextRole);
+    await onSetGroups(
+      member,
+      promoting ? ['organization_admin'] : ['organization_member']
+    );
     setDialogOpen(false);
-  }, [member, nextRole, onChangeRole]);
+  }, [member, promoting, onSetGroups]);
 
   return (
     <>
@@ -400,7 +419,7 @@ function TeamTableInner() {
 
   const { disableUser } = useDisableUser();
   const { reactivateUser } = useReactivateUser();
-  const { updateMemberRole } = useUpdateMemberRole();
+  const { setMemberGroups } = useSetMemberGroups();
 
   // Handle disable action: track in-flight row, call hook, show toast, update state.
   const handleDisable = React.useCallback(
@@ -462,15 +481,16 @@ function TeamTableInner() {
     [reactivateUser]
   );
 
-  // Handle role change: track in-flight row, call hook, show toast.
-  const handleChangeRole = React.useCallback(
-    async (member: TeamMember, role: TeamMember['role']) => {
+  // Handle standing change: track in-flight row, call hook, show toast.
+  const handleSetGroups = React.useCallback(
+    async (member: TeamMember, groups: GroupsEnum[]) => {
       setPendingRowIds((prev) => new Set(prev).add(member.id));
 
+      const promotedToAdmin = groups.includes('organization_admin');
       try {
-        await updateMemberRole(member.id, role);
+        await setMemberGroups(member.id, groups);
         toast.success('Role updated', {
-          description: `${member.name} is now ${role === 'admin' ? 'an admin' : 'a member'}.`,
+          description: `${member.name} is now ${promotedToAdmin ? 'an admin' : 'a member'}.`,
         });
       } catch (err) {
         toast.error('Failed to update role', {
@@ -487,7 +507,7 @@ function TeamTableInner() {
         });
       }
     },
-    [updateMemberRole]
+    [setMemberGroups]
   );
 
   if (isError) {
@@ -509,7 +529,7 @@ function TeamTableInner() {
     pendingRowIds,
     handleDisable,
     handleReactivate,
-    handleChangeRole
+    handleSetGroups
   );
 
   return (

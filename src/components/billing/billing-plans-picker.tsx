@@ -10,9 +10,9 @@
  * price (`monthly_price` / `annual_price` via `formatMoney`) and drives the
  * `billing_interval` handed to the change-plan dialog.
  *
- * Role gating is defense-in-depth: the upgrade/cancel affordances render only
- * for org ADMINS (the existing `useRole()` membership signal); the server `403`
- * on the write endpoints is the real gate. A member sees the catalog read-only.
+ * Capability gating is defense-in-depth: the upgrade/cancel affordances render
+ * only for members who hold `payments.manage_billing`; the server `403` on the
+ * write endpoints is the real gate. A member sees the catalog read-only.
  */
 
 import * as React from 'react';
@@ -47,7 +47,10 @@ import {
 import type { BillingPlan, PendingBillingIntervalEnum } from '@/client';
 import { useBillingPlans } from '@/hooks/billing/use-billing-plans';
 import { useSubscription } from '@/hooks/billing/use-subscription';
-import { useRole } from '@/components/navigation/role-gate';
+import {
+  useHasPermission,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import { formatMoney } from '@/lib/billing/format';
 
 import { ChangePlanDialog } from './change-plan-dialog';
@@ -66,8 +69,7 @@ export function BillingPlansPicker() {
   // A free / subscription-less org answers 404 here; that's expected and never
   // blocks the catalog — it just means there's no current plan to highlight.
   const { subscription } = useSubscription();
-  const role = useRole();
-  const isAdmin = role === 'admin';
+  const canManageBilling = useHasPermission(PERMISSIONS.manageBilling);
 
   const [interval, setInterval] =
     React.useState<PendingBillingIntervalEnum>('monthly');
@@ -180,7 +182,7 @@ export function BillingPlansPicker() {
                     )}
                   </VStack>
 
-                  {isAdmin &&
+                  {canManageBilling &&
                     (isCurrent && hasPaidPlan ? (
                       <Button
                         type='button'

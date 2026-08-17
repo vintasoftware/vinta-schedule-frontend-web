@@ -55,6 +55,16 @@ function makeListResponse<T>(results: T[]) {
   } as unknown;
 }
 
+// 'admin' → the manage-members capability the roster checks; 'member' → an
+// empty (but resolved) set; null → the not-yet-resolved state.
+function permissionsForRole(
+  role: 'admin' | 'member' | null | undefined
+): readonly string[] | null {
+  if (role === 'admin') return ['organizations.manage_members'];
+  if (role === 'member') return [];
+  return null;
+}
+
 function renderRoster({
   role,
   ownedCalendarIds,
@@ -68,7 +78,7 @@ function renderRoster({
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       <GroupPermissionsProvider
-        role={role ?? null}
+        permissions={permissionsForRole(role)}
         ownedCalendarIds={ownedCalendarIds ?? new Set()}
       >
         {children}

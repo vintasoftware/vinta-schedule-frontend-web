@@ -5,7 +5,10 @@ import { Stack } from 'vinta-schedule-design-system/layout/stack';
 import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { GroupsTable } from '@/components/calendar-groups/groups-table';
-import { useRole } from '@/components/navigation/role-gate';
+import {
+  useHasPermission,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 
 /**
  * GroupsPage — the calendar groups list.
@@ -20,8 +23,7 @@ import { useRole } from '@/components/navigation/role-gate';
  * revert restores the admin-only gate cleanly.
  */
 export default function GroupsPage() {
-  const role = useRole();
-  const isAdmin = role === 'admin';
+  const isAdmin = useHasPermission(PERMISSIONS.manageMembers);
 
   return (
     <Stack gap={6}>

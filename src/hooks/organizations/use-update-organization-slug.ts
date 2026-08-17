@@ -37,7 +37,11 @@ export function useUpdateOrganizationSlug() {
 
     return updateOrganizationSlugMutation.mutateAsync({
       path: { id: String(organization.id) },
-      body: { slug },
+      // The generated writable narrowed `slug` to non-null (the backend refuses
+      // a blank/cleared slug). The branding form still sends `null` to attempt a
+      // clear and surfaces the resulting field error; cast at the boundary to
+      // preserve that behavior rather than silently dropping the attempt.
+      body: { slug } as { slug: string },
     });
   };
 

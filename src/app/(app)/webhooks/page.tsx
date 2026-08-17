@@ -7,12 +7,15 @@ import { Plus } from 'lucide-react';
 import { DataTableQueryBoundary } from '@/components/data-table/use-data-table-query';
 import { WebhooksTable } from '@/components/webhooks/webhooks-table';
 import { WebhookDialog } from '@/components/webhooks/webhook-dialog';
-import { useRequireRole } from '@/components/navigation/role-gate';
+import {
+  useRequirePermission,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 
 /**
  * WebhooksPage — admin-only view for managing webhook configurations.
  *
- * Guarded by useRequireRole('admin'): a member who reaches this URL is
+ * Guarded by useRequirePermission(PERMISSIONS.manageMembers): a member who reaches this URL is
  * redirected to '/'.
  *
  * Shows a paginated table of webhook configs (event type, payload URL) with a
@@ -20,7 +23,7 @@ import { useRequireRole } from '@/components/navigation/role-gate';
  * edit and delete actions.
  */
 export default function WebhooksPage() {
-  const { isAllowed } = useRequireRole('admin');
+  const { isAllowed } = useRequirePermission(PERMISSIONS.manageMembers);
   const [newWebhookDialogOpen, setNewWebhookDialogOpen] = React.useState(false);
 
   if (!isAllowed) return null;

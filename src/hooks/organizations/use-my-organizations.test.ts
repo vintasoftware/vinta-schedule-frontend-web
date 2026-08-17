@@ -37,9 +37,14 @@ const FIXTURE_MEMBERSHIP_1: MyMembership = {
   organization: {
     id: 1,
     name: 'Org 1',
-    slug: null,
+    slug: 'org-1',
   },
-  role: 'admin',
+  permissions: [
+    'organizations.manage_members',
+    'organizations.manage_organization',
+    'organizations.manage_branding',
+    'payments.manage_billing',
+  ],
   can_manage_branding: false,
 };
 
@@ -47,9 +52,9 @@ const FIXTURE_MEMBERSHIP_2: MyMembership = {
   organization: {
     id: 2,
     name: 'Org 2',
-    slug: null,
+    slug: 'org-2',
   },
-  role: 'member',
+  permissions: [],
   can_manage_branding: false,
 };
 

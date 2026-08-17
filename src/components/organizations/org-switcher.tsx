@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import type { MyMembership } from '@/client';
+import { membershipLabel } from '@/components/navigation/permission-gate';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,8 +25,8 @@ import { Icon } from 'vinta-schedule-design-system/ui/icon';
 //
 // Presentational dropdown that lets a user switch between multiple organizations.
 // Renders as:
-//   - Trigger: the active org avatar initial + org name + role + chevron
-//   - Content: a list of each membership (name + role), active one gets a check,
+//   - Trigger: the active org avatar initial + org name + standing + chevron
+//   - Content: a list of each membership (name + standing), active one gets a check,
 //     then a separator and "+ New organization" if onCreateOrg is provided
 //     (or a disabled item when the prop is absent, as Phase 5 will wire it).
 //
@@ -83,11 +84,6 @@ export function OrgSwitcher({
     memberships.find((m) => String(m.organization.id) === activeOrgId) ?? null;
 
   const activeOrgName = activeMembership?.organization.name ?? 'Organization';
-  const activeRole = activeMembership?.role ?? 'member';
-
-  // Capitalise the role label for display: "admin" → "Admin"
-  const roleLabel = (role: string) =>
-    role.charAt(0).toUpperCase() + role.slice(1);
 
   return (
     <DropdownMenu>
@@ -131,7 +127,7 @@ export function OrgSwitcher({
               leading='tight'
               style={META_STYLE}
             >
-              {roleLabel(activeRole)}
+              {membershipLabel(activeMembership?.permissions)}
             </Text>
           </Box>
           <Icon icon={ChevronsUpDown} size='sm' color='muted-foreground' />
@@ -162,7 +158,7 @@ export function OrgSwitcher({
                   {m.organization.name}
                 </Text>
                 <Text as='div' color='muted-foreground' style={MENU_META_STYLE}>
-                  {roleLabel(m.role)}
+                  {membershipLabel(m.permissions)}
                 </Text>
               </Box>
               {isActive ? (

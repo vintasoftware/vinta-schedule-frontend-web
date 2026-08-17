@@ -11,10 +11,18 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(),
 }));
 
-// Mock the role gate
-vi.mock('@/components/navigation/role-gate', () => ({
-  useRequireRole: vi.fn(() => ({ isAllowed: true })),
-}));
+// Mock the permission gate — override useRequirePermission but keep PERMISSIONS
+// (the source reads PERMISSIONS.manageMembers) and the rest of the module.
+vi.mock('@/components/navigation/permission-gate', async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import('@/components/navigation/permission-gate')
+    >();
+  return {
+    ...original,
+    useRequirePermission: vi.fn(() => ({ isAllowed: true })),
+  };
+});
 
 // Mock the SDK — the table fetches via calendarList.
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
@@ -30,7 +38,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   };
 });
 
-import { useRequireRole } from '@/components/navigation/role-gate';
+import { useRequirePermission } from '@/components/navigation/permission-gate';
 import { calendarList } from '@/client/sdk.gen';
 
 function renderPage() {
@@ -56,9 +64,9 @@ describe('PeopleCalendarsPage', () => {
   });
 
   it('shows the People calendars header when admin', () => {
-    vi.mocked(useRequireRole).mockReturnValue({
+    vi.mocked(useRequirePermission).mockReturnValue({
       isAllowed: true,
-    } as unknown as ReturnType<typeof useRequireRole>);
+    } as unknown as ReturnType<typeof useRequirePermission>);
 
     renderPage();
 
@@ -66,9 +74,9 @@ describe('PeopleCalendarsPage', () => {
   });
 
   it('scopes the calendar list to personal calendars', async () => {
-    vi.mocked(useRequireRole).mockReturnValue({
+    vi.mocked(useRequirePermission).mockReturnValue({
       isAllowed: true,
-    } as unknown as ReturnType<typeof useRequireRole>);
+    } as unknown as ReturnType<typeof useRequirePermission>);
 
     renderPage();
 
@@ -83,9 +91,9 @@ describe('PeopleCalendarsPage', () => {
   });
 
   it('member is gated out of /people-calendars', () => {
-    vi.mocked(useRequireRole).mockReturnValue({
+    vi.mocked(useRequirePermission).mockReturnValue({
       isAllowed: false,
-    } as unknown as ReturnType<typeof useRequireRole>);
+    } as unknown as ReturnType<typeof useRequirePermission>);
 
     renderPage();
 

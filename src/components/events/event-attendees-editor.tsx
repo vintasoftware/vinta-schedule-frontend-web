@@ -480,7 +480,10 @@ import { useDownloadEventIcs } from '@/hooks/events/use-download-event-ics';
 import { RescheduleDialog } from '@/components/bookings/reschedule-dialog';
 import { EditEventDialog } from '@/components/bookings/edit-event-dialog';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
-import { RoleGate } from '@/components/navigation/role-gate';
+import {
+  PermissionGate,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import { TransferEventDialog } from '@/components/events/transfer-event-dialog';
 
 export interface EventAttendeesSheetProps {
@@ -659,7 +662,7 @@ export function EventAttendeesSheet({
             </Button>
 
             {/* Transfer action (admin-only) */}
-            <RoleGate role='admin'>
+            <PermissionGate permission={PERMISSIONS.manageMembers}>
               <Button
                 variant='outline'
                 onClick={() => setTransferOpen(true)}
@@ -668,7 +671,7 @@ export function EventAttendeesSheet({
               >
                 Transfer event
               </Button>
-            </RoleGate>
+            </PermissionGate>
           </VStack>
         </SheetContent>
       </Sheet>

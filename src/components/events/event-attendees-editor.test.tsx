@@ -86,7 +86,7 @@ import type {
 
 const FIXTURE_INTERNAL_ATTENDANCE: EventAttendance = {
   id: 1,
-  membership: { user_id: 10, organization_id: 1, role: 'member' },
+  membership: { user_id: 10, organization_id: 1 },
   status: 'accepted',
   created: '2024-01-01T00:00:00Z',
   modified: '2024-01-01T00:00:00Z',
@@ -145,7 +145,7 @@ const MEMBER_SEARCH_FIXTURES: OrganizationMembership[] = [
   {
     user_id: 99,
     organization_id: 1,
-    role: 'member',
+    permissions: [],
     is_active: true,
     user_email: 'new@example.com',
     user_first_name: 'New',
@@ -154,7 +154,7 @@ const MEMBER_SEARCH_FIXTURES: OrganizationMembership[] = [
   {
     user_id: 55,
     organization_id: 1,
-    role: 'member',
+    permissions: [],
     is_active: true,
     user_email: 'dave@corp.com',
     user_first_name: 'Dave',

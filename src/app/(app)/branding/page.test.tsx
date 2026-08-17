@@ -58,20 +58,30 @@ function renderPage() {
   return render(<BrandingPage />, { wrapper });
 }
 
+// An "admin" (manage_members) holds the full capability set; a plain member
+// holds none.
+const ADMIN_PERMISSIONS = [
+  'organizations.manage_members',
+  'organizations.manage_organization',
+  'organizations.manage_branding',
+  'payments.manage_billing',
+];
+const MEMBER_PERMISSIONS: string[] = [];
+
 const INELIGIBLE_MEMBERSHIP: CurrentMembership = {
-  role: 'admin',
+  permissions: ADMIN_PERMISSIONS,
   can_manage_branding: false,
   organization: { id: 1, name: 'Test Org' },
 };
 
 const ELIGIBLE_MEMBERSHIP: CurrentMembership = {
-  role: 'admin',
+  permissions: ADMIN_PERMISSIONS,
   can_manage_branding: true,
   organization: { id: 1, name: 'Test Org' },
 };
 
 const MEMBER_WITH_BRANDING_MEMBERSHIP: CurrentMembership = {
-  role: 'member',
+  permissions: MEMBER_PERMISSIONS,
   can_manage_branding: true,
   organization: { id: 1, name: 'Test Org' },
 };

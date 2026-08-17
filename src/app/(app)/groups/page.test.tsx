@@ -17,11 +17,34 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(),
 }));
 
-// Mock the role gate — GroupsPage and GroupsTable both read the caller's
-// role via useRole (Phase 2 dropped the useRequireRole admin gate).
-vi.mock('@/components/navigation/role-gate', () => ({
-  useRole: vi.fn(() => 'admin'),
-}));
+// The four capabilities an "admin" (manage_members) holds; a plain member holds
+// none. Both mapped in one place so the two mocked hooks below stay in sync.
+const ADMIN_PERMISSIONS = [
+  'organizations.manage_members',
+  'organizations.manage_organization',
+  'organizations.manage_branding',
+  'payments.manage_billing',
+];
+const MEMBER_PERMISSIONS: string[] = [];
+
+// Mock the permission gate — GroupsPage reads capabilities via
+// useHasPermission and GroupsTable via usePermissions (Phase 2 dropped the
+// useRequirePermission admin gate). Both are driven off a single mocked
+// permissions set. Preserve PERMISSIONS (and the rest) so the real capability
+// keys resolve.
+vi.mock('@/components/navigation/permission-gate', async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import('@/components/navigation/permission-gate')
+    >();
+  return {
+    ...original,
+    usePermissions: vi.fn(() => ADMIN_PERMISSIONS),
+    useHasPermission: vi.fn(
+      (cap: string) => vi.mocked(usePermissions)()?.includes(cap) ?? false
+    ),
+  };
+});
 
 // Mock the SDK
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
@@ -34,7 +57,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
 });
 
 // Import after mocks are set up
-import { useRole } from '@/components/navigation/role-gate';
+import { usePermissions } from '@/components/navigation/permission-gate';
 import { calendarGroupsList, calendarList } from '@/client/sdk.gen';
 
 // ---------------------------------------------------------------------------
@@ -155,7 +178,7 @@ describe('GroupsPage', () => {
     vi.mocked(useSearchParams).mockReturnValue(
       new URLSearchParams() as ReturnType<typeof useSearchParams>
     );
-    vi.mocked(useRole).mockReturnValue('admin');
+    vi.mocked(usePermissions).mockReturnValue(ADMIN_PERMISSIONS);
     vi.mocked(calendarList).mockResolvedValue(makeCalendarListResponse([]));
   });
 
@@ -194,7 +217,7 @@ describe('GroupsPage', () => {
   });
 
   it('member sees only the group containing a calendar they own, with no create action', async () => {
-    vi.mocked(useRole).mockReturnValue('member');
+    vi.mocked(usePermissions).mockReturnValue(MEMBER_PERMISSIONS);
     // Owns calendar 200, which sits in "Backend Team" only.
     vi.mocked(calendarList).mockResolvedValue(
       makeCalendarListResponse([ownedCalendar(200)])
@@ -211,7 +234,7 @@ describe('GroupsPage', () => {
   });
 
   it('member with no owned calendars in any group sees the ordinary empty state', async () => {
-    vi.mocked(useRole).mockReturnValue('member');
+    vi.mocked(usePermissions).mockReturnValue(MEMBER_PERMISSIONS);
     vi.mocked(calendarList).mockResolvedValue(makeCalendarListResponse([]));
     vi.mocked(calendarGroupsList).mockResolvedValue(
       makeGroupsListResponse(ADMIN_FIXTURE_GROUPS)

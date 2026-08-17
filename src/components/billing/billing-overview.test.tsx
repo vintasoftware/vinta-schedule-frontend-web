@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import type { Subscription, UsageResponse } from '@/client';
-import { RoleProvider } from '@/components/navigation/role-gate';
+import { PermissionProvider } from '@/components/navigation/permission-gate';
 
 vi.mock('@/hooks/billing/use-billing-usage', () => ({
   useBillingUsage: vi.fn(),
@@ -101,11 +101,20 @@ const SUBSCRIPTION = {
   add_ons: [],
 } as unknown as Subscription;
 
+// A billing manager holds `payments.manage_billing`; a plain member holds no
+// capabilities; `null` models the still-loading permission set.
+function permissionsFor(
+  role: 'admin' | 'member' | null
+): readonly string[] | null {
+  if (role === null) return null;
+  return role === 'admin' ? ['payments.manage_billing'] : [];
+}
+
 function renderOverview(role: 'admin' | 'member' | null) {
   return render(
-    <RoleProvider role={role}>
+    <PermissionProvider permissions={permissionsFor(role)}>
       <BillingOverview />
-    </RoleProvider>
+    </PermissionProvider>
   );
 }
 

@@ -26,9 +26,9 @@ export type ActionEnum = 'create' | 'update' | 'delete';
 
 /**
  * Body of ``POST /billing/add-ons/``. See ``ChangePlanRequestSerializer``
- * for why ``payment_token`` is present despite not being in the documented
- * request shape -- an add-on purchase is a one-time charge and needs
- * an instrument to charge, exactly like a first-ever plan upgrade does.
+ * for why ``payment_token`` is required in practice despite being optional
+ * here -- an add-on purchase is a one-time charge and needs an instrument to
+ * charge, exactly like a first-ever plan upgrade does.
  */
 export type AddOnPurchaseRequest = {
     resource_key: ResourceKeyEnum;
@@ -36,6 +36,28 @@ export type AddOnPurchaseRequest = {
     is_recurring?: boolean;
     idempotency_key: string;
     payment_token?: string;
+};
+
+/**
+ * Request serializer for ``POST /organization-members/{user_id}/groups/``.
+ *
+ * The one place in the API where a *group* name is accepted rather than a
+ * permission: assigning a group is the act of choosing one, so there is
+ * nothing to abstract. Reads report capabilities instead (``permissions``
+ * above), which is why a later per-organization group layer would not be a
+ * second client break.
+ *
+ * ``ChoiceField`` over the seeded names rather than a free ``CharField``: an
+ * unknown group must be a 400 that names the acceptable values, not a silent
+ * no-op. The list may not be empty -- "no groups at all" is not a state any
+ * write path produces; a member with no capabilities is
+ * ``["organization_member"]``.
+ */
+export type AssignMembershipGroups = {
+    /**
+     * Groups to assign to this membership, replacing the ones it holds. ``organization_admin`` carries every capability; ``organization_billing_owner`` carries ``payments.manage_billing``; ``organization_member`` carries none and is what a member with no capabilities holds. Naming a capability group alongside ``organization_member`` stores the capability group alone.
+     */
+    groups: Array<GroupsEnum>;
 };
 
 /**
@@ -214,6 +236,11 @@ export type BillingAddress = {
     zip_code: string;
 };
 
+export type BillingErrorBody = {
+    code: string;
+    detail: string;
+};
+
 /**
  * The ``[start, end)`` bounds of the cycle in progress right now, resolved
  * through the same anchor (``resolve_billing_period`` /
@@ -240,7 +267,7 @@ export type BillingPeriodBounds = {
  * ``reconciliation_unmetered``/``reconciliation_orphaned`` live on the parent
  * ``BillingPeriodSummary`` row, not here, and neither is serialized anywhere
  * in this module -- internal investigation data, surfaced only in Django
- * admin (see the plan's Non-goals).
+ * admin.
  */
 export type BillingPeriodResourceUsage = {
     /**
@@ -276,7 +303,7 @@ export type BillingPeriodResourceUsage = {
  *
  * ``reconciliation_unmetered``/``reconciliation_orphaned`` are deliberately
  * absent from every field below -- internal investigation data, surfaced only
- * in Django admin (see the plan's Non-goals).
+ * in Django admin.
  */
 export type BillingPeriodSummary = {
     /**
@@ -429,12 +456,25 @@ export type BillingProfile = {
     contact_last_name?: string;
     contact_email: string;
     contact_phone?: string;
-    document_type: string;
+    document_type: BillingProfileDocumentTypeEnum;
     document_number: string;
     billing_address: BillingAddress;
     readonly created: string;
     readonly modified: string;
 };
+
+/**
+ * * `CPF` - CPF
+ * * `CNPJ` - CNPJ
+ * * `DNI` - DNI
+ * * `CI` - CI
+ * * `RUT` - RUT
+ * * `SSN` - SSN
+ * * `EIN` - EIN
+ * * `PASSPORT` - Passport
+ * * `OTHER` - Other
+ */
+export type BillingProfileDocumentTypeEnum = 'CPF' | 'CNPJ' | 'DNI' | 'CI' | 'RUT' | 'SSN' | 'EIN' | 'PASSPORT' | 'OTHER';
 
 /**
  * * `free` - Free
@@ -771,16 +811,14 @@ export type CalendarTypeEnum = 'personal' | 'resource' | 'virtual' | 'bundle';
 /**
  * Body of ``POST /billing/subscription/change-plan/``.
  *
- * ``payment_token`` is not part of the documented request body (only
- * ``plan_slug``/``billing_interval``/``idempotency_key``) but is required in
- * practice the *first* time a billing root ever attaches a payment instrument
- * -- there is otherwise no provider-facing card/token to create the
- * provider-side subscription against. Optional here (blank by default) because
- * it is only actually required when ``Subscription.external_id`` is still
- * blank; see ``SubscriptionService._initiate_upgrade`` for the exact condition
- * and ``PaymentTokenRequiredError`` for the 400 a caller gets if it omits the
- * token when one was needed. This is a deliberate deviation from the
- * documented request shape.
+ * ``payment_token`` is required in practice the *first* time a billing root
+ * ever attaches a payment instrument -- there is otherwise no provider-facing
+ * card/token to create the provider-side subscription against. Optional here
+ * (blank by default) because it is only actually required when
+ * ``Subscription.external_id`` is still blank; see
+ * ``SubscriptionService._initiate_upgrade`` for the exact condition and
+ * ``PaymentTokenRequiredError`` for the 400 a caller gets if it omits the
+ * token when one was needed.
  */
 export type ChangePlanRequest = {
     plan_slug: string;
@@ -831,17 +869,16 @@ export type ConsentCreate = {
 /**
  * Read-only serializer for the caller's current organization membership.
  *
- * Returns the membership role and the nested organization so the frontend
- * can distinguish between an onboarded user and a gated (membership-less) user.
+ * Returns the caller's resolved permissions and the nested organization so the
+ * frontend can distinguish between an onboarded user and a gated
+ * (membership-less) user, and can gate its own UI on the same capability
+ * strings the server enforces.
  */
 export type CurrentMembership = {
     /**
-     * Role the user holds in this organization. Admins can manage organization-scoped resources (e.g. CalendarGroups) regardless of direct ownership.
-     *
-     * * `member` - Member
-     * * `admin` - Admin
+     * Capabilities this membership confers in this organization, as ``app_label.codename`` strings (for example ``organizations.manage_members``). Resolved from the membership's groups and direct grants -- the same source every server-side authorization check reads -- so a client can gate UI on the exact string the API will enforce. Only organization-scoped capabilities appear: a global Django permission or superuser status grants nothing here, because it grants nothing in this organization either. An inactive membership resolves an empty list. The set of possible values grows over time; treat an unrecognised entry as an unknown capability rather than an error.
      */
-    role: RoleEnum;
+    readonly permissions: Array<string>;
     /**
      * Serialize the related organization using OrganizationSerializer.
      */
@@ -849,17 +886,12 @@ export type CurrentMembership = {
         [key: string]: unknown;
     };
     /**
-     * Whether the membership's organization is branding-eligible.
+     * Whether this membership can manage branding.
      *
-     * Computed as parentless-and-entitled -- deliberately excludes the slug
-     * condition (Organization Auth-Area Branding plan, Phase 4 Capability
-     * signal guiding decision), so an organization missing only a slug still
-     * sees the branding page instead of it being silently absent. Shares
-     * ``organizations.permissions.is_branding_eligible_organization`` rather
-     * than restating the two-condition check, so this tracks the same gate
-     * that governs ``GET /branding/`` (see
-     * ``OrganizationBrandingView._check_branding_read_gate``) rather than
-     * the three-condition write gate.
+     * Computed from ``organizations.manage_branding`` plus parentless-and-
+     * entitled eligibility. Uses
+     * ``organizations.permissions.is_branding_eligible_organization`` for
+     * that eligibility, matching ``GET /branding/`` and logo-upload signing.
      */
     readonly can_manage_branding: boolean;
 };
@@ -1070,8 +1102,7 @@ export type GroupScopedAvailabilityOrphanedBooking = {
 };
 
 /**
- * Read representation of a group-scoped availability window
- * (CALENDAR_GROUP_SCOPED_AVAILABILITY Phase 1c).
+ * Read representation of a group-scoped availability window.
  *
  * Deliberately narrower than ``AvailableTimeSerializer``: there is no nested
  * ``recurrence_rule`` write path here, only ``rrule_string`` -- matching
@@ -1158,8 +1189,7 @@ export type GroupScopedBlockWriteResult = {
 };
 
 /**
- * Read representation of a group-scoped blocked time
- * (CALENDAR_GROUP_SCOPED_AVAILABILITY Phase 2b).
+ * Read representation of a group-scoped blocked time.
  *
  * Mirrors ``GroupScopedAvailabilityWindowSerializer`` exactly, plus
  * ``reason`` -- there is no nested ``recurrence_rule`` write path here,
@@ -1209,8 +1239,7 @@ export type GroupScopedBlockedTimeCreate = {
 };
 
 /**
- * Read representation of a group-scoped quota rule
- * (CALENDAR_GROUP_SCOPED_AVAILABILITY Phase 3c).
+ * Read representation of a group-scoped quota rule.
  *
  * Simpler than ``GroupScopedAvailabilityWindowSerializer``/
  * ``GroupScopedBlockedTimeSerializer``: quota rules are non-recurring (no
@@ -1265,6 +1294,13 @@ export type GroupScopedQuotaRuleCreate = {
      */
     cap: number;
 };
+
+/**
+ * * `organization_admin` - organization_admin
+ * * `organization_billing_owner` - organization_billing_owner
+ * * `organization_member` - organization_member
+ */
+export type GroupsEnum = 'organization_admin' | 'organization_billing_owner' | 'organization_member';
 
 /**
  * The calendar a ledger row's event lives on -- nested under
@@ -1379,28 +1415,25 @@ export type MeteredOccurrenceOrganization = {
  * Read-only serializer for the caller's active organization memberships.
  *
  * Used by ``GET /organizations/mine/`` to power the frontend org switcher.
- * Returns a list of ``{organization: {id, name}, role, can_manage_branding}``
+ * Returns a list of
+ * ``{organization: {id, name}, permissions, can_manage_branding}``
  * entries — one per active membership — without requiring the
  * ``X-Organization-Id`` header.
  */
 export type MyMembership = {
     organization: OrganizationBrief;
     /**
-     * Role the user holds in this organization. Admins can manage organization-scoped resources (e.g. CalendarGroups) regardless of direct ownership.
-     *
-     * * `member` - Member
-     * * `admin` - Admin
+     * Capabilities this membership confers in this organization, as ``app_label.codename`` strings (for example ``organizations.manage_members``). Resolved from the membership's groups and direct grants -- the same source every server-side authorization check reads -- so a client can gate UI on the exact string the API will enforce. Only organization-scoped capabilities appear: a global Django permission or superuser status grants nothing here, because it grants nothing in this organization either. An inactive membership resolves an empty list. The set of possible values grows over time; treat an unrecognised entry as an unknown capability rather than an error.
      */
-    role: RoleEnum;
+    readonly permissions: Array<string>;
     /**
-     * Whether this membership's organization is branding-eligible
-     * (parentless-and-entitled, excluding the slug condition) -- see
+     * Whether this membership can manage branding: its
+     * ``organizations.manage_branding`` capability plus the parentless,
+     * entitled organization gate -- see
      * ``CurrentMembershipSerializer.get_can_manage_branding`` for the full
-     * rationale. Computed per-membership (not per-role): a non-admin
-     * member's entry reports the same organization-level capability as an
-     * admin's, matching the read gate's own admin-agnostic eligibility
-     * check -- role-based write authorization is enforced separately by
-     * ``IsOrganizationAdmin`` on the branding endpoints themselves.
+     * rationale. Computed per membership, so a permitted member and an
+     * unpermitted member in the same eligible organization receive different
+     * values.
      *
      * Reads from the batch ``_MyMembershipListSerializer`` precomputes on the
      * shared context when serializing a list (the ``many=True`` path this
@@ -1470,7 +1503,10 @@ export type Notification = {
 export type Organization = {
     readonly id: number;
     name: string;
-    slug?: string | null;
+    /**
+     * Public, URL-safe identifier used by the organization's branded login page and by brandingForTenant. Always set: an organization saved without one is given an opaque ``org-<token>`` slug, and the database refuses a blank value. Mutable, but not clearable -- changing it orphans previously-issued branded login URLs, which then fall back to the default identity rather than erroring. Format, reserved-word, and confusable-character rules live in organizations.slug_validation and are enforced by each write surface (REST serializer, admin form, GraphQL input), not on the model.
+     */
+    slug?: string;
     /**
      * Whether to sync rooms for this organization.
      */
@@ -1584,9 +1620,9 @@ export type OrganizationBrief = {
     readonly id: number;
     readonly name: string;
     /**
-     * Public, URL-safe identifier used by the organization's branded login page and by brandingForTenant. Optional until the organization sets one self-serve; stored as NULL (never empty string) when unset — default=None keeps a field left blank in a form/serializer NULL rather than '', which is what lets the unique index admit any number of organizations with no slug. Mutable after set: changing it orphans previously-issued branded login URLs, which then fall back to the default identity rather than erroring. Format, reserved-word, and confusable-character rules live in organizations.slug_validation and are enforced by each write surface (REST serializer, admin form, GraphQL input), not here.
+     * Public, URL-safe identifier used by the organization's branded login page and by brandingForTenant. Always set: an organization saved without one is given an opaque ``org-<token>`` slug, and the database refuses a blank value. Mutable, but not clearable -- changing it orphans previously-issued branded login URLs, which then fall back to the default identity rather than erroring. Format, reserved-word, and confusable-character rules live in organizations.slug_validation and are enforced by each write surface (REST serializer, admin form, GraphQL input), not on the model.
      */
-    readonly slug: string | null;
+    readonly slug: string;
 };
 
 /**
@@ -1608,21 +1644,18 @@ export type OrganizationInvitation = {
 /**
  * Read-only serializer for listing and retrieving organization members.
  *
- * Exposes membership role, active status, and flattened user information
- * (email, first_name, last_name) for the admin datatable.
+ * Exposes each member's resolved capabilities, active status, and flattened
+ * user information (email, first_name, last_name) for the admin datatable.
  */
 export type OrganizationMembership = {
     readonly user_id: number;
     readonly organization_id: number;
     /**
-     * Role the user holds in this organization. Admins can manage organization-scoped resources (e.g. CalendarGroups) regardless of direct ownership.
-     *
-     * * `member` - Member
-     * * `admin` - Admin
+     * Capabilities this membership confers in this organization, as ``app_label.codename`` strings (for example ``organizations.manage_members``). Resolved from the membership's groups and direct grants -- the same source every server-side authorization check reads -- so a client can gate UI on the exact string the API will enforce. Only organization-scoped capabilities appear: a global Django permission or superuser status grants nothing here, because it grants nothing in this organization either. An inactive membership resolves an empty list. The set of possible values grows over time; treat an unrecognised entry as an unknown capability rather than an error.
      */
-    role: RoleEnum;
+    readonly permissions: Array<string>;
     /**
-     * Whether this membership is active. Inactive memberships are treated as gated: the user still has a row but loses all tenant-scoped access until reactivated. Use this to disable a user without deleting their membership record (which would lose role/history). Default True keeps every existing read unchanged.
+     * Whether this membership is active. Inactive memberships are treated as gated: the user still has a row but loses all tenant-scoped access until reactivated. Use this to disable a user without deleting their membership record (which would lose their groups and history). Default True keeps every existing read unchanged.
      */
     readonly is_active: boolean;
     readonly user_email: string;
@@ -1640,13 +1673,17 @@ export type OrganizationWeekStartEnum = 'monday' | 'sunday';
  * Membership identity for a calendar owner.
  *
  * A membership has no scalar id (it is identified by the ``(user_id,
- * organization_id)`` pair), so the representation exposes that pair plus the
- * membership ``role``.
+ * organization_id)`` pair), so the representation exposes that pair.
+ *
+ * It used to carry the membership's ``role`` as well. That left with the rest
+ * of ``role``'s API surface: authorization is answered from permissions, and
+ * this identity representation is not the place to publish a member's
+ * capabilities -- ``GET /organization-members/`` is. Consumers that read
+ * ``role`` here to decide what to render should read ``permissions`` there.
  */
 export type OwnershipMembership = {
     readonly user_id: number;
     readonly organization_id: number;
-    readonly role: string;
 };
 
 export type PaginatedAvailableTimeList = {
@@ -1857,7 +1894,7 @@ export type PatchedBillingProfile = {
     contact_last_name?: string;
     contact_email?: string;
     contact_phone?: string;
-    document_type?: string;
+    document_type?: BillingProfileDocumentTypeEnum;
     document_number?: string;
     billing_address?: BillingAddress;
     readonly created?: string;
@@ -2080,7 +2117,10 @@ export type PatchedGroupScopedQuotaRuleUpdate = {
 export type PatchedOrganization = {
     readonly id?: number;
     name?: string;
-    slug?: string | null;
+    /**
+     * Public, URL-safe identifier used by the organization's branded login page and by brandingForTenant. Always set: an organization saved without one is given an opaque ``org-<token>`` slug, and the database refuses a blank value. Mutable, but not clearable -- changing it orphans previously-issued branded login URLs, which then fall back to the default identity rather than erroring. Format, reserved-word, and confusable-character rules live in organizations.slug_validation and are enforced by each write surface (REST serializer, admin form, GraphQL input), not on the model.
+     */
+    slug?: string;
     /**
      * Whether to sync rooms for this organization.
      */
@@ -2430,10 +2470,18 @@ export type ResourceCalendarCreate = {
 export type ResourceKeyEnum = 'organization_members' | 'resource_calendars' | 'calendar_groups' | 'bundle_calendars' | 'availability_windows' | 'webhook_subscriptions' | 'public_api_system_users' | 'event_occurrences';
 
 /**
- * * `member` - Member
- * * `admin` - Admin
+ * Body of ``POST /billing/subscription/retry-payment/``.
+ *
+ * Unlike ``ChangePlanRequestSerializer``/``AddOnPurchaseRequestSerializer``,
+ * ``payment_token`` is **required and non-blank** here rather than optional --
+ * this endpoint exists precisely to attach a *new* instrument (see
+ * ``SubscriptionService.retry_payment``), so there is no legitimate call with
+ * no token to attach.
  */
-export type RoleEnum = 'member' | 'admin';
+export type RetryPaymentRequest = {
+    idempotency_key: string;
+    payment_token: string;
+};
 
 /**
  * Read serializer for the org-level Google Calendar service account (CRUD surface).
@@ -2624,13 +2672,6 @@ export type UnavailableTimeWindow = {
     start_time: string;
     end_time: string;
     readonly reason_description: string;
-};
-
-/**
- * Request serializer for updating an organization member's role.
- */
-export type UpdateMembershipRole = {
-    role: RoleEnum;
 };
 
 /**
@@ -2863,7 +2904,7 @@ export type BillingProfileWritable = {
     contact_last_name?: string;
     contact_email: string;
     contact_phone?: string;
-    document_type: string;
+    document_type: BillingProfileDocumentTypeEnum;
     document_number: string;
     billing_address: BillingAddressWritable;
 };
@@ -3122,7 +3163,10 @@ export type MeteredOccurrenceWritable = {
  */
 export type OrganizationWritable = {
     name: string;
-    slug?: string | null;
+    /**
+     * Public, URL-safe identifier used by the organization's branded login page and by brandingForTenant. Always set: an organization saved without one is given an opaque ``org-<token>`` slug, and the database refuses a blank value. Mutable, but not clearable -- changing it orphans previously-issued branded login URLs, which then fall back to the default identity rather than erroring. Format, reserved-word, and confusable-character rules live in organizations.slug_validation and are enforced by each write surface (REST serializer, admin form, GraphQL input), not on the model.
+     */
+    slug?: string;
     /**
      * Whether to sync rooms for this organization.
      */
@@ -3323,7 +3367,7 @@ export type PatchedBillingProfileWritable = {
     contact_last_name?: string;
     contact_email?: string;
     contact_phone?: string;
-    document_type?: string;
+    document_type?: BillingProfileDocumentTypeEnum;
     document_number?: string;
     billing_address?: BillingAddressWritable;
 };
@@ -3455,7 +3499,10 @@ export type PatchedCalendarGroupWritable = {
  */
 export type PatchedOrganizationWritable = {
     name?: string;
-    slug?: string | null;
+    /**
+     * Public, URL-safe identifier used by the organization's branded login page and by brandingForTenant. Always set: an organization saved without one is given an opaque ``org-<token>`` slug, and the database refuses a blank value. Mutable, but not clearable -- changing it orphans previously-issued branded login URLs, which then fall back to the default identity rather than erroring. Format, reserved-word, and confusable-character rules live in organizations.slug_validation and are enforced by each write surface (REST serializer, admin form, GraphQL input), not on the model.
+     */
+    slug?: string;
     /**
      * Whether to sync rooms for this organization.
      */
@@ -4364,10 +4411,16 @@ export type BillingAddOnsCreateData = {
 
 export type BillingAddOnsCreateErrors = {
     /**
-     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven.
+     * The resource's current plan limit carries no `overage_unit_price`, so it has no catalog-derived price to purchase as an add-on (`code: "add_on_not_purchasable"`, `AddOnNotPurchasableError`).
      */
-    409: unknown;
+    400: BillingErrorBody;
+    /**
+     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`).
+     */
+    409: BillingErrorBody;
 };
+
+export type BillingAddOnsCreateError = BillingAddOnsCreateErrors[keyof BillingAddOnsCreateErrors];
 
 export type BillingAddOnsCreateResponses = {
     201: SubscriptionAddOn;
@@ -4392,10 +4445,16 @@ export type BillingAddOnsFormattedCreateData = {
 
 export type BillingAddOnsFormattedCreateErrors = {
     /**
-     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven.
+     * The resource's current plan limit carries no `overage_unit_price`, so it has no catalog-derived price to purchase as an add-on (`code: "add_on_not_purchasable"`, `AddOnNotPurchasableError`).
      */
-    409: unknown;
+    400: BillingErrorBody;
+    /**
+     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`).
+     */
+    409: BillingErrorBody;
 };
+
+export type BillingAddOnsFormattedCreateError = BillingAddOnsFormattedCreateErrors[keyof BillingAddOnsFormattedCreateErrors];
 
 export type BillingAddOnsFormattedCreateResponses = {
     201: SubscriptionAddOn;
@@ -4619,10 +4678,16 @@ export type BillingSubscriptionChangePlanCreateData = {
 
 export type BillingSubscriptionChangePlanCreateErrors = {
     /**
-     * Either another plan change is already awaiting payment confirmation, or the provider this organization resolves to is not configured in this deployment (`PaymentProviderNotConfiguredError`, mapped centrally in `common.exception_handlers.vinta_exception_handler`).
+     * No `payment_token` was supplied and this billing root has no payment method on file yet (`code: "payment_token_required"`, `PaymentTokenRequiredError`).
      */
-    409: unknown;
+    400: BillingErrorBody;
+    /**
+     * Either another plan change is already awaiting payment confirmation (`code: "unconfirmed_plan_change"`, `UnconfirmedPlanChangeError`), or the provider this organization resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). Both are mapped centrally in `common.exception_handlers.vinta_exception_handler`.
+     */
+    409: BillingErrorBody;
 };
+
+export type BillingSubscriptionChangePlanCreateError = BillingSubscriptionChangePlanCreateErrors[keyof BillingSubscriptionChangePlanCreateErrors];
 
 export type BillingSubscriptionChangePlanCreateResponses = {
     200: Subscription;
@@ -4647,10 +4712,16 @@ export type BillingSubscriptionChangePlanFormattedCreateData = {
 
 export type BillingSubscriptionChangePlanFormattedCreateErrors = {
     /**
-     * Either another plan change is already awaiting payment confirmation, or the provider this organization resolves to is not configured in this deployment (`PaymentProviderNotConfiguredError`, mapped centrally in `common.exception_handlers.vinta_exception_handler`).
+     * No `payment_token` was supplied and this billing root has no payment method on file yet (`code: "payment_token_required"`, `PaymentTokenRequiredError`).
      */
-    409: unknown;
+    400: BillingErrorBody;
+    /**
+     * Either another plan change is already awaiting payment confirmation (`code: "unconfirmed_plan_change"`, `UnconfirmedPlanChangeError`), or the provider this organization resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). Both are mapped centrally in `common.exception_handlers.vinta_exception_handler`.
+     */
+    409: BillingErrorBody;
 };
+
+export type BillingSubscriptionChangePlanFormattedCreateError = BillingSubscriptionChangePlanFormattedCreateErrors[keyof BillingSubscriptionChangePlanFormattedCreateErrors];
 
 export type BillingSubscriptionChangePlanFormattedCreateResponses = {
     200: Subscription;
@@ -4697,6 +4768,86 @@ export type BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses = 
 };
 
 export type BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponse = BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses[keyof BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses];
+
+export type BillingSubscriptionRetryPaymentCreateData = {
+    body: RetryPaymentRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/billing/subscription/retry-payment/';
+};
+
+export type BillingSubscriptionRetryPaymentCreateErrors = {
+    /**
+     * `payment_token` or `idempotency_key` is missing.
+     */
+    400: unknown;
+    /**
+     * The new instrument was attached, but the provider declined the charge against it, or refused to attempt it at all (`code: "charge_declined"`, `ChargeDeclinedError`). Distinct from the over-limit 402 rendered elsewhere in this API (`OverLimitError`, `code: "limit_exceeded"`) -- both use 402 Payment Required, `code` disambiguates. The subscription stays GRACE/RESTRICTED. A subscription can carry more than one outstanding invoice; if an earlier one was paid before a later one hit this decline, a partial collection may already have occurred -- submit a different `payment_token` to retry the remainder, do not assume nothing moved.
+     */
+    402: BillingErrorBody;
+    /**
+     * One of four conflicts: the subscription is not currently GRACE/RESTRICTED (`code: "retry_payment_not_applicable"`, `RetryPaymentNotApplicableError`); it has never attached a payment instrument at the provider (`code: "subscription_not_attached"`, `SubscriptionNotAttachedError` -- such an organization has never paid and belongs on `change-plan`'s first-upgrade path instead); the provider reports nothing actually owed for this subscription right now (`code: "no_outstanding_balance"`, `NoOutstandingBalanceError`); or the resolved provider has no verified balance-collection primitive to drive (`code: "collection_not_supported"`, `CollectionNotSupportedError` -- MercadoPago, as of this writing).
+     */
+    409: BillingErrorBody;
+};
+
+export type BillingSubscriptionRetryPaymentCreateError = BillingSubscriptionRetryPaymentCreateErrors[keyof BillingSubscriptionRetryPaymentCreateErrors];
+
+export type BillingSubscriptionRetryPaymentCreateResponses = {
+    /**
+     * The new instrument was attached and the outstanding balance was submitted for collection at the provider. Recovery is webhook-driven -- the subscription in this response is still `"grace"`/`"restricted"`; it moves to `"active"` only once the subscription-payment webhook confirms the charge.
+     */
+    200: Subscription;
+};
+
+export type BillingSubscriptionRetryPaymentCreateResponse = BillingSubscriptionRetryPaymentCreateResponses[keyof BillingSubscriptionRetryPaymentCreateResponses];
+
+export type BillingSubscriptionRetryPaymentFormattedCreateData = {
+    body: RetryPaymentRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/billing/subscription/retry-payment{format}';
+};
+
+export type BillingSubscriptionRetryPaymentFormattedCreateErrors = {
+    /**
+     * `payment_token` or `idempotency_key` is missing.
+     */
+    400: unknown;
+    /**
+     * The new instrument was attached, but the provider declined the charge against it, or refused to attempt it at all (`code: "charge_declined"`, `ChargeDeclinedError`). Distinct from the over-limit 402 rendered elsewhere in this API (`OverLimitError`, `code: "limit_exceeded"`) -- both use 402 Payment Required, `code` disambiguates. The subscription stays GRACE/RESTRICTED. A subscription can carry more than one outstanding invoice; if an earlier one was paid before a later one hit this decline, a partial collection may already have occurred -- submit a different `payment_token` to retry the remainder, do not assume nothing moved.
+     */
+    402: BillingErrorBody;
+    /**
+     * One of four conflicts: the subscription is not currently GRACE/RESTRICTED (`code: "retry_payment_not_applicable"`, `RetryPaymentNotApplicableError`); it has never attached a payment instrument at the provider (`code: "subscription_not_attached"`, `SubscriptionNotAttachedError` -- such an organization has never paid and belongs on `change-plan`'s first-upgrade path instead); the provider reports nothing actually owed for this subscription right now (`code: "no_outstanding_balance"`, `NoOutstandingBalanceError`); or the resolved provider has no verified balance-collection primitive to drive (`code: "collection_not_supported"`, `CollectionNotSupportedError` -- MercadoPago, as of this writing).
+     */
+    409: BillingErrorBody;
+};
+
+export type BillingSubscriptionRetryPaymentFormattedCreateError = BillingSubscriptionRetryPaymentFormattedCreateErrors[keyof BillingSubscriptionRetryPaymentFormattedCreateErrors];
+
+export type BillingSubscriptionRetryPaymentFormattedCreateResponses = {
+    /**
+     * The new instrument was attached and the outstanding balance was submitted for collection at the provider. Recovery is webhook-driven -- the subscription in this response is still `"grace"`/`"restricted"`; it moves to `"active"` only once the subscription-payment webhook confirms the charge.
+     */
+    200: Subscription;
+};
+
+export type BillingSubscriptionRetryPaymentFormattedCreateResponse = BillingSubscriptionRetryPaymentFormattedCreateResponses[keyof BillingSubscriptionRetryPaymentFormattedCreateResponses];
 
 export type BillingUsageOccurrencesListData = {
     body?: never;
@@ -5856,7 +6007,7 @@ export type BrandingRetrieveData = {
 
 export type BrandingRetrieveErrors = {
     /**
-     * Organization has a parent or lacks the entitlement; or not an admin. A slug-less-but-otherwise-eligible org is NOT refused here -- see 404.
+     * Organization has a parent, lacks the entitlement, or lacks branding permission.
      */
     403: unknown;
     /**
@@ -5890,7 +6041,7 @@ export type BrandingPartialUpdateErrors = {
      */
     400: unknown;
     /**
-     * Organization has a parent, lacks the entitlement, or has no slug; or not an admin
+     * Organization has a parent, lacks the entitlement, or lacks branding permission
      */
     403: unknown;
     /**
@@ -5924,7 +6075,7 @@ export type BrandingUpdateErrors = {
      */
     400: unknown;
     /**
-     * Organization has a parent, lacks the entitlement, or has no slug; or not an admin
+     * Organization has a parent, lacks the entitlement, or lacks branding permission
      */
     403: unknown;
 };
@@ -5955,7 +6106,7 @@ export type BrandingLogoUploadParamsCreateErrors = {
      */
     400: unknown;
     /**
-     * Organization has a parent or lacks the entitlement; or not an admin
+     * Organization has a parent, lacks the entitlement, or lacks branding permission
      */
     403: unknown;
 };
@@ -9999,6 +10150,79 @@ export type OrganizationMembersDeactivateFormattedCreateResponses = {
 
 export type OrganizationMembersDeactivateFormattedCreateResponse = OrganizationMembersDeactivateFormattedCreateResponses[keyof OrganizationMembersDeactivateFormattedCreateResponses];
 
+export type OrganizationMembersGroupsCreateData = {
+    body: AssignMembershipGroups;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        user_id: string;
+    };
+    query?: never;
+    url: '/organization-members/{user_id}/groups/';
+};
+
+export type OrganizationMembersGroupsCreateErrors = {
+    /**
+     * Unknown group name, empty group list, or the assignment would leave the organization with nobody who can manage members
+     */
+    400: unknown;
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Member not found or cross-org
+     */
+    404: unknown;
+};
+
+export type OrganizationMembersGroupsCreateResponses = {
+    200: OrganizationMembership;
+};
+
+export type OrganizationMembersGroupsCreateResponse = OrganizationMembersGroupsCreateResponses[keyof OrganizationMembersGroupsCreateResponses];
+
+export type OrganizationMembersGroupsFormattedCreateData = {
+    body: AssignMembershipGroups;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        user_id: string;
+    };
+    query?: never;
+    url: '/organization-members/{user_id}/groups{format}';
+};
+
+export type OrganizationMembersGroupsFormattedCreateErrors = {
+    /**
+     * Unknown group name, empty group list, or the assignment would leave the organization with nobody who can manage members
+     */
+    400: unknown;
+    /**
+     * Not an admin
+     */
+    403: unknown;
+    /**
+     * Member not found or cross-org
+     */
+    404: unknown;
+};
+
+export type OrganizationMembersGroupsFormattedCreateResponses = {
+    200: OrganizationMembership;
+};
+
+export type OrganizationMembersGroupsFormattedCreateResponse = OrganizationMembersGroupsFormattedCreateResponses[keyof OrganizationMembersGroupsFormattedCreateResponses];
+
 export type OrganizationMembersReactivateCreateData = {
     body?: OrganizationMembership;
     headers?: {
@@ -10071,79 +10295,6 @@ export type OrganizationMembersReactivateFormattedCreateResponses = {
 };
 
 export type OrganizationMembersReactivateFormattedCreateResponse = OrganizationMembersReactivateFormattedCreateResponses[keyof OrganizationMembersReactivateFormattedCreateResponses];
-
-export type OrganizationMembersUpdateRoleCreateData = {
-    body: UpdateMembershipRole;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        user_id: string;
-    };
-    query?: never;
-    url: '/organization-members/{user_id}/update-role/';
-};
-
-export type OrganizationMembersUpdateRoleCreateErrors = {
-    /**
-     * Invalid role or would demote the last active admin
-     */
-    400: unknown;
-    /**
-     * Not an admin
-     */
-    403: unknown;
-    /**
-     * Member not found or cross-org
-     */
-    404: unknown;
-};
-
-export type OrganizationMembersUpdateRoleCreateResponses = {
-    200: OrganizationMembership;
-};
-
-export type OrganizationMembersUpdateRoleCreateResponse = OrganizationMembersUpdateRoleCreateResponses[keyof OrganizationMembersUpdateRoleCreateResponses];
-
-export type OrganizationMembersUpdateRoleFormattedCreateData = {
-    body: UpdateMembershipRole;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        user_id: string;
-    };
-    query?: never;
-    url: '/organization-members/{user_id}/update-role{format}';
-};
-
-export type OrganizationMembersUpdateRoleFormattedCreateErrors = {
-    /**
-     * Invalid role or would demote the last active admin
-     */
-    400: unknown;
-    /**
-     * Not an admin
-     */
-    403: unknown;
-    /**
-     * Member not found or cross-org
-     */
-    404: unknown;
-};
-
-export type OrganizationMembersUpdateRoleFormattedCreateResponses = {
-    200: OrganizationMembership;
-};
-
-export type OrganizationMembersUpdateRoleFormattedCreateResponse = OrganizationMembersUpdateRoleFormattedCreateResponses[keyof OrganizationMembersUpdateRoleFormattedCreateResponses];
 
 export type OrganizationsCreateData = {
     body: OrganizationWritable;
@@ -11152,6 +11303,12 @@ export type PublicApiDocsWebhookEventsFormattedListResponse = PublicApiDocsWebho
 
 export type PublicApiTokensListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -11174,6 +11331,12 @@ export type PublicApiTokensListResponse = PublicApiTokensListResponses[keyof Pub
 
 export type PublicApiTokensCreateData = {
     body: SystemUserTokenCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/public-api-tokens/';
@@ -11187,6 +11350,12 @@ export type PublicApiTokensCreateResponse = PublicApiTokensCreateResponses[keyof
 
 export type PublicApiTokensFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -11211,6 +11380,12 @@ export type PublicApiTokensFormattedListResponse = PublicApiTokensFormattedListR
 
 export type PublicApiTokensFormattedCreateData = {
     body: SystemUserTokenCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -11226,6 +11401,12 @@ export type PublicApiTokensFormattedCreateResponse = PublicApiTokensFormattedCre
 
 export type PublicApiTokensRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -11241,6 +11422,12 @@ export type PublicApiTokensRetrieveResponse = PublicApiTokensRetrieveResponses[k
 
 export type PublicApiTokensPartialUpdateData = {
     body?: PatchedSystemUserTokenUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -11256,6 +11443,12 @@ export type PublicApiTokensPartialUpdateResponse = PublicApiTokensPartialUpdateR
 
 export type PublicApiTokensUpdateData = {
     body: SystemUserTokenUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -11271,6 +11464,12 @@ export type PublicApiTokensUpdateResponse = PublicApiTokensUpdateResponses[keyof
 
 export type PublicApiTokensFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -11287,6 +11486,12 @@ export type PublicApiTokensFormattedRetrieveResponse = PublicApiTokensFormattedR
 
 export type PublicApiTokensFormattedPartialUpdateData = {
     body?: PatchedSystemUserTokenUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -11303,6 +11508,12 @@ export type PublicApiTokensFormattedPartialUpdateResponse = PublicApiTokensForma
 
 export type PublicApiTokensFormattedUpdateData = {
     body: SystemUserTokenUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -11319,6 +11530,12 @@ export type PublicApiTokensFormattedUpdateResponse = PublicApiTokensFormattedUpd
 
 export type PublicApiTokensRevokeCreateData = {
     body?: SystemUserToken;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -11334,6 +11551,12 @@ export type PublicApiTokensRevokeCreateResponse = PublicApiTokensRevokeCreateRes
 
 export type PublicApiTokensRevokeFormattedCreateData = {
     body?: SystemUserToken;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -11504,6 +11727,12 @@ export type PublicOrganizationsEventsUpdateResponse = PublicOrganizationsEventsU
 
 export type ServiceAccountsListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -11526,6 +11755,12 @@ export type ServiceAccountsListResponse = ServiceAccountsListResponses[keyof Ser
 
 export type ServiceAccountsCreateData = {
     body: ServiceAccountWriteWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path?: never;
     query?: never;
     url: '/service-accounts/';
@@ -11539,6 +11774,12 @@ export type ServiceAccountsCreateResponse = ServiceAccountsCreateResponses[keyof
 
 export type ServiceAccountsFormattedListData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -11563,6 +11804,12 @@ export type ServiceAccountsFormattedListResponse = ServiceAccountsFormattedListR
 
 export type ServiceAccountsFormattedCreateData = {
     body: ServiceAccountWriteWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
     };
@@ -11578,6 +11825,12 @@ export type ServiceAccountsFormattedCreateResponse = ServiceAccountsFormattedCre
 
 export type ServiceAccountsDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -11596,6 +11849,12 @@ export type ServiceAccountsDestroyResponse = ServiceAccountsDestroyResponses[key
 
 export type ServiceAccountsRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -11611,6 +11870,12 @@ export type ServiceAccountsRetrieveResponse = ServiceAccountsRetrieveResponses[k
 
 export type ServiceAccountsPartialUpdateData = {
     body?: PatchedServiceAccountWriteWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -11626,6 +11891,12 @@ export type ServiceAccountsPartialUpdateResponse = ServiceAccountsPartialUpdateR
 
 export type ServiceAccountsUpdateData = {
     body: ServiceAccountWriteWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         id: string;
     };
@@ -11641,6 +11912,12 @@ export type ServiceAccountsUpdateResponse = ServiceAccountsUpdateResponses[keyof
 
 export type ServiceAccountsFormattedDestroyData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -11660,6 +11937,12 @@ export type ServiceAccountsFormattedDestroyResponse = ServiceAccountsFormattedDe
 
 export type ServiceAccountsFormattedRetrieveData = {
     body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -11676,6 +11959,12 @@ export type ServiceAccountsFormattedRetrieveResponse = ServiceAccountsFormattedR
 
 export type ServiceAccountsFormattedPartialUpdateData = {
     body?: PatchedServiceAccountWriteWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;
@@ -11692,6 +11981,12 @@ export type ServiceAccountsFormattedPartialUpdateResponse = ServiceAccountsForma
 
 export type ServiceAccountsFormattedUpdateData = {
     body: ServiceAccountWriteWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
     path: {
         format: '.json';
         id: string;

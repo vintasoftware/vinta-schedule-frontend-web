@@ -11,16 +11,16 @@
  * content (event titles, owners) across the pooled subtree, and the endpoint is
  * billing-owner/admin only (stricter than the other reads). The gate is layered:
  *
- *   1. CLIENT ROLE GATE. Only `useRole() === 'admin'` renders the ledger. A
- *      non-admin sees the access-denied state, and the ledger query is DISABLED
- *      for them (`enabled: isAdmin`) — no request is issued, so rows are never
- *      even fetched, let alone shown. While the role is still loading (`null`),
- *      a neutral loading state shows, never a flash of the table or the denial.
- *   2. SERVER 403 BACKSTOP. The server `403` is the real gate: a
- *      billing-owner-who-isn't-admin is served by the API, and a wrong/stale
- *      client role always degrades to denied. When the query errors, the row
- *      area renders the access-denied (or a validation message) state, NEVER the
- *      table — so a member can never see a ledger row.
+ *   1. CLIENT CAPABILITY GATE. Only a member holding `payments.manage_billing`
+ *      renders the ledger. Anyone else sees the access-denied state, and the
+ *      ledger query is DISABLED for them (`enabled: canManageBilling`) — no
+ *      request is issued, so rows are never even fetched, let alone shown. While
+ *      permissions are still loading (`null`), a neutral loading state shows,
+ *      never a flash of the table or the denial.
+ *   2. SERVER 403 BACKSTOP. The server `403` is the real gate: a wrong/stale
+ *      client permission set always degrades to denied. When the query errors,
+ *      the row area renders the access-denied (or a validation message) state,
+ *      NEVER the table — so a member can never see a ledger row.
  *
  * The `organization` filter is restricted to pool orgs only (options are sourced
  * from the usage `by_organization` breakdown + the observed rows' own orgs), so
@@ -60,7 +60,10 @@ import {
 import type { BillingUsageOccurrencesListData } from '@/client';
 import { useOccurrenceLedger } from '@/hooks/billing/use-occurrence-ledger';
 import { useBillingUsage } from '@/hooks/billing/use-billing-usage';
-import { useRole } from '@/components/navigation/role-gate';
+import {
+  usePermissions,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import { readNonFieldError } from '@/lib/utils/api-errors';
 
 import { OccurrenceLedgerTable } from '@/components/billing/occurrence-ledger-table';
@@ -106,8 +109,9 @@ function AccessDenied() {
 }
 
 export default function BillingOccurrencesPage() {
-  const role = useRole();
-  const isAdmin = role === 'admin';
+  const permissions = usePermissions();
+  const canManageBilling =
+    permissions?.includes(PERMISSIONS.manageBilling) ?? false;
 
   const [periodStart, setPeriodStart] = React.useState('');
   const [overageOnly, setOverageOnly] = React.useState(false);
@@ -148,16 +152,16 @@ export default function BillingOccurrencesPage() {
       : {}),
   };
 
-  // The ledger query is DISABLED for a non-admin: no request is issued, so a
-  // member never even fetches a row. The server `403` remains the real gate for
-  // an admin whose access the API denies.
+  // The ledger query is DISABLED for a member without `payments.manage_billing`:
+  // no request is issued, so they never even fetch a row. The server `403`
+  // remains the real gate for a caller whose access the API denies.
   const { occurrences, totalCount, isLoading, isError, error } =
-    useOccurrenceLedger({ filters, enabled: isAdmin });
+    useOccurrenceLedger({ filters, enabled: canManageBilling });
 
   // Usage is the pool-wide source for the org filter's options + the plan
-  // currency for `unit_price`. Read only when the ledger is (admin), since a
-  // non-admin never renders the filter or the table.
-  const { usage } = useBillingUsage({ enabled: isAdmin });
+  // currency for `unit_price`. Read only when the ledger is, since a member
+  // without billing access never renders the filter or the table.
+  const { usage } = useBillingUsage({ enabled: canManageBilling });
 
   const currency = usage?.plan?.currency ?? null;
 
@@ -201,8 +205,9 @@ export default function BillingOccurrencesPage() {
   const hasPrev = offset > 0;
   const hasNext = offset + PAGE_SIZE < totalCount;
 
-  // Role still loading — never flash the table or the denial before we know.
-  if (role === null) {
+  // Permissions still loading — never flash the table or the denial before we
+  // know.
+  if (permissions === null) {
     return (
       <Center grow>
         <Text color='muted-foreground'>Loading…</Text>
@@ -210,8 +215,9 @@ export default function BillingOccurrencesPage() {
     );
   }
 
-  // CLIENT ROLE GATE — a non-admin never sees the filters or the table.
-  if (!isAdmin) {
+  // CLIENT CAPABILITY GATE — a member without billing access never sees the
+  // filters or the table.
+  if (!canManageBilling) {
     return (
       <Stack gap={6}>
         <PageHeader
