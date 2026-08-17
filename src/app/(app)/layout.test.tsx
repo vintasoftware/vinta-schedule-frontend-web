@@ -46,9 +46,26 @@ vi.mock('sonner', () => ({
   toast: (...args: unknown[]) => toast(...args),
 }));
 
+// Phase 3 (billing-hardening-gap-closure): the app-wide billing-state banner
+// reads useSubscription directly — mocked here so the shell tests below can
+// drive it independently of the org bootstrap mocks above.
+vi.mock('@/hooks/billing/use-subscription', () => ({
+  useSubscription: vi.fn(),
+}));
+// The /billing page's own dashboard (BillingOverview) reads useBillingUsage —
+// mocked so the "not double-rendered on /billing" test can mount the real
+// BillingOverview tree inside AppLayoutClient.
+vi.mock('@/hooks/billing/use-billing-usage', () => ({
+  useBillingUsage: vi.fn(),
+}));
+
 import { organizationsCurrentRetrieve } from '@/client';
 import { organizationsMineList } from '@/client/sdk.gen';
+import { useSubscription } from '@/hooks/billing/use-subscription';
+import { useBillingUsage } from '@/hooks/billing/use-billing-usage';
 import { AppLayoutClient } from '@/components/navigation/app-layout-client';
+import { BillingOverview } from '@/components/billing/billing-overview';
+import type { Subscription, UsageResponse } from '@/client';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -191,11 +208,28 @@ function setSessionActiveCookie() {
 // Tests
 // ---------------------------------------------------------------------------
 
+// Default the app-wide billing banner's subscription read to "no attention
+// needed" so every pre-existing shell test (which doesn't care about
+// billing) renders without a banner. Individual billing-banner tests below
+// override this per-case.
+function mockSubscriptionState(subscription: Subscription | null) {
+  vi.mocked(useSubscription).mockReturnValue({
+    subscription,
+    isLoading: false,
+    isError: false,
+    error: null,
+    subscriptionQuery: {} as ReturnType<
+      typeof useSubscription
+    >['subscriptionQuery'],
+  });
+}
+
 describe('AppLayout (integration)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
     toast.mockClear();
+    mockSubscriptionState(null);
   });
 
   describe('unauthenticated user', () => {
@@ -511,6 +545,93 @@ describe('AppLayout (integration)', () => {
 
       // The onboarding redirect must never fire for a disabled user.
       expect(replace).not.toHaveBeenCalledWith('/auth/onboarding');
+    });
+  });
+
+  // Phase 3 (billing-hardening-gap-closure): the billing-state banner mounts
+  // once in the app shell, above `{children}`, so a restricted/grace org sees
+  // it on every authenticated page — not only inside `/billing`.
+  describe('app-wide billing-state banner (Phase 3)', () => {
+    beforeEach(() => {
+      setSessionActiveCookie();
+      mockOrgSuccess(MEMBER_MEMBERSHIP);
+      // Explicit non-empty mine/ so this describe's onboarded-member path
+      // never inherits an empty-list default left over from an earlier test
+      // in the file (isMineGated is otherwise order-dependent).
+      mockMineList([
+        {
+          organization: { id: 1, name: 'Test Org', slug: 'test-org' },
+          permissions: MEMBER_PERMISSIONS,
+          can_manage_branding: false,
+        } as MyMembership,
+      ]);
+    });
+
+    const RESTRICTED_SUBSCRIPTION = {
+      id: 1,
+      billing_state: 'restricted',
+      grace_period_ends_at: '2026-09-01T00:00:00Z',
+      add_ons: [],
+    } as unknown as Subscription;
+
+    it('renders the banner on a non-billing route (e.g. dashboard) for a restricted org', async () => {
+      mockSubscriptionState(RESTRICTED_SUBSCRIPTION);
+      renderLayout(<div>dashboard content</div>);
+
+      await waitFor(() => {
+        expect(screen.getByAltText('Vinta')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('billing-state-banner')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Billing status: Restricted/)
+      ).toBeInTheDocument();
+      expect(screen.getByText('dashboard content')).toBeInTheDocument();
+    });
+
+    it('renders nothing for a free/active org on a non-billing route', async () => {
+      mockSubscriptionState(null); // free/no-sub org: subscription 404s
+      renderLayout(<div>dashboard content</div>);
+
+      await waitFor(() => {
+        expect(screen.getByAltText('Vinta')).toBeInTheDocument();
+      });
+
+      expect(
+        screen.queryByTestId('billing-state-banner')
+      ).not.toBeInTheDocument();
+    });
+
+    it('appears exactly once on /billing — not double-rendered by BillingOverview', async () => {
+      mockSubscriptionState(RESTRICTED_SUBSCRIPTION);
+      const usage: UsageResponse = {
+        billing_state: 'restricted',
+        billing_root_organization_id: 1,
+        plan: { slug: 'team', name: 'Team', currency: 'USD' },
+        billing_period: {
+          start: '2026-08-01T00:00:00Z',
+          end: '2026-09-01T00:00:00Z',
+        },
+        estimated_overage_total: '0.0000',
+        limits: [],
+      } as unknown as UsageResponse;
+      vi.mocked(useBillingUsage).mockReturnValue({
+        usage,
+        isLoading: false,
+        isError: false,
+        error: null,
+        usageQuery: {} as ReturnType<typeof useBillingUsage>['usageQuery'],
+      });
+
+      renderLayout(<BillingOverview />);
+
+      await waitFor(() => {
+        expect(screen.getByAltText('Vinta')).toBeInTheDocument();
+      });
+
+      // BillingOverview's own in-section mount was removed in favor of the
+      // app-shell mount — a regression re-adding it would show 2 here.
+      expect(screen.getAllByTestId('billing-state-banner')).toHaveLength(1);
     });
   });
 });

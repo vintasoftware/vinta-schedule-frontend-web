@@ -9,9 +9,13 @@
  * It reads `GET /billing/usage/` (`useBillingUsage`) for everything on screen —
  * billing state, plan snapshot, period bounds, per-resource usage, reseller
  * attribution, accrued overage — and `GET /billing/subscription/`
- * (`useSubscription`) only for the grace deadline the banner shows in
- * GRACE / RESTRICTED. Subscription is a supporting read: a free / no-sub org
- * answers `404` there, which is expected and never blocks the dashboard.
+ * (`useSubscription`) as a supporting read for the plan summary card and the
+ * purchase dialog. A free / no-sub org answers `404` there, which is expected
+ * and never blocks the dashboard.
+ *
+ * The GRACE/RESTRICTED billing-state banner does NOT mount here — it mounts
+ * app-wide in `AppLayoutClient` (Phase 3, `app-billing-banner.tsx`) so it
+ * appears on every authenticated page, not only `/billing`.
  *
  * States:
  *   • Loading — the usage query is in flight.
@@ -52,7 +56,6 @@ import {
 } from '@/components/navigation/permission-gate';
 
 import { ActiveAddOnsList } from './active-add-ons-list';
-import { BillingStateBanner } from './billing-state-banner';
 import { OverageEstimate } from './overage-estimate';
 import { PlanSummaryCard } from './plan-summary-card';
 import { PurchaseAddOnDialog } from './purchase-add-on-dialog';
@@ -60,9 +63,9 @@ import { ResourceUsageList } from './resource-usage-list';
 
 export function BillingOverview() {
   const { usage, isLoading, isError } = useBillingUsage();
-  // Supporting read: the subscription supplies only the grace deadline the
-  // banner shows in GRACE/RESTRICTED. A free/no-sub org answers 404 here, so
-  // this never gates the dashboard — we read `grace_period_ends_at` optionally.
+  // Supporting read: the subscription feeds the plan summary card (interval,
+  // pending change) and the purchase dialog. A free/no-sub org answers 404
+  // here, so this never gates the dashboard.
   const { subscription } = useSubscription();
   // Role gating is defense-in-depth: only an admin gets the "Buy more"
   // affordance; the server `403` on the purchase endpoint is the real gate.
@@ -98,10 +101,10 @@ export function BillingOverview() {
 
   return (
     <Stack gap={6}>
-      <BillingStateBanner
-        billingState={usage.billing_state}
-        gracePeriodEndsAt={subscription?.grace_period_ends_at ?? null}
-      />
+      {/* Billing-state banner (grace/restricted) now mounts app-wide in
+          AppLayoutClient (Phase 3) so it appears on every authenticated page,
+          not only here — rendering it again in-section would double it up
+          on /billing. */}
 
       {/* Column count reacts to the CONTENT container's width
           (@container/content on the AppShell main), not the viewport —

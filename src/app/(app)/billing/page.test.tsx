@@ -143,9 +143,11 @@ describe('BillingPage (Phase 2)', () => {
     expect(() => render(<BillingPage />)).not.toThrow();
 
     // Free-plan card, unlimited rows, and an em-dash overage (no currency).
+    // The billing-state banner itself no longer mounts here — it moved
+    // app-wide to AppLayoutClient (Phase 3, billing-hardening-gap-closure;
+    // see app-billing-banner.test.tsx and (app)/layout.test.tsx).
     expect(screen.getByText('Free plan')).toBeInTheDocument();
     expect(screen.getAllByTestId('resource-unlimited')).toHaveLength(2);
-    expect(screen.getByText(/Billing status: Free/)).toBeInTheDocument();
     expect(screen.getByTestId('overage-amount')).toHaveTextContent('—');
   });
 
