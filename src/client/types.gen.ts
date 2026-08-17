@@ -26,9 +26,9 @@ export type ActionEnum = 'create' | 'update' | 'delete';
 
 /**
  * Body of ``POST /billing/add-ons/``. See ``ChangePlanRequestSerializer``
- * for why ``payment_token`` is present despite not being in the documented
- * request shape -- an add-on purchase is a one-time charge and needs
- * an instrument to charge, exactly like a first-ever plan upgrade does.
+ * for why ``payment_token`` is required in practice despite being optional
+ * here -- an add-on purchase is a one-time charge and needs an instrument to
+ * charge, exactly like a first-ever plan upgrade does.
  */
 export type AddOnPurchaseRequest = {
     resource_key: ResourceKeyEnum;
@@ -212,6 +212,11 @@ export type BillingAddress = {
     state: string;
     country: string;
     zip_code: string;
+};
+
+export type BillingErrorBody = {
+    code: string;
+    detail: string;
 };
 
 /**
@@ -429,12 +434,25 @@ export type BillingProfile = {
     contact_last_name?: string;
     contact_email: string;
     contact_phone?: string;
-    document_type: string;
+    document_type: BillingProfileDocumentTypeEnum;
     document_number: string;
     billing_address: BillingAddress;
     readonly created: string;
     readonly modified: string;
 };
+
+/**
+ * * `CPF` - CPF
+ * * `CNPJ` - CNPJ
+ * * `DNI` - DNI
+ * * `CI` - CI
+ * * `RUT` - RUT
+ * * `SSN` - SSN
+ * * `EIN` - EIN
+ * * `PASSPORT` - Passport
+ * * `OTHER` - Other
+ */
+export type BillingProfileDocumentTypeEnum = 'CPF' | 'CNPJ' | 'DNI' | 'CI' | 'RUT' | 'SSN' | 'EIN' | 'PASSPORT' | 'OTHER';
 
 /**
  * * `free` - Free
@@ -771,16 +789,14 @@ export type CalendarTypeEnum = 'personal' | 'resource' | 'virtual' | 'bundle';
 /**
  * Body of ``POST /billing/subscription/change-plan/``.
  *
- * ``payment_token`` is not part of the documented request body (only
- * ``plan_slug``/``billing_interval``/``idempotency_key``) but is required in
- * practice the *first* time a billing root ever attaches a payment instrument
- * -- there is otherwise no provider-facing card/token to create the
- * provider-side subscription against. Optional here (blank by default) because
- * it is only actually required when ``Subscription.external_id`` is still
- * blank; see ``SubscriptionService._initiate_upgrade`` for the exact condition
- * and ``PaymentTokenRequiredError`` for the 400 a caller gets if it omits the
- * token when one was needed. This is a deliberate deviation from the
- * documented request shape.
+ * ``payment_token`` is required in practice the *first* time a billing root
+ * ever attaches a payment instrument -- there is otherwise no provider-facing
+ * card/token to create the provider-side subscription against. Optional here
+ * (blank by default) because it is only actually required when
+ * ``Subscription.external_id`` is still blank; see
+ * ``SubscriptionService._initiate_upgrade`` for the exact condition and
+ * ``PaymentTokenRequiredError`` for the 400 a caller gets if it omits the
+ * token when one was needed.
  */
 export type ChangePlanRequest = {
     plan_slug: string;
@@ -1857,7 +1873,7 @@ export type PatchedBillingProfile = {
     contact_last_name?: string;
     contact_email?: string;
     contact_phone?: string;
-    document_type?: string;
+    document_type?: BillingProfileDocumentTypeEnum;
     document_number?: string;
     billing_address?: BillingAddress;
     readonly created?: string;
@@ -2430,6 +2446,20 @@ export type ResourceCalendarCreate = {
 export type ResourceKeyEnum = 'organization_members' | 'resource_calendars' | 'calendar_groups' | 'bundle_calendars' | 'availability_windows' | 'webhook_subscriptions' | 'public_api_system_users' | 'event_occurrences';
 
 /**
+ * Body of ``POST /billing/subscription/retry-payment/``.
+ *
+ * Unlike ``ChangePlanRequestSerializer``/``AddOnPurchaseRequestSerializer``,
+ * ``payment_token`` is **required and non-blank** here rather than optional --
+ * this endpoint exists precisely to attach a *new* instrument (see
+ * ``SubscriptionService.retry_payment``), so there is no legitimate call with
+ * no token to attach.
+ */
+export type RetryPaymentRequest = {
+    idempotency_key: string;
+    payment_token: string;
+};
+
+/**
  * * `member` - Member
  * * `admin` - Admin
  */
@@ -2863,7 +2893,7 @@ export type BillingProfileWritable = {
     contact_last_name?: string;
     contact_email: string;
     contact_phone?: string;
-    document_type: string;
+    document_type: BillingProfileDocumentTypeEnum;
     document_number: string;
     billing_address: BillingAddressWritable;
 };
@@ -3323,7 +3353,7 @@ export type PatchedBillingProfileWritable = {
     contact_last_name?: string;
     contact_email?: string;
     contact_phone?: string;
-    document_type?: string;
+    document_type?: BillingProfileDocumentTypeEnum;
     document_number?: string;
     billing_address?: BillingAddressWritable;
 };
@@ -4364,10 +4394,16 @@ export type BillingAddOnsCreateData = {
 
 export type BillingAddOnsCreateErrors = {
     /**
-     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven.
+     * The resource's current plan limit carries no `overage_unit_price`, so it has no catalog-derived price to purchase as an add-on (`code: "add_on_not_purchasable"`, `AddOnNotPurchasableError`).
      */
-    409: unknown;
+    400: BillingErrorBody;
+    /**
+     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`).
+     */
+    409: BillingErrorBody;
 };
+
+export type BillingAddOnsCreateError = BillingAddOnsCreateErrors[keyof BillingAddOnsCreateErrors];
 
 export type BillingAddOnsCreateResponses = {
     201: SubscriptionAddOn;
@@ -4392,10 +4428,16 @@ export type BillingAddOnsFormattedCreateData = {
 
 export type BillingAddOnsFormattedCreateErrors = {
     /**
-     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven.
+     * The resource's current plan limit carries no `overage_unit_price`, so it has no catalog-derived price to purchase as an add-on (`code: "add_on_not_purchasable"`, `AddOnNotPurchasableError`).
      */
-    409: unknown;
+    400: BillingErrorBody;
+    /**
+     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`).
+     */
+    409: BillingErrorBody;
 };
+
+export type BillingAddOnsFormattedCreateError = BillingAddOnsFormattedCreateErrors[keyof BillingAddOnsFormattedCreateErrors];
 
 export type BillingAddOnsFormattedCreateResponses = {
     201: SubscriptionAddOn;
@@ -4619,10 +4661,16 @@ export type BillingSubscriptionChangePlanCreateData = {
 
 export type BillingSubscriptionChangePlanCreateErrors = {
     /**
-     * Either another plan change is already awaiting payment confirmation, or the provider this organization resolves to is not configured in this deployment (`PaymentProviderNotConfiguredError`, mapped centrally in `common.exception_handlers.vinta_exception_handler`).
+     * No `payment_token` was supplied and this billing root has no payment method on file yet (`code: "payment_token_required"`, `PaymentTokenRequiredError`).
      */
-    409: unknown;
+    400: BillingErrorBody;
+    /**
+     * Either another plan change is already awaiting payment confirmation (`code: "unconfirmed_plan_change"`, `UnconfirmedPlanChangeError`), or the provider this organization resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). Both are mapped centrally in `common.exception_handlers.vinta_exception_handler`.
+     */
+    409: BillingErrorBody;
 };
+
+export type BillingSubscriptionChangePlanCreateError = BillingSubscriptionChangePlanCreateErrors[keyof BillingSubscriptionChangePlanCreateErrors];
 
 export type BillingSubscriptionChangePlanCreateResponses = {
     200: Subscription;
@@ -4647,10 +4695,16 @@ export type BillingSubscriptionChangePlanFormattedCreateData = {
 
 export type BillingSubscriptionChangePlanFormattedCreateErrors = {
     /**
-     * Either another plan change is already awaiting payment confirmation, or the provider this organization resolves to is not configured in this deployment (`PaymentProviderNotConfiguredError`, mapped centrally in `common.exception_handlers.vinta_exception_handler`).
+     * No `payment_token` was supplied and this billing root has no payment method on file yet (`code: "payment_token_required"`, `PaymentTokenRequiredError`).
      */
-    409: unknown;
+    400: BillingErrorBody;
+    /**
+     * Either another plan change is already awaiting payment confirmation (`code: "unconfirmed_plan_change"`, `UnconfirmedPlanChangeError`), or the provider this organization resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). Both are mapped centrally in `common.exception_handlers.vinta_exception_handler`.
+     */
+    409: BillingErrorBody;
 };
+
+export type BillingSubscriptionChangePlanFormattedCreateError = BillingSubscriptionChangePlanFormattedCreateErrors[keyof BillingSubscriptionChangePlanFormattedCreateErrors];
 
 export type BillingSubscriptionChangePlanFormattedCreateResponses = {
     200: Subscription;
@@ -4697,6 +4751,86 @@ export type BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses = 
 };
 
 export type BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponse = BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses[keyof BillingSubscriptionRetrieveSubscriptionFormattedRetrieveResponses];
+
+export type BillingSubscriptionRetryPaymentCreateData = {
+    body: RetryPaymentRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/billing/subscription/retry-payment/';
+};
+
+export type BillingSubscriptionRetryPaymentCreateErrors = {
+    /**
+     * `payment_token` or `idempotency_key` is missing.
+     */
+    400: unknown;
+    /**
+     * The new instrument was attached, but the provider declined the charge against it, or refused to attempt it at all (`code: "charge_declined"`, `ChargeDeclinedError`). Distinct from the over-limit 402 rendered elsewhere in this API (`OverLimitError`, `code: "limit_exceeded"`) -- both use 402 Payment Required, `code` disambiguates. The subscription stays GRACE/RESTRICTED. A subscription can carry more than one outstanding invoice; if an earlier one was paid before a later one hit this decline, a partial collection may already have occurred -- submit a different `payment_token` to retry the remainder, do not assume nothing moved.
+     */
+    402: BillingErrorBody;
+    /**
+     * One of four conflicts: the subscription is not currently GRACE/RESTRICTED (`code: "retry_payment_not_applicable"`, `RetryPaymentNotApplicableError`); it has never attached a payment instrument at the provider (`code: "subscription_not_attached"`, `SubscriptionNotAttachedError` -- such an organization has never paid and belongs on `change-plan`'s first-upgrade path instead); the provider reports nothing actually owed for this subscription right now (`code: "no_outstanding_balance"`, `NoOutstandingBalanceError`); or the resolved provider has no verified balance-collection primitive to drive (`code: "collection_not_supported"`, `CollectionNotSupportedError` -- MercadoPago, as of this writing).
+     */
+    409: BillingErrorBody;
+};
+
+export type BillingSubscriptionRetryPaymentCreateError = BillingSubscriptionRetryPaymentCreateErrors[keyof BillingSubscriptionRetryPaymentCreateErrors];
+
+export type BillingSubscriptionRetryPaymentCreateResponses = {
+    /**
+     * The new instrument was attached and the outstanding balance was submitted for collection at the provider. Recovery is webhook-driven -- the subscription in this response is still `"grace"`/`"restricted"`; it moves to `"active"` only once the subscription-payment webhook confirms the charge.
+     */
+    200: Subscription;
+};
+
+export type BillingSubscriptionRetryPaymentCreateResponse = BillingSubscriptionRetryPaymentCreateResponses[keyof BillingSubscriptionRetryPaymentCreateResponses];
+
+export type BillingSubscriptionRetryPaymentFormattedCreateData = {
+    body: RetryPaymentRequest;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/billing/subscription/retry-payment{format}';
+};
+
+export type BillingSubscriptionRetryPaymentFormattedCreateErrors = {
+    /**
+     * `payment_token` or `idempotency_key` is missing.
+     */
+    400: unknown;
+    /**
+     * The new instrument was attached, but the provider declined the charge against it, or refused to attempt it at all (`code: "charge_declined"`, `ChargeDeclinedError`). Distinct from the over-limit 402 rendered elsewhere in this API (`OverLimitError`, `code: "limit_exceeded"`) -- both use 402 Payment Required, `code` disambiguates. The subscription stays GRACE/RESTRICTED. A subscription can carry more than one outstanding invoice; if an earlier one was paid before a later one hit this decline, a partial collection may already have occurred -- submit a different `payment_token` to retry the remainder, do not assume nothing moved.
+     */
+    402: BillingErrorBody;
+    /**
+     * One of four conflicts: the subscription is not currently GRACE/RESTRICTED (`code: "retry_payment_not_applicable"`, `RetryPaymentNotApplicableError`); it has never attached a payment instrument at the provider (`code: "subscription_not_attached"`, `SubscriptionNotAttachedError` -- such an organization has never paid and belongs on `change-plan`'s first-upgrade path instead); the provider reports nothing actually owed for this subscription right now (`code: "no_outstanding_balance"`, `NoOutstandingBalanceError`); or the resolved provider has no verified balance-collection primitive to drive (`code: "collection_not_supported"`, `CollectionNotSupportedError` -- MercadoPago, as of this writing).
+     */
+    409: BillingErrorBody;
+};
+
+export type BillingSubscriptionRetryPaymentFormattedCreateError = BillingSubscriptionRetryPaymentFormattedCreateErrors[keyof BillingSubscriptionRetryPaymentFormattedCreateErrors];
+
+export type BillingSubscriptionRetryPaymentFormattedCreateResponses = {
+    /**
+     * The new instrument was attached and the outstanding balance was submitted for collection at the provider. Recovery is webhook-driven -- the subscription in this response is still `"grace"`/`"restricted"`; it moves to `"active"` only once the subscription-payment webhook confirms the charge.
+     */
+    200: Subscription;
+};
+
+export type BillingSubscriptionRetryPaymentFormattedCreateResponse = BillingSubscriptionRetryPaymentFormattedCreateResponses[keyof BillingSubscriptionRetryPaymentFormattedCreateResponses];
 
 export type BillingUsageOccurrencesListData = {
     body?: never;
