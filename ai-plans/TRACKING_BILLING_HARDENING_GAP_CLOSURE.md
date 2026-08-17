@@ -50,8 +50,15 @@ Client regen no longer needed; `main` already has `billingSubscriptionRetryPayme
 - **Summary:** New client wrapper `app-billing-banner.tsx` reads `useSubscription()` and renders `BillingStateBanner` for `grace`/`restricted`/`cancelled` (null for free/active/no-sub), mounted once in `app-layout-client.tsx` above `{children}` inside `<AppShell>` so it shows on every authenticated page. Removed the redundant in-section mount from `billing-overview.tsx`. Added colocated story + unit/integration tests (single-render on `/billing` asserted).
 - **Review note:** no BLOCKER. SHOULD-FIX: original wrapper rendered only grace/restricted, dropping the `cancelled` surface entirely (the plan hides only free/active) → fixed to include `cancelled`; corrected a stale docstring; added the missing story; NIT flash comment. Behavior change (plan-sanctioned): `/billing` no longer shows the active/free informational banner.
 
+### Phase 4 — Billing profile form hardening ✅
+- **Status:** PASS · **Branch:** `plan/billing-hardening-gap-closure/phase-4` (base: phase-3) · **Commit:** `14f2a7e`
+- **Models:** impl T3 (sonnet) · reviewer T3 · **fixer T3 (sonnet, bumped for two BLOCKERs touching hook error-plumbing)**
+- **Summary:** `document_type` is now a `Select` over the nine `BillingProfileDocumentTypeEnum` values (zod `z.enum`); the read view shows the friendly `DOCUMENT_TYPE_LABELS` with a legacy raw fallback (open-on-read). Server field-validation 400s map per-field via `readFieldValidationErrors` → `setError` (incl. nested `billing_address.*`). The form is split into an outer gating `BillingProfileForm` + a keyed `BillingProfileEditor` (id-keyed remount replaces the old `reset()`-effect, dodging a Radix-Select/jsdom prefill bug). New `document-type-labels.ts`.
+- **Review note:** two BLOCKERs fixed. (1) `alreadyExists` state lived inside the keyed editor → destroyed on the 409→refetch remount (banner vanished); lifted to the outer component + regression test. (2) the 403 was detected by exact `detail` text (the anti-pattern Phase 1 removed) → the two hooks now call the raw op with `throwOnError:false` and attach HTTP `status`; new `readErrorStatus` + the form branches on `status === 403`. SHOULD-FIX: read-view label map; prefill + remount tests. NIT: FieldPath cast comment.
+- **Gate:** typecheck clean; full suite green (app 224/1821, DS 82).
+
 ## Current phase
-- **Phase 4 — Billing profile form hardening** (next)
+- **Phase 5 — Downgrade-vs-upgrade distinction** (next)
 
 ## Remaining phases
 - Phase 4 — Billing profile form hardening (T3) — capability-gated
