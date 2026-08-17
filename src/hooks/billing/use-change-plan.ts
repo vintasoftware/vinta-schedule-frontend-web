@@ -47,6 +47,11 @@ export function useChangePlan() {
         predicate: (q) => isSubscriptionOrUsageKey(q.queryKey),
       });
     },
+    // change-plan-dialog.tsx renders an inline error for `readOverLimitError`
+    // (downgrade below usage) — opt out of the global MutationCache.onError
+    // remedy routing (query-client-provider.tsx, Phase 8) so the same rejection
+    // is never both shown inline AND routed away with a disruptive navigation.
+    meta: { overLimitHandledInline: true },
   });
 
   const changePlan = async (body: ChangePlanRequest): Promise<Subscription> =>

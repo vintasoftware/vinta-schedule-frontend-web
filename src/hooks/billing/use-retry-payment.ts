@@ -51,6 +51,11 @@ export function useRetryPayment() {
         predicate: (q) => isSubscriptionKey(q.queryKey),
       });
     },
+    // resolve-payment-form.tsx renders an inline error for `readOverLimitError`
+    // — opt out of the global MutationCache.onError remedy routing (query-
+    // client-provider.tsx, Phase 8) so the same rejection is never both shown
+    // inline AND routed away with a disruptive navigation or dialog.
+    meta: { overLimitHandledInline: true },
   });
 
   const retryPayment = async (
