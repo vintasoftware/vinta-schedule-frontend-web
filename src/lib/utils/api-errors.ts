@@ -306,6 +306,24 @@ export function readNonFieldError(error: unknown): string | null {
 }
 
 /**
+ * Reads a numeric `status` property off a thrown error, or `null` if the
+ * error is not an object or lacks one. `status` is not part of any parsed
+ * API error body — it's attached by callers that invoke a raw generated
+ * operation with `throwOnError:false` and forward the HTTP status alongside
+ * the parsed body (e.g. `use-create-billing-profile.ts` /
+ * `use-update-billing-profile.ts`), specifically so a caller can discriminate
+ * by status (e.g. a 403 capability backstop) rather than matching English
+ * `detail` text.
+ */
+export function readErrorStatus(error: unknown): number | null {
+  if (error === null || typeof error !== 'object') {
+    return null;
+  }
+  const body = error as Record<string, unknown>;
+  return typeof body.status === 'number' ? body.status : null;
+}
+
+/**
  * Reads a DRF field-validation 400 error body into a field-keyed map of
  * error messages. E.g. `{ "email": ["Invalid email address."],
  * "name": ["This field is required."] }` → `{ email: "Invalid email address.",
