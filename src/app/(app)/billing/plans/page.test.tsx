@@ -122,10 +122,20 @@ function mockSubscription(subscription: Subscription | null) {
   });
 }
 
-function renderPage(role: 'admin' | 'member' | null) {
+// BillingPlansPage is an async Server Component (it awaits `searchParams`
+// before returning JSX) — resolve it to a React element first, then hand
+// that to `render()`, same convention as the other async-page tests in this
+// repo (e.g. auth/login/[slug]/page.test.tsx).
+async function renderPage(
+  role: 'admin' | 'member' | null,
+  searchParams: Record<string, string | string[] | undefined> = {}
+) {
+  const element = await BillingPlansPage({
+    searchParams: Promise.resolve(searchParams),
+  });
   return render(
     <PermissionProvider permissions={permissionsForRole(role)}>
-      <BillingPlansPage />
+      {element}
     </PermissionProvider>
   );
 }
@@ -137,8 +147,8 @@ describe('BillingPlansPage (Phase 3)', () => {
     mockSubscription(SUBSCRIPTION);
   });
 
-  it('marks the current plan', () => {
-    renderPage('admin');
+  it('marks the current plan', async () => {
+    await renderPage('admin');
 
     expect(screen.getByTestId('plan-current-starter')).toBeInTheDocument();
     expect(screen.queryByTestId('plan-current-team')).not.toBeInTheDocument();
@@ -146,7 +156,7 @@ describe('BillingPlansPage (Phase 3)', () => {
 
   it('defaults to monthly prices and switches to annual on the toggle', async () => {
     const user = userEvent.setup();
-    renderPage('admin');
+    await renderPage('admin');
 
     // Monthly default.
     expect(screen.getByTestId('plan-price-team')).toHaveTextContent('$20.00');
@@ -158,7 +168,7 @@ describe('BillingPlansPage (Phase 3)', () => {
 
   it('hands the selected interval to the change-plan dialog', async () => {
     const user = userEvent.setup();
-    renderPage('admin');
+    await renderPage('admin');
 
     await user.click(screen.getByTestId('interval-annual'));
     fireEvent.click(screen.getByTestId('plan-change-team'));
@@ -170,18 +180,32 @@ describe('BillingPlansPage (Phase 3)', () => {
     expect(screen.getByTestId('dialog-interval')).toHaveTextContent('annual');
   });
 
-  it('offers Cancel on the current paid plan for an admin', () => {
-    renderPage('admin');
+  it('offers Cancel on the current paid plan for an admin', async () => {
+    await renderPage('admin');
 
     expect(screen.getByTestId('plan-cancel-starter')).toBeInTheDocument();
   });
 
-  it('hides upgrade/cancel affordances from a non-admin member', () => {
-    renderPage('member');
+  it('hides upgrade/cancel affordances from a non-admin member', async () => {
+    await renderPage('member');
 
     expect(screen.queryByTestId('plan-change-team')).not.toBeInTheDocument();
     expect(screen.queryByTestId('plan-cancel-starter')).not.toBeInTheDocument();
     // The catalog itself is still readable.
     expect(screen.getByTestId('plan-card-team')).toBeInTheDocument();
+  });
+
+  it('forwards ?resource= to the picker as a highlight hint', async () => {
+    await renderPage('admin', { resource: 'organization_members' });
+
+    expect(screen.getByTestId('plans-resource-hint')).toHaveTextContent(
+      'organization members'
+    );
+  });
+
+  it('renders no highlight hint without ?resource=', async () => {
+    await renderPage('admin');
+
+    expect(screen.queryByTestId('plans-resource-hint')).not.toBeInTheDocument();
   });
 });

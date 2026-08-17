@@ -91,10 +91,10 @@ function mockSubscription(subscription: Subscription | null) {
   });
 }
 
-function renderPicker() {
+function renderPicker(highlightResource?: string) {
   return render(
     <PermissionProvider permissions={['payments.manage_billing']}>
-      <BillingPlansPicker />
+      <BillingPlansPicker highlightResource={highlightResource} />
     </PermissionProvider>
   );
 }
@@ -214,5 +214,85 @@ describe('BillingPlansPicker', () => {
     fireEvent.click(screen.getByTestId('interval-annual'));
 
     expect(screen.getByTestId('plan-change-plus')).toHaveTextContent('Upgrade');
+  });
+
+  // ---------------------------------------------------------------------
+  // highlightResource (Phase 8, billing-hardening-gap-closure plan)
+  // ---------------------------------------------------------------------
+
+  it('renders no hint or Recommended badges without highlightResource', () => {
+    mockSubscription(SUBSCRIPTION);
+
+    renderPicker();
+
+    expect(screen.queryByTestId('plans-resource-hint')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('plan-recommended-team')
+    ).not.toBeInTheDocument();
+  });
+
+  it('recommends a plan that raises the highlighted resource above the current plan', () => {
+    const PLUS: BillingPlan = {
+      ...TEAM,
+      slug: 'plus',
+      name: 'Plus',
+      limits: [
+        {
+          resource_key: 'organization_members',
+          limit_value: 50,
+          kind: 'prepaid',
+          overage_unit_price: null,
+        },
+      ],
+    };
+    // TEAM (current plan) caps organization_members at 10; PLUS raises it to 50.
+    mockSubscription(SUBSCRIPTION);
+    mockPlans([TEAM, PLUS]);
+
+    renderPicker('organization_members');
+
+    expect(screen.getByTestId('plans-resource-hint')).toBeInTheDocument();
+    expect(screen.getByTestId('plan-recommended-plus')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('plan-recommended-team')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not recommend the current plan itself', () => {
+    mockSubscription(SUBSCRIPTION);
+    mockPlans([TEAM]);
+
+    renderPicker('organization_members');
+
+    expect(
+      screen.queryByTestId('plan-recommended-team')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not recommend a plan that does not raise the highlighted resource', () => {
+    const BASIC: BillingPlan = {
+      ...TEAM,
+      slug: 'basic',
+      name: 'Basic',
+      monthly_price: '5.0000',
+      annual_price: '50.0000',
+      limits: [
+        {
+          resource_key: 'organization_members',
+          limit_value: 5,
+          kind: 'prepaid',
+          overage_unit_price: null,
+        },
+      ],
+    };
+    // BASIC caps organization_members at 5 — lower than TEAM's 10.
+    mockSubscription(SUBSCRIPTION);
+    mockPlans([TEAM, BASIC]);
+
+    renderPicker('organization_members');
+
+    expect(
+      screen.queryByTestId('plan-recommended-basic')
+    ).not.toBeInTheDocument();
   });
 });

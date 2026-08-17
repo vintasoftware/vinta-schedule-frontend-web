@@ -18,6 +18,14 @@
  * Capability gating is defense-in-depth: the upgrade/cancel affordances render
  * only for members who hold `payments.manage_billing`; the server `403` on the
  * write endpoints is the real gate. A member sees the catalog read-only.
+ *
+ * `highlightResource` (Phase 8, billing-hardening-gap-closure plan): the
+ * `/billing/plans?resource=…` deep-link a `limit_exceeded` rejection's
+ * `upgrade_plan` remedy routes to. A light treatment only — a hint above the
+ * catalog plus a "Recommended" badge on plans that raise the resource's
+ * limit relative to the org's current plan; every plan stays selectable
+ * regardless, and the currency/limits/entitlements/capability behavior above
+ * is unchanged when it's absent.
  */
 
 import * as React from 'react';
@@ -121,7 +129,50 @@ function changeActionLabel(
   return targetPrice < currentPrice ? 'Downgrade' : 'Upgrade';
 }
 
-export function BillingPlansPicker() {
+/**
+ * The plan's limit_value for `resource`, normalized so "unlimited" (`null`)
+ * compares as the highest possible value and a resource this plan doesn't
+ * track at all compares as the lowest (`0`) — the same floor an explicit
+ * `limit_value: 0` ("not included") gets, since both mean the plan grants no
+ * more of it.
+ */
+function comparableLimitValue(plan: BillingPlan, resource: string): number {
+  const limit = plan.limits.find((entry) => entry.resource_key === resource);
+  if (!limit) {
+    return 0;
+  }
+  return limit.limit_value === null
+    ? Number.POSITIVE_INFINITY
+    : limit.limit_value;
+}
+
+/**
+ * Whether `plan` is worth recommending for `resource` — it raises the
+ * resource's limit relative to the org's current plan (when one is known),
+ * or, for an org with no current plan to compare against (free /
+ * subscription-less), simply tracks the resource at all. A light,
+ * best-effort heuristic — never a gate on which plans are selectable.
+ */
+function recommendsResource(
+  plan: BillingPlan,
+  resource: string,
+  currentPlan: BillingPlan | null
+): boolean {
+  const planLimit = comparableLimitValue(plan, resource);
+  if (currentPlan === null) {
+    return planLimit > 0;
+  }
+  return planLimit > comparableLimitValue(currentPlan, resource);
+}
+
+export interface BillingPlansPickerProps {
+  /** See the module doc comment's `highlightResource` paragraph. */
+  highlightResource?: string;
+}
+
+export function BillingPlansPicker({
+  highlightResource,
+}: BillingPlansPickerProps = {}) {
   // A free / subscription-less org answers 404 here; that's expected and never
   // blocks the catalog — it just means there's no current plan to highlight,
   // and no currency to filter the catalog to (below).
@@ -140,11 +191,15 @@ export function BillingPlansPicker() {
   const [cancelOpen, setCancelOpen] = React.useState(false);
 
   const currentSlug = subscription?.plan.slug ?? null;
+  const currentPlan = subscription?.plan ?? null;
   // Cancel only applies to an org actually on a paid plan.
   const hasPaidPlan =
     subscription !== null &&
     subscription.billing_state !== 'free' &&
     subscription.billing_state !== 'cancelled';
+
+  const highlightLabel =
+    highlightResource !== undefined ? resourceLabel(highlightResource) : null;
 
   if (isLoading) {
     return (
@@ -168,6 +223,16 @@ export function BillingPlansPicker() {
 
   return (
     <Stack gap={5}>
+      {highlightLabel !== null && (
+        <Alert data-testid='plans-resource-hint'>
+          <AlertTitle>Need more {highlightLabel.toLowerCase()}?</AlertTitle>
+          <AlertDescription>
+            Plans marked &ldquo;Recommended&rdquo; below include more{' '}
+            {highlightLabel.toLowerCase()}.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <HStack justify='between' align='center' wrap>
         <Text weight='semibold'>Choose a plan</Text>
         <Tabs
@@ -202,6 +267,11 @@ export function BillingPlansPicker() {
           const enabledEntitlements = plan.entitlements.filter(
             (entitlement) => entitlement.is_enabled
           );
+          // A plan can't be "recommended" over itself.
+          const isRecommended =
+            !isCurrent &&
+            highlightResource !== undefined &&
+            recommendsResource(plan, highlightResource, currentPlan);
 
           return (
             <Card
@@ -219,6 +289,14 @@ export function BillingPlansPicker() {
                       data-testid={`plan-current-${plan.slug}`}
                     >
                       Current plan
+                    </Badge>
+                  )}
+                  {isRecommended && (
+                    <Badge
+                      variant='success'
+                      data-testid={`plan-recommended-${plan.slug}`}
+                    >
+                      Recommended
                     </Badge>
                   )}
                 </HStack>
