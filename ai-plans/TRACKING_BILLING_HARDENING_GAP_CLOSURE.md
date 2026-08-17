@@ -64,8 +64,14 @@ Client regen no longer needed; `main` already has `billingSubscriptionRetryPayme
 - **Review note:** the reviewer read the backend service and caught a money-path BLOCKER — the original client-side price heuristic (both plans at the target interval) disagreed with the backend (current-own-interval vs target-requested-interval), so a cross-interval "cheaper" pick could skip the confirmation poll on an actually-charged upgrade (`pending_plan_effective_at=null`) and equal-price switches were misclassified. Fixed by branching on the authoritative response field instead of client price math; `isDowngrade`/`planPrice` deleted from the dialog. Added response-driven regression tests.
 - **Gate:** typecheck clean; full suite green (app 224/1828, DS 82).
 
+### Phase 6 — Payment-provider unsupported fallback ✅
+- **Status:** PASS (review clean, no fixes) · **Branch:** `plan/billing-hardening-gap-closure/phase-6` (base: phase-5) · **Commit:** `8109631`
+- **Models:** impl T3 (sonnet) · reviewer T3 · fixer n/a
+- **Summary:** Deleted the unverified/broken MercadoPago Secure-Fields adapter (+ its interfaces + `MERCADOPAGO_SDK_URL`) from `payment-provider-sdk.ts`. Added `createUnsupportedProviderSdk()` — inert `mount`/`unmount`, `tokenize()` returns `{ reason: 'unsupported_provider' }` (new reason on `PaymentInstrumentErrorReason` in `payment-token.ts`). The factory returns it for any non-stripe provider and never throws. `payment-instrument-field.tsx` renders a clear "not available" Alert for an unsupported provider (loading → unsupported → unavailable → mounted branch order) instead of mounting a dead form. Stripe path byte-unchanged. Net −168 lines.
+- **Gate:** typecheck clean; full suite green (app 224/1822, DS 82).
+
 ## Current phase
-- **Phase 6 — Payment-provider unsupported fallback** (next)
+- **Phase 7 — Grace recovery via real retry-payment** (next; reviewer T4)
 
 ## Remaining phases
 - Phase 4 — Billing profile form hardening (T3) — capability-gated
