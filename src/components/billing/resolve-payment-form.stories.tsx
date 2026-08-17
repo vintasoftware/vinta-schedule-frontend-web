@@ -2,7 +2,12 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { Box } from 'vinta-schedule-design-system/layout';
+import { Box, VStack, Text } from 'vinta-schedule-design-system/layout';
+import { Card, CardContent } from 'vinta-schedule-design-system/ui/card';
+import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Icon } from 'vinta-schedule-design-system/ui/icon';
+import { TriangleAlert } from 'lucide-react';
+import Link from 'next/link';
 
 import type { PaymentProvider, Subscription } from '@/client';
 import { billingPaymentProviderRetrieveOptions } from '@/client/@tanstack/react-query.gen';
@@ -90,6 +95,36 @@ export const GracePeriod: Story = {
 /** Restricted — access is already limited; no grace deadline remains. */
 export const Restricted: Story = {
   render: () => <SeededForm subscription={RESTRICTED_SUBSCRIPTION} />,
+};
+
+/**
+ * Needs upgrade — the org has never attached a payment method and must choose a
+ * plan before retrying payment. This state is reached when `useRetryPayment`
+ * returns a `subscription_not_attached` error (code 409), indicating the org
+ * never attached an instrument at the provider and must go through the
+ * first-payment/upgrade flow. The form renders the upgrade card directing the
+ * user to `/billing/plans`.
+ */
+export const NeedsUpgrade: Story = {
+  render: () => (
+    <Box className='w-full max-w-md'>
+      <Card data-testid='resolve-payment-needs-upgrade'>
+        <CardContent>
+          <VStack gap={3} py={4} align='center'>
+            <Icon icon={TriangleAlert} color='muted-foreground' />
+            <Text weight='medium'>This organization has never paid yet</Text>
+            <Text size='sm' color='muted-foreground' align='center'>
+              There&apos;s no payment method on file to retry. Choose a plan and
+              add a payment method to get started.
+            </Text>
+            <Button asChild>
+              <Link href='/billing/plans'>Choose a plan</Link>
+            </Button>
+          </VStack>
+        </CardContent>
+      </Card>
+    </Box>
+  ),
 };
 
 export const Mobile: Story = {

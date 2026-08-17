@@ -1,17 +1,26 @@
 /**
- * ResolvePaymentForm tests — the money-path recovery invariants (Phase 5).
+ * ResolvePaymentForm tests — the money-path recovery invariants
+ * (billing-hardening Phase 7).
  *
- * `useChangePlan` / `useSubscription` and the card field are mocked so the test
- * drives the flow deterministically, but the async-confirmation hook is left
- * REAL: the load-bearing behavior is that recovery confirms ONLY on a real
- * subscription read back to `active`, and a still-GRACE or a null/undefined read
- * must keep polling — never render "recovered" early. The `isRecoveryConfirmed`
- * predicate is also asserted directly for those three cases.
+ * `useRetryPayment` / `useSubscription` and the card field are mocked so the
+ * test drives the flow deterministically, but the async-confirmation hook is
+ * left REAL: the load-bearing behavior is that recovery confirms ONLY on a
+ * real subscription read back to `active`, and a still-GRACE or a
+ * null/undefined read must keep polling — never render "recovered" early. The
+ * `isRecoveryConfirmed` predicate is also asserted directly for those three
+ * cases.
  *
  * The load-bearing behaviors:
- *   • submit RE-AFFIRMS the current plan (its slug + interval) with the fresh
- *     token + a per-attempt idempotency key;
+ *   • submit sends the fresh token + a per-attempt idempotency key to
+ *     retry-payment (no `plan_slug`/`billing_interval` — retry-payment doesn't
+ *     take them);
+ *   • a 200 response does NOT show success — it still polls to `active`;
  *   • a retried submit REUSES the same idempotency key (never double-charges);
+ *   • `charge_declined` resets the idempotency key (a FRESH key on the next
+ *     submit — the double-charge guard for a genuinely new card), refetches
+ *     the subscription, and re-prompts on the form;
+ *   • each coded 409 renders its own distinct message; `subscription_not_attached`
+ *     routes to the first-payment/upgrade surface instead of re-prompting;
  *   • an `active` poll lands the confirmed state; a still-GRACE poll stays in the
  *     confirming state (does not confirm);
  *   • the grace deadline renders.
@@ -28,14 +37,17 @@ import {
 } from '@testing-library/react';
 
 import type { Subscription } from '@/client';
-import { CONFIRMATION_TIMEOUT_MS } from '@/hooks/billing/use-await-payment-confirmation';
+import {
+  CONFIRMATION_POLL_INTERVAL_MS,
+  CONFIRMATION_TIMEOUT_MS,
+} from '@/hooks/billing/use-await-payment-confirmation';
 
 import { isRecoveryConfirmed } from './resolve-payment-form';
 
 // ---- mocks -----------------------------------------------------------------
 
 const h = vi.hoisted(() => ({
-  changePlan: vi.fn(),
+  retryPayment: vi.fn(),
   refetch: vi.fn(),
   tokenizeResult: { status: 'tokenized', token: 'tok_new' } as {
     status: string;
@@ -45,10 +57,10 @@ const h = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@/hooks/billing/use-change-plan', () => ({
-  useChangePlan: () => ({
-    changePlan: h.changePlan,
-    changePlanMutation: { isPending: false },
+vi.mock('@/hooks/billing/use-retry-payment', () => ({
+  useRetryPayment: () => ({
+    retryPayment: h.retryPayment,
+    retryPaymentMutation: { isPending: false },
   }),
 }));
 
@@ -100,8 +112,8 @@ function renderForm(subscription: Subscription = GRACE_SUBSCRIPTION) {
 beforeEach(() => {
   vi.clearAllMocks();
   h.tokenizeResult = { status: 'tokenized', token: 'tok_new' };
-  // Default initiate: change-plan returns before the webhook (still grace).
-  h.changePlan.mockResolvedValue(GRACE_SUBSCRIPTION);
+  // Default initiate: retry-payment returns before the webhook (still grace).
+  h.retryPayment.mockResolvedValue(GRACE_SUBSCRIPTION);
   // Default poll: the org has recovered to ACTIVE.
   h.refetch.mockResolvedValue({ data: ACTIVE_SUBSCRIPTION });
 });
@@ -151,19 +163,20 @@ describe('ResolvePaymentForm', () => {
     );
   });
 
-  it('re-affirms the CURRENT plan with the fresh token + an idempotency key, then polls to ACTIVE', async () => {
+  it('submits the fresh token + an idempotency key to retry-payment (no plan re-affirm)', async () => {
     renderForm();
 
     fireEvent.click(screen.getByTestId('resolve-payment-submit'));
 
-    await waitFor(() => expect(h.changePlan).toHaveBeenCalledTimes(1));
-    const body = h.changePlan.mock.calls[0][0];
+    await waitFor(() => expect(h.retryPayment).toHaveBeenCalledTimes(1));
+    const body = h.retryPayment.mock.calls[0][0];
     expect(body).toMatchObject({
-      plan_slug: 'team', // the CURRENT plan's slug — re-affirmed
-      billing_interval: 'monthly', // the CURRENT interval
       payment_token: 'tok_new', // a FRESH instrument
     });
     expect(body.idempotency_key).toBeTruthy();
+    // retry-payment doesn't take a plan — there's nothing to re-affirm.
+    expect(body).not.toHaveProperty('plan_slug');
+    expect(body).not.toHaveProperty('billing_interval');
 
     // The real confirmation hook polls; the ACTIVE read lands the confirmed UI.
     await waitFor(() =>
@@ -172,6 +185,44 @@ describe('ResolvePaymentForm', () => {
       ).toBeInTheDocument()
     );
     expect(h.refetch).toHaveBeenCalled();
+  });
+
+  it('a 2xx does NOT show success — it shows pending until the poll confirms ACTIVE', async () => {
+    vi.useFakeTimers();
+    try {
+      // The immediate poll (right after initiate) is still GRACE — the
+      // webhook hasn't landed yet; only the NEXT poll (after the interval)
+      // lands ACTIVE. This proves the 2xx initiate response is never trusted
+      // as success on its own.
+      h.refetch
+        .mockResolvedValueOnce({ data: GRACE_SUBSCRIPTION })
+        .mockResolvedValue({ data: ACTIVE_SUBSCRIPTION });
+
+      renderForm();
+      fireEvent.click(screen.getByTestId('resolve-payment-submit'));
+
+      // Flush tokenize + initiate + the immediate poll → pending, NOT confirmed.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(h.retryPayment).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByTestId('resolve-payment-confirming')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('resolve-payment-confirmed')
+      ).not.toBeInTheDocument();
+
+      // The next interval poll lands ACTIVE → confirmed.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(CONFIRMATION_POLL_INTERVAL_MS);
+      });
+      expect(
+        screen.getByTestId('resolve-payment-confirmed')
+      ).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a still-GRACE poll does NOT confirm — it stays in the confirming state', async () => {
@@ -235,9 +286,10 @@ describe('ResolvePaymentForm', () => {
     }
   });
 
-  it('reuses the SAME idempotency key across a retried submit', async () => {
-    // First initiate fails (a transient 409); the second succeeds.
-    h.changePlan
+  it('reuses the SAME idempotency key across a retried submit (double-click / same-attempt retry)', async () => {
+    // First initiate fails (a transient conflict, NOT charge_declined); the
+    // second succeeds. A non-decline error must NOT reset the key.
+    h.retryPayment
       .mockRejectedValueOnce({ detail: 'A change is already processing.' })
       .mockResolvedValueOnce(GRACE_SUBSCRIPTION);
 
@@ -251,16 +303,120 @@ describe('ResolvePaymentForm', () => {
 
     // Second submit (retry) → succeeds, reusing the same key.
     fireEvent.click(screen.getByTestId('resolve-payment-submit'));
-    await waitFor(() => expect(h.changePlan).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(h.retryPayment).toHaveBeenCalledTimes(2));
 
-    const firstKey = h.changePlan.mock.calls[0][0].idempotency_key;
-    const secondKey = h.changePlan.mock.calls[1][0].idempotency_key;
+    const firstKey = h.retryPayment.mock.calls[0][0].idempotency_key;
+    const secondKey = h.retryPayment.mock.calls[1][0].idempotency_key;
     expect(firstKey).toBeTruthy();
     expect(secondKey).toBe(firstKey);
   });
 
-  it('surfaces the over-limit message on a 402', async () => {
-    h.changePlan.mockRejectedValueOnce({
+  it('charge_declined mints a FRESH idempotency key for the next attempt, refetches, and re-prompts', async () => {
+    // First attempt: the charge is declined. Second attempt (a new card):
+    // succeeds.
+    h.retryPayment
+      .mockRejectedValueOnce({ code: 'charge_declined', detail: 'declined' })
+      .mockResolvedValueOnce(GRACE_SUBSCRIPTION);
+
+    renderForm();
+
+    const refetchCallsBefore = h.refetch.mock.calls.length;
+
+    // First submit → declined.
+    fireEvent.click(screen.getByTestId('resolve-payment-submit'));
+    await waitFor(() =>
+      expect(screen.getByTestId('resolve-payment-error')).toHaveTextContent(
+        'That card was declined'
+      )
+    );
+    // The subscription is refetched so its state is current after the decline.
+    expect(h.refetch.mock.calls.length).toBeGreaterThan(refetchCallsBefore);
+    // Still on the form — no phase transition away from it.
+    expect(screen.getByTestId('resolve-payment-form')).toBeInTheDocument();
+
+    // Second submit (a genuinely new card) → succeeds with a DIFFERENT key.
+    fireEvent.click(screen.getByTestId('resolve-payment-submit'));
+    await waitFor(() => expect(h.retryPayment).toHaveBeenCalledTimes(2));
+
+    const firstKey = h.retryPayment.mock.calls[0][0].idempotency_key;
+    const secondKey = h.retryPayment.mock.calls[1][0].idempotency_key;
+    expect(firstKey).toBeTruthy();
+    expect(secondKey).toBeTruthy();
+    expect(secondKey).not.toBe(firstKey);
+  });
+
+  it('shows a distinct message for retry_payment_not_applicable', async () => {
+    h.retryPayment.mockRejectedValueOnce({
+      code: 'retry_payment_not_applicable',
+      detail: 'not applicable',
+    });
+
+    renderForm();
+    fireEvent.click(screen.getByTestId('resolve-payment-submit'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('resolve-payment-error')).toHaveTextContent(
+        "doesn't need a payment retry right now"
+      )
+    );
+  });
+
+  it('shows a distinct message for no_outstanding_balance', async () => {
+    h.retryPayment.mockRejectedValueOnce({
+      code: 'no_outstanding_balance',
+      detail: 'nothing owed',
+    });
+
+    renderForm();
+    fireEvent.click(screen.getByTestId('resolve-payment-submit'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('resolve-payment-error')).toHaveTextContent(
+        'no outstanding balance to pay'
+      )
+    );
+  });
+
+  it('shows a distinct message for collection_not_supported', async () => {
+    h.retryPayment.mockRejectedValueOnce({
+      code: 'collection_not_supported',
+      detail: 'provider cannot collect',
+    });
+
+    renderForm();
+    fireEvent.click(screen.getByTestId('resolve-payment-submit'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('resolve-payment-error')).toHaveTextContent(
+        "isn't available for your payment provider"
+      )
+    );
+  });
+
+  it('routes subscription_not_attached to the first-payment/upgrade path, not a retry prompt', async () => {
+    h.retryPayment.mockRejectedValueOnce({
+      code: 'subscription_not_attached',
+      detail: 'never attached',
+    });
+
+    renderForm();
+    fireEvent.click(screen.getByTestId('resolve-payment-submit'));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('resolve-payment-needs-upgrade')
+      ).toBeInTheDocument()
+    );
+    // No retry form, no generic error banner — a link to the upgrade flow.
+    expect(
+      screen.queryByTestId('resolve-payment-form')
+    ).not.toBeInTheDocument();
+    const link = screen.getByRole('link', { name: /choose a plan/i });
+    expect(link).toHaveAttribute('href', '/billing/plans');
+  });
+
+  it('surfaces the over-limit message on a 402 limit_exceeded', async () => {
+    h.retryPayment.mockRejectedValueOnce({
       code: 'limit_exceeded',
       resource: 'organization_members',
       current_usage: 10,
@@ -278,7 +434,7 @@ describe('ResolvePaymentForm', () => {
     );
   });
 
-  it('does not call change-plan when tokenization fails', async () => {
+  it('does not call retry-payment when tokenization fails', async () => {
     h.tokenizeResult = {
       status: 'error',
       reason: 'incomplete',
@@ -291,6 +447,6 @@ describe('ResolvePaymentForm', () => {
     await waitFor(() =>
       expect(screen.getByTestId('resolve-payment-error')).toBeInTheDocument()
     );
-    expect(h.changePlan).not.toHaveBeenCalled();
+    expect(h.retryPayment).not.toHaveBeenCalled();
   });
 });
