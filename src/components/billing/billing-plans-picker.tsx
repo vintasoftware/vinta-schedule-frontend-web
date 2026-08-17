@@ -4,15 +4,28 @@
  * BillingPlansPicker — the plan catalog + upgrade/downgrade/cancel entry
  * (Phase 3). The `/billing/plans` server page renders this client island.
  *
- * It reads the catalog (`useBillingPlans`) and the current subscription
- * (`useSubscription`), highlights the plan the org is on, and exposes a
- * monthly/annual toggle DEFAULTING TO MONTHLY that both switches each card's
- * price (`monthly_price` / `annual_price` via `formatMoney`) and drives the
- * `billing_interval` handed to the change-plan dialog.
+ * It reads the current subscription (`useSubscription`) first so the catalog
+ * read (`useBillingPlans`) can filter to the org's own billing currency
+ * (`subscription.plan.currency`) — a multi-currency catalog would otherwise
+ * mix prices you can't actually be charged in. A free / subscription-less org
+ * (404 on `useSubscription`) has no currency to filter to, so it sees the
+ * unfiltered catalog. It highlights the plan the org is on, renders each
+ * plan's limits + entitlements, and exposes a monthly/annual toggle DEFAULTING
+ * TO MONTHLY that both switches each card's price (`monthly_price` /
+ * `annual_price` via `formatMoney`) and drives the `billing_interval` handed
+ * to the change-plan dialog.
  *
  * Capability gating is defense-in-depth: the upgrade/cancel affordances render
  * only for members who hold `payments.manage_billing`; the server `403` on the
  * write endpoints is the real gate. A member sees the catalog read-only.
+ *
+ * `highlightResource` (Phase 8, billing-hardening-gap-closure plan): the
+ * `/billing/plans?resource=…` deep-link a `limit_exceeded` rejection's
+ * `upgrade_plan` remedy routes to. A light treatment only — a hint above the
+ * catalog plus a "Recommended" badge on plans that raise the resource's
+ * limit relative to the org's current plan; every plan stays selectable
+ * regardless, and the currency/limits/entitlements/capability behavior above
+ * is unchanged when it's absent.
  */
 
 import * as React from 'react';
@@ -35,6 +48,7 @@ import {
 } from 'vinta-schedule-design-system/ui/alert';
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { List, ListItem } from 'vinta-schedule-design-system/ui/list';
 import {
   Center,
   Grid,
@@ -44,7 +58,11 @@ import {
   VStack,
 } from 'vinta-schedule-design-system/layout';
 
-import type { BillingPlan, PendingBillingIntervalEnum } from '@/client';
+import type {
+  BillingPlan,
+  PendingBillingIntervalEnum,
+  Subscription,
+} from '@/client';
 import { useBillingPlans } from '@/hooks/billing/use-billing-plans';
 import { useSubscription } from '@/hooks/billing/use-subscription';
 import {
@@ -52,6 +70,8 @@ import {
   PERMISSIONS,
 } from '@/components/navigation/permission-gate';
 import { formatMoney } from '@/lib/billing/format';
+import { entitlementLabel } from '@/lib/billing/entitlement-labels';
+import { resourceLabel } from '@/lib/billing/resource-labels';
 
 import { ChangePlanDialog } from './change-plan-dialog';
 import { CancelSubscriptionDialog } from './cancel-subscription-dialog';
@@ -64,12 +84,106 @@ function priceForInterval(
   return interval === 'annual' ? plan.annual_price : plan.monthly_price;
 }
 
-export function BillingPlansPicker() {
-  const { plans, isLoading, isError } = useBillingPlans();
+/** The per-plan, per-interval price parsed to a number, or `null` when not offered/unparseable. */
+function numericPriceForInterval(
+  plan: BillingPlan,
+  interval: PendingBillingIntervalEnum
+): number | null {
+  const raw = priceForInterval(plan, interval);
+  if (raw === null) {
+    return null;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+/**
+ * The action label for a card's change-plan button, by direction relative to
+ * the org's current plan. The backend decides upgrade vs. downgrade by
+ * comparing the current plan at the SUBSCRIPTION'S OWN interval against the
+ * target plan at the requested (toggle) interval — not both plans at the same
+ * interval — so this mirrors that as closely as a pre-initiate label can:
+ * `subscription.billing_interval` prices the current plan, `interval` prices
+ * the target. This is still only a label, never a gate — the actual decision
+ * is read off the initiate response (see `ChangePlanDialog`). When a robust
+ * comparison isn't possible (no subscription, or a missing price on either
+ * side) this defaults to "Upgrade" — the safer label when direction is
+ * ambiguous.
+ */
+function changeActionLabel(
+  targetPlan: BillingPlan,
+  targetInterval: PendingBillingIntervalEnum,
+  subscription: Subscription | null
+): string {
+  if (subscription === null) {
+    return 'Upgrade';
+  }
+  const currentPrice = numericPriceForInterval(
+    subscription.plan,
+    subscription.billing_interval
+  );
+  const targetPrice = numericPriceForInterval(targetPlan, targetInterval);
+  if (currentPrice === null || targetPrice === null) {
+    return 'Upgrade';
+  }
+  return targetPrice < currentPrice ? 'Downgrade' : 'Upgrade';
+}
+
+/**
+ * The plan's limit_value for `resource`, normalized so "unlimited" (`null`)
+ * compares as the highest possible value and a resource this plan doesn't
+ * track at all compares as the lowest (`0`) — the same floor an explicit
+ * `limit_value: 0` ("not included") gets, since both mean the plan grants no
+ * more of it.
+ */
+function comparableLimitValue(plan: BillingPlan, resource: string): number {
+  const limit = plan.limits.find((entry) => entry.resource_key === resource);
+  if (!limit) {
+    return 0;
+  }
+  return limit.limit_value === null
+    ? Number.POSITIVE_INFINITY
+    : limit.limit_value;
+}
+
+/**
+ * Whether `plan` is worth recommending for `resource` — it raises the
+ * resource's limit relative to the org's current plan (when one is known),
+ * or, for an org with no current plan to compare against (free /
+ * subscription-less), simply tracks the resource at all. A light,
+ * best-effort heuristic — never a gate on which plans are selectable.
+ */
+function recommendsResource(
+  plan: BillingPlan,
+  resource: string,
+  currentPlan: BillingPlan | null
+): boolean {
+  const planLimit = comparableLimitValue(plan, resource);
+  if (currentPlan === null) {
+    return planLimit > 0;
+  }
+  return planLimit > comparableLimitValue(currentPlan, resource);
+}
+
+export interface BillingPlansPickerProps {
+  /** See the module doc comment's `highlightResource` paragraph. */
+  highlightResource?: string;
+}
+
+export function BillingPlansPicker({
+  highlightResource,
+}: BillingPlansPickerProps = {}) {
   // A free / subscription-less org answers 404 here; that's expected and never
-  // blocks the catalog — it just means there's no current plan to highlight.
+  // blocks the catalog — it just means there's no current plan to highlight,
+  // and no currency to filter the catalog to (below).
   const { subscription } = useSubscription();
   const canManageBilling = useHasPermission(PERMISSIONS.manageBilling);
+  // The org's own billing currency, when it has one — the catalog read filters
+  // to it so a member never sees a price they can't actually be charged in.
+  const currency = subscription?.plan.currency;
+  const { plans, isLoading, isError } = useBillingPlans({
+    query: currency ? { currency } : undefined,
+  });
 
   const [interval, setInterval] =
     React.useState<PendingBillingIntervalEnum>('monthly');
@@ -77,11 +191,15 @@ export function BillingPlansPicker() {
   const [cancelOpen, setCancelOpen] = React.useState(false);
 
   const currentSlug = subscription?.plan.slug ?? null;
+  const currentPlan = subscription?.plan ?? null;
   // Cancel only applies to an org actually on a paid plan.
   const hasPaidPlan =
     subscription !== null &&
     subscription.billing_state !== 'free' &&
     subscription.billing_state !== 'cancelled';
+
+  const highlightLabel =
+    highlightResource !== undefined ? resourceLabel(highlightResource) : null;
 
   if (isLoading) {
     return (
@@ -105,6 +223,16 @@ export function BillingPlansPicker() {
 
   return (
     <Stack gap={5}>
+      {highlightLabel !== null && (
+        <Alert data-testid='plans-resource-hint'>
+          <AlertTitle>Need more {highlightLabel.toLowerCase()}?</AlertTitle>
+          <AlertDescription>
+            Plans marked &ldquo;Recommended&rdquo; below include more{' '}
+            {highlightLabel.toLowerCase()}.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <HStack justify='between' align='center' wrap>
         <Text weight='semibold'>Choose a plan</Text>
         <Tabs
@@ -134,6 +262,16 @@ export function BillingPlansPicker() {
           const price = priceForInterval(plan, interval);
           const priceLabel =
             price === null ? null : formatMoney(price, plan.currency);
+          // Only the entitlements this plan actually grants are worth
+          // showing — a disabled entitlement is a non-feature, not a bullet.
+          const enabledEntitlements = plan.entitlements.filter(
+            (entitlement) => entitlement.is_enabled
+          );
+          // A plan can't be "recommended" over itself.
+          const isRecommended =
+            !isCurrent &&
+            highlightResource !== undefined &&
+            recommendsResource(plan, highlightResource, currentPlan);
 
           return (
             <Card
@@ -151,6 +289,14 @@ export function BillingPlansPicker() {
                       data-testid={`plan-current-${plan.slug}`}
                     >
                       Current plan
+                    </Badge>
+                  )}
+                  {isRecommended && (
+                    <Badge
+                      variant='success'
+                      data-testid={`plan-recommended-${plan.slug}`}
+                    >
+                      Recommended
                     </Badge>
                   )}
                 </HStack>
@@ -182,6 +328,51 @@ export function BillingPlansPicker() {
                     )}
                   </VStack>
 
+                  <VStack
+                    gap={1}
+                    align='start'
+                    data-testid={`plan-limits-${plan.slug}`}
+                  >
+                    <Text size='xs' color='muted-foreground' uppercase>
+                      Included limits
+                    </Text>
+                    <List variant='plain' gap={1}>
+                      {plan.limits.map((limit) => (
+                        <ListItem key={limit.resource_key}>
+                          <Text size='sm'>
+                            {resourceLabel(limit.resource_key)}:{' '}
+                            {limit.limit_value === null
+                              ? 'Unlimited'
+                              : limit.limit_value}
+                          </Text>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </VStack>
+
+                  {enabledEntitlements.length > 0 && (
+                    <VStack
+                      gap={1}
+                      align='start'
+                      data-testid={`plan-entitlements-${plan.slug}`}
+                    >
+                      <Text size='xs' color='muted-foreground' uppercase>
+                        Includes
+                      </Text>
+                      <HStack gap={2} wrap>
+                        {enabledEntitlements.map((entitlement) => (
+                          <Badge
+                            key={entitlement.entitlement_key}
+                            variant='outline'
+                            data-testid={`plan-entitlement-${plan.slug}-${entitlement.entitlement_key}`}
+                          >
+                            {entitlementLabel(entitlement.entitlement_key)}
+                          </Badge>
+                        ))}
+                      </HStack>
+                    </VStack>
+                  )}
+
                   {canManageBilling &&
                     (isCurrent && hasPaidPlan ? (
                       <Button
@@ -199,7 +390,9 @@ export function BillingPlansPicker() {
                         disabled={price === null}
                         data-testid={`plan-change-${plan.slug}`}
                       >
-                        {hasPaidPlan ? 'Switch to this plan' : 'Upgrade'}
+                        {hasPaidPlan
+                          ? changeActionLabel(plan, interval, subscription)
+                          : 'Upgrade'}
                       </Button>
                     ) : null)}
                 </VStack>

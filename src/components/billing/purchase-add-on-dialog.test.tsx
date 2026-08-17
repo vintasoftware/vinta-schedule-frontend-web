@@ -207,6 +207,7 @@ describe('PurchaseAddOnDialog', () => {
 
   it('renders a clear message on a 400 AddOnNotPurchasableError', async () => {
     h.purchaseAddOn.mockRejectedValueOnce({
+      code: 'add_on_not_purchasable',
       detail: 'This resource is not purchasable as an add-on.',
     });
 
@@ -224,7 +225,10 @@ describe('PurchaseAddOnDialog', () => {
     // First initiate rejects (defensively) as token-required → reveals the card
     // field; the retry succeeds. The key must be identical across both.
     h.purchaseAddOn
-      .mockRejectedValueOnce({ detail: 'A payment token is required.' })
+      .mockRejectedValueOnce({
+        code: 'payment_token_required',
+        detail: 'A payment token is required.',
+      })
       .mockResolvedValueOnce(RETURNED_ADD_ON);
 
     // A paying org → no card field up-front, so the first submit exercises the

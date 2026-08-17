@@ -1,45 +1,56 @@
 'use client';
 
 /**
- * ResolvePaymentForm — the GRACE / RESTRICTED payment-recovery surface (Phase 5;
- * the recovery direction of Use-case 5).
+ * ResolvePaymentForm — the GRACE / RESTRICTED payment-recovery surface
+ * (billing-hardening Phase 7; the recovery direction of Use-case 5).
  *
- * This is a MONEY-PATH surface, and its whole subtlety is the MECHANISM: the API
- * exposes NO dedicated "update payment method" / "retry dunning charge" endpoint
- * to clients. Dunning retries are server-side (`DunningService`); recovery to
- * ACTIVE happens when ANY subscription charge confirms `APPROVED`
- * (`_apply_subscription_payment_side_effects` → `resolve_payment_success`). The
- * only client-facing write that re-attaches an instrument AND re-initiates a
- * charge is `change-plan`. So this dedicated recovery form rides `useChangePlan`
- * (Phase 3) RE-AFFIRMING THE CURRENT PLAN — the same `plan_slug` +
- * `billing_interval` the org is already on — with a FRESH `payment_token` and a
- * per-attempt `idempotency_key`. The surface is purpose-built for recovery ("fix
- * your payment", not "choose a new plan"); the transport is the existing
- * change-plan endpoint. If the API later adds a first-class update-instrument
- * endpoint, only this form's mutation swaps.
+ * This is a MONEY-PATH surface. The hardened API now exposes a dedicated
+ * recovery endpoint, `POST /billing/subscription/retry-payment/`
+ * (`RetryPaymentRequest = { idempotency_key, payment_token }`), consumed via
+ * `useRetryPayment`. It attaches a FRESH payment instrument and resubmits the
+ * outstanding balance for collection — there is no plan to re-affirm (the
+ * endpoint doesn't take `plan_slug`/`billing_interval`; the org's plan is
+ * unchanged, only the instrument + charge are retried).
  *
- * Three invariants carry the flow (same ones as ChangePlanDialog):
+ * Four invariants carry the flow:
  *
- * 1. ONE idempotency key per attempt, reused across every retry. A per-attempt
- *    `createIdempotencyKeyHolder` lives in a ref scoped to this mount; the lazy
- *    `.key` mints once and holds stable, so a network retry / double-click sends
- *    the SAME key — the API is idempotent per key, so this is what stops a
- *    double-charge on the recovery re-initiate. A genuinely new attempt is a
- *    fresh mount of this form.
+ * 1. ONE idempotency key per attempt, reused across every retry OF THAT SAME
+ *    ATTEMPT (double-click, network retry, a "check again" re-poll). A
+ *    per-attempt `createIdempotencyKeyHolder` lives in a ref scoped to this
+ *    mount; the lazy `.key` mints once and holds stable, so a retry sends the
+ *    SAME key — the API is idempotent per key, so this is what stops a
+ *    double-charge on the recovery re-initiate.
  *
- * 2. A FRESH instrument every time. Recovery is re-attaching an instrument, so
+ * 2. A NEW key is minted ONLY when the previous attempt's charge was
+ *    genuinely declined (`charge_declined`, told apart from the over-limit
+ *    `limit_exceeded` 402 by `code`). A declined charge means the user is
+ *    about to try a DIFFERENT card — reusing the stale key would replay the
+ *    cached declined result against the provider and the new card would never
+ *    be charged, so `.reset()` runs exactly there. Every other error (the four
+ *    409 conflicts, a network/generic failure) leaves the key untouched: those
+ *    did not attempt-and-decline a charge, and minting a fresh key blind risks
+ *    a double charge if one is actually in flight.
+ *
+ * 3. A FRESH instrument every time. Recovery is re-attaching an instrument, so
  *    `PaymentInstrumentField` is always shown and its minted token is always
  *    sent — there is no "returning org already has one" shortcut here.
  *
- * 3. Success is asynchronous — the UI polls, it never assumes. change-plan
- *    returns before the provider webhook confirms; on a successful initiate we
- *    enter `useAwaitPaymentConfirmation` and poll the subscription until its
- *    `billing_state` returns to `active` — never "done" off the initiate
- *    response — falling back to a calm "still confirming" state with a manual
- *    re-check at the ceiling. The confirm predicate resolves ONLY for a real
- *    subscription object that is back to `active`; a null/undefined/missing read
- *    keeps polling (a not-yet-readable refetch must never be mistaken for
- *    recovery).
+ * 4. Success is asynchronous — the UI polls, it never assumes. The 200
+ *    response is NOT success: recovery is webhook-driven, so the returned
+ *    subscription is still `grace`/`restricted`; it only moves to `active`
+ *    once the subscription-payment webhook confirms the charge. On a
+ *    successful initiate we enter `useAwaitPaymentConfirmation` and poll the
+ *    subscription until its `billing_state` returns to `active` — never
+ *    "done" off the initiate response — falling back to a calm "still
+ *    confirming" state with a manual re-check at the ceiling. The confirm
+ *    predicate resolves ONLY for a real subscription object that is back to
+ *    `active`; a null/undefined/missing read keeps polling (a not-yet-readable
+ *    refetch must never be mistaken for recovery).
+ *
+ * Coded 409s each get a distinct message; `subscription_not_attached` (the org
+ * never attached an instrument at the provider — it has never paid) is not a
+ * retry case at all, so it routes to the first-payment/upgrade flow
+ * (`/billing/plans`) instead of re-prompting for a card here.
  */
 
 import * as React from 'react';
@@ -70,7 +81,7 @@ import {
 } from 'vinta-schedule-design-system/layout';
 
 import type { Subscription } from '@/client';
-import { useChangePlan } from '@/hooks/billing/use-change-plan';
+import { useRetryPayment } from '@/hooks/billing/use-retry-payment';
 import { useSubscription } from '@/hooks/billing/use-subscription';
 import { useAwaitPaymentConfirmation } from '@/hooks/billing/use-await-payment-confirmation';
 import { createIdempotencyKeyHolder } from '@/lib/billing/idempotency';
@@ -78,6 +89,11 @@ import { formatMoney, formatPeriod } from '@/lib/billing/format';
 import type { PaymentProviderSdkFactory } from '@/lib/billing/payment-provider-sdk';
 import type { PaymentInstrumentResult } from '@/lib/billing/payment-token';
 import {
+  isChargeDeclinedError,
+  isCollectionNotSupportedError,
+  isNoOutstandingBalanceError,
+  isRetryPaymentNotApplicableError,
+  isSubscriptionNotAttachedError,
   readBillingConflict,
   readOverLimitError,
 } from '@/lib/utils/api-errors';
@@ -87,13 +103,19 @@ import {
   type PaymentInstrumentFieldHandle,
 } from './payment-instrument-field';
 
-type Phase = 'form' | 'confirming' | 'confirmed' | 'still_processing';
+type Phase =
+  | 'form'
+  | 'confirming'
+  | 'confirmed'
+  | 'still_processing'
+  | 'needs_upgrade';
 
 export interface ResolvePaymentFormProps {
   /**
    * The org's current subscription — always in GRACE / RESTRICTED here (the
-   * route guards this). Supplies the plan being kept, the interval to re-affirm,
-   * and the grace deadline; the plan is NOT chosen, it is re-affirmed.
+   * route guards this). Supplies the plan being kept and the grace deadline
+   * shown on the form; nothing is re-affirmed (the endpoint doesn't take
+   * `plan_slug`/`billing_interval`).
    */
   subscription: Subscription;
   /**
@@ -135,7 +157,7 @@ export function ResolvePaymentForm({
   subscription,
   createSdk,
 }: ResolvePaymentFormProps) {
-  const { changePlan, changePlanMutation } = useChangePlan();
+  const { retryPayment, retryPaymentMutation } = useRetryPayment();
   // Same query key as the parent's subscription read (shared cache); we use its
   // refetch as the confirmation poll back to ACTIVE.
   const { subscriptionQuery } = useSubscription();
@@ -153,10 +175,12 @@ export function ResolvePaymentForm({
     isResolved: isRecoveryConfirmed,
   });
 
-  // One key per attempt, reused across every retry within this mount. The lazy
-  // `.key` mints once and holds stable across a retried submit, so a
+  // One key per attempt, reused across every retry of that SAME attempt. The
+  // lazy `.key` mints once and holds stable across a retried submit, so a
   // double-click / network retry re-sends the SAME key (no double-charge). A
-  // genuinely new attempt is a fresh mount of this form.
+  // fresh key is minted ONLY when `charge_declined` fires below — the user is
+  // about to try a different card, so the stale key must not be replayed
+  // against the new one (see the module docstring, invariant 2).
   const idempotencyHolderRef = React.useRef(createIdempotencyKeyHolder());
   const paymentFieldRef = React.useRef<PaymentInstrumentFieldHandle>(null);
 
@@ -169,7 +193,7 @@ export function ResolvePaymentForm({
   const priceLabel = price === null ? '—' : formatMoney(price, plan.currency);
   const gracePeriodEndsAt = subscription.grace_period_ends_at;
 
-  const isPending = changePlanMutation.isPending;
+  const isPending = retryPaymentMutation.isPending;
 
   const handleSubmit = async () => {
     setErrorMessage(null);
@@ -188,18 +212,50 @@ export function ResolvePaymentForm({
     const paymentToken = result.token;
 
     // Read the key ONCE per submit; the holder returns the same value on a
-    // retry, so a retried submit reuses it (no double-charge).
+    // retry, so a retried submit reuses it (no double-charge) unless the
+    // previous attempt's charge was declined (handled below).
     const idempotencyKey = idempotencyHolderRef.current.key;
 
     try {
-      // RE-AFFIRM the current plan — same slug + interval — with the new token.
-      await changePlan({
-        plan_slug: plan.slug,
-        billing_interval: interval,
+      await retryPayment({
         idempotency_key: idempotencyKey,
         payment_token: paymentToken,
       });
     } catch (err) {
+      if (isChargeDeclinedError(err)) {
+        // The card was declined — the user will now try a DIFFERENT card.
+        // Reset the key so the NEXT submit mints a fresh one: the backend is
+        // idempotent per key, so reusing this attempt's key would return the
+        // cached declined result and the new card would never be charged
+        // (the double-charge guard this whole flow exists for). Refetch the
+        // subscription so its state is current, then stay on the form.
+        idempotencyHolderRef.current.reset();
+        await subscriptionQuery.refetch();
+        setErrorMessage('That card was declined — try a different card.');
+        return;
+      }
+      if (isRetryPaymentNotApplicableError(err)) {
+        setErrorMessage(
+          "Your subscription doesn't need a payment retry right now."
+        );
+        return;
+      }
+      if (isNoOutstandingBalanceError(err)) {
+        setErrorMessage("There's no outstanding balance to pay right now.");
+        return;
+      }
+      if (isCollectionNotSupportedError(err)) {
+        setErrorMessage(
+          "Automatic payment retry isn't available for your payment provider."
+        );
+        return;
+      }
+      if (isSubscriptionNotAttachedError(err)) {
+        // This org has never attached an instrument — it has never paid, so
+        // it belongs on the first-payment/upgrade flow, not a retry.
+        setPhase('needs_upgrade');
+        return;
+      }
       const overLimit = readOverLimitError(err);
       if (overLimit) {
         setErrorMessage(overLimit.detail);
@@ -229,6 +285,26 @@ export function ResolvePaymentForm({
     const outcome = await confirmation.start();
     setPhase(outcome.status === 'confirmed' ? 'confirmed' : 'still_processing');
   };
+
+  if (phase === 'needs_upgrade') {
+    return (
+      <Card data-testid='resolve-payment-needs-upgrade'>
+        <CardContent>
+          <VStack gap={3} py={4} align='center'>
+            <Icon icon={TriangleAlert} color='muted-foreground' />
+            <Text weight='medium'>This organization has never paid yet</Text>
+            <Text size='sm' color='muted-foreground' align='center'>
+              There&apos;s no payment method on file to retry. Choose a plan and
+              add a payment method to get started.
+            </Text>
+            <Button asChild>
+              <Link href='/billing/plans'>Choose a plan</Link>
+            </Button>
+          </VStack>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (phase === 'confirming') {
     return (

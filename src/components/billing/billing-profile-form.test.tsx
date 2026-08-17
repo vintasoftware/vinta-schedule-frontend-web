@@ -13,14 +13,39 @@
  *     it renders the error toast and does not refetch;
  *   • clearing an optional field on the update path PATCHes the cleared value as
  *     "" so the clear persists (an omitted key would leave the old value).
+ *
+ * Phase 4 (billing-hardening plan) additions:
+ *   • the document-type Select offers exactly the nine enum values, and
+ *     leaving it unselected blocks submit;
+ *   • a legacy/out-of-enum `document_type` still renders in the read view
+ *     (open on read, closed on write);
+ *   • a server field-validation 400 (incl. nested `billing_address.*`) maps
+ *     onto the matching field via `setError`, not a generic toast;
+ *   • a defensive 403 (the capability backstop) shows a clear
+ *     billing-permission message and writes nothing.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import type { BillingProfile } from '@/client';
 import { PermissionProvider } from '@/components/navigation/permission-gate';
+import { DOCUMENT_TYPE_OPTIONS } from '@/lib/billing/document-type-labels';
+
+// Radix UI Select (the document-type field) uses pointer-capture APIs jsdom
+// doesn't implement — same polyfill as booking-form.test.tsx.
+beforeAll(() => {
+  if (!window.HTMLElement.prototype.hasPointerCapture) {
+    window.HTMLElement.prototype.hasPointerCapture = () => false;
+  }
+  if (!window.HTMLElement.prototype.setPointerCapture) {
+    window.HTMLElement.prototype.setPointerCapture = () => {};
+  }
+  if (!window.HTMLElement.prototype.releasePointerCapture) {
+    window.HTMLElement.prototype.releasePointerCapture = () => {};
+  }
+});
 
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
@@ -82,12 +107,20 @@ function mockProfile(profile: BillingProfile | null, isLoading = false) {
   });
 }
 
+async function selectDocumentType(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string
+) {
+  await user.click(screen.getByRole('combobox', { name: 'Document type' }));
+  await user.click(await screen.findByRole('option', { name: label }));
+}
+
 async function fillCreateForm(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('First name'), 'Grace');
   await user.type(screen.getByLabelText('Last name (optional)'), 'Hopper');
   await user.type(screen.getByLabelText('Email'), 'grace@example.com');
   await user.type(screen.getByLabelText('Phone (optional)'), '+1 555 111 2222');
-  await user.type(screen.getByLabelText('Document type'), 'OTHER');
+  await selectDocumentType(user, 'Other');
   await user.type(screen.getByLabelText('Document number'), '987654321');
   await user.type(screen.getByLabelText('Street'), 'Second');
   await user.type(screen.getByLabelText('Number'), '7');
@@ -179,7 +212,7 @@ describe('BillingProfileForm (Phase 6)', () => {
 
     // Leave first name empty; fill the rest.
     await user.type(screen.getByLabelText('Email'), 'grace@example.com');
-    await user.type(screen.getByLabelText('Document type'), 'OTHER');
+    await selectDocumentType(user, 'Other');
     await user.type(screen.getByLabelText('Document number'), '987654321');
 
     await user.click(screen.getByTestId('billing-profile-submit'));
@@ -209,6 +242,10 @@ describe('BillingProfileForm (Phase 6)', () => {
     // Prefilled from the existing profile.
     expect(screen.getByLabelText('First name')).toHaveValue('Ada');
     expect(screen.getByLabelText('Email')).toHaveValue('ada@example.com');
+    // EXISTING_PROFILE.document_type is 'OTHER' → label 'Other'.
+    expect(
+      screen.getByRole('combobox', { name: 'Document type' })
+    ).toHaveTextContent('Other');
 
     await user.clear(screen.getByLabelText('Document number'));
     await user.type(screen.getByLabelText('Document number'), '555');
@@ -251,6 +288,40 @@ describe('BillingProfileForm (Phase 6)', () => {
     expect(refetch).toHaveBeenCalled();
   });
 
+  it('keeps the "already exists" banner across the 409-refetch remount (BLOCKER 1 regression)', async () => {
+    mockProfile(null);
+    createBillingProfile.mockRejectedValue({
+      detail: 'a billing profile already exists',
+    });
+    const user = userEvent.setup();
+    const { rerender } = renderForm('admin');
+
+    await fillCreateForm(user);
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    expect(
+      await screen.findByTestId('billing-profile-exists')
+    ).toBeInTheDocument();
+    expect(refetch).toHaveBeenCalled();
+
+    // Simulate the refetch resolving: the profile now exists. This flips
+    // `billingProfile` null→real, which changes `BillingProfileEditor`'s
+    // `key` and remounts it.
+    mockProfile(EXISTING_PROFILE);
+    rerender(
+      <PermissionProvider permissions={permissionsFor('admin')}>
+        <BillingProfileForm />
+      </PermissionProvider>
+    );
+
+    // The editor re-initializes with the existing profile's values...
+    expect(screen.getByLabelText('First name')).toHaveValue('Ada');
+    expect(screen.getByLabelText('Email')).toHaveValue('ada@example.com');
+    // ...and the banner survives the remount (BLOCKER 1: `alreadyExists`
+    // must live outside the keyed subtree).
+    expect(screen.getByTestId('billing-profile-exists')).toBeInTheDocument();
+  });
+
   it('shows the error toast (not "already exists") for a 403/429-shaped { detail } on create', async () => {
     mockProfile(null);
     // A 403 admin-gate / 429 throttle body also carries a `detail` — it must not
@@ -288,5 +359,99 @@ describe('BillingProfileForm (Phase 6)', () => {
     expect(updateBillingProfile).toHaveBeenCalledWith(
       expect.objectContaining({ contact_phone: '' })
     );
+  });
+
+  it('offers exactly the nine document-type enum values', async () => {
+    mockProfile(null);
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    await user.click(screen.getByRole('combobox', { name: 'Document type' }));
+
+    const options = await screen.findAllByRole('option');
+    expect(options).toHaveLength(9);
+    expect(options.map((o) => o.textContent)).toEqual(
+      DOCUMENT_TYPE_OPTIONS.map((o) => o.label)
+    );
+  });
+
+  it('blocks submit when the document type is left unselected', async () => {
+    mockProfile(null);
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    await user.type(screen.getByLabelText('First name'), 'Grace');
+    await user.type(screen.getByLabelText('Email'), 'grace@example.com');
+    await user.type(screen.getByLabelText('Document number'), '987654321');
+
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    expect(
+      await screen.findByText('Select a document type.')
+    ).toBeInTheDocument();
+    expect(createBillingProfile).not.toHaveBeenCalled();
+  });
+
+  it('still renders a legacy/out-of-enum document type in the read view', () => {
+    mockProfile({
+      ...EXISTING_PROFILE,
+      // A value predating the enum — the read view must not force it through
+      // the closed nine-value set (open on read, closed on write).
+      document_type: 'tax_id' as unknown as BillingProfile['document_type'],
+    });
+    renderForm('member');
+
+    expect(screen.getByText('tax_id')).toBeInTheDocument();
+  });
+
+  it('maps a server field-validation 400 (incl. nested billing_address) onto its fields', async () => {
+    mockProfile(null);
+    createBillingProfile.mockRejectedValue({
+      document_number: ['Invalid.'],
+      billing_address: { street_name: ['Required.'] },
+    });
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    await fillCreateForm(user);
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    expect(await screen.findByText('Invalid.')).toBeInTheDocument();
+    expect(await screen.findByText('Required.')).toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId('billing-profile-exists')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a clear billing-permission message on a defensive 403 and writes nothing', async () => {
+    mockProfile(null);
+    // The mutation hooks attach the HTTP status to the thrown error body
+    // (see use-create-billing-profile.ts) — the form discriminates on it,
+    // not on DRF's English `detail` text.
+    createBillingProfile.mockRejectedValue(
+      Object.assign(
+        { detail: 'You do not have permission to perform this action.' },
+        { status: 403 }
+      )
+    );
+    const user = userEvent.setup();
+    renderForm('admin');
+
+    await fillCreateForm(user);
+    await user.click(screen.getByTestId('billing-profile-submit'));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'You need billing permission to do this',
+        expect.objectContaining({
+          description: 'Ask an organization admin to grant billing access.',
+        })
+      )
+    );
+    expect(
+      screen.queryByTestId('billing-profile-exists')
+    ).not.toBeInTheDocument();
+    expect(refetch).not.toHaveBeenCalled();
   });
 });

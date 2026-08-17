@@ -76,6 +76,50 @@ describe('ResourceUsageRow', () => {
     expect(screen.queryByTestId('resource-split')).not.toBeInTheDocument();
   });
 
+  it('renders "Not included" with no bar and no usage count when limit_value is 0', () => {
+    render(
+      <ResourceUsageRow
+        limit={makeLimit({
+          limit_value: 0,
+          current_usage: 0,
+          included_in_plan: 0,
+          add_on_quantity: 0,
+        })}
+        currency='USD'
+      />
+    );
+
+    expect(screen.getByTestId('resource-not-included')).toHaveTextContent(
+      'Not included'
+    );
+    expect(
+      screen.queryByTestId('resource-usage-count')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('resource-unlimited')).not.toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  it('does not show "Buy more" on a not-included row even when usage is nonzero', () => {
+    render(
+      <ResourceUsageRow
+        limit={makeLimit({
+          limit_value: 0,
+          current_usage: 5,
+          included_in_plan: 0,
+          add_on_quantity: 0,
+        })}
+        currency='USD'
+        onBuyMore={() => {}}
+      />
+    );
+
+    expect(screen.getByTestId('resource-not-included')).toHaveTextContent(
+      'Not included'
+    );
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('resource-buy-more')).not.toBeInTheDocument();
+  });
+
   it('formats the postpaid overage price in the plan currency', () => {
     render(
       <ResourceUsageRow

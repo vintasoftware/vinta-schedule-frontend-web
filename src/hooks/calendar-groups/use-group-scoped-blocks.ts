@@ -140,6 +140,12 @@ export function useGroupScopedBlocks({
   const createBlockMutation = useMutation({
     ...calendarGroupsSlotsBlockedTimesCreateMutation(),
     onSuccess: invalidateBlocksList,
+    // group-block-form.tsx renders an inline, batch-aware OverLimitAlert for
+    // this write's 402 rejection (see over-limit-alert.tsx) — opt out of the
+    // global MutationCache.onError remedy routing (query-client-provider.tsx,
+    // Phase 8) so the same rejection is never both shown inline AND routed
+    // away with a disruptive navigation.
+    meta: { overLimitHandledInline: true },
   });
   const createBlock = async (
     input: CreateBlockInput
@@ -157,6 +163,8 @@ export function useGroupScopedBlocks({
   const updateBlockMutation = useMutation({
     ...calendarGroupsSlotsBlockedTimesPartialUpdateMutation(),
     onSuccess: invalidateBlocksList,
+    // See createBlockMutation's comment above.
+    meta: { overLimitHandledInline: true },
   });
   const updateBlock = async (
     input: UpdateBlockInput

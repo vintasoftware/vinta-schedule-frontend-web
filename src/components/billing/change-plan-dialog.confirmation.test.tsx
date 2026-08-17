@@ -82,10 +82,12 @@ describe('ChangePlanDialog — real confirmation predicate', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     // The initiate returns the subscription with `pending_*` set (webhook not
-    // yet landed).
+    // yet landed) and a null `pending_plan_effective_at` — an
+    // immediate/charged change, so the dialog polls.
     h.changePlan.mockResolvedValue({
       ...PAID_SUBSCRIPTION,
       pending_plan_slug: 'team',
+      pending_plan_effective_at: null,
     });
   });
 

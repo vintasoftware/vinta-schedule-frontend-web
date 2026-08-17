@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 
 import { CreateOrganizationDialog } from '@/components/organizations/create-organization-dialog';
+import { AppBillingBanner } from '@/components/billing/app-billing-banner';
+import { RemedyRouter } from '@/components/billing/remedy-router';
 
 import {
   useCurrentOrganization,
@@ -36,6 +38,7 @@ import {
 import { AppTopbar } from 'vinta-schedule-design-system/layout/app-topbar';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import { Center } from 'vinta-schedule-design-system/layout/center';
+import { Stack } from 'vinta-schedule-design-system/layout/stack';
 import { Text } from 'vinta-schedule-design-system/layout/text';
 import {
   PermissionProvider,
@@ -418,8 +421,18 @@ export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   return (
     <PermissionProvider permissions={permissions}>
       <AppShell sidebar={sidebar} topbar={topbar}>
-        {children}
+        <Stack gap={6}>
+          {/* AppBillingBanner reads a separate useSubscription() query, so renders nothing on first paint until resolved — brief flash-absent for grace/restricted/cancelled orgs is expected. */}
+          <AppBillingBanner />
+          {children}
+        </Stack>
       </AppShell>
+      {/* Global over-limit remedy routing (Phase 8) — subscribes to the
+          remedy bus the shared QueryClient's MutationCache.onError emits to
+          and acts on it (navigate, or open PurchaseAddOnDialog). Mounted once
+          here so every guarded write anywhere in the authenticated shell is
+          covered without a per-page mount. */}
+      <RemedyRouter />
       <CreateOrganizationDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}

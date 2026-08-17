@@ -29,6 +29,23 @@
  *    never "done" off the initiate response — falling back to a calm "still
  *    confirming" with a manual re-check at the ceiling.
  *
+ * 4. A scheduled change is never confirmed — it must NEVER enter the poll.
+ *    An immediate/charged change is confirmed by a webhook that clears
+ *    `pending_plan_slug` within the poll window; a scheduled (deferred,
+ *    no-charge) change sets `pending_plan_effective_at` (end of the current
+ *    period) instead and `pending_plan_slug` will NOT clear during that
+ *    window. Polling it would therefore always exhaust the ceiling and
+ *    wrongly land on "taking longer than usual". Which of the two the
+ *    backend did is read straight off the initiate RESPONSE: a non-null
+ *    `pending_plan_effective_at` means scheduled/no-charge — routed straight
+ *    to a terminal "scheduled for {date}" state instead of
+ *    `confirmation.start()`. A null `pending_plan_effective_at` means
+ *    immediate/charged — always polled. This is authoritative (the backend's
+ *    own decision) and interval-agnostic; a client-side price comparison
+ *    cannot reproduce it, because the backend compares the current plan at
+ *    the subscription's OWN interval against the target at the requested
+ *    interval, not both plans at the same (possibly just-toggled) interval.
+ *
  * Errors branch on the parsed body (throwOnError:true): `400` token-required →
  * reveal/keep the card field; `402` over-limit (downgrade below usage) →
  * `readOverLimitError`; `409` (a change already awaiting confirmation / provider
@@ -36,7 +53,13 @@
  */
 
 import * as React from 'react';
-import { CheckCircle2, Clock, Loader2, TriangleAlert } from 'lucide-react';
+import {
+  CalendarClock,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  TriangleAlert,
+} from 'lucide-react';
 
 import {
   Dialog,
@@ -65,7 +88,7 @@ import { useChangePlan } from '@/hooks/billing/use-change-plan';
 import { useSubscription } from '@/hooks/billing/use-subscription';
 import { useAwaitPaymentConfirmation } from '@/hooks/billing/use-await-payment-confirmation';
 import { createIdempotencyKeyHolder } from '@/lib/billing/idempotency';
-import { formatMoney } from '@/lib/billing/format';
+import { formatMoney, formatPeriod } from '@/lib/billing/format';
 import type { PaymentProviderSdkFactory } from '@/lib/billing/payment-provider-sdk';
 import type { PaymentInstrumentResult } from '@/lib/billing/payment-token';
 import {
@@ -79,7 +102,12 @@ import {
   type PaymentInstrumentFieldHandle,
 } from './payment-instrument-field';
 
-type Phase = 'form' | 'confirming' | 'confirmed' | 'still_processing';
+type Phase =
+  | 'form'
+  | 'confirming'
+  | 'confirmed'
+  | 'still_processing'
+  | 'scheduled';
 
 export interface ChangePlanDialogProps {
   open: boolean;
@@ -181,6 +209,11 @@ export function ChangePlanDialog({
   const [showPaymentField, setShowPaymentField] = React.useState(
     () => !hasPaidInstrument(subscription)
   );
+  // Only set for the downgrade path — read off the initiate response's
+  // `pending_plan_effective_at`, never off a webhook (downgrades have none).
+  const [scheduledEffectiveAt, setScheduledEffectiveAt] = React.useState<
+    string | null
+  >(null);
 
   const price =
     billingInterval === 'annual' ? plan.annual_price : plan.monthly_price;
@@ -210,8 +243,9 @@ export function ChangePlanDialog({
     // retry path below, so a token-then-retry reuses it (no double-charge).
     const idempotencyKey = idempotencyHolderRef.current.key;
 
+    let updated: Subscription;
     try {
-      await changePlan({
+      updated = await changePlan({
         plan_slug: plan.slug,
         billing_interval: billingInterval,
         idempotency_key: idempotencyKey,
@@ -241,6 +275,18 @@ export function ChangePlanDialog({
           ? err.message
           : 'Something went wrong. Please try again.'
       );
+      return;
+    }
+
+    if (updated.pending_plan_effective_at !== null) {
+      // A change with a non-null `pending_plan_effective_at` is scheduled and
+      // shown, never polled: it's deferred (no charge yet), so
+      // `pending_plan_slug` will not clear during the poll window (it clears
+      // at `pending_plan_effective_at`, later). Entering `confirmation.start()`
+      // here would always exhaust the ceiling and wrongly land on "taking
+      // longer than usual" — so we terminate on the initiate response instead.
+      setScheduledEffectiveAt(updated.pending_plan_effective_at);
+      setPhase('scheduled');
       return;
     }
 
@@ -296,6 +342,30 @@ export function ChangePlanDialog({
             <Text weight='medium'>You&apos;re on the {plan.name} plan</Text>
             <Text size='sm' color='muted-foreground' align='center'>
               Your new limits are now in effect.
+            </Text>
+            <DialogFooter>
+              <Button type='button' onClick={() => onOpenChange(false)}>
+                Done
+              </Button>
+            </DialogFooter>
+          </VStack>
+        )}
+
+        {phase === 'scheduled' && (
+          <VStack
+            gap={3}
+            py={4}
+            align='center'
+            data-testid='change-plan-scheduled'
+          >
+            <Icon icon={CalendarClock} color='muted-foreground' />
+            <Text weight='medium'>Your plan change is scheduled</Text>
+            <Text size='sm' color='muted-foreground' align='center'>
+              Your plan will change to {plan.name} on{' '}
+              {scheduledEffectiveAt !== null
+                ? formatPeriod(scheduledEffectiveAt)
+                : 'your next billing date'}
+              .
             </Text>
             <DialogFooter>
               <Button type='button' onClick={() => onOpenChange(false)}>

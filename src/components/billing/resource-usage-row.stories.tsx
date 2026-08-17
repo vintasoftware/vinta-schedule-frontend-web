@@ -39,6 +39,19 @@ export const Unlimited: Story = {
   },
 };
 
+export const NotIncluded: Story = {
+  args: {
+    limit: {
+      ...BASE,
+      resource_key: 'webhook_subscriptions',
+      limit_value: 0,
+      current_usage: 0,
+      included_in_plan: 0,
+      add_on_quantity: 0,
+    },
+  },
+};
+
 export const PostpaidOverage: Story = {
   args: {
     limit: {

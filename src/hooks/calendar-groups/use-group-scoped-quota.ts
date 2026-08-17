@@ -124,6 +124,12 @@ export function useGroupScopedQuota({
   const createQuotaRuleMutation = useMutation({
     ...calendarGroupsSlotsQuotaRulesCreateMutation(),
     onSuccess: invalidateQuotaList,
+    // group-quota-rules.tsx renders an inline, batch-aware OverLimitAlert for
+    // this write's 402 rejection (see over-limit-alert.tsx) — opt out of the
+    // global MutationCache.onError remedy routing (query-client-provider.tsx,
+    // Phase 8) so the same rejection is never both shown inline AND routed
+    // away with a disruptive navigation.
+    meta: { overLimitHandledInline: true },
   });
   const createQuotaRule = async (
     input: CreateQuotaRuleInput
@@ -136,6 +142,8 @@ export function useGroupScopedQuota({
   const updateQuotaRuleMutation = useMutation({
     ...calendarGroupsSlotsQuotaRulesPartialUpdateMutation(),
     onSuccess: invalidateQuotaList,
+    // See createQuotaRuleMutation's comment above.
+    meta: { overLimitHandledInline: true },
   });
   const updateQuotaRule = async (
     input: UpdateQuotaRuleInput

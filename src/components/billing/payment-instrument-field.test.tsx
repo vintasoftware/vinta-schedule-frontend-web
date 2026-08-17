@@ -1,14 +1,16 @@
 /**
  * PaymentInstrumentField tests.
  *
- * The whole point of the phase is that this one component sits in front of two
- * external SDKs without ever touching the network in a test: the SDK is
+ * The whole point of the phase is that this one component sits in front of an
+ * external SDK without ever touching the network in a test: the SDK is
  * acquired through an injected `createSdk` factory, so every case below passes
  * a FAKE `PaymentProviderSdk`.
  *
  * Covers:
  * - a Stripe provider loads its (fake) SDK and `tokenize()` returns its token;
- * - a MercadoPago provider likewise;
+ * - a MercadoPago (unsupported) provider renders the "not available" state,
+ *   never mounts a card element, never builds an SDK, and `tokenize()`
+ *   returns `unsupported_provider`;
  * - a 409/unconfigured provider renders the unavailable state, never mounts a
  *   card element, never builds an SDK, and `tokenize()` returns `unconfigured`;
  * - an incomplete card yields `{ status: 'error', reason: 'incomplete' }`;
@@ -120,23 +122,27 @@ describe('PaymentInstrumentField', () => {
     });
   });
 
-  it('loads the MercadoPago SDK and returns its token from tokenize()', async () => {
+  it('renders the "not available" state and never mounts a card element for an unsupported (MercadoPago) provider', async () => {
     mockProvider(MERCADOPAGO_PROVIDER);
-    const { factory, mountCardElement } = makeFakeFactory({
-      tokenizeResult: {
-        status: 'tokenized',
-        token: asPaymentToken('tok_mp'),
-      },
-    });
+    const { factory, mountCardElement } = makeFakeFactory();
     const ref = createRef<PaymentInstrumentFieldHandle>();
 
     render(<PaymentInstrumentField ref={ref} createSdk={factory} />);
 
-    await waitFor(() => expect(mountCardElement).toHaveBeenCalledTimes(1));
-    expect(factory).toHaveBeenCalledWith(MERCADOPAGO_PROVIDER);
+    expect(screen.getByTestId('payment-field-unsupported')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('payment-card-element')
+    ).not.toBeInTheDocument();
+    // The SDK is never even constructed, let alone mounted.
+    expect(factory).not.toHaveBeenCalled();
+    expect(mountCardElement).not.toHaveBeenCalled();
 
     const result = await ref.current!.tokenize();
-    expect(result).toEqual({ status: 'tokenized', token: 'tok_mp' });
+    expect(result).toEqual({
+      status: 'error',
+      reason: 'unsupported_provider',
+      message: expect.any(String),
+    });
   });
 
   it('renders the unavailable state and never mounts a card element when the provider is unconfigured (409)', async () => {

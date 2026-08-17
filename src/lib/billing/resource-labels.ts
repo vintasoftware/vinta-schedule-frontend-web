@@ -36,3 +36,18 @@ export function resourceLabel(resourceKey: string): string {
   const humanized = resourceKey.replace(/_/g, ' ');
   return humanized.charAt(0).toUpperCase() + humanized.slice(1);
 }
+
+/**
+ * The resource keys currently offered as add-on purchases — every metered
+ * resource key is offered today (`PurchaseAddOnDialog`'s default resource
+ * options). Kept here, derived from `RESOURCE_LABELS` rather than
+ * re-declared, so `purchase-add-on-dialog.tsx` and the global over-limit
+ * handler (`query-client-provider.tsx`'s `isAddOnPurchasable`, Phase 8 of the
+ * billing-hardening plan) branch off the exact same set instead of drifting.
+ * Lives in this framework-free module — not the dialog component — so the
+ * shared `QueryClient` (used app-wide, including on unauthenticated routes)
+ * never has to import the dialog's UI code just to read this list.
+ */
+export const ADD_ON_PURCHASABLE_RESOURCE_KEYS = Object.keys(
+  RESOURCE_LABELS
+) as ResourceKeyEnum[];

@@ -1,18 +1,18 @@
 /**
  * api-errors tests.
  *
- * Covers:
- * - readOverLimitError reads a well-formed 402 body into its typed shape.
- * - readOverLimitError returns null for a body missing any of the five
- *   documented fields, for an unrelated 400 validation body, for a 500-style
- *   plain-text/Error rejection, and for null/undefined/non-object values.
- * - isNotFoundError matches the exact non-disclosure 404 body and nothing
- *   else — not a 402 body, not a 400 validation body, not a body whose
- *   `detail` merely contains "not found" as a substring.
- * - readNonFieldError reads the first message out of a DRF-style
- *   `non_field_errors` array, and returns null for anything else (an empty
- *   array, a differently shaped 400, a 500-style rejection, non-object
- *   values).
+ * Covers Phase 1 (billing hardening):
+ * - readBillingErrorCode extracts and narrows to the ten recognized codes.
+ * - All ten billing error codes have working readers (code-only, no fallback).
+ * - The substring-fallback readers (isPaymentTokenRequiredError, isAddOnNotPurchasableError)
+ *   now branch only on code; a mismatched detail is not misclassified.
+ * - readFieldValidationErrors reads a field-keyed error map and rejects
+ *   billing errors / non-field-errors / non-object values.
+ * - readOverLimitError still exposes `resource` for remedy derivation.
+ *
+ * Also covers existing readers:
+ * - isNotFoundError matches the exact non-disclosure 404 body.
+ * - readNonFieldError reads DRF non-field-errors.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -23,6 +23,15 @@ import {
   readBillingConflict,
   isPaymentTokenRequiredError,
   isAddOnNotPurchasableError,
+  isChargeDeclinedError,
+  isUnconfirmedPlanChangeError,
+  isPaymentProviderNotConfiguredError,
+  isRetryPaymentNotApplicableError,
+  isSubscriptionNotAttachedError,
+  isNoOutstandingBalanceError,
+  isCollectionNotSupportedError,
+  readBillingErrorCode,
+  readFieldValidationErrors,
   billingUpgradePath,
 } from './api-errors';
 
@@ -258,28 +267,72 @@ describe('readBillingConflict', () => {
   });
 });
 
+describe('isAddOnNotPurchasableError', () => {
+  it('matches the code discriminator', () => {
+    expect(isAddOnNotPurchasableError({ code: 'add_on_not_purchasable' })).toBe(
+      true
+    );
+  });
+
+  it('returns false when code is not add_on_not_purchasable', () => {
+    // This is the key regression test: a detail that LOOKS like it matches
+    // the old substring logic but has a different code must return false.
+    expect(
+      isAddOnNotPurchasableError({
+        code: 'some_other_error',
+        detail: 'This resource is not purchasable as an add-on.',
+      })
+    ).toBe(false);
+  });
+
+  it('does not match the old fallback-code variants', () => {
+    // The hardened contract uses the non-suffixed code; _error variants
+    // are removed from the hardened spec.
+    expect(
+      isAddOnNotPurchasableError({ code: 'add_on_not_purchasable_error' })
+    ).toBe(false);
+  });
+
+  it('excludes the 402 over-limit body', () => {
+    expect(
+      isAddOnNotPurchasableError({
+        code: 'limit_exceeded',
+        detail: 'not purchasable',
+      })
+    ).toBe(false);
+  });
+
+  it('returns false for a non-object, a plain string, or an Error', () => {
+    expect(isAddOnNotPurchasableError(null)).toBe(false);
+    expect(isAddOnNotPurchasableError(undefined)).toBe(false);
+    expect(isAddOnNotPurchasableError('add-on not purchasable')).toBe(false);
+    expect(
+      isAddOnNotPurchasableError(new Error('add-on not purchasable'))
+    ).toBe(false);
+  });
+});
+
 describe('isPaymentTokenRequiredError', () => {
-  it('matches a code discriminator', () => {
+  it('matches the code discriminator', () => {
     expect(
       isPaymentTokenRequiredError({ code: 'payment_token_required' })
     ).toBe(true);
-    expect(
-      isPaymentTokenRequiredError({ code: 'payment_token_required_error' })
-    ).toBe(true);
   });
 
-  it('matches a detail/message mentioning a required payment token or method', () => {
-    expect(
-      isPaymentTokenRequiredError({ detail: 'A payment token is required.' })
-    ).toBe(true);
+  it('returns false when code is not payment_token_required', () => {
+    // Key regression test: a detail mentioning "required" but with a different code.
     expect(
       isPaymentTokenRequiredError({
-        message: 'Please provide a payment method.',
+        code: 'some_other_error',
+        detail: 'A payment token is required.',
       })
-    ).toBe(true);
+    ).toBe(false);
+  });
+
+  it('does not match the old fallback-code variants', () => {
     expect(
-      isPaymentTokenRequiredError({ detail: 'payment_token must be supplied' })
-    ).toBe(true);
+      isPaymentTokenRequiredError({ code: 'payment_token_required_error' })
+    ).toBe(false);
   });
 
   it('does not misread a 402 over-limit body', () => {
@@ -294,80 +347,309 @@ describe('isPaymentTokenRequiredError', () => {
     ).toBe(false);
   });
 
-  it('does not misread an unrelated 409 conflict', () => {
-    expect(
-      isPaymentTokenRequiredError({
-        detail: 'A plan change is already awaiting confirmation.',
-      })
-    ).toBe(false);
-  });
-
-  it('does not misread a 409 that merely mentions a payment method', () => {
-    // The substring fallback must not classify a body that only mentions a
-    // "payment method" without asserting a token is required/missing — this is
-    // a conflict body, checked before readBillingConflict.
-    expect(
-      isPaymentTokenRequiredError({
-        detail: 'A payment method change is already processing.',
-      })
-    ).toBe(false);
-  });
-
   it('returns false for null / non-object / error values', () => {
     expect(isPaymentTokenRequiredError(null)).toBe(false);
     expect(isPaymentTokenRequiredError(undefined)).toBe(false);
-    expect(isPaymentTokenRequiredError('payment token')).toBe(false);
+    expect(isPaymentTokenRequiredError('payment token required')).toBe(false);
     expect(isPaymentTokenRequiredError(new Error('payment token'))).toBe(false);
   });
 });
 
-describe('isAddOnNotPurchasableError', () => {
-  it('matches a code discriminator', () => {
-    expect(isAddOnNotPurchasableError({ code: 'add_on_not_purchasable' })).toBe(
-      true
+describe('isChargeDeclinedError', () => {
+  it('matches the code discriminator', () => {
+    expect(isChargeDeclinedError({ code: 'charge_declined' })).toBe(true);
+  });
+
+  it('returns false for a different code (including limit_exceeded)', () => {
+    expect(
+      isChargeDeclinedError({
+        code: 'limit_exceeded',
+        resource: 'availability_windows',
+        current_usage: 1,
+        limit: 1,
+        detail: 'x',
+      })
+    ).toBe(false);
+  });
+
+  it('returns false for a non-object or Error', () => {
+    expect(isChargeDeclinedError(null)).toBe(false);
+    expect(isChargeDeclinedError(undefined)).toBe(false);
+    expect(isChargeDeclinedError('charge declined')).toBe(false);
+    expect(isChargeDeclinedError(new Error('card declined'))).toBe(false);
+  });
+});
+
+describe('isUnconfirmedPlanChangeError', () => {
+  it('matches the code discriminator', () => {
+    expect(
+      isUnconfirmedPlanChangeError({ code: 'unconfirmed_plan_change' })
+    ).toBe(true);
+  });
+
+  it('returns false for a different code', () => {
+    expect(isUnconfirmedPlanChangeError({ code: 'some_other_code' })).toBe(
+      false
+    );
+  });
+
+  it('returns false for a non-object', () => {
+    expect(isUnconfirmedPlanChangeError(null)).toBe(false);
+    expect(isUnconfirmedPlanChangeError(undefined)).toBe(false);
+  });
+});
+
+describe('isPaymentProviderNotConfiguredError', () => {
+  it('matches the code discriminator', () => {
+    expect(
+      isPaymentProviderNotConfiguredError({
+        code: 'payment_provider_not_configured',
+      })
+    ).toBe(true);
+  });
+
+  it('returns false for a different code', () => {
+    expect(
+      isPaymentProviderNotConfiguredError({ code: 'some_other_code' })
+    ).toBe(false);
+  });
+
+  it('returns false for a non-object', () => {
+    expect(isPaymentProviderNotConfiguredError(null)).toBe(false);
+  });
+});
+
+describe('isRetryPaymentNotApplicableError', () => {
+  it('matches the code discriminator', () => {
+    expect(
+      isRetryPaymentNotApplicableError({ code: 'retry_payment_not_applicable' })
+    ).toBe(true);
+  });
+
+  it('returns false for a different code', () => {
+    expect(isRetryPaymentNotApplicableError({ code: 'some_other_code' })).toBe(
+      false
+    );
+  });
+
+  it('returns false for a non-object', () => {
+    expect(isRetryPaymentNotApplicableError(null)).toBe(false);
+  });
+});
+
+describe('isSubscriptionNotAttachedError', () => {
+  it('matches the code discriminator', () => {
+    expect(
+      isSubscriptionNotAttachedError({ code: 'subscription_not_attached' })
+    ).toBe(true);
+  });
+
+  it('returns false for a different code', () => {
+    expect(isSubscriptionNotAttachedError({ code: 'some_other_code' })).toBe(
+      false
+    );
+  });
+
+  it('returns false for a non-object', () => {
+    expect(isSubscriptionNotAttachedError(null)).toBe(false);
+  });
+});
+
+describe('isNoOutstandingBalanceError', () => {
+  it('matches the code discriminator', () => {
+    expect(
+      isNoOutstandingBalanceError({ code: 'no_outstanding_balance' })
+    ).toBe(true);
+  });
+
+  it('returns false for a different code', () => {
+    expect(isNoOutstandingBalanceError({ code: 'some_other_code' })).toBe(
+      false
+    );
+  });
+
+  it('returns false for a non-object', () => {
+    expect(isNoOutstandingBalanceError(null)).toBe(false);
+  });
+});
+
+describe('isCollectionNotSupportedError', () => {
+  it('matches the code discriminator', () => {
+    expect(
+      isCollectionNotSupportedError({ code: 'collection_not_supported' })
+    ).toBe(true);
+  });
+
+  it('returns false for a different code', () => {
+    expect(isCollectionNotSupportedError({ code: 'some_other_code' })).toBe(
+      false
+    );
+  });
+
+  it('returns false for a non-object', () => {
+    expect(isCollectionNotSupportedError(null)).toBe(false);
+  });
+});
+
+describe('readBillingErrorCode', () => {
+  it('reads all ten recognized billing error codes', () => {
+    expect(readBillingErrorCode({ code: 'limit_exceeded' })).toBe(
+      'limit_exceeded'
+    );
+    expect(readBillingErrorCode({ code: 'charge_declined' })).toBe(
+      'charge_declined'
+    );
+    expect(readBillingErrorCode({ code: 'payment_token_required' })).toBe(
+      'payment_token_required'
+    );
+    expect(readBillingErrorCode({ code: 'unconfirmed_plan_change' })).toBe(
+      'unconfirmed_plan_change'
     );
     expect(
-      isAddOnNotPurchasableError({ code: 'add_on_not_purchasable_error' })
-    ).toBe(true);
+      readBillingErrorCode({ code: 'payment_provider_not_configured' })
+    ).toBe('payment_provider_not_configured');
+    expect(readBillingErrorCode({ code: 'add_on_not_purchasable' })).toBe(
+      'add_on_not_purchasable'
+    );
+    expect(readBillingErrorCode({ code: 'retry_payment_not_applicable' })).toBe(
+      'retry_payment_not_applicable'
+    );
+    expect(readBillingErrorCode({ code: 'subscription_not_attached' })).toBe(
+      'subscription_not_attached'
+    );
+    expect(readBillingErrorCode({ code: 'no_outstanding_balance' })).toBe(
+      'no_outstanding_balance'
+    );
+    expect(readBillingErrorCode({ code: 'collection_not_supported' })).toBe(
+      'collection_not_supported'
+    );
   });
 
-  it('matches a detail/message asserting the resource is not purchasable', () => {
-    expect(
-      isAddOnNotPurchasableError({
-        detail: 'This resource is not purchasable as an add-on.',
-      })
-    ).toBe(true);
-    expect(
-      isAddOnNotPurchasableError({
-        message: "Calendar groups can't be purchased as an add-on.",
-      })
-    ).toBe(true);
+  it('returns null for an unknown code', () => {
+    expect(readBillingErrorCode({ code: 'unknown_code' })).toBeNull();
   });
 
-  it('does not match a bare add-on mention without a not-purchasable assertion', () => {
-    // A 409 conflict mentioning an add-on is NOT this 400.
-    expect(
-      isAddOnNotPurchasableError({
-        detail: 'An add-on purchase is already processing.',
-      })
-    ).toBe(false);
+  it('returns null for a non-object', () => {
+    expect(readBillingErrorCode(null)).toBeNull();
+    expect(readBillingErrorCode(undefined)).toBeNull();
+    expect(readBillingErrorCode('limit_exceeded')).toBeNull();
   });
 
-  it('excludes the 402 over-limit body', () => {
+  it('returns null when code field is missing', () => {
+    expect(readBillingErrorCode({ detail: 'some error' })).toBeNull();
+  });
+});
+
+describe('readFieldValidationErrors', () => {
+  it('reads a field-keyed error map with string[] values', () => {
     expect(
-      isAddOnNotPurchasableError({
+      readFieldValidationErrors({
+        email: ['Invalid email address.'],
+        name: ['This field is required.'],
+      })
+    ).toEqual({
+      email: 'Invalid email address.',
+      name: 'This field is required.',
+    });
+  });
+
+  it('takes the first message when a field has multiple errors', () => {
+    expect(
+      readFieldValidationErrors({
+        email: ['Invalid email address.', 'Email is already in use.'],
+      })
+    ).toEqual({
+      email: 'Invalid email address.',
+    });
+  });
+
+  it('returns null for a billing error (has a code field)', () => {
+    expect(
+      readFieldValidationErrors({
+        code: 'payment_token_required',
+        detail: 'A payment token is required.',
+      })
+    ).toBeNull();
+  });
+
+  it('returns null for a non-field-errors 400', () => {
+    expect(
+      readFieldValidationErrors({
+        non_field_errors: ['A constraint violation.'],
+      })
+    ).toBeNull();
+  });
+
+  it('returns null when no valid field errors are found', () => {
+    expect(
+      readFieldValidationErrors({ some_field: 'not an array' })
+    ).toBeNull();
+  });
+
+  it('returns null when all field error arrays are empty', () => {
+    expect(
+      readFieldValidationErrors({
+        email: [],
+        name: [],
+      })
+    ).toBeNull();
+  });
+
+  it('ignores fields with non-string values in the array', () => {
+    expect(
+      readFieldValidationErrors({
+        email: ['Invalid email.'],
+        age: [123], // non-string, ignored
+      })
+    ).toEqual({
+      email: 'Invalid email.',
+    });
+  });
+
+  it('returns null for a non-object', () => {
+    expect(readFieldValidationErrors(null)).toBeNull();
+    expect(readFieldValidationErrors(undefined)).toBeNull();
+    expect(readFieldValidationErrors('not an object')).toBeNull();
+  });
+
+  it('returns null for an Error instance', () => {
+    expect(readFieldValidationErrors(new Error('boom'))).toBeNull();
+  });
+
+  it('returns null for a 402 over-limit body', () => {
+    expect(
+      readFieldValidationErrors({
         code: 'limit_exceeded',
-        detail: 'not purchasable add-on',
+        resource: 'availability_windows',
+        current_usage: 50,
+        limit: 50,
+        detail: 'Organization is at its limit.',
       })
-    ).toBe(false);
+    ).toBeNull();
   });
 
-  it('returns false for a non-object, a plain string, or an Error', () => {
-    expect(isAddOnNotPurchasableError(null)).toBe(false);
-    expect(isAddOnNotPurchasableError(undefined)).toBe(false);
-    expect(isAddOnNotPurchasableError('add-on not purchasable')).toBe(false);
+  it('reads nested field errors (from nested serializers) with dotted keys', () => {
     expect(
-      isAddOnNotPurchasableError(new Error('add-on not purchasable'))
-    ).toBe(false);
+      readFieldValidationErrors({
+        billing_address: {
+          street_name: ['This field is required.'],
+          city: ['Invalid city.'],
+        },
+      })
+    ).toEqual({
+      'billing_address.street_name': 'This field is required.',
+      'billing_address.city': 'Invalid city.',
+    });
+  });
+
+  it('returns null for a nested field error combined with a billing code', () => {
+    expect(
+      readFieldValidationErrors({
+        code: 'payment_token_required',
+        billing_address: {
+          street_name: ['This field is required.'],
+        },
+      })
+    ).toBeNull();
   });
 });

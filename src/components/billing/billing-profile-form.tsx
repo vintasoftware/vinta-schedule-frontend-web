@@ -27,7 +27,7 @@
  */
 
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type DefaultValues, type FieldPath } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -46,6 +46,13 @@ import {
 } from 'vinta-schedule-design-system/ui/alert';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Input } from 'vinta-schedule-design-system/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from 'vinta-schedule-design-system/ui/select';
 import {
   Form,
   FormControl,
@@ -68,6 +75,7 @@ import type {
   BillingProfile,
   BillingProfileWritable,
   BillingAddressWritable,
+  BillingProfileDocumentTypeEnum,
 } from '@/client';
 import { useBillingProfile } from '@/hooks/billing/use-billing-profile';
 import { useCreateBillingProfile } from '@/hooks/billing/use-create-billing-profile';
@@ -78,8 +86,19 @@ import {
 } from '@/components/navigation/permission-gate';
 import {
   readBillingConflict,
+  readErrorStatus,
+  readFieldValidationErrors,
   type BillingConflictBody,
 } from '@/lib/utils/api-errors';
+import {
+  DOCUMENT_TYPE_LABELS,
+  DOCUMENT_TYPE_OPTIONS,
+} from '@/lib/billing/document-type-labels';
+
+const DOCUMENT_TYPE_VALUES = DOCUMENT_TYPE_OPTIONS.map((o) => o.value) as [
+  BillingProfileWritable['document_type'],
+  ...BillingProfileWritable['document_type'][],
+];
 
 // ---------------------------------------------------------------------------
 // Zod schema — maps 1:1 to `BillingProfileWritable`.
@@ -101,7 +120,12 @@ const billingProfileSchema = z.object({
     .min(1, 'Enter an email.')
     .email('Enter a valid email address.'),
   contact_phone: z.string().optional(),
-  document_type: z.string().min(1, 'Enter a document type.'),
+  // Closed on write: constrained to the nine `BillingProfileDocumentTypeEnum`
+  // values via a Select (the read view stays open — see ReadOnlyRow/profile
+  // rendering below, which shows a legacy/out-of-enum value verbatim).
+  document_type: z.enum(DOCUMENT_TYPE_VALUES, {
+    message: 'Select a document type.',
+  }),
   document_number: z.string().min(1, 'Enter a document number.'),
   billing_address: z.object({
     street_name: z.string().min(1, 'Enter a street.'),
@@ -117,12 +141,16 @@ const billingProfileSchema = z.object({
 
 type BillingProfileSchema = z.infer<typeof billingProfileSchema>;
 
-const EMPTY_VALUES: BillingProfileSchema = {
+// `document_type` is left `undefined` (unselected) rather than `''` — the
+// enum schema no longer accepts an empty string, and `DefaultValues` widens
+// every field to optional for exactly this reason (see the same convention
+// in webhook-dialog.tsx). The Select's placeholder covers the empty state.
+const EMPTY_VALUES: DefaultValues<BillingProfileSchema> = {
   contact_first_name: '',
   contact_last_name: '',
   contact_email: '',
   contact_phone: '',
-  document_type: '',
+  document_type: undefined,
   document_number: '',
   billing_address: {
     street_name: '',
@@ -190,11 +218,10 @@ function toWritable(
   return {
     contact_first_name: values.contact_first_name,
     contact_email: values.contact_email,
-    // The field is a free-text input (the server owns the enum's validity), but
-    // the generated writable type now narrows `document_type` to the enum —
-    // cast at the boundary rather than constrain the input.
-    document_type:
-      values.document_type as BillingProfileWritable['document_type'],
+    // The zod schema now constrains `document_type` to the same enum as
+    // `BillingProfileWritable['document_type']` — no cast needed at the
+    // boundary anymore.
+    document_type: values.document_type,
     document_number: values.document_number,
     billing_address: address,
     ...(keepOptional(values.contact_last_name)
@@ -275,7 +302,14 @@ function ReadOnlyProfile({ profile }: { profile: BillingProfile | null }) {
             <ReadOnlyRow label='Contact name' value={name} />
             <ReadOnlyRow label='Contact email' value={profile.contact_email} />
             <ReadOnlyRow label='Contact phone' value={profile.contact_phone} />
-            <ReadOnlyRow label='Document type' value={profile.document_type} />
+            <ReadOnlyRow
+              label='Document type'
+              value={
+                DOCUMENT_TYPE_LABELS[
+                  profile.document_type as BillingProfileDocumentTypeEnum
+                ] ?? profile.document_type
+              }
+            />
             <ReadOnlyRow
               label='Document number'
               value={profile.document_number}
@@ -313,66 +347,19 @@ export function BillingProfileForm() {
   const { updateBillingProfile, updateBillingProfileMutation } =
     useUpdateBillingProfile();
 
+  // Lifted OUT of the keyed `BillingProfileEditor` below (rather than kept as
+  // local state inside it): a genuine 409-on-create sets this, then
+  // `onConflict` refetches, which resolves the now-existing profile and
+  // flips `BillingProfileEditor`'s `key` from `'new'` to the profile id. A
+  // key change unmounts and remounts the keyed subtree, destroying any state
+  // that lived inside it — so the "already exists" banner would vanish right
+  // when the user needs it. State that must survive the remount has to live
+  // in this outer, un-keyed component instead.
   const [alreadyExists, setAlreadyExists] = React.useState<string | null>(null);
 
-  const form = useForm<BillingProfileSchema>({
-    resolver: zodResolver(billingProfileSchema),
-    defaultValues: EMPTY_VALUES,
-  });
-
-  // Prefill (or clear) whenever the resolved profile changes — including after a
-  // 409-on-create refetch flips an empty form into the update path.
-  React.useEffect(() => {
-    form.reset(
-      billingProfile ? profileToFormValues(billingProfile) : EMPTY_VALUES
-    );
-  }, [billingProfile, form]);
-
-  // Absent profile (a fresh org's 404) ⇒ create; an existing profile ⇒ update.
-  const isUpdate = billingProfile !== null;
   const isPending =
     createBillingProfileMutation.isPending ||
     updateBillingProfileMutation.isPending;
-
-  const onSubmit = async (values: BillingProfileSchema) => {
-    const body = toWritable(values, isUpdate ? 'update' : 'create');
-    setAlreadyExists(null);
-    try {
-      if (isUpdate) {
-        await updateBillingProfile(body);
-        toast.success('Billing profile updated');
-      } else {
-        await createBillingProfile(body);
-        toast.success('Billing profile created');
-      }
-    } catch (err) {
-      // A genuine 409 on create means another admin created the profile
-      // meanwhile. Surface it calmly and refetch — the refetch resolves the
-      // existing profile and flips this form into the update path, REPLACING the
-      // user's unsaved edits with the server values (the alert tells them to
-      // review and re-save). A 403/429/5xx that also carries a `detail` is NOT a
-      // conflict and falls through to the error toast below.
-      const conflict = !isUpdate ? readProfileExistsConflict(err) : null;
-      if (conflict) {
-        setAlreadyExists(
-          conflict.detail || 'A billing profile already exists.'
-        );
-        void billingProfileQuery.refetch();
-        return;
-      }
-      toast.error(
-        isUpdate
-          ? 'Failed to update billing profile'
-          : 'Failed to create billing profile',
-        {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        }
-      );
-    }
-  };
 
   // Wait for the permission signal before deciding the gate — a null
   // (still-loading) permission set must not flash the read-only view over a
@@ -388,6 +375,136 @@ export function BillingProfileForm() {
   if (!permissions.includes(PERMISSIONS.manageBilling)) {
     return <ReadOnlyProfile profile={billingProfile} />;
   }
+
+  return (
+    <BillingProfileEditor
+      // Remount whenever the resolved profile identity changes — the initial
+      // 404→profile transition, or the 409-on-create refetch flipping an
+      // empty form into the update path. This bakes the correct initial
+      // values (including the document-type Select's selected option — see
+      // its comment below for why a LATER value change trips a real Radix
+      // Select bug) into `useForm` straight from `billingProfile`, instead of
+      // mounting empty and patching via a `reset()` effect.
+      key={billingProfile?.id ?? 'new'}
+      billingProfile={billingProfile}
+      isPending={isPending}
+      createBillingProfile={createBillingProfile}
+      updateBillingProfile={updateBillingProfile}
+      alreadyExists={alreadyExists}
+      setAlreadyExists={setAlreadyExists}
+      onConflict={() => void billingProfileQuery.refetch()}
+    />
+  );
+}
+
+interface BillingProfileEditorProps {
+  billingProfile: BillingProfile | null;
+  isPending: boolean;
+  createBillingProfile: (
+    body: BillingProfileWritable
+  ) => Promise<BillingProfile>;
+  updateBillingProfile: (
+    body: BillingProfileWritable
+  ) => Promise<BillingProfile>;
+  /**
+   * Owned by the outer, un-keyed `BillingProfileForm` — see its doc comment
+   * above — so the "already exists" banner survives the remount the 409
+   * flow triggers.
+   */
+  alreadyExists: string | null;
+  setAlreadyExists: (value: string | null) => void;
+  /** Called on a genuine profile-already-exists 409 to trigger the refetch. */
+  onConflict: () => void;
+}
+
+function BillingProfileEditor({
+  billingProfile,
+  isPending,
+  createBillingProfile,
+  updateBillingProfile,
+  alreadyExists,
+  setAlreadyExists,
+  onConflict,
+}: BillingProfileEditorProps) {
+  // Absent profile (a fresh org's 404) ⇒ create; an existing profile ⇒ update.
+  const isUpdate = billingProfile !== null;
+
+  const form = useForm<BillingProfileSchema>({
+    resolver: zodResolver(billingProfileSchema),
+    defaultValues: billingProfile
+      ? profileToFormValues(billingProfile)
+      : EMPTY_VALUES,
+  });
+
+  const onSubmit = async (values: BillingProfileSchema) => {
+    const body = toWritable(values, isUpdate ? 'update' : 'create');
+    setAlreadyExists(null);
+    try {
+      if (isUpdate) {
+        await updateBillingProfile(body);
+        toast.success('Billing profile updated');
+      } else {
+        await createBillingProfile(body);
+        toast.success('Billing profile created');
+      }
+    } catch (err) {
+      // The defensive 403 backstop: the form already gates on the capability
+      // client-side (`permissions.includes(PERMISSIONS.manageBilling)`);
+      // reaching this branch means the server-side gate rejected a write the
+      // client thought it could make (a stale/racing permission set).
+      // Discriminated by HTTP status (attached by the mutation hooks — see
+      // their doc comments), not by matching DRF's English `detail` text.
+      if (readErrorStatus(err) === 403) {
+        toast.error('You need billing permission to do this', {
+          description: 'Ask an organization admin to grant billing access.',
+        });
+        return;
+      }
+
+      // A genuine 409 on create means another admin created the profile
+      // meanwhile. Surface it calmly and refetch — the refetch resolves the
+      // existing profile and flips this form into the update path, REPLACING the
+      // user's unsaved edits with the server values (the alert tells them to
+      // review and re-save). A 429/5xx that also carries a `detail` is NOT a
+      // conflict and falls through to the error toast below.
+      const conflict = !isUpdate ? readProfileExistsConflict(err) : null;
+      if (conflict) {
+        setAlreadyExists(
+          conflict.detail || 'A billing profile already exists.'
+        );
+        onConflict();
+        return;
+      }
+
+      // Field-validation 400s (no `code`) map onto their own fields instead
+      // of a single generic toast. `readFieldValidationErrors` already
+      // dot-joins nested keys (e.g. `billing_address.street_name`), which
+      // matches this form's react-hook-form field paths directly.
+      const fieldErrors = readFieldValidationErrors(err);
+      if (fieldErrors) {
+        for (const [field, message] of Object.entries(fieldErrors)) {
+          // A server-returned field name that doesn't match a form path
+          // makes `setError` a silent no-op — the intended degrade.
+          form.setError(field as FieldPath<BillingProfileSchema>, {
+            message,
+          });
+        }
+        return;
+      }
+
+      toast.error(
+        isUpdate
+          ? 'Failed to update billing profile'
+          : 'Failed to create billing profile',
+        {
+          description:
+            err instanceof Error
+              ? err.message
+              : 'An unexpected error occurred.',
+        }
+      );
+    }
+  };
 
   return (
     <Card data-testid='billing-profile-form'>
@@ -488,9 +605,41 @@ export function BillingProfileForm() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Document type</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          // `field.value` is `undefined` on the CREATE path
+                          // (unselected) — coerce to '' so Radix's Select is
+                          // controlled from its very first render. Radix
+                          // Select's hidden native-`<select>` mirror only
+                          // syncs (and dispatches a `change`) when its
+                          // *controlled value prop changes after mount*; if
+                          // that first real value arrives via a later
+                          // `reset()` rather than at mount, the mirror's
+                          // sync can race the not-yet-registered `<option>`
+                          // and misfire `onValueChange('')`, wiping the
+                          // selection. `BillingProfileEditor` sidesteps this
+                          // by being keyed + mounted fresh with the correct
+                          // initial value already baked in (see the `key` on
+                          // `BillingProfileEditor` below) rather than
+                          // patching the value in after mount.
+                          value={field.value ?? ''}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder='Select a document type' />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {DOCUMENT_TYPE_OPTIONS.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
