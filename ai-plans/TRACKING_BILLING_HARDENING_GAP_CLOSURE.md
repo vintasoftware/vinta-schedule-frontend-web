@@ -77,10 +77,15 @@ Client regen no longer needed; `main` already has `billingSubscriptionRetryPayme
 - **Review note (T4/opus):** verdict **money-path SAFE, no BLOCKER** — traced every submit sequence: key read fresh per submit (no stale closure), `.reset()` only on `charge_declined`, 402 codes disambiguated by `code` before the broader conflict check, 2xx never success, same-key retries replay safely. Tests assert same-key on same-attempt retry + different-key after decline. SHOULD-FIX (added a `NeedsUpgrade` story) + NIT (reworded a stale doc comment) applied.
 - **Gate:** typecheck clean; full suite green (app 225/1830, DS 82).
 
-## Current phase
-- **Phase 8 — Global over-limit handler + remedy routing** (final executable phase; reviewer T4)
+### Phase 8 — Global over-limit handler + client-derived remedy routing ✅
+- **Status:** PASS · **Branch:** `plan/billing-hardening-gap-closure/phase-8` (base: phase-7) · **Commits:** `abe1a55` (derive-remedy) · `319d2dc` (global mutation-cache routing) · `a5cf397` (plans `?resource=`) · `3e7d613` (opt change-plan/retry-payment out)
+- **Models:** impl T3 (sonnet) · **reviewer T4 (opus, shared mutation path)** · fixer T2 (haiku)
+- **Summary:** One global `MutationCache.onError` on the shared QueryClient routes over-limit rejections app-wide. It no-ops first on any non-`limit_exceeded` error (pass-through), skips mutations tagged `meta.overLimitHandledInline`, then reads `billing_state` from the cached subscription + `isAddOnPurchasable` and calls `deriveRemedy` (new `derive-remedy.ts`), emitting to a module-level `remedy-bus`. `RemedyRouter` (mounted in the app shell) subscribes and acts: navigate to `/billing/plans?resource=` / `/billing/resolve-payment`, or open a pre-filled add-on dialog. `/billing/plans` now honors `?resource=` (highlight + "Recommended" badge). The calendar-groups inline `OverLimitAlert` is kept (batch-aware UX) and its mutations opt out.
+- **Review note (T4/opus):** pass-through invariant verified **airtight** — `readOverLimitError` returns non-null only for `limit_exceeded`, the whole handler is try/catch-wrapped so it can't break the mutation pipeline, org-recovery `QueryCache.onError` untouched, subscription key correct, absent `billing_state` handled. No BLOCKER. Two SHOULD-FIX (completeness): `use-change-plan` + `use-retry-payment` also handle over-limit inline but weren't tagged → double-handling; fixed with `meta.overLimitHandledInline` on both.
+- **Gate:** typecheck clean; full suite green (app 227/1863, DS 82) — the green full suite is the proof no shared-path mutation/query flow regressed.
 
 ## Remaining phases
+_(none — all executable phases complete)_
 - Phase 4 — Billing profile form hardening (T3) — capability-gated
 - Phase 5 — Downgrade-vs-upgrade distinction (T3)
 - Phase 6 — Payment-provider unsupported fallback (T2/T3)
