@@ -7,7 +7,9 @@
  * decomposes the limit, the postpaid `overage_unit_price` (via `formatMoney`,
  * in the plan's currency), and — for pooled resellers — the per-organization
  * attribution (only when >1 org contributed). A `limit_value` of null renders
- * as "Unlimited" with no bar.
+ * as "Unlimited" with no bar; a `limit_value` of `0` renders as "Not included"
+ * with no bar — a resource the plan grants zero of is a distinct state from
+ * unlimited, not a live `0/0` progress bar.
  *
  * Presentational: renders from props only (the Progress atom it uses is a
  * client component, but this row holds no state of its own).
@@ -61,6 +63,11 @@ export function ResourceUsageRow({
 }: ResourceUsageRowProps) {
   const label = resourceLabel(limit.resource_key);
   const isUnlimited = limit.limit_value === null;
+  // A zero limit means the plan grants none of this resource — a "not
+  // included" state distinct from unlimited (null) and from a positive ratio.
+  // Checked explicitly, before the unlimited/ratio split, so it never falls
+  // through to the old `0/0` bar.
+  const isNotIncluded = limit.limit_value === 0;
   const used = limit.current_usage ?? 0;
   // "Buy more" is scoped to a PRE-PAID resource near or over its limit (>=80%
   // used, over-limit included). A postpaid resource bills overage automatically
@@ -71,7 +78,10 @@ export function ResourceUsageRow({
     limit.current_usage !== null &&
     limit.current_usage / limit.limit_value >= 0.8;
   const showBuyMore =
-    onBuyMore !== undefined && limit.kind === 'prepaid' && isNearLimit;
+    onBuyMore !== undefined &&
+    limit.kind === 'prepaid' &&
+    !isNotIncluded &&
+    isNearLimit;
 
   const showSplit = !isUnlimited && limit.included_in_plan !== null;
   const overagePrice =
@@ -91,6 +101,10 @@ export function ResourceUsageRow({
               {isUnlimited ? (
                 <Badge variant='teal' data-testid='resource-unlimited'>
                   Unlimited
+                </Badge>
+              ) : isNotIncluded ? (
+                <Badge variant='outline' data-testid='resource-not-included'>
+                  Not included
                 </Badge>
               ) : (
                 <Text
@@ -115,7 +129,7 @@ export function ResourceUsageRow({
             </HStack>
           </HStack>
 
-          {!isUnlimited && limit.limit_value !== null ? (
+          {!isUnlimited && !isNotIncluded && limit.limit_value !== null ? (
             <Progress
               value={usagePercent(used, limit.limit_value)}
               aria-label={`${label} usage`}

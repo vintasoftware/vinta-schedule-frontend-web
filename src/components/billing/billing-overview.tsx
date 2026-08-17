@@ -111,6 +111,7 @@ export function BillingOverview() {
         <PlanSummaryCard
           plan={usage.plan}
           billingPeriod={usage.billing_period}
+          subscription={subscription}
         />
         <OverageEstimate
           estimatedOverageTotal={usage.estimated_overage_total}

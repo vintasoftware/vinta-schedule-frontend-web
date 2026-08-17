@@ -4,11 +4,16 @@
  * BillingPlansPicker — the plan catalog + upgrade/downgrade/cancel entry
  * (Phase 3). The `/billing/plans` server page renders this client island.
  *
- * It reads the catalog (`useBillingPlans`) and the current subscription
- * (`useSubscription`), highlights the plan the org is on, and exposes a
- * monthly/annual toggle DEFAULTING TO MONTHLY that both switches each card's
- * price (`monthly_price` / `annual_price` via `formatMoney`) and drives the
- * `billing_interval` handed to the change-plan dialog.
+ * It reads the current subscription (`useSubscription`) first so the catalog
+ * read (`useBillingPlans`) can filter to the org's own billing currency
+ * (`subscription.plan.currency`) — a multi-currency catalog would otherwise
+ * mix prices you can't actually be charged in. A free / subscription-less org
+ * (404 on `useSubscription`) has no currency to filter to, so it sees the
+ * unfiltered catalog. It highlights the plan the org is on, renders each
+ * plan's limits + entitlements, and exposes a monthly/annual toggle DEFAULTING
+ * TO MONTHLY that both switches each card's price (`monthly_price` /
+ * `annual_price` via `formatMoney`) and drives the `billing_interval` handed
+ * to the change-plan dialog.
  *
  * Capability gating is defense-in-depth: the upgrade/cancel affordances render
  * only for members who hold `payments.manage_billing`; the server `403` on the
@@ -35,6 +40,7 @@ import {
 } from 'vinta-schedule-design-system/ui/alert';
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { List, ListItem } from 'vinta-schedule-design-system/ui/list';
 import {
   Center,
   Grid,
@@ -52,6 +58,8 @@ import {
   PERMISSIONS,
 } from '@/components/navigation/permission-gate';
 import { formatMoney } from '@/lib/billing/format';
+import { entitlementLabel } from '@/lib/billing/entitlement-labels';
+import { resourceLabel } from '@/lib/billing/resource-labels';
 
 import { ChangePlanDialog } from './change-plan-dialog';
 import { CancelSubscriptionDialog } from './cancel-subscription-dialog';
@@ -65,11 +73,17 @@ function priceForInterval(
 }
 
 export function BillingPlansPicker() {
-  const { plans, isLoading, isError } = useBillingPlans();
   // A free / subscription-less org answers 404 here; that's expected and never
-  // blocks the catalog — it just means there's no current plan to highlight.
+  // blocks the catalog — it just means there's no current plan to highlight,
+  // and no currency to filter the catalog to (below).
   const { subscription } = useSubscription();
   const canManageBilling = useHasPermission(PERMISSIONS.manageBilling);
+  // The org's own billing currency, when it has one — the catalog read filters
+  // to it so a member never sees a price they can't actually be charged in.
+  const currency = subscription?.plan.currency;
+  const { plans, isLoading, isError } = useBillingPlans({
+    query: currency ? { currency } : undefined,
+  });
 
   const [interval, setInterval] =
     React.useState<PendingBillingIntervalEnum>('monthly');
@@ -134,6 +148,11 @@ export function BillingPlansPicker() {
           const price = priceForInterval(plan, interval);
           const priceLabel =
             price === null ? null : formatMoney(price, plan.currency);
+          // Only the entitlements this plan actually grants are worth
+          // showing — a disabled entitlement is a non-feature, not a bullet.
+          const enabledEntitlements = plan.entitlements.filter(
+            (entitlement) => entitlement.is_enabled
+          );
 
           return (
             <Card
@@ -181,6 +200,51 @@ export function BillingPlansPicker() {
                       </HStack>
                     )}
                   </VStack>
+
+                  <VStack
+                    gap={1}
+                    align='start'
+                    data-testid={`plan-limits-${plan.slug}`}
+                  >
+                    <Text size='xs' color='muted-foreground' uppercase>
+                      Included limits
+                    </Text>
+                    <List variant='plain' gap={1}>
+                      {plan.limits.map((limit) => (
+                        <ListItem key={limit.resource_key}>
+                          <Text size='sm'>
+                            {resourceLabel(limit.resource_key)}:{' '}
+                            {limit.limit_value === null
+                              ? 'Unlimited'
+                              : limit.limit_value}
+                          </Text>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </VStack>
+
+                  {enabledEntitlements.length > 0 && (
+                    <VStack
+                      gap={1}
+                      align='start'
+                      data-testid={`plan-entitlements-${plan.slug}`}
+                    >
+                      <Text size='xs' color='muted-foreground' uppercase>
+                        Includes
+                      </Text>
+                      <HStack gap={2} wrap>
+                        {enabledEntitlements.map((entitlement) => (
+                          <Badge
+                            key={entitlement.entitlement_key}
+                            variant='outline'
+                            data-testid={`plan-entitlement-${plan.slug}-${entitlement.entitlement_key}`}
+                          >
+                            {entitlementLabel(entitlement.entitlement_key)}
+                          </Badge>
+                        ))}
+                      </HStack>
+                    </VStack>
+                  )}
 
                   {canManageBilling &&
                     (isCurrent && hasPaidPlan ? (
