@@ -22,11 +22,14 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import { VStack, Text, FormLayout } from 'vinta-schedule-design-system/layout';
 import { useCreateInvitation } from '@/hooks/invitations/use-create-invitation';
 import { useResendInvitation } from '@/hooks/invitations/use-resend-invitation';
 import { invitationsList } from '@/client/sdk.gen';
+
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -184,10 +187,7 @@ export function InviteMemberDialog({
       });
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to send invitation', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to send invitation', form });
     }
   };
 
@@ -204,10 +204,7 @@ export function InviteMemberDialog({
       });
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to resend invitation', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to resend invitation' });
     }
   };
 
@@ -219,6 +216,7 @@ export function InviteMemberDialog({
         </DialogHeader>
 
         <Form {...form}>
+          <FormRootMessage />
           {/* noValidate: zod (via react-hook-form) owns all validation; the
               browser's native constraint validation must not intercept submit. */}
           <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>

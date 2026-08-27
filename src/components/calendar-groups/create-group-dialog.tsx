@@ -45,6 +45,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import {
   FormLayout,
@@ -164,9 +165,9 @@ export function CreateGroupDialog({
       });
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to create calendar group', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
+      handleMutationError(err, {
+        title: 'Failed to create calendar group',
+        form,
       });
     }
   };
@@ -186,6 +187,7 @@ export function CreateGroupDialog({
         </DialogHeader>
 
         <Form {...form}>
+          <FormRootMessage />
           <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             {/* Group name */}
             <FormField
@@ -302,6 +304,8 @@ export function CreateGroupDialog({
 
 import type { UseFormReturn } from 'react-hook-form';
 import type { Calendar } from '@/client';
+
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 interface SlotEditorProps {
   index: number;

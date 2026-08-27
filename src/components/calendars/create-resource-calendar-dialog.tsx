@@ -24,6 +24,7 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import {
   FormLayout,
@@ -31,6 +32,8 @@ import {
   VStack,
 } from 'vinta-schedule-design-system/layout';
 import { useCreateResourceCalendar } from '@/hooks/calendars/use-create-resource-calendar';
+
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -119,9 +122,9 @@ export function CreateResourceCalendarDialog({
       onCreated?.();
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to create resource calendar', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
+      handleMutationError(err, {
+        title: 'Failed to create resource calendar',
+        form,
       });
     }
   });
@@ -138,6 +141,7 @@ export function CreateResourceCalendarDialog({
         </DialogHeader>
 
         <Form {...form}>
+          <FormRootMessage />
           <FormLayout onSubmit={onSubmit} gap={4} noValidate>
             <FormField
               control={form.control}

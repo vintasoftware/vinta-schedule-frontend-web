@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { useTriggerOrgCalendarSync } from '@/hooks/sync/use-trigger-org-calendar-sync';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 const DEBOUNCE_MS = 500;
 
 export function TriggerOrgCalendarSyncButton() {
@@ -35,10 +36,10 @@ export function TriggerOrgCalendarSyncButton() {
       await triggerOrgCalendarSync();
       toast.success('Calendar sync started');
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Failed to start calendar sync';
+      const message = getApiErrorMessage(
+        error,
+        'Failed to start calendar sync'
+      );
       toast.error(message);
     } finally {
       // Debounce: wait before allowing next click

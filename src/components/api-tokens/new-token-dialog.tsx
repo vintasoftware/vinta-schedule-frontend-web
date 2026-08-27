@@ -23,6 +23,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import { Alert, AlertDescription } from 'vinta-schedule-design-system/ui/alert';
 import { Label } from 'vinta-schedule-design-system/ui/label';
@@ -36,6 +37,7 @@ import {
 import type { AvailableResourcesEnum } from '@/client';
 import { useCreatePublicApiToken } from '@/hooks/api-tokens/use-public-api-tokens';
 import { usePublicApiScopes } from '@/hooks/api-tokens/use-public-api-scopes';
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -172,10 +174,7 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
       // It will be cleared when the dialog closes.
       setOnceCredential(`${result.id}:${result.token}`);
     } catch (err) {
-      toast.error('Failed to create API token', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to create API token', form });
     }
   };
 
@@ -278,6 +277,7 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
             </DialogHeader>
 
             <Form {...form}>
+              <FormRootMessage />
               <FormLayout
                 onSubmit={form.handleSubmit(onSubmit)}
                 gap={4}

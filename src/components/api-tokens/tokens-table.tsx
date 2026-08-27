@@ -24,6 +24,8 @@ import { usePublicApiTokens } from '@/hooks/api-tokens/use-public-api-tokens';
 import type { SystemUserToken } from '@/hooks/api-tokens/use-public-api-tokens';
 import { useRevokePublicApiToken } from '@/hooks/api-tokens/use-revoke-public-api-token';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
+import { handleMutationError } from '@/lib/utils/form-errors';
 // ---------------------------------------------------------------------------
 // Column definitions
 // Helper to create columns — accepts pendingRowIds (to disable actions for
@@ -219,12 +221,7 @@ function TokensTableInner({ toolbarActions }: TokensTableInnerProps) {
           description: `${token.integration_name} has been revoked.`,
         });
       } catch (err) {
-        toast.error('Failed to revoke token', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to revoke token' });
       } finally {
         // Always clear the pending state, even on error.
         // Note: on success, the row is updated by invalidation, so this cleanup
@@ -246,9 +243,7 @@ function TokensTableInner({ toolbarActions }: TokensTableInnerProps) {
           Failed to load API tokens.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );

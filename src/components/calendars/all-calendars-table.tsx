@@ -14,6 +14,8 @@ import type { Calendar, CalendarTypeEnum } from '@/client';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useTriggerUserCalendarSync } from '@/hooks/sync/use-trigger-user-calendar-sync';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
+import { handleMutationError } from '@/lib/utils/form-errors';
 // ---------------------------------------------------------------------------
 // Badge variant maps for calendar properties
 // ---------------------------------------------------------------------------
@@ -205,12 +207,7 @@ function AllCalendarsTableInner({ calendarType }: AllCalendarsTableProps) {
           description: `${calendar.name} sync is in progress.`,
         });
       } catch (err) {
-        toast.error('Failed to start sync', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to start sync' });
       } finally {
         // Always clear the pending state, even on error.
         setPendingRowIds((prev) => {
@@ -230,9 +227,7 @@ function AllCalendarsTableInner({ calendarType }: AllCalendarsTableProps) {
           Failed to load calendars.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );

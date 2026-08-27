@@ -180,8 +180,12 @@ describe('VerifyPhonePage', () => {
     expect(
       screen.queryByText('Verification code resent to your phone.')
     ).not.toBeInTheDocument();
+    // The rejection is an allauth body, so its own message reaches the user;
+    // 'Failed to resend code' is only the fallback for a body with none.
     expect(
-      await screen.findByText('Failed to resend code')
+      await screen.findByText(
+        'SMS consent is required before a verification code can be sent.'
+      )
     ).toBeInTheDocument();
   });
 
@@ -266,9 +270,14 @@ describe('VerifyPhonePage', () => {
 
     await waitFor(() => expect(mockVerifyPhone).toHaveBeenCalledTimes(2));
     expect(mockCreateConsent).toHaveBeenCalledTimes(1);
-    // "Verification failed" appears both as the alert title and (as the
-    // fallback message for a non-Error rejection) the description.
-    expect(await screen.findAllByText('Verification failed')).toHaveLength(2);
+    // "Verification failed" is the alert title. The description carries the
+    // allauth body's own message rather than repeating the title.
+    expect(await screen.findAllByText('Verification failed')).toHaveLength(1);
+    expect(
+      screen.getByText(
+        'SMS consent is required before a verification code can be sent.'
+      )
+    ).toBeInTheDocument();
     // The final failure is still routed through authenticationFlowControl.
     expect(mockAuthenticationFlowControl).toHaveBeenCalledWith(
       CONSENT_REQUIRED_ERROR

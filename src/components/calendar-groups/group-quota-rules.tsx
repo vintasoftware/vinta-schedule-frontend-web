@@ -88,10 +88,16 @@ import {
   VStack,
 } from 'vinta-schedule-design-system/layout';
 import { useGroupScopedQuota } from '@/hooks/calendar-groups/use-group-scoped-quota';
-import { readNonFieldError, readOverLimitError } from '@/lib/utils/api-errors';
+import {
+  getApiErrorMessage,
+  readNonFieldError,
+  readOverLimitError,
+} from '@/lib/utils/api-errors';
 import { useCanEditCalendar } from './group-permissions-provider';
 import { OverLimitAlert } from './over-limit-alert';
 import type { GroupScopedQuotaRule, PeriodEnum } from '@/client';
+
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 const PERIOD_LABELS: Record<PeriodEnum, string> = {
   day: 'Day',
@@ -208,7 +214,7 @@ function GroupQuotaRuleForm({
             ? 'Failed to update quota rule'
             : 'Failed to create quota rule',
           {
-            description: err instanceof Error ? err.message : 'Unknown error',
+            description: getApiErrorMessage(err, 'Unknown error'),
           }
         );
       }
@@ -468,9 +474,7 @@ export function GroupQuotaRules({
           });
         }
       } catch (err) {
-        toast.error('Failed to delete quota rule', {
-          description: err instanceof Error ? err.message : 'Unknown error',
-        });
+        handleMutationError(err, { title: 'Failed to delete quota rule' });
       } finally {
         setPendingIds((prev) => {
           const next = new Set(prev);

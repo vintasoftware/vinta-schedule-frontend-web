@@ -249,10 +249,7 @@ export function EventAttendeesEditor({
       toast.success('Attendees updated');
       onSaved?.();
     } catch (err) {
-      toast.error('Failed to update attendees', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to update attendees' });
     }
   };
 
@@ -486,6 +483,8 @@ import {
 } from '@/components/navigation/permission-gate';
 import { TransferEventDialog } from '@/components/events/transfer-event-dialog';
 
+import { handleMutationError } from '@/lib/utils/form-errors';
+
 export interface EventAttendeesSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -535,10 +534,7 @@ export function EventAttendeesSheet({
     try {
       await downloadEventIcs(raw.id, event.title);
     } catch (err) {
-      toast.error('Failed to download .ics', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to download .ics' });
     }
   };
 
@@ -560,10 +556,7 @@ export function EventAttendeesSheet({
       setConfirmOpen(false);
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to cancel event', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to cancel event' });
     } finally {
       setIsCancelling(false);
     }
@@ -579,10 +572,7 @@ export function EventAttendeesSheet({
       setScopeOpen(false);
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to cancel event', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to cancel event' });
     } finally {
       setIsCancelling(false);
     }

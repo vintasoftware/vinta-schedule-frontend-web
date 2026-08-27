@@ -47,6 +47,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import {
   Box,
@@ -59,6 +60,8 @@ import {
 } from 'vinta-schedule-design-system/layout';
 import { weekdayMatrix, type WeekdayEntry } from '@/lib/datetime/index';
 import { useAvailableTimes } from '@/hooks/availability/use-available-times';
+import { handleMutationError } from '@/lib/utils/form-errors';
+
 import type {
   AvailableTime,
   AvailableTimeWritable,
@@ -606,9 +609,7 @@ export function AvailabilityEditor({
             : `${payload.length} window${payload.length === 1 ? '' : 's'} saved.`,
       });
     } catch (err) {
-      toast.error('Failed to save availability', {
-        description: err instanceof Error ? err.message : 'Unknown error',
-      });
+      handleMutationError(err, { title: 'Failed to save availability', form });
     }
   }
 
@@ -624,6 +625,7 @@ export function AvailabilityEditor({
 
   return (
     <Form {...form}>
+      <FormRootMessage />
       <FormLayout gap={6} onSubmit={form.handleSubmit(onSubmit)}>
         {/* Weekly section */}
         <Stack gap={4}>

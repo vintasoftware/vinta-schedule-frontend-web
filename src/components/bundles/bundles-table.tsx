@@ -33,6 +33,8 @@ import {
 import { CreateBundleDialog } from './create-bundle-dialog';
 import { EditBundleDialog } from './edit-bundle-dialog';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
+import { handleMutationError } from '@/lib/utils/form-errors';
 // ---------------------------------------------------------------------------
 // Column definitions
 // Helper to create columns — accepts pendingRowIds (to disable actions for
@@ -211,12 +213,7 @@ function BundlesTableInner() {
           description: `${bundle.name} was deleted.`,
         });
       } catch (err) {
-        toast.error('Failed to delete bundle', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to delete bundle' });
       } finally {
         // Always clear the pending state, even on error.
         // Note: on success, the row is removed by invalidation, so this cleanup
@@ -238,9 +235,7 @@ function BundlesTableInner() {
           Failed to load bundles.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );

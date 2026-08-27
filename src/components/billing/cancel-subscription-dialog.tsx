@@ -37,7 +37,10 @@ import { Text, VStack } from 'vinta-schedule-design-system/layout';
 import type { Subscription } from '@/client';
 import { useCancelSubscription } from '@/hooks/billing/use-cancel-subscription';
 import { formatPeriod } from '@/lib/billing/format';
-import { readBillingConflict } from '@/lib/utils/api-errors';
+import {
+  getApiErrorMessage,
+  readBillingConflict,
+} from '@/lib/utils/api-errors';
 
 export interface CancelSubscriptionDialogProps {
   open: boolean;
@@ -79,9 +82,7 @@ export function CancelSubscriptionDialog({
       const conflict = readBillingConflict(err);
       setErrorMessage(
         conflict?.detail ??
-          (err instanceof Error
-            ? err.message
-            : 'Something went wrong. Please try again.')
+          getApiErrorMessage(err, 'Something went wrong. Please try again.')
       );
     }
   };

@@ -38,6 +38,8 @@ import {
 } from '@/hooks/service-accounts/use-service-account';
 import { ServiceAccountWizard } from './service-account-wizard';
 
+import { handleMutationError } from '@/lib/utils/form-errors';
+
 // ---------------------------------------------------------------------------
 // ServiceAccountCard
 // ---------------------------------------------------------------------------
@@ -56,10 +58,7 @@ export function ServiceAccountCard() {
       toast.success('Service account removed');
       setDeleteDialogOpen(false);
     } catch (err) {
-      toast.error('Failed to remove service account', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to remove service account' });
     }
   };
 

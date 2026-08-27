@@ -43,6 +43,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import { Label } from 'vinta-schedule-design-system/ui/label';
 import {
@@ -53,6 +54,8 @@ import {
 } from 'vinta-schedule-design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useCreateBundle } from '@/hooks/bundles/use-create-bundle';
+
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -145,10 +148,7 @@ export function CreateBundleDialog({
       });
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to create bundle', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to create bundle', form });
     }
   };
 
@@ -167,6 +167,7 @@ export function CreateBundleDialog({
         </DialogHeader>
 
         <Form {...form}>
+          <FormRootMessage />
           <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             {/* Bundle name */}
             <FormField

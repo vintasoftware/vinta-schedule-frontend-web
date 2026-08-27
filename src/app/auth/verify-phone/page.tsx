@@ -35,6 +35,7 @@ import { useCreateConsent } from '@/hooks/consents/use-create-consent';
 import { isConsentRequiredError } from '@/lib/consent-errors';
 import { syncSessionTokenFromCookie } from '@/lib/session-token';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 const CONSENT_RECOVERY_MESSAGE = 'Recording your SMS consent and retrying…';
 
 const CONSENT_PHONE_MISSING_MESSAGE =
@@ -135,17 +136,13 @@ export default function VerifyPhonePage() {
             setError(retryErr.message);
           } else {
             authenticationFlowControl(retryErr);
-            setError(
-              retryErr instanceof Error
-                ? retryErr.message
-                : 'Verification failed'
-            );
+            setError(getApiErrorMessage(retryErr, 'Verification failed'));
           }
         }
         return;
       }
       authenticationFlowControl(err);
-      setError(err instanceof Error ? err.message : 'Verification failed');
+      setError(getApiErrorMessage(err, 'Verification failed'));
     }
   };
 
@@ -262,17 +259,16 @@ export default function VerifyPhonePage() {
                         } catch (retryErr) {
                           setConsentRecoveryMessage(null);
                           setResendMessage(
-                            retryErr instanceof Error
-                              ? retryErr.message
-                              : 'Failed to resend code'
+                            getApiErrorMessage(
+                              retryErr,
+                              'Failed to resend code'
+                            )
                           );
                         }
                         return;
                       }
                       setResendMessage(
-                        err instanceof Error
-                          ? err.message
-                          : 'Failed to resend code'
+                        getApiErrorMessage(err, 'Failed to resend code')
                       );
                     }
                   }}

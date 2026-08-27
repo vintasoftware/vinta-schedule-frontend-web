@@ -41,6 +41,7 @@ import {
 } from '@/hooks/webhooks/use-webhook-configurations';
 import { WEBHOOK_EVENT_TYPES } from './event-types';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // ---------------------------------------------------------------------------
 // Zod schema. `headers` is entered as free-form JSON text and validated to be
 // a JSON object of string values (custom headers sent with each delivery).
@@ -171,10 +172,7 @@ export function WebhookDialog({
       toast.error(
         isEdit ? 'Failed to update webhook' : 'Failed to create webhook',
         {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
+          description: getApiErrorMessage(err, 'An unexpected error occurred.'),
         }
       );
     }

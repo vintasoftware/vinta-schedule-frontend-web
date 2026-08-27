@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { useTriggerRoomsSync } from '@/hooks/sync/use-trigger-rooms-sync';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 const DEBOUNCE_MS = 500;
 
 export function TriggerRoomsSyncButton() {
@@ -34,8 +35,7 @@ export function TriggerRoomsSyncButton() {
       await triggerRoomsSync();
       toast.success('Sync started');
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to start sync';
+      const message = getApiErrorMessage(error, 'Failed to start sync');
       toast.error(message);
     } finally {
       // Debounce: wait before allowing next click

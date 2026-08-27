@@ -52,6 +52,7 @@ import {
 import { EventAttendeesSheet } from './event-attendees-editor';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -207,7 +208,7 @@ export function EventsView({
   // Error state
   // ------------------------------------------------------------------
   if (isError) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = getApiErrorMessage(error, 'Unknown error');
     return (
       <Stack gap={4} data-slot='events-view-error'>
         <Text color='destructive'>Failed to load events: {message}</Text>

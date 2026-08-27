@@ -14,6 +14,7 @@ import { GroupDetailView } from '@/components/calendar-groups/group-detail-view'
 import { GroupNotFound } from '@/components/calendar-groups/group-not-found';
 import { GroupPermissionsProvider } from '@/components/calendar-groups/group-permissions-provider';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 /**
  * GroupDetailPage — one calendar group: its slots, each slot's roster, and
  * a per-calendar summary of group-scoped configuration.
@@ -110,9 +111,7 @@ export default function GroupDetailPage({
           Failed to load calendar group.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );
