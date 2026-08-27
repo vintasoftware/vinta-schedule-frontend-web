@@ -55,7 +55,7 @@ export type AddOnPurchaseRequest = {
  */
 export type AssignMembershipGroups = {
     /**
-     * Groups to assign to this membership, replacing the ones it holds. ``organization_admin`` carries every capability; ``organization_billing_owner`` carries ``payments.manage_billing``; ``organization_member`` carries none and is what a member with no capabilities holds. Naming a capability group alongside ``organization_member`` stores the capability group alone.
+     * Groups to assign to this membership, replacing the ones it holds. ``organization_admin`` carries every capability; ``organization_billing_owner`` carries ``vinta_billing.manage_billing``; ``organization_member`` carries none and is what a member with no capabilities holds. Naming a capability group alongside ``organization_member`` stores the capability group alone.
      */
     groups: Array<GroupsEnum>;
 };
@@ -271,7 +271,7 @@ export type BillingPeriodBounds = {
  */
 export type BillingPeriodResourceUsage = {
     /**
-     * The LimitedResource member this row reports on.
+     * The registered resource this row reports on.
      */
     resource_key: string;
     /**
@@ -279,7 +279,7 @@ export type BillingPeriodResourceUsage = {
      */
     kind: string | null;
     /**
-     * This resource's usage as counted at close, summed across the pooled subtree. null means the count was **not recorded** -- a period that closed before this feature shipped, or a LimitedResource member added after this period closed -- and must never be displayed as 0. A recorded usage of zero serializes as the integer 0, distinct from null.
+     * This resource's usage as counted at close, summed across the pooled subtree. null means the count was **not recorded** -- a period that closed before this feature shipped, or a registered resource added after this period closed -- and must never be displayed as 0. A recorded usage of zero serializes as the integer 0, distinct from null.
      */
     total: number | null;
     /**
@@ -403,7 +403,7 @@ export type BillingPeriodSummaryDetail = {
      */
     closed_at: string;
     /**
-     * Every LimitedResource member recorded for this period. Prefetched, so retrieving one statement is a bounded number of queries regardless of how many resources exist.
+     * Every registered resource recorded for this period. Prefetched, so retrieving one statement is a bounded number of queries regardless of how many resources exist.
      */
     readonly resources: Array<BillingPeriodResourceUsage>;
 };
@@ -670,6 +670,10 @@ export type CalendarEvent = {
     external_attendances: Array<EventExternalAttendance>;
     attendances: Array<EventAttendance>;
     resource_allocations: Array<ResourceAllocation>;
+    /**
+     * Client-owned (system, identifier) pairs for this event. Omitted on a partial update leaves the stored set untouched; an explicit list (including []) replaces it.
+     */
+    external_client_identifiers?: Array<ExternalClientIdentifier>;
     /**
      * Recurrence rule data for creating recurring events
      */
@@ -1024,8 +1028,26 @@ export type ExternalAttendee = {
     id?: number | null;
     name?: string;
     email: string;
+    /**
+     * Client-owned (system, identifier) pairs for this external attendee. Omitted leaves the stored set untouched (a no-op on create, since there is nothing to leave untouched yet); an explicit list (including []) replaces it.
+     */
+    external_client_identifiers?: Array<ExternalClientIdentifier>;
     readonly created: string;
     readonly modified: string;
+};
+
+/**
+ * One ``(system, identifier)`` client-owned reference pair.
+ *
+ * ``system`` is normalized (case + trailing slash) and validated as an absolute
+ * URL by ``ExternalClientIdentifierService`` before storage/matching -- this
+ * input layer does no format validation of its own, matching the public
+ * GraphQL ``ExternalClientIdentifierInput``. See
+ * ``calendar_integration.external_client_identifiers.normalize_system``.
+ */
+export type ExternalClientIdentifier = {
+    system: string;
+    identifier: string;
 };
 
 /**
@@ -1303,61 +1325,24 @@ export type GroupScopedQuotaRuleCreate = {
 export type GroupsEnum = 'organization_admin' | 'organization_billing_owner' | 'organization_member';
 
 /**
- * The calendar a ledger row's event lives on -- nested under
- * ``LedgerEventSerializer``.
- */
-export type LedgerCalendar = {
-    /**
-     * pk of the calendar.
-     */
-    id: number;
-    /**
-     * The calendar's display name.
-     */
-    name: string;
-};
-
-/**
- * The event a ``GET /billing/usage/occurrences/`` row was metered
- * against. Resolved by the view in one batched query per page --
- * ``MeteredOccurrence.event_id`` is a soft reference (``BigIntegerField``,
- * not a ``ForeignKey``) precisely so the billing record outlives the event
- * (see the ``MeteredOccurrence`` model docstring); this can never become a
- * per-row lookup.
+ * Whatever the project's occurrence source says a metered occurrence was.
+ *
+ * ``MeteredOccurrence.event_id`` is a soft reference (a ``BigIntegerField``,
+ * not a foreign key) precisely so the billing record outlives the thing it
+ * billed for -- a customer disputing an invoice must still be able to see what
+ * they were charged for after the underlying object is deleted.
+ *
+ * The shape beyond ``id`` is the project's, not this package's: it comes
+ * straight from :meth:`vinta_billing.metering.OccurrenceSource.describe`. Declared
+ * as a free-form mapping rather than a fixed set of fields so a project can
+ * return an appointment's title, an API route, or a video's duration without
+ * this serializer having an opinion.
  */
 export type LedgerEvent = {
     /**
-     * pk of the event.
+     * The occurrence's external id.
      */
     id: number;
-    /**
-     * The series root's title, not the individual occurrence's own. event_id stores the series root -- following bulk_modification_parent back through any splits -- so a modified occurrence's row shows the master's title rather than its own current one.
-     */
-    title: string;
-    /**
-     * The calendar this event lives on.
-     */
-    calendar: LedgerCalendar | null;
-    /**
-     * Owners of the event's calendar (CalendarOwnership). CalendarEvent carries no organizer field of its own -- ownership is calendar-level, and a calendar can have several owners.
-     */
-    owners: Array<LedgerEventOwner>;
-};
-
-/**
- * One owner of a ledger row's event's calendar (``CalendarOwnership``).
- * ``CalendarEvent`` has no organizer field of its own -- ownership is
- * calendar-level, and a calendar can have several owners.
- */
-export type LedgerEventOwner = {
-    /**
-     * pk of the owning membership's user.
-     */
-    user_id: number;
-    /**
-     * The owning user's display name.
-     */
-    name: string;
 };
 
 /**
@@ -2029,6 +2014,10 @@ export type PatchedCalendarEvent = {
     attendances?: Array<EventAttendance>;
     resource_allocations?: Array<ResourceAllocation>;
     /**
+     * Client-owned (system, identifier) pairs for this event. Omitted on a partial update leaves the stored set untouched; an explicit list (including []) replaces it.
+     */
+    external_client_identifiers?: Array<ExternalClientIdentifier>;
+    /**
      * Recurrence rule data for creating recurring events
      */
     recurrence_rule?: RecurrenceRule;
@@ -2242,7 +2231,7 @@ export type PatchedWebhookConfiguration = {
  * ``null``, so a client never receives keys for a provider it did not resolve to.
  *
  * Plain ``serializers.Serializer`` -- nothing here is DB-backed. Serializes a
- * ``payments.services.provider_credentials.PublicProviderCredentials`` instance, not a
+ * ``vinta_billing.services.provider_credentials.PublicProviderCredentials`` instance, not a
  * model, hence the explicit ``to_representation`` rather than attribute-matching nested
  * serializers (the dataclass's flat ``stripe_publishable_key``/``mercadopago_public_key``
  * fields don't line up 1:1 with this serializer's nested ``stripe``/``mercadopago``
@@ -3043,6 +3032,10 @@ export type CalendarEventWritable = {
     attendances: Array<EventAttendanceWritable>;
     resource_allocations: Array<ResourceAllocationWritable>;
     /**
+     * Client-owned (system, identifier) pairs for this event. Omitted on a partial update leaves the stored set untouched; an explicit list (including []) replaces it.
+     */
+    external_client_identifiers?: Array<ExternalClientIdentifier>;
+    /**
      * Recurrence rule data for creating recurring events
      */
     recurrence_rule?: RecurrenceRuleWritable;
@@ -3152,6 +3145,10 @@ export type ExternalAttendeeWritable = {
     id?: number | null;
     name?: string;
     email: string;
+    /**
+     * Client-owned (system, identifier) pairs for this external attendee. Omitted leaves the stored set untouched (a no-op on create, since there is nothing to leave untouched yet); an explicit list (including []) replaces it.
+     */
+    external_client_identifiers?: Array<ExternalClientIdentifier>;
 };
 
 /**
@@ -3482,6 +3479,10 @@ export type PatchedCalendarEventWritable = {
     external_attendances?: Array<EventExternalAttendanceWritable>;
     attendances?: Array<EventAttendanceWritable>;
     resource_allocations?: Array<ResourceAllocationWritable>;
+    /**
+     * Client-owned (system, identifier) pairs for this event. Omitted on a partial update leaves the stored set untouched; an explicit list (including []) replaces it.
+     */
+    external_client_identifiers?: Array<ExternalClientIdentifier>;
     /**
      * Recurrence rule data for creating recurring events
      */
@@ -4274,6 +4275,13 @@ export type BillingProfileCreateBillingProfileCreateData = {
     url: '/billing-profile/create_billing_profile/';
 };
 
+export type BillingProfileCreateBillingProfileCreateErrors = {
+    /**
+     * This organization already has a billing profile. Not a `BillingError` and not routed through `vinta_billing.exception_handling` -- the body is DRF's `{'detail': ...}`, with no machine-readable `code`.
+     */
+    409: unknown;
+};
+
 export type BillingProfileCreateBillingProfileCreateResponses = {
     201: BillingProfile;
 };
@@ -4293,6 +4301,13 @@ export type BillingProfileCreateBillingProfileFormattedCreateData = {
     };
     query?: never;
     url: '/billing-profile/create_billing_profile{format}';
+};
+
+export type BillingProfileCreateBillingProfileFormattedCreateErrors = {
+    /**
+     * This organization already has a billing profile. Not a `BillingError` and not routed through `vinta_billing.exception_handling` -- the body is DRF's `{'detail': ...}`, with no machine-readable `code`.
+     */
+    409: unknown;
 };
 
 export type BillingProfileCreateBillingProfileFormattedCreateResponses = {
@@ -4440,9 +4455,9 @@ export type BillingAddOnsCreateErrors = {
      */
     400: BillingErrorBody;
     /**
-     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`).
+     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). A deployment fault, not a bad request -- retrying the same call changes nothing until an operator configures the provider.
      */
-    409: BillingErrorBody;
+    503: BillingErrorBody;
 };
 
 export type BillingAddOnsCreateError = BillingAddOnsCreateErrors[keyof BillingAddOnsCreateErrors];
@@ -4474,9 +4489,9 @@ export type BillingAddOnsFormattedCreateErrors = {
      */
     400: BillingErrorBody;
     /**
-     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`).
+     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). A deployment fault, not a bad request -- retrying the same call changes nothing until an operator configures the provider.
      */
-    409: BillingErrorBody;
+    503: BillingErrorBody;
 };
 
 export type BillingAddOnsFormattedCreateError = BillingAddOnsFormattedCreateErrors[keyof BillingAddOnsFormattedCreateErrors];
@@ -4549,9 +4564,9 @@ export type BillingPaymentProviderRetrieveErrors = {
      */
     403: unknown;
     /**
-     * The resolved provider is unknown or has no public credentials configured in this deployment.
+     * The resolved provider is unknown or has no public credentials configured in this deployment. A deployment fault, not a bad request -- matches `DefaultPaymentProviderView` below and the status `vinta_billing.exception_handling` maps `PaymentProviderNotConfiguredError` to everywhere else.
      */
-    409: unknown;
+    503: unknown;
 };
 
 export type BillingPaymentProviderRetrieveResponses = {
@@ -4583,6 +4598,70 @@ export type BillingPaymentProviderDefaultRetrieveResponses = {
 };
 
 export type BillingPaymentProviderDefaultRetrieveResponse = BillingPaymentProviderDefaultRetrieveResponses[keyof BillingPaymentProviderDefaultRetrieveResponses];
+
+export type BillingPaymentsPaymentUpdateCreateData = {
+    body?: never;
+    path: {
+        id: string;
+        provider: string;
+    };
+    query?: never;
+    url: '/billing/payments/{id}/payment-update/{provider}/';
+};
+
+export type BillingPaymentsPaymentUpdateCreateErrors = {
+    /**
+     * Malformed payload.
+     */
+    400: unknown;
+    /**
+     * Invalid or missing signature.
+     */
+    403: unknown;
+    /**
+     * Unknown payment provider.
+     */
+    404: unknown;
+};
+
+export type BillingPaymentsPaymentUpdateCreateResponses = {
+    /**
+     * Payment update received.
+     */
+    200: unknown;
+};
+
+export type BillingPaymentsSubscriptionPaymentUpdateCreateData = {
+    body?: never;
+    path: {
+        id: string;
+        provider: string;
+    };
+    query?: never;
+    url: '/billing/payments/{id}/subscription-payment-update/{provider}/';
+};
+
+export type BillingPaymentsSubscriptionPaymentUpdateCreateErrors = {
+    /**
+     * Malformed payload.
+     */
+    400: unknown;
+    /**
+     * Invalid or missing signature.
+     */
+    403: unknown;
+    /**
+     * Unknown payment provider.
+     */
+    404: unknown;
+};
+
+export type BillingPaymentsSubscriptionPaymentUpdateCreateResponses = {
+    /**
+     * Subscription payment update received.
+     */
+    200: unknown;
+};
 
 export type BillingPlansListData = {
     body?: never;
@@ -4649,10 +4728,12 @@ export type BillingSubscriptionCancelCreateData = {
 
 export type BillingSubscriptionCancelCreateErrors = {
     /**
-     * The provider this subscription is stamped with is not configured in this deployment, so the provider-side cancellation cannot be driven.
+     * The provider this subscription is stamped with is not configured in this deployment, so the provider-side cancellation cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). A deployment fault, not a bad request -- retrying the same call changes nothing until an operator configures the provider.
      */
-    409: unknown;
+    503: BillingErrorBody;
 };
+
+export type BillingSubscriptionCancelCreateError = BillingSubscriptionCancelCreateErrors[keyof BillingSubscriptionCancelCreateErrors];
 
 export type BillingSubscriptionCancelCreateResponses = {
     200: Subscription;
@@ -4677,10 +4758,12 @@ export type BillingSubscriptionCancelFormattedCreateData = {
 
 export type BillingSubscriptionCancelFormattedCreateErrors = {
     /**
-     * The provider this subscription is stamped with is not configured in this deployment, so the provider-side cancellation cannot be driven.
+     * The provider this subscription is stamped with is not configured in this deployment, so the provider-side cancellation cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). A deployment fault, not a bad request -- retrying the same call changes nothing until an operator configures the provider.
      */
-    409: unknown;
+    503: BillingErrorBody;
 };
+
+export type BillingSubscriptionCancelFormattedCreateError = BillingSubscriptionCancelFormattedCreateErrors[keyof BillingSubscriptionCancelFormattedCreateErrors];
 
 export type BillingSubscriptionCancelFormattedCreateResponses = {
     200: Subscription;
@@ -4707,9 +4790,13 @@ export type BillingSubscriptionChangePlanCreateErrors = {
      */
     400: BillingErrorBody;
     /**
-     * Either another plan change is already awaiting payment confirmation (`code: "unconfirmed_plan_change"`, `UnconfirmedPlanChangeError`), or the provider this organization resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). Both are mapped centrally in `common.exception_handlers.vinta_exception_handler`.
+     * Another plan change is already awaiting payment confirmation (`code: "unconfirmed_plan_change"`, `UnconfirmedPlanChangeError`).
      */
     409: BillingErrorBody;
+    /**
+     * A deployment fault, not a bad request -- the same call will fail identically until an operator fixes the deployment, so do not retry with different input. Either the provider this organization resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`), or the target plan is missing a `PlanLimit` row for a registered resource, so the downgrade has no well-defined ceiling to apply (`code: "incomplete_billing_plan"`, `IncompleteBillingPlanError`). Both are mapped centrally by `vinta_billing.exception_handling.billing_exception_handler`.
+     */
+    503: BillingErrorBody;
 };
 
 export type BillingSubscriptionChangePlanCreateError = BillingSubscriptionChangePlanCreateErrors[keyof BillingSubscriptionChangePlanCreateErrors];
@@ -4741,9 +4828,13 @@ export type BillingSubscriptionChangePlanFormattedCreateErrors = {
      */
     400: BillingErrorBody;
     /**
-     * Either another plan change is already awaiting payment confirmation (`code: "unconfirmed_plan_change"`, `UnconfirmedPlanChangeError`), or the provider this organization resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). Both are mapped centrally in `common.exception_handlers.vinta_exception_handler`.
+     * Another plan change is already awaiting payment confirmation (`code: "unconfirmed_plan_change"`, `UnconfirmedPlanChangeError`).
      */
     409: BillingErrorBody;
+    /**
+     * A deployment fault, not a bad request -- the same call will fail identically until an operator fixes the deployment, so do not retry with different input. Either the provider this organization resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`), or the target plan is missing a `PlanLimit` row for a registered resource, so the downgrade has no well-defined ceiling to apply (`code: "incomplete_billing_plan"`, `IncompleteBillingPlanError`). Both are mapped centrally by `vinta_billing.exception_handling.billing_exception_handler`.
+     */
+    503: BillingErrorBody;
 };
 
 export type BillingSubscriptionChangePlanFormattedCreateError = BillingSubscriptionChangePlanFormattedCreateErrors[keyof BillingSubscriptionChangePlanFormattedCreateErrors];
@@ -6352,6 +6443,14 @@ export type CalendarEventsListData = {
          */
         end_time_range_before?: string;
         /**
+         * Filter by client identifier value. Must be supplied together with external_client_identifier_system.
+         */
+        external_client_identifier_identifier?: string;
+        /**
+         * Filter by client identifier system. Must be supplied together with external_client_identifier_identifier.
+         */
+        external_client_identifier_system?: string;
+        /**
          * Number of results to return per page.
          */
         limit?: number;
@@ -6432,6 +6531,14 @@ export type CalendarEventsFormattedListData = {
          * End time range
          */
         end_time_range_before?: string;
+        /**
+         * Filter by client identifier value. Must be supplied together with external_client_identifier_system.
+         */
+        external_client_identifier_identifier?: string;
+        /**
+         * Filter by client identifier system. Must be supplied together with external_client_identifier_identifier.
+         */
+        external_client_identifier_system?: string;
         /**
          * Number of results to return per page.
          */
@@ -6884,6 +6991,14 @@ export type CalendarEventsExpandedListData = {
          */
         end_time_range_before?: string;
         /**
+         * Filter by client identifier value. Must be supplied together with external_client_identifier_system.
+         */
+        external_client_identifier_identifier?: string;
+        /**
+         * Filter by client identifier system. Must be supplied together with external_client_identifier_identifier.
+         */
+        external_client_identifier_system?: string;
+        /**
          * Number of results to return per page.
          */
         limit?: number;
@@ -6949,6 +7064,14 @@ export type CalendarEventsExpandedFormattedListData = {
          * End time range
          */
         end_time_range_before?: string;
+        /**
+         * Filter by client identifier value. Must be supplied together with external_client_identifier_system.
+         */
+        external_client_identifier_identifier?: string;
+        /**
+         * Filter by client identifier system. Must be supplied together with external_client_identifier_identifier.
+         */
+        external_client_identifier_system?: string;
         /**
          * Number of results to return per page.
          */
@@ -10756,136 +10879,6 @@ export type OrganizationsMineFormattedListResponses = {
 };
 
 export type OrganizationsMineFormattedListResponse = OrganizationsMineFormattedListResponses[keyof OrganizationsMineFormattedListResponses];
-
-export type PaymentsPaymentUpdateCreateData = {
-    body?: never;
-    path: {
-        id: string;
-        provider: string;
-    };
-    query?: never;
-    url: '/payments/{id}/payment-update/{provider}/';
-};
-
-export type PaymentsPaymentUpdateCreateErrors = {
-    /**
-     * Malformed payload.
-     */
-    400: unknown;
-    /**
-     * Invalid or missing signature.
-     */
-    403: unknown;
-    /**
-     * Unknown payment provider.
-     */
-    404: unknown;
-};
-
-export type PaymentsPaymentUpdateCreateResponses = {
-    /**
-     * Payment update received.
-     */
-    200: unknown;
-};
-
-export type PaymentsPaymentUpdateFormattedCreateData = {
-    body?: never;
-    path: {
-        format: '.json';
-        id: string;
-        provider: string;
-    };
-    query?: never;
-    url: '/payments/{id}/payment-update/{provider}{format}';
-};
-
-export type PaymentsPaymentUpdateFormattedCreateErrors = {
-    /**
-     * Malformed payload.
-     */
-    400: unknown;
-    /**
-     * Invalid or missing signature.
-     */
-    403: unknown;
-    /**
-     * Unknown payment provider.
-     */
-    404: unknown;
-};
-
-export type PaymentsPaymentUpdateFormattedCreateResponses = {
-    /**
-     * Payment update received.
-     */
-    200: unknown;
-};
-
-export type PaymentsSubscriptionPaymentUpdateCreateData = {
-    body?: never;
-    path: {
-        id: string;
-        provider: string;
-    };
-    query?: never;
-    url: '/payments/{id}/subscription-payment-update/{provider}/';
-};
-
-export type PaymentsSubscriptionPaymentUpdateCreateErrors = {
-    /**
-     * Malformed payload.
-     */
-    400: unknown;
-    /**
-     * Invalid or missing signature.
-     */
-    403: unknown;
-    /**
-     * Unknown payment provider.
-     */
-    404: unknown;
-};
-
-export type PaymentsSubscriptionPaymentUpdateCreateResponses = {
-    /**
-     * Subscription payment update received.
-     */
-    200: unknown;
-};
-
-export type PaymentsSubscriptionPaymentUpdateFormattedCreateData = {
-    body?: never;
-    path: {
-        format: '.json';
-        id: string;
-        provider: string;
-    };
-    query?: never;
-    url: '/payments/{id}/subscription-payment-update/{provider}{format}';
-};
-
-export type PaymentsSubscriptionPaymentUpdateFormattedCreateErrors = {
-    /**
-     * Malformed payload.
-     */
-    400: unknown;
-    /**
-     * Invalid or missing signature.
-     */
-    403: unknown;
-    /**
-     * Unknown payment provider.
-     */
-    404: unknown;
-};
-
-export type PaymentsSubscriptionPaymentUpdateFormattedCreateResponses = {
-    /**
-     * Subscription payment update received.
-     */
-    200: unknown;
-};
 
 export type PolicyDocumentsListData = {
     body?: never;
