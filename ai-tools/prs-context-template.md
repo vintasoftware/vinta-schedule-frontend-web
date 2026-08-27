@@ -1,15 +1,15 @@
 ---
 # yaml-language-server: $schema=./node_modules/vinta-ai-workflows/schemas/prs-context-frontmatter.v1.schema.json
-schema_version: 1                        # see schemas/prs-context-frontmatter.v1.schema.json
-plan_id: <plan-id>                       # filename feature portion, kebab-case
-feature_name: <FEATURE_NAME>             # UPPERCASE_WITH_UNDERSCORES, matches plan/spec
-phase_id: <phase-id>                     # e.g. "1", "4a"
-phase_title: <phase title>               # verbatim from the plan's Phased Rollout section
-branch: plan/<feature-kebab>/phase-<id>  # branch the PR opens from
-base: <main | plan/<feature-kebab>/phase-<prev-id>>  # PR target branch. Stacked: FIRST phase = default branch; every LATER phase = the PREVIOUS phase's branch (not the default branch). Modular / single-PR: default branch.
+schema_version: 1 # see schemas/prs-context-frontmatter.v1.schema.json
+plan_id: <plan-id> # filename feature portion, kebab-case
+feature_name: <FEATURE_NAME> # UPPERCASE_WITH_UNDERSCORES, matches plan/spec
+phase_id: <phase-id> # e.g. "1", "4a"
+phase_title: <phase title> # verbatim from the plan's Phased Rollout section
+branch: plan/<feature-kebab>/phase-<id> # branch the PR opens from
+base: <main | plan/<feature-kebab>/phase-<prev-id>> # PR target branch. Stacked: FIRST phase = default branch; every LATER phase = the PREVIOUS phase's branch (not the default branch). Modular / single-PR: default branch.
 created_at: <ISO 8601 timestamp>
-status: pending                          # `pending` until published; `published` after CLI run
-pr_url:                                  # set by open-pr-from-context after publishing
+status: pending # `pending` until published; `published` after CLI run
+pr_url: # set by open-pr-from-context after publishing
 ---
 
 Everything below the frontmatter is prose a human reads on the PR, so write it in
@@ -62,7 +62,7 @@ YAML inside this fence is validated against
 - file: <relative path from repo root>
   start_line: <line number on the new side>
   end_line: <optional; omit for single-line>
-  side: RIGHT                             # RIGHT = new code (default). LEFT = pre-change code (rare).
+  side: RIGHT # RIGHT = new code (default). LEFT = pre-change code (rare).
   body: |
     <1–3 lines. Why this code looks the way it does. Reference plan/spec section
     when the decision lives there. Don't restate the code — explain the constraint.>

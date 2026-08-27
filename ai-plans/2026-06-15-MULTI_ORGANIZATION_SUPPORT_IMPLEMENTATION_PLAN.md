@@ -24,7 +24,7 @@
   (no SSR awareness of active org in v1).
 - No feature flag — shipped unflagged (see Guiding Decisions).
 - No org **settings/management** surface (rename, delete, member admin) beyond what already exists —
-  this plan only adds *switching*, *creating*, and *onboarding/accept*.
+  this plan only adds _switching_, _creating_, and _onboarding/accept_.
 - No per-query-key org scoping refactor — switching invalidates the cache wholesale (see Guiding
   Decisions) rather than threading org id into every query key.
 - No backend changes — contract is final and merged.
@@ -32,17 +32,17 @@
 
 ## 2. Guiding Decisions
 
-| Decision | Resolution |
-| --- | --- |
-| **Active-org source of truth** | A tiny module-level store at `@src/lib/active-organization.ts` (value + subscribers + `localStorage['activeOrganizationId']`). The request interceptor reads it **synchronously**; React reads it via `useSyncExternalStore`. *Why:* the interceptor is a module closure registered once — it can't read React state. A subscribable module store is the only thing both the fetch layer and components can share without a provider round-trip. Matches the existing module-level pattern (`sessionToken` in localStorage). |
-| **Header injection site** | One request interceptor in [authentication-fetch-interceptors.ts](../src/lib/authentication-fetch-interceptors.ts), alongside the existing `Authorization` injector. Browser-only (guard `typeof window`), mirroring the `authClient` session-token interceptor. *Why:* single choke point; every generated SDK call already flows through `client`. |
-| **Persistence + default** | `localStorage['activeOrganizationId']` (string). Stored-and-valid ⇒ used. **Single-org** caller with no valid stored id ⇒ auto-resolve to that one org (nothing to choose; header optional per contract). **Multi-org** caller with no valid stored id ⇒ **do not silently default** — redirect to a mandatory selection page before the dashboard (see next row). Stale stored id (not in `mine/`) ⇒ cleared, then the same single/multi rule applies. *Why:* survives reload, self-heals against deactivated memberships, and never guesses an org for a multi-org user. |
-| **Login-time selection gate** | When an authenticated multi-org user reaches an `(app)` route with no valid stored selection, the layout redirects to a new auth-layout page `@/auth/select-organization` where they must pick before continuing to the dashboard. *Why:* user requirement — the choice is explicit, made on an auth page (outside the app shell), not implicitly defaulted. Single-org and already-selected users skip it. |
-| **Switch mechanics** | On switch: `setActiveOrganizationId(id)` → `queryClient.invalidateQueries()` (all tenant queries refetch with the new header). *Why:* query keys don't include org id; wholesale invalidation is correct-by-construction and far smaller than refactoring every key. Acceptable because the app refetches on view, not on a hot path. |
-| **Error recovery layer** | Surfaced to the **UI/hook layer**, not auto-retried in the interceptor. 400 (`X-Organization-Id header required`) → ensure a selection is set from `mine/`, then refetch (UC5, a guard that should be near-unreachable once selection primes the header). 403 on a tenant request → drop the stale selection, refetch `mine/`, re-pick default, toast (UC6). *Why:* user chose explicit UI handling; the interceptor already owns 401-refresh and shouldn't grow a second retry protocol with org-state side effects. |
-| **`current/` 403 vs tenant 403** | `useCurrentOrganization` already maps `current/` 403 → `disabled` → `/no-access`. With multi-org, a deactivated membership drops from `mine/` and a stale header → 403; recovery is *re-pick*, not *no-access*. Phase 9 differentiates: re-pick when `mine/` still has orgs, fall through to existing disabled handling only when `mine/` is empty. *Why:* avoid bouncing a multi-org user to `/no-access` for a stale selection. |
-| **No feature flag** | Shipped unflagged. *Why:* user decision. Header injection is harmless for single-org users (resolves implicitly) and the switcher only renders for 2+ orgs; no env-flag infra exists in the repo to lean on. Consequence: **no flag-removal phase**; risk mitigated by phase ordering (plumbing lands inert before any UI consumes it) and the flag-off-equivalent test in Phase 1 (header absent when no selection ⇒ byte-for-byte prior behavior). |
-| **Client generation** | `schema.yml` refreshed from the backend repo (`~/Workspaces/vinta-schedule`, see [[schema-source-vinta-schedule]]) then `npm run openapi-ts`. Brings the `organizationsMine` operation, typed `Membership`/org-summary, and the `X-Organization-Id` optional header param onto tenant ops. *Why:* backend is merged; generate, don't hand-write. |
+| Decision                         | Resolution                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Active-org source of truth**   | A tiny module-level store at `@src/lib/active-organization.ts` (value + subscribers + `localStorage['activeOrganizationId']`). The request interceptor reads it **synchronously**; React reads it via `useSyncExternalStore`. _Why:_ the interceptor is a module closure registered once — it can't read React state. A subscribable module store is the only thing both the fetch layer and components can share without a provider round-trip. Matches the existing module-level pattern (`sessionToken` in localStorage).                                               |
+| **Header injection site**        | One request interceptor in [authentication-fetch-interceptors.ts](../src/lib/authentication-fetch-interceptors.ts), alongside the existing `Authorization` injector. Browser-only (guard `typeof window`), mirroring the `authClient` session-token interceptor. _Why:_ single choke point; every generated SDK call already flows through `client`.                                                                                                                                                                                                                       |
+| **Persistence + default**        | `localStorage['activeOrganizationId']` (string). Stored-and-valid ⇒ used. **Single-org** caller with no valid stored id ⇒ auto-resolve to that one org (nothing to choose; header optional per contract). **Multi-org** caller with no valid stored id ⇒ **do not silently default** — redirect to a mandatory selection page before the dashboard (see next row). Stale stored id (not in `mine/`) ⇒ cleared, then the same single/multi rule applies. _Why:_ survives reload, self-heals against deactivated memberships, and never guesses an org for a multi-org user. |
+| **Login-time selection gate**    | When an authenticated multi-org user reaches an `(app)` route with no valid stored selection, the layout redirects to a new auth-layout page `@/auth/select-organization` where they must pick before continuing to the dashboard. _Why:_ user requirement — the choice is explicit, made on an auth page (outside the app shell), not implicitly defaulted. Single-org and already-selected users skip it.                                                                                                                                                                |
+| **Switch mechanics**             | On switch: `setActiveOrganizationId(id)` → `queryClient.invalidateQueries()` (all tenant queries refetch with the new header). _Why:_ query keys don't include org id; wholesale invalidation is correct-by-construction and far smaller than refactoring every key. Acceptable because the app refetches on view, not on a hot path.                                                                                                                                                                                                                                      |
+| **Error recovery layer**         | Surfaced to the **UI/hook layer**, not auto-retried in the interceptor. 400 (`X-Organization-Id header required`) → ensure a selection is set from `mine/`, then refetch (UC5, a guard that should be near-unreachable once selection primes the header). 403 on a tenant request → drop the stale selection, refetch `mine/`, re-pick default, toast (UC6). _Why:_ user chose explicit UI handling; the interceptor already owns 401-refresh and shouldn't grow a second retry protocol with org-state side effects.                                                      |
+| **`current/` 403 vs tenant 403** | `useCurrentOrganization` already maps `current/` 403 → `disabled` → `/no-access`. With multi-org, a deactivated membership drops from `mine/` and a stale header → 403; recovery is _re-pick_, not _no-access_. Phase 9 differentiates: re-pick when `mine/` still has orgs, fall through to existing disabled handling only when `mine/` is empty. _Why:_ avoid bouncing a multi-org user to `/no-access` for a stale selection.                                                                                                                                          |
+| **No feature flag**              | Shipped unflagged. _Why:_ user decision. Header injection is harmless for single-org users (resolves implicitly) and the switcher only renders for 2+ orgs; no env-flag infra exists in the repo to lean on. Consequence: **no flag-removal phase**; risk mitigated by phase ordering (plumbing lands inert before any UI consumes it) and the flag-off-equivalent test in Phase 1 (header absent when no selection ⇒ byte-for-byte prior behavior).                                                                                                                       |
+| **Client generation**            | `schema.yml` refreshed from the backend repo (`~/Workspaces/vinta-schedule`, see [[schema-source-vinta-schedule]]) then `npm run openapi-ts`. Brings the `organizationsMine` operation, typed `Membership`/org-summary, and the `X-Organization-Id` optional header param onto tenant ops. _Why:_ backend is merged; generate, don't hand-write.                                                                                                                                                                                                                           |
 
 ## 3. Data Model Changes
 
@@ -57,10 +57,18 @@ const KEY = 'activeOrganizationId';
 let current: string | null = /* lazy read from localStorage in browser */ null;
 const subscribers = new Set<() => void>();
 
-export function getActiveOrganizationId(): string | null { /* … */ }
-export function setActiveOrganizationId(id: string | null): void { /* persist + notify */ }
-export function subscribeActiveOrganization(cb: () => void): () => void { /* … */ }
-export function clearActiveOrganization(): void { setActiveOrganizationId(null); }
+export function getActiveOrganizationId(): string | null {
+  /* … */
+}
+export function setActiveOrganizationId(id: string | null): void {
+  /* persist + notify */
+}
+export function subscribeActiveOrganization(cb: () => void): () => void {
+  /* … */
+}
+export function clearActiveOrganization(): void {
+  setActiveOrganizationId(null);
+}
 ```
 
 ### 3.2 Generated types (from Phase 0 regen)
@@ -82,13 +90,13 @@ shape after regen. Confirm exact generated names in Phase 0 and update consumers
 
 No new endpoints — consuming the merged contract:
 
-| Operation | Method / Path | Header | Used by |
-| --- | --- | --- | --- |
-| `organizationsMine` | `GET /organizations/mine/` → `200 Membership[]` (bare array; `[]` when gated) | **omit** | Phase 2 hook, switcher source |
-| `organizationsCurrentRetrieve` | `GET /organizations/current/` → `200 CurrentMembership` / `404` gated / `403` stale-or-disabled | honors header | existing hook (already wired) |
-| `organizationsCreate` | `POST /organizations/` → `201` (caller becomes admin) | **exempt** | existing create hook |
-| `invitationsAccept` | `POST /invitations/accept` | scoped | accept-invite flow |
-| all other tenant ops | calendars, blocked/available times, groups, members, webhooks, … | `X-Organization-Id` injected | Phase 1 interceptor |
+| Operation                      | Method / Path                                                                                   | Header                       | Used by                       |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------- | ----------------------------- |
+| `organizationsMine`            | `GET /organizations/mine/` → `200 Membership[]` (bare array; `[]` when gated)                   | **omit**                     | Phase 2 hook, switcher source |
+| `organizationsCurrentRetrieve` | `GET /organizations/current/` → `200 CurrentMembership` / `404` gated / `403` stale-or-disabled | honors header                | existing hook (already wired) |
+| `organizationsCreate`          | `POST /organizations/` → `201` (caller becomes admin)                                           | **exempt**                   | existing create hook          |
+| `invitationsAccept`            | `POST /invitations/accept`                                                                      | scoped                       | accept-invite flow            |
+| all other tenant ops           | calendars, blocked/available times, groups, members, webhooks, …                                | `X-Organization-Id` injected | Phase 1 interceptor           |
 
 Header resolution rules (400 when 2+ orgs and header omitted; 403 when header names a non-member org)
 are the handoff's table — handled in Phases 8–9.
@@ -473,56 +481,56 @@ Acceptance: a stale active-org 403 recovers to a valid org with a toast for a mu
 
 ## 7. Open Questions
 
-| Question | Recommended default | Owner |
-| --- | --- | --- |
-| Should the active org be SSR-aware (cookie) so server components can scope data? | **No for v1** — client-only; revisit if a tenant-scoped server component appears. | Eng |
-| Does any current tenant view fetch on the **server** (RSC) where the client interceptor won't run? | Audit during Phase 1; if found, that view needs the header threaded server-side (out of scope — raise then). | Eng |
-| Invalidate-all vs scoped invalidation on switch | **Invalidate-all** now; scope later only if refetch cost shows up. | Eng |
-| Should "+ New organization" also be reachable from a settings page (not just the switcher)? | **No** — switcher + onboarding only (Non-goal). | Product |
+| Question                                                                                           | Recommended default                                                                                          | Owner   |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------- |
+| Should the active org be SSR-aware (cookie) so server components can scope data?                   | **No for v1** — client-only; revisit if a tenant-scoped server component appears.                            | Eng     |
+| Does any current tenant view fetch on the **server** (RSC) where the client interceptor won't run? | Audit during Phase 1; if found, that view needs the header threaded server-side (out of scope — raise then). | Eng     |
+| Invalidate-all vs scoped invalidation on switch                                                    | **Invalidate-all** now; scope later only if refetch cost shows up.                                           | Eng     |
+| Should "+ New organization" also be reachable from a settings page (not just the switcher)?        | **No** — switcher + onboarding only (Non-goal).                                                              | Product |
 
 ## 8. Touch List
 
-**Phase 0** — *edit*: [schema.yml](../schema.yml); *regenerated*: `src/client/**` (`sdk.gen.ts`,
-`types.gen.ts`, `@tanstack/react-query.gen.ts`); *reconcile*:
+**Phase 0** — _edit_: [schema.yml](../schema.yml); _regenerated_: `src/client/**` (`sdk.gen.ts`,
+`types.gen.ts`, `@tanstack/react-query.gen.ts`); _reconcile_:
 [use-current-organization.ts](../src/hooks/organizations/use-current-organization.ts),
 [app-layout-client.tsx](../src/components/navigation/app-layout-client.tsx).
 
-**Phase 1** — *new*: `@src/lib/active-organization.ts`, `@src/lib/active-organization.test.ts`,
-`@src/lib/authentication-fetch-interceptors.test.ts`; *edit*:
+**Phase 1** — _new_: `@src/lib/active-organization.ts`, `@src/lib/active-organization.test.ts`,
+`@src/lib/authentication-fetch-interceptors.test.ts`; _edit_:
 [authentication-fetch-interceptors.ts](../src/lib/authentication-fetch-interceptors.ts).
 
-**Phase 2** — *new*: `@src/hooks/organizations/use-my-organizations.ts`,
+**Phase 2** — _new_: `@src/hooks/organizations/use-my-organizations.ts`,
 `@src/hooks/organizations/use-my-organizations.test.ts`.
 
-**Phase 3a** — *new*: `@src/hooks/organizations/use-active-organization.ts`,
+**Phase 3a** — _new_: `@src/hooks/organizations/use-active-organization.ts`,
 `@src/hooks/organizations/use-active-organization.test.ts`, (optional)
-`@src/components/organizations/active-organization-provider.tsx`; *edit*:
+`@src/components/organizations/active-organization-provider.tsx`; _edit_:
 [app-layout-client.tsx](../src/components/navigation/app-layout-client.tsx).
 
-**Phase 3b** — *new*: `@src/app/auth/select-organization/page.tsx`,
-`@src/app/auth/select-organization/page.test.tsx`; *edit*:
+**Phase 3b** — _new_: `@src/app/auth/select-organization/page.tsx`,
+`@src/app/auth/select-organization/page.test.tsx`; _edit_:
 [app-layout-client.tsx](../src/components/navigation/app-layout-client.tsx).
 
-**Phase 4** — *new*: `@src/components/organizations/org-switcher.tsx`,
+**Phase 4** — _new_: `@src/components/organizations/org-switcher.tsx`,
 `@src/components/organizations/org-switcher.stories.tsx`,
-`@src/components/organizations/org-switcher.test.tsx`; *edit*:
+`@src/components/organizations/org-switcher.test.tsx`; _edit_:
 [app-sidebar.tsx](../src/components/layout/app-sidebar.tsx).
 
-**Phase 5** — *new*: `@src/components/organizations/create-organization-dialog.tsx`,
+**Phase 5** — _new_: `@src/components/organizations/create-organization-dialog.tsx`,
 `@src/components/organizations/create-organization-dialog.stories.tsx`,
-`@src/components/organizations/create-organization-dialog.test.tsx`; *edit*:
+`@src/components/organizations/create-organization-dialog.test.tsx`; _edit_:
 [use-create-organization.ts](../src/hooks/organizations/use-create-organization.ts),
 `org-switcher.tsx`.
 
-**Phase 6** — *edit*: [app-layout-client.tsx](../src/components/navigation/app-layout-client.tsx),
+**Phase 6** — _edit_: [app-layout-client.tsx](../src/components/navigation/app-layout-client.tsx),
 [onboarding/page.tsx](../src/app/auth/onboarding/page.tsx).
 
-**Phase 7** — *edit*: [use-accept-invitation.ts](../src/hooks/organizations/use-accept-invitation.ts),
+**Phase 7** — _edit_: [use-accept-invitation.ts](../src/hooks/organizations/use-accept-invitation.ts),
 accept-invite page/component.
 
-**Phase 8** — *new*: `@src/hooks/organizations/use-organization-error-recovery.ts`,
-`@src/hooks/organizations/use-organization-error-recovery.test.ts`; *edit*: query client provider or
+**Phase 8** — _new_: `@src/hooks/organizations/use-organization-error-recovery.ts`,
+`@src/hooks/organizations/use-organization-error-recovery.test.ts`; _edit_: query client provider or
 recovery mount point.
 
-**Phase 9** — *edit*: `use-organization-error-recovery.ts` (+ test),
+**Phase 9** — _edit_: `use-organization-error-recovery.ts` (+ test),
 [app-layout-client.tsx](../src/components/navigation/app-layout-client.tsx).

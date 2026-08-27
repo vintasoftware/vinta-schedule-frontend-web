@@ -86,7 +86,10 @@ export default function SecurityPage() {
           </>
         }
         lead='Vinta Schedule is self-hosted by design. Run the whole platform in your own environment, keep patient data under your control, and audit every change.'
-        primary={{ label: 'Read the self-hosting guide', href: '/docs/getting-started' }}
+        primary={{
+          label: 'Read the self-hosting guide',
+          href: '/docs/getting-started',
+        }}
         secondary={{ label: 'Privacy policy', href: '/privacy' }}
       />
 
@@ -168,10 +171,20 @@ export default function SecurityPage() {
       <MarketingSection>
         <Box mx='auto' maxWidth='42rem'>
           <VStack gap={5} align='center'>
-            <Heading level={2} size='2xl' align='center' className='md:text-3xl'>
+            <Heading
+              level={2}
+              size='2xl'
+              align='center'
+              className='md:text-3xl'
+            >
               Reporting & policies
             </Heading>
-            <Text as='p' align='center' color='muted-foreground' leading='relaxed'>
+            <Text
+              as='p'
+              align='center'
+              color='muted-foreground'
+              leading='relaxed'
+            >
               Read how we handle data, review the terms of service, or check
               current platform status. To report a vulnerability, reach the team
               through our contact page.
@@ -202,7 +215,10 @@ export default function SecurityPage() {
         title='Own your scheduling, end to end.'
         lead='Self-host Vinta Schedule and keep every calendar and booking under your control.'
         primary={{ label: 'Start self-hosting', href: '/docs/getting-started' }}
-        secondary={{ label: 'Talk to us', href: 'https://www.vintasoftware.com/contact' }}
+        secondary={{
+          label: 'Talk to us',
+          href: 'https://www.vintasoftware.com/contact',
+        }}
       />
     </>
   );

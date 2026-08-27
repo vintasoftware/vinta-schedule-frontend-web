@@ -29,9 +29,10 @@ describe('SchemaTypesView', () => {
   it('links each type row to its detail page', () => {
     render(<SchemaTypesView model={model} />);
 
-    expect(
-      screen.getByRole('link', { name: 'BookableSlot' })
-    ).toHaveAttribute('href', '/docs/reference/types/BookableSlot');
+    expect(screen.getByRole('link', { name: 'BookableSlot' })).toHaveAttribute(
+      'href',
+      '/docs/reference/types/BookableSlot'
+    );
   });
 
   it('links back to the reference overview', () => {

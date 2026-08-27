@@ -2,9 +2,9 @@
 
 ## 1. Business Context
 
-The platform already exposes discretized bookable time slots, but only for a *calendar group* — a structure that pools several calendars into role-based slots (e.g. "any physician" + "any room"). A partner who simply wants the open appointment times for **one** person's calendar, or for a **bundle** calendar (a calendar that aggregates several child calendars), has no direct way to ask for them. They either wrap a single calendar in a throwaway group, or pull the raw continuous availability windows and re-implement slot discretization themselves. Both are workarounds that every integrator re-invents.
+The platform already exposes discretized bookable time slots, but only for a _calendar group_ — a structure that pools several calendars into role-based slots (e.g. "any physician" + "any room"). A partner who simply wants the open appointment times for **one** person's calendar, or for a **bundle** calendar (a calendar that aggregates several child calendars), has no direct way to ask for them. They either wrap a single calendar in a throwaway group, or pull the raw continuous availability windows and re-implement slot discretization themselves. Both are workarounds that every integrator re-invents.
 
-Separately, the slot engine today offers *every* free slot in the search window. Real-world scheduling almost always needs guardrails:
+Separately, the slot engine today offers _every_ free slot in the search window. Real-world scheduling almost always needs guardrails:
 
 - **Lead time** — you cannot book an appointment starting in five minutes; a provider needs minimum notice.
 - **Max horizon** — you should not be able to book eighteen months out; calendars are only planned a season ahead.
@@ -132,29 +132,33 @@ flowchart TD
 ```
 
 **Rule semantics.**
-- **Lead time** and **max horizon** are measured *rolling from the request's "now"*. A candidate slot whose start is earlier than `now + lead_time`, or later than `now + max_horizon`, is dropped. (Optional absolute cutoff is out of scope — see **Negative scope**.)
+
+- **Lead time** and **max horizon** are measured _rolling from the request's "now"_. A candidate slot whose start is earlier than `now + lead_time`, or later than `now + max_horizon`, is dropped. (Optional absolute cutoff is out of scope — see **Negative scope**.)
 - **Buffer** uses separate before and after durations, forming a dead zone **around each existing event**: a candidate slot `[start, end]` is dropped if it overlaps any existing CalendarEvent or BlockedTime expanded to `[event_start - buffer_before, event_end + buffer_after]`. (Worked example: an event 14:00–15:00 with buffer-before 10m / buffer-after 20m yields the dead zone 13:50–15:20 — see **Acceptance scenarios** #4. An earlier candidate-envelope phrasing here was inverted relative to scenario #4 and is corrected.)
 - **No policy anywhere** = no constraints. Output is identical to current behavior. This is the backward-compatibility guarantee for the existing group query.
 
 **Multi-calendar combination (bundle/group, no explicit override).** Effective rule = the strictest of each field across participants: `max(lead_time)`, `min(max_horizon)`, `max(buffer_before)`, `max(buffer_after)`. Rationale: never offer a slot any participant would reject.
 
 **Edge cases.**
-- *Empty search window or step ≥ window:* returns an empty slot list, not an error (consistent with today's positive-step validation).
-- *Bundle with no participating children:* returns an empty list.
-- *Calendar with no resolvable owning membership* (resource calendars, shared calendars): membership layer is skipped; resolution falls to org default, then no-constraints. (See **Open questions** on how ownership is resolved.)
-- *Policy with buffer larger than the gap between two appointments:* the slot between them is simply never offered — expected.
-- *Lead time that pushes the whole window into the past/future:* empty list, no error.
-- *Negative or zero durations on policy fields:* rejected at write time with a validation error; zero is allowed (means "no constraint for that field").
-- *Conflicting policies at the same layer* (e.g. both a calendar policy and a bundle override apply to a bundle booking): the most-specific target wins — an explicit bundle/group policy overrides per-calendar policies entirely for that bundle/group computation.
+
+- _Empty search window or step ≥ window:_ returns an empty slot list, not an error (consistent with today's positive-step validation).
+- _Bundle with no participating children:_ returns an empty list.
+- _Calendar with no resolvable owning membership_ (resource calendars, shared calendars): membership layer is skipped; resolution falls to org default, then no-constraints. (See **Open questions** on how ownership is resolved.)
+- _Policy with buffer larger than the gap between two appointments:_ the slot between them is simply never offered — expected.
+- _Lead time that pushes the whole window into the past/future:_ empty list, no error.
+- _Negative or zero durations on policy fields:_ rejected at write time with a validation error; zero is allowed (means "no constraint for that field").
+- _Conflicting policies at the same layer_ (e.g. both a calendar policy and a bundle override apply to a bundle booking): the most-specific target wins — an explicit bundle/group policy overrides per-calendar policies entirely for that bundle/group computation.
 
 **Idempotency.**
-- *Slot queries* are pure reads — naturally idempotent, no side effects.
-- *Policy create:* creating a second policy for the same target is a **reject** ("policy already exists for this target") rather than a silent duplicate, so resolution stays unambiguous. Update is the path to change an existing one.
-- *Policy update/delete:* idempotent — repeating yields the same final state (update to the same values is a no-op; deleting an absent policy is a no-op or a clear not-found, decided at plan time).
+
+- _Slot queries_ are pure reads — naturally idempotent, no side effects.
+- _Policy create:_ creating a second policy for the same target is a **reject** ("policy already exists for this target") rather than a silent duplicate, so resolution stays unambiguous. Update is the path to change an existing one.
+- _Policy update/delete:_ idempotent — repeating yields the same final state (update to the same values is a no-op; deleting an absent policy is a no-op or a clear not-found, decided at plan time).
 
 **Concurrency.**
-- *Policy edits:* last-write-wins on the policy record; two admins editing the same policy is rare and low-stakes. No optimistic-lock surfacing required.
-- *Booking-time enforcement:* the policy check is part of the existing booking transaction; it reads current calendar state at write time, so a slot that became invalid between discovery and booking is correctly rejected. This is the intended guard, not a race to avoid.
+
+- _Policy edits:_ last-write-wins on the policy record; two admins editing the same policy is rare and low-stakes. No optimistic-lock surfacing required.
+- _Booking-time enforcement:_ the policy check is part of the existing booking transaction; it reads current calendar state at write time, so a slot that became invalid between discovery and booking is correctly rejected. This is the intended guard, not a race to avoid.
 
 **Time-bounded behavior.** Lead time and horizon are themselves the time-bounded rules; they are evaluated against request time on every call, so no stored expiry or scheduled re-evaluation is needed. Slot results are not cached with respect to "now."
 
@@ -197,12 +201,12 @@ flowchart TD
 
 ### 4.4 Negative scope
 
-- **No new booking creation mechanics.** Enforcement is added to the *existing* booking write path; we are not building a new reservation/hold/lock flow. Slot holds and double-booking prevention beyond the policy check stay as they are.
+- **No new booking creation mechanics.** Enforcement is added to the _existing_ booking write path; we are not building a new reservation/hold/lock flow. Slot holds and double-booking prevention beyond the policy check stay as they are.
 - **No absolute calendar-date cutoff for horizon.** Horizon is rolling-from-now only; a fixed end-date is deferred until a consumer actually needs it.
 - **No recurring or time-windowed policies.** A policy is a flat set of values; "different lead time on weekends" or "seasonal horizon" is out of scope.
 - **No per-service or per-appointment-type policies.** Policies attach to calendar / membership / bundle / group / org only, not to appointment types.
-- **No REST changes to the slot read path.** Slot *discovery* stays GraphQL-only, matching the current surface; only **policy CRUD** gets a private REST surface (plus public GraphQL). The existing token-management REST endpoints are untouched.
-- **No change to continuous availability/unavailability queries.** `availability_windows` / `unavailable_windows` and their `_with_code` variants keep their current contracts; policies apply to *slot* surfaces and the booking path, not to raw window queries.
+- **No REST changes to the slot read path.** Slot _discovery_ stays GraphQL-only, matching the current surface; only **policy CRUD** gets a private REST surface (plus public GraphQL). The existing token-management REST endpoints are untouched.
+- **No change to continuous availability/unavailability queries.** `availability_windows` / `unavailable_windows` and their `_with_code` variants keep their current contracts; policies apply to _slot_ surfaces and the booking path, not to raw window queries.
 - **No client-side migration tooling.** Integrators who already discretize windows themselves are not forced to migrate; the new query is additive.
 - **No timezone redesign.** Existing timezone handling (IANA strings on availability/events) is reused as-is; we are not reworking how times are stored or converted.
 
@@ -215,16 +219,16 @@ flowchart TD
 
 ## 6. Open questions
 
-1. **How is a calendar's "owning membership" resolved?** The membership→calendar link is assumed to run through an ownership relation rather than a direct FK. *Recommended default:* resolve the owning member via the existing calendar-ownership relation; if a calendar has zero or multiple owners, skip the membership layer and fall to org default. *Owner:* scheduling/calendar domain owner. *Unblocks:* confirming the exact ownership relation lets the plan write the resolver precisely.
-2. **Which bundle children count toward bookability?** *Recommended default:* every child that participates in the bundle (all `bundle_children`) must be free for the window; the primary child does not get special treatment for availability. *Owner:* scheduling domain owner. *Unblocks:* confirms the bundle-expansion predicate and scenario 2's exact semantics.
-3. **Where does the org-level default policy attach, and is there exactly one?** *Recommended default:* a single optional default policy per organization (one record), used as the final resolution layer. *Owner:* product. *Unblocks:* settles the bottom of the resolution chain and the create-uniqueness rule.
-4. **Does deleting an absent policy return not-found or succeed as a no-op?** *Recommended default:* idempotent no-op success, to keep clients simple. *Owner:* API owner. *Unblocks:* finalizes the delete contract on both APIs.
-5. **Should the `_with_code` slot variant expose policy details, or only the filtered slots?** *Recommended default:* return only the resulting slots (anonymous bookers don't need to see the rule values). *Owner:* product/security. *Unblocks:* fixes the code-gated response shape.
+1. **How is a calendar's "owning membership" resolved?** The membership→calendar link is assumed to run through an ownership relation rather than a direct FK. _Recommended default:_ resolve the owning member via the existing calendar-ownership relation; if a calendar has zero or multiple owners, skip the membership layer and fall to org default. _Owner:_ scheduling/calendar domain owner. _Unblocks:_ confirming the exact ownership relation lets the plan write the resolver precisely.
+2. **Which bundle children count toward bookability?** _Recommended default:_ every child that participates in the bundle (all `bundle_children`) must be free for the window; the primary child does not get special treatment for availability. _Owner:_ scheduling domain owner. _Unblocks:_ confirms the bundle-expansion predicate and scenario 2's exact semantics.
+3. **Where does the org-level default policy attach, and is there exactly one?** _Recommended default:_ a single optional default policy per organization (one record), used as the final resolution layer. _Owner:_ product. _Unblocks:_ settles the bottom of the resolution chain and the create-uniqueness rule.
+4. **Does deleting an absent policy return not-found or succeed as a no-op?** _Recommended default:_ idempotent no-op success, to keep clients simple. _Owner:_ API owner. _Unblocks:_ finalizes the delete contract on both APIs.
+5. **Should the `_with_code` slot variant expose policy details, or only the filtered slots?** _Recommended default:_ return only the resulting slots (anonymous bookers don't need to see the rule values). _Owner:_ product/security. _Unblocks:_ fixes the code-gated response shape.
 
 ## 7. Risks assumed
 
-- **Changing the existing group query's output once policies exist.** The group-scoped slot query is already public; enabling policy-awareness changes what it returns for any org that sets a policy. *Assumption:* integrators treat "fewer/filtered slots" as a correctness improvement, not a breaking change. *Mitigation:* guarantee byte-for-byte identical output when no policy exists (acceptance scenario 5); announce the behavior change to partners before any org enables policies. *Likelihood/severity:* medium / medium.
-- **Resolution chain depends on an ownership relation that may be fuzzy.** If a calendar has no clean single owning membership, the "membership" layer silently no-ops. *Assumption:* most personal calendars have exactly one owner; resource/bundle calendars legitimately skip the membership layer. *Mitigation:* explicit org-default fallback; document the skip; resolve **Open questions** item 1 before implementation. *Likelihood/severity:* medium / medium.
-- **Buffer/lead/horizon math on the per-candidate walk adds cost.** Each candidate now also does envelope-overlap checks against events and blocked times. *Assumption:* the existing batched-fetch + Python-walk approach absorbs the extra per-candidate work within current performance bounds. *Mitigation:* reuse the already-fetched blocking spans for buffer checks; if a hot tenant regresses, revisit the SQL-generation alternative. *Likelihood/severity:* low / medium.
-- **Discovery/booking divergence under concurrency.** A slot valid at discovery can become invalid before booking. *Assumption:* booking-time enforcement reading current state at write time is the correct and sufficient guard. *Mitigation:* enforce inside the existing booking transaction; accepted that discovery is best-effort and booking is authoritative — no further mitigation. *Likelihood/severity:* low / low.
-- **Most-restrictive combination surprises bundle/group owners.** A single strict participant can collapse a bundle's offered slots. *Assumption:* "never offer a slot a participant would reject" is the desired safe default, and the bundle/group-level override exists precisely for owners who want different behavior. *Mitigation:* document the rule; expose the override. *Likelihood/severity:* low / low.
+- **Changing the existing group query's output once policies exist.** The group-scoped slot query is already public; enabling policy-awareness changes what it returns for any org that sets a policy. _Assumption:_ integrators treat "fewer/filtered slots" as a correctness improvement, not a breaking change. _Mitigation:_ guarantee byte-for-byte identical output when no policy exists (acceptance scenario 5); announce the behavior change to partners before any org enables policies. _Likelihood/severity:_ medium / medium.
+- **Resolution chain depends on an ownership relation that may be fuzzy.** If a calendar has no clean single owning membership, the "membership" layer silently no-ops. _Assumption:_ most personal calendars have exactly one owner; resource/bundle calendars legitimately skip the membership layer. _Mitigation:_ explicit org-default fallback; document the skip; resolve **Open questions** item 1 before implementation. _Likelihood/severity:_ medium / medium.
+- **Buffer/lead/horizon math on the per-candidate walk adds cost.** Each candidate now also does envelope-overlap checks against events and blocked times. _Assumption:_ the existing batched-fetch + Python-walk approach absorbs the extra per-candidate work within current performance bounds. _Mitigation:_ reuse the already-fetched blocking spans for buffer checks; if a hot tenant regresses, revisit the SQL-generation alternative. _Likelihood/severity:_ low / medium.
+- **Discovery/booking divergence under concurrency.** A slot valid at discovery can become invalid before booking. _Assumption:_ booking-time enforcement reading current state at write time is the correct and sufficient guard. _Mitigation:_ enforce inside the existing booking transaction; accepted that discovery is best-effort and booking is authoritative — no further mitigation. _Likelihood/severity:_ low / low.
+- **Most-restrictive combination surprises bundle/group owners.** A single strict participant can collapse a bundle's offered slots. _Assumption:_ "never offer a slot a participant would reject" is the desired safe default, and the bundle/group-level override exists precisely for owners who want different behavior. _Mitigation:_ document the rule; expose the override. _Likelihood/severity:_ low / low.

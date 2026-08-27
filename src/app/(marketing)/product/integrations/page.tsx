@@ -164,10 +164,20 @@ export default function IntegrationsPage() {
         <Box mx='auto' maxWidth='42rem'>
           <VStack gap={4} align='center'>
             <Eyebrow align='center'>Don&apos;t see your source?</Eyebrow>
-            <Heading level={2} size='2xl' align='center' className='md:text-3xl'>
+            <Heading
+              level={2}
+              size='2xl'
+              align='center'
+              className='md:text-3xl'
+            >
               If it speaks calendars, it can connect.
             </Heading>
-            <Text as='p' align='center' color='muted-foreground' leading='relaxed'>
+            <Text
+              as='p'
+              align='center'
+              color='muted-foreground'
+              leading='relaxed'
+            >
               The same GraphQL API that powers our built-in integrations is open
               to you — model any source as a calendar and sync it through Vinta.
             </Text>
