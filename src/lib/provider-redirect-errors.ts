@@ -1,5 +1,4 @@
-const DEFAULT_MESSAGE =
-  'Could not start social sign-in. Please try again.';
+const DEFAULT_MESSAGE = 'Could not start social sign-in. Please try again.';
 
 /**
  * Turn a redirect-json error payload into a user-facing message.

@@ -67,11 +67,11 @@ export function useTargetOptions() {
     (type: BookingPolicyTargetType, id: number | null): string => {
       if (id == null) return '—';
       const lookup: Partial<Record<BookingPolicyTargetType, ComboboxOption[]>> =
-      {
-        calendar: calendarOptions,
-        calendar_group: groupOptions,
-        membership: memberOptions,
-      };
+        {
+          calendar: calendarOptions,
+          calendar_group: groupOptions,
+          membership: memberOptions,
+        };
       const options = lookup[type];
       const match = options?.find((o) => o.value === String(id));
       if (match) return match.label;

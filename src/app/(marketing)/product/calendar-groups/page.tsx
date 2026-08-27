@@ -122,7 +122,12 @@ export default function CalendarGroupsPage() {
                 >
                   <Icon icon={s.icon} size='md' color='primary' />
                 </Center>
-                <Text family='mono' size='sm' weight='semibold' color='slate-300'>
+                <Text
+                  family='mono'
+                  size='sm'
+                  weight='semibold'
+                  color='slate-300'
+                >
                   {s.n}
                 </Text>
               </HStack>
@@ -130,7 +135,12 @@ export default function CalendarGroupsPage() {
                 <Heading level={3} size='lg'>
                   {s.title}
                 </Heading>
-                <Text as='p' size='sm' color='muted-foreground' leading='relaxed'>
+                <Text
+                  as='p'
+                  size='sm'
+                  color='muted-foreground'
+                  leading='relaxed'
+                >
                   {s.body}
                 </Text>
               </VStack>
@@ -160,7 +170,10 @@ export default function CalendarGroupsPage() {
         title='Route every appointment to the right availability.'
         lead='Model your services as Calendar Groups and let Vinta handle the matching.'
         primary={{ label: 'Start building', href: '/auth/signup' }}
-        secondary={{ label: 'Read the concept guide', href: '/docs/concepts/calendar-groups' }}
+        secondary={{
+          label: 'Read the concept guide',
+          href: '/docs/concepts/calendar-groups',
+        }}
       />
     </>
   );

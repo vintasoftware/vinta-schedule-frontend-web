@@ -78,13 +78,13 @@ side for these operations.
   organization, or the caller simply isn't authorized to see it. Do not attempt to distinguish
   "doesn't exist" from "you can't see it" from these responses — the API deliberately does not
   let you.
-- **Orphaned-booking warning.** Windows and blocks can *narrow* a calendar out from under
+- **Orphaned-booking warning.** Windows and blocks can _narrow_ a calendar out from under
   confirmed future bookings. The create (when it's the calendar's first group-scoped window) and
   every update of a window or block returns an `orphaned_bookings` list identifying any confirmed
   future bookings in that group that no longer fit. **Nothing about those bookings is changed or
   cancelled automatically** — this is purely a heads-up for the caller to act on manually (e.g.
   notify the attendee, rebook, or cancel by hand). Quota rules have no equivalent field: a quota
-  rule caps *future* bookings only and can never orphan an existing one.
+  rule caps _future_ bookings only and can never orphan an existing one.
 
 ---
 
@@ -108,7 +108,11 @@ How this surfaces differs by which mutation you're calling:
   error message text:
   - REST: **400** with body
     ```json
-    { "non_field_errors": ["Calendar 42 is not bookable for the requested time in this group (outside_window)."] }
+    {
+      "non_field_errors": [
+        "Calendar 42 is not bookable for the requested time in this group (outside_window)."
+      ]
+    }
     ```
   - GraphQL: a standard `errors[].message` string with the same text, e.g.
     `"Calendar 42 is not bookable for the requested time in this group (inside_block)."`
@@ -117,7 +121,7 @@ How this surfaces differs by which mutation you're calling:
   `rescheduleCalendarGroupEventWithCode`, and the equivalent cancellation-code mutations — collapse
   ANY group-scoped rule violation into the same generic bucket already used for "outside base
   availability": `errorCode: "SLOT_UNAVAILABLE"`, `errorMessage: "The requested time slot is not
-  available."` No calendar id, no rule type, no distinction from an ordinary base-availability
+available."` No calendar id, no rule type, no distinction from an ordinary base-availability
   miss. The booking code is **not consumed** on this rejection, so the caller can retry with a
   different time.
 
@@ -142,18 +146,18 @@ How this surfaces differs by which mutation you're calling:
 
 **`GroupScopedAvailabilityWindow` (read shape):**
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | int | |
-| `calendar_id` | int | |
-| `group_slot_id` | int | |
-| `start_time` | datetime (ISO 8601) | rendered in the window's own IANA timezone, not UTC |
-| `end_time` | datetime (ISO 8601) | same |
-| `timezone` | string | IANA timezone name |
-| `rrule_string` | string \| null | `null` when the window is a one-off, not recurring |
-| `is_recurring` | bool | |
-| `created` | datetime | |
-| `modified` | datetime | |
+| Field           | Type                | Notes                                               |
+| --------------- | ------------------- | --------------------------------------------------- |
+| `id`            | int                 |                                                     |
+| `calendar_id`   | int                 |                                                     |
+| `group_slot_id` | int                 |                                                     |
+| `start_time`    | datetime (ISO 8601) | rendered in the window's own IANA timezone, not UTC |
+| `end_time`      | datetime (ISO 8601) | same                                                |
+| `timezone`      | string              | IANA timezone name                                  |
+| `rrule_string`  | string \| null      | `null` when the window is a one-off, not recurring  |
+| `is_recurring`  | bool                |                                                     |
+| `created`       | datetime            |                                                     |
+| `modified`      | datetime            |                                                     |
 
 **Create** (`POST`) — request body:
 
@@ -177,9 +181,26 @@ Response: **201** with a `GroupScopedAvailabilityWriteResult`:
 
 ```json
 {
-  "window": { "id": 501, "calendar_id": 42, "group_slot_id": 7, "start_time": "...", "end_time": "...", "timezone": "America/Sao_Paulo", "rrule_string": "RRULE:...", "is_recurring": true, "created": "...", "modified": "..." },
+  "window": {
+    "id": 501,
+    "calendar_id": 42,
+    "group_slot_id": 7,
+    "start_time": "...",
+    "end_time": "...",
+    "timezone": "America/Sao_Paulo",
+    "rrule_string": "RRULE:...",
+    "is_recurring": true,
+    "created": "...",
+    "modified": "..."
+  },
   "orphaned_bookings": [
-    { "id": 9001, "calendar_id": 42, "title": "Checkup", "start_time": "2026-09-05T20:00:00-03:00", "end_time": "2026-09-05T20:30:00-03:00" }
+    {
+      "id": 9001,
+      "calendar_id": 42,
+      "title": "Checkup",
+      "start_time": "2026-09-05T20:00:00-03:00",
+      "end_time": "2026-09-05T20:30:00-03:00"
+    }
   ]
 }
 ```
@@ -197,6 +218,7 @@ the update narrows the effective window (not only on the very first write).
 **Delete** (`DELETE /{id}/`) — deletes the whole series if recurring. Response: **204**, no body.
 
 **Errors:**
+
 - **404** (`{"detail": "Not found."}`) — window doesn't exist, belongs to another organization,
   is outside the slot named in the URL, OR the caller isn't authorized to manage it. All four
   cases are byte-identical.
@@ -206,8 +228,22 @@ the update narrows the effective window (not only on the very first write).
 
 ```graphql
 query {
-  groupScopedAvailabilityWindows(groupSlotId: 7, calendarId: 42, offset: 0, limit: 100) {
-    id calendarId groupSlotId startTime endTime timezone rruleString isRecurring created modified
+  groupScopedAvailabilityWindows(
+    groupSlotId: 7
+    calendarId: 42
+    offset: 0
+    limit: 100
+  ) {
+    id
+    calendarId
+    groupSlotId
+    startTime
+    endTime
+    timezone
+    rruleString
+    isRecurring
+    created
+    modified
   }
 }
 ```
@@ -225,18 +261,42 @@ query {
 
 ```graphql
 mutation {
-  batchUpsertGroupScopedAvailabilityWindows(input: {
-    organizationId: 1
-    groupSlotId: 7
-    operations: [
-      { action: "create", calendarId: 42, startTime: "2026-09-01T09:00:00Z", endTime: "2026-09-01T17:00:00Z", timezone: "America/Sao_Paulo" }
-      { action: "update", calendarId: 42, windowId: 501, endTime: "2026-09-01T18:00:00Z" }
-      { action: "delete", calendarId: 43, windowId: 502 }
-    ]
-  }) {
+  batchUpsertGroupScopedAvailabilityWindows(
+    input: {
+      organizationId: 1
+      groupSlotId: 7
+      operations: [
+        {
+          action: "create"
+          calendarId: 42
+          startTime: "2026-09-01T09:00:00Z"
+          endTime: "2026-09-01T17:00:00Z"
+          timezone: "America/Sao_Paulo"
+        }
+        {
+          action: "update"
+          calendarId: 42
+          windowId: 501
+          endTime: "2026-09-01T18:00:00Z"
+        }
+        { action: "delete", calendarId: 43, windowId: 502 }
+      ]
+    }
+  ) {
     success
     errorMessage
-    windows { id calendarId groupSlotId startTime endTime timezone rruleString isRecurring created modified }
+    windows {
+      id
+      calendarId
+      groupSlotId
+      startTime
+      endTime
+      timezone
+      rruleString
+      isRecurring
+      created
+      modified
+    }
   }
 }
 ```
@@ -245,7 +305,7 @@ mutation {
   operation's `calendarId` must be within the token's owner scope (checked per-operation before
   any write) — an org-wide token has no such restriction.
 - **`GroupScopedAvailabilityWindowOperationInput` fields:** `action` (`"create" | "update" |
-  "delete"`, required), `calendarId` (int, **required on every op**, not only create),
+"delete"`, required), `calendarId` (int, **required on every op**, not only create),
   `windowId` (int, required for update/delete), `startTime`/`endTime`/`timezone` (required for
   create, optional for update — only provided fields change), `rruleString` (optional).
 - **Semantics — all-or-nothing:** the whole batch runs in one transaction; every operation is
@@ -281,6 +341,7 @@ mutation {
   roster** (all calendars), not just the ones touched by this batch.
 
 **Client migration notes:**
+
 - **Web SPA (React):** if you build an admin UI for managing a group's roster availability, this
   is the batch endpoint to drive a "save all changes in this panel" action — treat a failed batch
   as fully unapplied and re-render from the returned `windows` list on success.
@@ -322,7 +383,19 @@ Response: **201** with a `GroupScopedBlockWriteResult`:
 
 ```json
 {
-  "block": { "id": 601, "calendar_id": 42, "group_slot_id": 7, "start_time": "...", "end_time": "...", "timezone": "America/Sao_Paulo", "reason": "Lunch", "rrule_string": null, "is_recurring": false, "created": "...", "modified": "..." },
+  "block": {
+    "id": 601,
+    "calendar_id": 42,
+    "group_slot_id": 7,
+    "start_time": "...",
+    "end_time": "...",
+    "timezone": "America/Sao_Paulo",
+    "reason": "Lunch",
+    "rrule_string": null,
+    "is_recurring": false,
+    "created": "...",
+    "modified": "..."
+  },
   "orphaned_bookings": []
 }
 ```
@@ -365,6 +438,7 @@ either** — this mutation never raises the plan-limit `OverLimitError` for a ce
 > entitlement queries) — see the metering breaking-change note above.
 
 **Client migration notes:**
+
 - **Web SPA (React):** blocks and windows share the same batch UX pattern; a roster-management
   panel that already drives the windows batch can reuse the same request/response handling for
   blocks with the field renames above.
@@ -377,7 +451,7 @@ either** — this mutation never raises the plan-limit `OverLimitError` for a ce
 
 Quota rules are the simplest of the three: non-recurring, no time range, and (as of this branch)
 **unmetered** — creating one never counts against a plan limit. They also never orphan a booking:
-a quota rule caps *future* bookings and can never invalidate one already confirmed, so there is no
+a quota rule caps _future_ bookings and can never invalidate one already confirmed, so there is no
 `orphaned_bookings` field anywhere in this surface.
 
 ### REST — `.../calendar-groups/{group_id}/slots/{slot_id}/quota-rules/`
@@ -386,15 +460,15 @@ Same auth/visibility model as windows/blocks. `PUT` unsupported.
 
 **`GroupScopedQuotaRule` (read shape):**
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | int | |
-| `calendar_id` | int | |
-| `group_slot_id` | int | |
-| `period` | `"day" \| "week" \| "month"` | fixed calendar period the cap applies to |
-| `cap` | int | maximum live bookings made **through this group** per period; ≥ 1 |
-| `created` | datetime | |
-| `modified` | datetime | |
+| Field           | Type                         | Notes                                                             |
+| --------------- | ---------------------------- | ----------------------------------------------------------------- |
+| `id`            | int                          |                                                                   |
+| `calendar_id`   | int                          |                                                                   |
+| `group_slot_id` | int                          |                                                                   |
+| `period`        | `"day" \| "week" \| "month"` | fixed calendar period the cap applies to                          |
+| `cap`           | int                          | maximum live bookings made **through this group** per period; ≥ 1 |
+| `created`       | datetime                     |                                                                   |
+| `modified`      | datetime                     |                                                                   |
 
 **Create** (`POST`):
 
@@ -414,6 +488,7 @@ Response: **200** with the updated `GroupScopedQuotaRule`.
 **Delete** (`DELETE /{id}/`) — **204**.
 
 **Errors:**
+
 - **404** — same non-disclosure shape as windows/blocks.
 - **400** — the model enforces **one rule per (calendar, slot, period)**. Creating or updating a
   rule into a period that already has one for that calendar/slot is rejected as
@@ -445,6 +520,7 @@ Mirrors the other two batch mutations' validation/owner-scope/IDOR structure.
 - Requires the `BATCH_UPSERT_GROUP_SCOPED_QUOTA_RULES` resource grant.
 
 **Client migration notes:**
+
 - **Web SPA (React):** quota rules are the only one of the three concepts with no orphan-warning
   UI to build — a create/update always succeeds cleanly or fails with a plain validation message.
 - **Partner integrations:** no plan-limit pre-flight needed for quota rule writes; only the

@@ -11,11 +11,7 @@ import { MarketingFooter } from '@/components/navigation/marketing-footer';
  * the docs shell render the nav/footer themselves, so they stay outside this
  * group.
  */
-export default function MarketingLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <Box bg='background'>
       <MarketingNav />

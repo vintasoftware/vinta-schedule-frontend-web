@@ -8,18 +8,18 @@
 
 ## Run options
 
-| Option | Value |
-| --- | --- |
-| `commit_strategy_resolved` | `stacked-branches` — one branch + PR per phase |
-| `pause_between_phases` | `false` — auto-flow |
-| `generate_inline_comments` | `false` — PR description only |
-| `full_test_suite` | `false` — scoped tests per phase (outer gate always runs repo-wide typecheck) |
-| `run_e2e` | `false` — no phase in this plan carries a Playwright spec |
-| `use_worktree` | `true` |
-| `worktree_path` | `.claude/worktrees/plan-public-api-docs` |
-| `worktree_branch` | `plan-public-api-docs` (based on `origin/main` @ `7f9ca6d`) |
-| `worktree_summary` | `.vinta-ai-workflows/worktrees/plan-public-api-docs.yaml` |
-| `sandbox_tier` | `none` (intended `enforced`) — see note below |
+| Option                     | Value                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| `commit_strategy_resolved` | `stacked-branches` — one branch + PR per phase                                |
+| `pause_between_phases`     | `false` — auto-flow                                                           |
+| `generate_inline_comments` | `false` — PR description only                                                 |
+| `full_test_suite`          | `false` — scoped tests per phase (outer gate always runs repo-wide typecheck) |
+| `run_e2e`                  | `false` — no phase in this plan carries a Playwright spec                     |
+| `use_worktree`             | `true`                                                                        |
+| `worktree_path`            | `.claude/worktrees/plan-public-api-docs`                                      |
+| `worktree_branch`          | `plan-public-api-docs` (based on `origin/main` @ `7f9ca6d`)                   |
+| `worktree_summary`         | `.vinta-ai-workflows/worktrees/plan-public-api-docs.yaml`                     |
+| `sandbox_tier`             | `none` (intended `enforced`) — see note below                                 |
 
 **Sandbox note.** The worktree summary was first written as `enforced`, but the effective tier for this run is `none`: the conductor session is rooted in the main checkout, and claude-code reads the worktree's PreToolUse write-guard settings only at session start, so the guard cannot bind to in-process subagents here. Prevention falls back to review-phase's post-run `git -C <main_checkout> status` stray-write check, which is run after every implementer and fixer. It has been clean for every agent so far.
 
@@ -43,10 +43,12 @@
 - `src/app/docs/page.tsx` — overview page, section list driven by `DOCS_NAV`.
 
 **Key decisions.**
+
 - Nav hrefs point at routes that 404 until Phases 1–5 land. Deliberate per the plan's static-nav decision; **relevant to merge order** — merging phase 0 alone ships a sidebar of mostly-dead links.
 - `policy-document-view.tsx` was NOT refactored to consume `DocsProse`; the style string is duplicated in two places for now. Reviewer logged this as a NIT to close in Phase 1 when `DocsProse` gets its first real caller.
 
 **Review.** No BLOCKERs. Four SHOULD-FIX findings, all fixed in-phase across three commits:
+
 1. Layout hand-rolled `maxWidth='68ch'` / `maxWidth={1200}`, duplicating `MAX_WIDTH.prose` / `MAX_WIDTH.contained` — reworked to compose `Container` per the `AppShell` precedent.
 2. `SECTION_DESCRIPTIONS` was a parallel `Record` keyed by a widened `string`, so a new nav section would silently render `undefined` — descriptions folded into `nav.ts`; omitting one is now a type error.
 3. `DocsProse`'s `html`/`children` exclusivity was comment-only — now a discriminated union.
@@ -72,10 +74,12 @@ Open NITs deferred (not blocking): sidebar has no `position='sticky'` and will s
 - `src/components/api-tokens/new-token-dialog.tsx` — shows `${result.id}:${result.token}` as one credential string, which is exactly what goes after `Bearer `.
 
 **Key decisions.**
+
 - **The auth header is `Bearer <system_user_id>:<token>`, confirmed against the backend** (`public_api/middlewares.py:23-42` splits on the first `:`, `int()`-parses the left half; `services.py:40` looks it up via `SystemUser.original_manager.get(id=...)`). It is NOT `<organization_id>:<token>` — a `SystemUser` is organization-scoped but its `id` is its own PK.
 - **The dialog composes the credential rather than surfacing the id separately** (user's call). The two halves are never useful apart, and the middleware splits them back. This expanded scope beyond the plan's Phase 1 touch list into `src/components/api-tokens/`, deliberately and with user approval — without it, the guide documented a flow no reader could complete, because the dialog discarded `result.id`.
 
 **Review — this phase needed real work. Findings, all fixed:**
+
 1. **BLOCKER — the pipeline copy-pasted `render-markdown.ts` instead of extending it**, duplicating security-critical sanitization. The implementer's report claimed "no deviations", which was false. Now shares one chain.
 2. **BLOCKER — the sanitize schema was silently corrupted.** `JSON.parse(JSON.stringify(defaultSchema))` turned `defaultSchema.attributes.code`'s RegExp (`/^language-./`) into `{}`, matching nothing, so `<code>` rendered `class=""` and lost all highlighting. The workaround for that symptom had been to allow `className` on `*` — every element — which would have been inherited by Phase 3's semi-trusted backend content. Replaced with a spread-based merge that leaves the RegExp entries untouched, scoped to `code`/`span`.
 3. **BLOCKER — 3 of 4 sanitize tests were vacuous**: they passed identically with `rehype-sanitize` deleted, because `remark-rehype` drops raw HTML before the sanitizer ever runs. Rewritten to inject hast trees directly through the schema; each was proven to fail with the sanitizer removed.
@@ -87,6 +91,7 @@ Open NITs deferred (not blocking): sidebar has no `position='sticky'` and will s
 9. **Regression caught in review, not shipped**: the fix for (8) put the mutation object in a `useEffect` dep array. `useMutation` returns a new identity every render, so the effect looped and exhausted the heap — the api-tokens suite crashed at 10/19 after 253s. That fixer misread the truncated output as a pass. Fixed by depending on the stable bound `reset` method, with a `Profiler`-based regression test proven to hang when the fix is reverted.
 
 **Carried forward — needs action outside this phase.**
+
 - **`marketing-home.tsx`'s showcase query is also invalid**: `src/components/home-page/marketing-home.tsx:448-460` calls `calendarGroupBookableSlots` without the required `searchWindowEnd`. Left untouched (Phase 6 owns that file), but **Phase 6 should fix it** — it's a public-facing sample that would fail validation.
 - Known, accepted: the raw `Mutation` entry survives in `QueryClient`'s `MutationCache` until its 5-minute `gcTime`, independent of `reset()`. A property of TanStack Query, not this component; visible only via Query DevTools.
 
@@ -109,18 +114,20 @@ Open NITs deferred (not blocking): sidebar has no `position='sticky'` and will s
 - `src/app/docs/reference/[[...slug]]/page.tsx` + three components under `src/components/docs/`.
 
 **Key decisions.**
+
 - **The build does NOT write the snapshot**, contrary to the plan's literal step 1. A mid-build write into `src/` doesn't persist on Vercel and the module graph is already bundled by render time, so it would silently no-op in production while appearing to work locally. Instead the snapshot is a committed artifact refreshed by an explicit script, and the build only reads it. The reviewer independently validated this reasoning.
 - **`generateStaticParams` is filtered**: drops `__`-prefixed meta types, the five built-in scalars, and the `Query`/`Mutation` roots; keeps OBJECT/INPUT_OBJECT/ENUM → 137 pages. INTERFACE/UNION have zero occurrences in this schema and are not supported, but now warn loudly if one ever appears.
 - **Queries and mutations render in full on the index**, not as 82 separate routes. "Per-type detail" was read as applying to types only.
 - **The backend was reachable locally during this phase** (`localhost:8000` answered introspection), so the live path was genuinely exercised, not just the fallback.
 
 **Review.** No BLOCKERs. Four SHOULD-FIX, all fixed:
+
 1. **The live-fetch `try/catch` swallowed everything into one generic "unreachable" warning.** This pattern had already hidden one real bug (below), and would misreport a future code defect as an infra problem while docs silently froze at snapshot state forever. Now logs distinguishable messages per failure mode — non-2xx, malformed JSON, GraphQL errors, missing `__schema`, timeout, and a catch-all that dumps the actual error.
 2. **`defaultValue` was parsed but never rendered** — non-null in 149 places in the real schema, so readers couldn't learn that e.g. `limit` defaults to `100` without reading backend source. Now rendered.
 3. INTERFACE/UNION types would have been dropped silently. Now warned.
 4. `schema-field-list.tsx` had no test; its deprecated-badge path was covered by no test anywhere. Added, and **every new test was proven able to fail** by temporarily breaking the branch it covers.
 
-**Caught during implementation, worth remembering.** The first draft passed `cache: 'no-store'` to the introspection fetch. Next's static-generation-patched `fetch` throws `DYNAMIC_SERVER_USAGE` for that inside a prerendered page — which the broad `try/catch` swallowed as "backend unreachable", so it *always* used the snapshot even with the backend up, and demoted the whole route from static to dynamic-per-request. Removed. This is why finding 1 above mattered.
+**Caught during implementation, worth remembering.** The first draft passed `cache: 'no-store'` to the introspection fetch. Next's static-generation-patched `fetch` throws `DYNAMIC_SERVER_USAGE` for that inside a prerendered page — which the broad `try/catch` swallowed as "backend unreachable", so it _always_ used the snapshot even with the backend up, and demoted the whole route from static to dynamic-per-request. Removed. This is why finding 1 above mattered.
 
 **Fallback verified by the conductor, not just reported**: `NEXT_PUBLIC_API_BASE_URL=http://localhost:59999 pnpm run build` → exit 0, warning emitted, route still `●` (fully static), built output still contains the real operations from the snapshot. This is the path production takes today, since the backend is not deployed.
 
@@ -154,9 +161,10 @@ The backend (`~/Workspaces/vinta-schedule`) shipped Phase 1b, 2b, and the webhoo
 **The backend endpoint was live for this phase** — the user built it in the backend repo first, then had the conductor start the backend (`make up`), so the live fetch path was genuinely exercised, not just the snapshot. Both paths verified.
 
 **Review.** No BLOCKERs. Two SHOULD-FIX, both fixed:
+
 1. **Protocol-relative URLs (`//evil.com`) misclassified as `leave`** — they passed the site-relative branch, and rehype-sanitize doesn't strip protocol-relative URLs, so a `//host` link in a concept doc would have rendered as a working off-origin link disguised as in-page. Not reachable with today's six docs, but wrong on semi-trusted content. Now neutralized; conductor re-verified independently.
 2. **Sidebar manifest and content snapshot could drift** — documented the asymmetry in `nav.ts` and added a regression test asserting the two committed snapshots have identical slug sets.
-Plus a NIT taken: `fetchDoc` verifies the returned `doc.slug` matches the requested slug, treating a mismatch as a failed fetch → snapshot fallback.
+   Plus a NIT taken: `fetchDoc` verifies the returned `doc.slug` matches the requested slug, treating a mismatch as a failed fetch → snapshot fallback.
 
 **Fallback verified against real build output**: `NEXT_PUBLIC_API_BASE_URL=http://localhost:59999 pnpm run build` → exit 0, both snapshots warn and kick in, `/docs/concepts/[slug]` renders `●` with real content, cross-links rewritten, no dead source `<a>` links.
 
@@ -180,6 +188,7 @@ Plus a NIT taken: `fetchDoc` verifies the returned `doc.slug` matches the reques
 **Decision reversed from the plan.** The plan hand-authored the list; the backend now serves it with real descriptions, so this fetches it. Descriptions are plain prose, rendered as text (no markdown pipeline needed, no HTML injection). The frontend plan body still says "hand-author" — it should be amended via `amend-plan`, or the divergence is at least recorded here and in the PR.
 
 **Review — one BLOCKER, caught and fixed.**
+
 1. **BLOCKER: the page invented a delivery guarantee the backend does not provide.** It stated "Events are delivered in chronological order", but the backend dispatches each event independently via Celery with exponential-backoff retries (up to 5) — out-of-order delivery is by design. An integrator trusting this would skip ordering/dedup logic against a false promise. The fixer verified against `webhook_service.py`/`tasks.py`, traced the `main_event` chain to confirm the envelope `id` is stable across retries, and rewrote it to state only what's true: at-least-once, retried with backoff, no ordering guarantee, dedupe on the envelope `id`. Conductor re-read the corrected wording.
 2. **SHOULD-FIX: DESIGN.md violations** — the page hand-rolled raw `<div>`/`<ul>`/`<li>` with Tailwind utility classes instead of design-system primitives (the pattern Phase 0 flagged). Migrated to `Box`/`Stack`/`Flex`/`List`/`ListItem` with confirmed (not guessed) token prop names. Plus a NIT (redundant `text-xs` on a Badge).
 
@@ -207,6 +216,7 @@ Plus a NIT taken: `fetchDoc` verifies the returned `doc.slug` matches the reques
 **Build.** `/docs/explorer` builds `○` (static shell + client-hydrated widget); no other docs route was demoted. An SSR-safety fix was needed during implementation — `createGraphiQLFetcher` throws if `window` is undefined during the server render pass, fixed by passing `fetch: globalThis.fetch` explicitly (the fetcher is still only invoked client-side).
 
 **Review.** No BLOCKERs — notably, the token-safety mechanism held up under adversarial scrutiny of the real GraphiQL internals, not just the mocked test. Three SHOULD-FIX, all fixed:
+
 1. The Storybook story mounted real GraphiQL against `localhost:8000`; since the app Storybook deploys to public GitHub Pages, that would break for every visitor (and be mixed-content blocked). Now uses a stubbed non-networked fetcher, matching an existing repo story pattern.
 2. `@graphiql/react` was a dead direct dependency — removed (still present transitively).
 3. Password-manager defense-in-depth added to the credential input.
@@ -230,6 +240,7 @@ Plus a NIT taken: `fetchDoc` verifies the returned `doc.slug` matches the reques
 - New `src/components/home-page/marketing-home.test.tsx` asserts the four wired links resolve to `/docs*` and the placeholders stay `#`.
 
 **Review.** No BLOCKERs. The reviewer raised the query/mutation samples for schema-correctness:
+
 - The `searchWindowEnd` query fix was **confirmed correct** against the live backend.
 - The reviewer flagged the **mutation sample** as broken (wrong mutation name, invalid input fields) — this was a **false positive**. The conductor verified against ground truth: `createCalendarGroupEvent` exists in the introspection snapshot with `organizationId`/`groupId` on its input, and POSTing the exact sample to the live backend returns **no validation errors**. The reviewer had reasoned from backend source that diverged from the deployed contract. No change made — "fixing" a valid showcase would have broken it. (This is why reviewer findings on this plan are verified before a fixer is dispatched.)
 - Two real test-hygiene findings fixed: a placeholder-link assertion that would pass vacuously if the set were empty (now asserts `toHaveLength(2)`), and a dead variable.
@@ -241,23 +252,27 @@ Plus a NIT taken: `fetchDoc` verifies the returned `doc.slug` matches the reques
 All six in-repo phases (0–6, no Phase 5-numbering gap — the plan's 1b/2b were cross-repo) plus the schema-sync contract refresh are implemented, reviewed, and pushed. The two backend phases (1b CORS/introspection, 2b concept-docs endpoint) and the webhook-events endpoint were built in the `vinta-schedule` repo via a separate backend plan (`ai-plans/2026-07-16-PUBLIC_API_DOCS_BACKEND_IMPLEMENTATION_PLAN.md`, backend PRs #186–#188) and are live.
 
 **Remaining human follow-ups** (not code this plan produces):
+
 - **`amend-plan` the frontend plan's Phase 4** to record that webhooks are fetched from the backend, not hand-authored (the plan body still says hand-author).
 - **Backend CORS env** on Render: add `schedule.vintasoftware.com` + `schedule-staging.vintasoftware.com` to `CORS_ALLOWED_ORIGINS` so the explorer's cross-origin calls work in production (dev already works).
 - **Merge the stacked PRs in order** (see the final report).
 
 ## Remaining Phases
 
-| Phase | Title | Tier | Notes |
-| --- | --- | --- | --- |
-| 4 | Webhooks reference | 2 | **Decision reversed from the plan.** The plan hand-authored the seven event types; the backend now serves them with real descriptions at `GET /public-api-docs/webhook-events/` → `[{value, label, description}]` (backend PR #188, live at localhost:8000, 7 events, verified). **Fetch it** with the same fetch/snapshot/fallback shape as Phase 3 (a `webhook-events.json` snapshot + a refresh script), instead of hard-coding the list. The generated client already has `WebhookEventDoc` + `publicApiDocsWebhookEventsList` from the schema sync. This diverges from the plan body and its Open Questions default — the plan file itself should be amended (via `amend-plan`) to match, or at least this divergence noted in the Phase 4 PR. |
-| 5 | Embedded GraphiQL explorer | 3 | Adds GraphiQL. **Check its SPDX license before installing** — the repo blocks GPL-2.0-only / GPL-3.0-only / AGPL-3.0-only / SSPL-1.0. Honor the plan's token-safety note: do not persist the token to localStorage by default; offer a visible "clear token" affordance. Backend Phase 1b (CORS + introspection) shipped, so the explorer's cross-origin calls work against the running dev backend now, and against prod once `schedule.vintasoftware.com` / `schedule-staging.vintasoftware.com` are added to the backend's `CORS_ALLOWED_ORIGINS` env (backend plan Risk notes — a Render env edit, not code). |
-| 6 | Wire landing-page links to `/docs` | 1 | Mechanical href edits in `marketing-home.tsx`. **Also fix the invalid query there** — `marketing-home.tsx:448-460` calls `calendarGroupBookableSlots` without the required `searchWindowEnd`; see Carried Forward under Phase 1. |
+| Phase | Title                              | Tier | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----- | ---------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4     | Webhooks reference                 | 2    | **Decision reversed from the plan.** The plan hand-authored the seven event types; the backend now serves them with real descriptions at `GET /public-api-docs/webhook-events/` → `[{value, label, description}]` (backend PR #188, live at localhost:8000, 7 events, verified). **Fetch it** with the same fetch/snapshot/fallback shape as Phase 3 (a `webhook-events.json` snapshot + a refresh script), instead of hard-coding the list. The generated client already has `WebhookEventDoc` + `publicApiDocsWebhookEventsList` from the schema sync. This diverges from the plan body and its Open Questions default — the plan file itself should be amended (via `amend-plan`) to match, or at least this divergence noted in the Phase 4 PR. |
+| 5     | Embedded GraphiQL explorer         | 3    | Adds GraphiQL. **Check its SPDX license before installing** — the repo blocks GPL-2.0-only / GPL-3.0-only / AGPL-3.0-only / SSPL-1.0. Honor the plan's token-safety note: do not persist the token to localStorage by default; offer a visible "clear token" affordance. Backend Phase 1b (CORS + introspection) shipped, so the explorer's cross-origin calls work against the running dev backend now, and against prod once `schedule.vintasoftware.com` / `schedule-staging.vintasoftware.com` are added to the backend's `CORS_ALLOWED_ORIGINS` env (backend plan Risk notes — a Render env edit, not code).                                                                                                                                   |
+| 6     | Wire landing-page links to `/docs` | 1    | Mechanical href edits in `marketing-home.tsx`. **Also fix the invalid query there** — `marketing-home.tsx:448-460` calls `calendarGroupBookableSlots` without the required `searchWindowEnd`; see Carried Forward under Phase 1.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 ## Patterns later phases must follow
 
 - **Authored prose lives in a real `.md` file**, imported with `?raw`, NOT a `.ts` template string. See `src/app/docs/getting-started/content.md` + `page.tsx`. The import needs Next's inline-loader import attributes and the ambient declaration in `raw-md.d.ts`:
   ```ts
-  import content from './content.md?raw' with { turbopackLoader: 'raw-loader', turbopackAs: '*.js' };
+  import content from './content.md?raw' with {
+    turbopackLoader: 'raw-loader',
+    turbopackAs: '*.js',
+  };
   ```
   **Do not** use bare `./x.md?raw` (Turbopack: `Unknown module type`) and **do not** use a `turbopack.rules` `type: 'raw'` rule — that one builds successfully but silently resolves to `undefined`, giving an empty page with no error. Both were verified empirically. Vitest resolves `?raw` natively and ignores the `with {...}` attribute, so one import statement serves both toolchains.
 - **Markdown rendering** goes through `renderDocMarkdownToSafeHtml` from `src/lib/docs/render-doc-markdown.ts` (sanitized + highlighted), rendered via `DocsProse`'s `html` prop. Never re-declare a unified pipeline; the shared chain is exported from `src/lib/render-markdown.ts`.

@@ -106,7 +106,11 @@ export default function ProductPage() {
               'radial-gradient(120% 80% at 50% 0%, black, transparent 70%)',
           }}
         />
-        <Container position='relative' pt={{ base: 20, md: 24 }} pb={{ base: 16, md: 20 }}>
+        <Container
+          position='relative'
+          pt={{ base: 20, md: 24 }}
+          pb={{ base: 16, md: 20 }}
+        >
           <Box mx='auto' maxWidth='48rem'>
             <VStack gap={5} align='center'>
               <Eyebrow dot align='center'>
@@ -192,7 +196,7 @@ export default function ProductPage() {
                 radius='2xl'
                 border
                 bg='background'
-                className='h-full transition-colors hover:border-primary'
+                className='hover:border-primary h-full transition-colors'
               >
                 <VStack gap={4}>
                   <Center width={44} height={44} radius='xl' bg='vinta-50'>

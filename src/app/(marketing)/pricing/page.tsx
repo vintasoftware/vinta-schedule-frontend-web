@@ -90,7 +90,12 @@ export default function PricingPage() {
               </Center>
               <VStack gap={1}>
                 <Flex align='end' gap={2}>
-                  <Text size='4xl' weight='bold' leading='none' tracking='tight'>
+                  <Text
+                    size='4xl'
+                    weight='bold'
+                    leading='none'
+                    tracking='tight'
+                  >
                     $0
                   </Text>
                   <Text size='sm' color='muted-foreground'>
@@ -141,7 +146,11 @@ export default function PricingPage() {
 
       {/* FAQ */}
       <MarketingSection bg='card'>
-        <SectionIntro eyebrow='FAQ' title='Questions, answered.' align='center' />
+        <SectionIntro
+          eyebrow='FAQ'
+          title='Questions, answered.'
+          align='center'
+        />
         <Box mx='auto' maxWidth='46rem' mt={12}>
           <Grid columns={{ base: 1, md: 2 }} gap={5}>
             {faqs.map((f) => (
@@ -150,7 +159,12 @@ export default function PricingPage() {
                   <Heading level={3} size='base'>
                     {f.q}
                   </Heading>
-                  <Text as='p' size='sm' color='muted-foreground' leading='relaxed'>
+                  <Text
+                    as='p'
+                    size='sm'
+                    color='muted-foreground'
+                    leading='relaxed'
+                  >
                     {f.a}
                   </Text>
                 </VStack>
@@ -164,7 +178,10 @@ export default function PricingPage() {
         title='Start scheduling for free.'
         lead='Spin up Vinta Schedule on your own infrastructure and connect your first calendar today.'
         primary={{ label: 'Get started', href: '/auth/signup' }}
-        secondary={{ label: 'Talk to us', href: 'https://www.vintasoftware.com/contact' }}
+        secondary={{
+          label: 'Talk to us',
+          href: 'https://www.vintasoftware.com/contact',
+        }}
       />
     </>
   );
