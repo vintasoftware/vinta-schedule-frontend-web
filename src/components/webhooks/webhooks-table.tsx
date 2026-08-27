@@ -28,6 +28,8 @@ import {
 import { WebhookDialog } from './webhook-dialog';
 import { eventTypeLabel } from './event-types';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
+import { handleMutationError } from '@/lib/utils/form-errors';
 // ---------------------------------------------------------------------------
 // Column definitions — accepts pendingRowIds (to disable in-flight rows) and
 // the edit / delete row-action handlers.
@@ -217,12 +219,7 @@ function WebhooksTableInner({ toolbarActions }: WebhooksTableInnerProps) {
         await deleteWebhookConfiguration(configuration.id);
         toast.success('Webhook deleted');
       } catch (err) {
-        toast.error('Failed to delete webhook', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to delete webhook' });
       } finally {
         setPendingRowIds((prev) => {
           const nextSet = new Set(prev);
@@ -241,9 +238,7 @@ function WebhooksTableInner({ toolbarActions }: WebhooksTableInnerProps) {
           Failed to load webhooks.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );

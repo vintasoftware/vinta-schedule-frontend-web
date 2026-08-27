@@ -39,6 +39,8 @@ import { useSetCalendarVisibility } from '@/hooks/calendars/use-set-calendar-vis
 import { CreateCalendarDialog } from './create-calendar-dialog';
 import { CalendarBookingRulesDialog } from '@/components/booking-policies/calendar-booking-rules-dialog';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
+import { handleMutationError } from '@/lib/utils/form-errors';
 // ---------------------------------------------------------------------------
 // Badge variant maps for calendar properties
 // ---------------------------------------------------------------------------
@@ -483,12 +485,7 @@ function CalendarsTableInner() {
           description: `${calendar.name} sync is in progress.`,
         });
       } catch (err) {
-        toast.error('Failed to start sync', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to start sync' });
       } finally {
         // Always clear the pending state, even on error.
         setPendingRowIds((prev) => {
@@ -514,12 +511,7 @@ function CalendarsTableInner() {
           description: `${calendar.name} was deleted.`,
         });
       } catch (err) {
-        toast.error('Failed to delete calendar', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to delete calendar' });
       } finally {
         // Always clear the pending state, even on error.
         // Note: on success, the row is removed by invalidation, so this cleanup
@@ -553,12 +545,7 @@ function CalendarsTableInner() {
           }
         );
       } catch (err) {
-        toast.error('Failed to update visibility', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to update visibility' });
       } finally {
         setPendingRowIds((prev) => {
           const next = new Set(prev);
@@ -584,12 +571,7 @@ function CalendarsTableInner() {
             : `${calendar.name} will no longer sync.`,
         });
       } catch (err) {
-        toast.error('Failed to update sync', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to update sync' });
       } finally {
         setPendingRowIds((prev) => {
           const next = new Set(prev);
@@ -618,11 +600,8 @@ function CalendarsTableInner() {
           }
         );
       } catch (err) {
-        toast.error('Failed to update availability windows', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
+        handleMutationError(err, {
+          title: 'Failed to update availability windows',
         });
       } finally {
         setPendingRowIds((prev) => {
@@ -642,9 +621,7 @@ function CalendarsTableInner() {
           Failed to load calendars.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );

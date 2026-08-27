@@ -40,6 +40,7 @@ import { Box, FormLayout, Text } from 'vinta-schedule-design-system/layout';
 import { useExternalEventUpdatePolicy } from '@/hooks/sync/use-external-event-update-policy';
 import type { ExternalEventUpdatePolicyEnum } from '@/client';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // ---------------------------------------------------------------------------
 // Options
 // ---------------------------------------------------------------------------
@@ -113,8 +114,7 @@ export function ExternalEventUpdatePolicyForm() {
       await saveExternalEventUpdatePolicy(data.external_event_update_policy);
       toast.success('External event update policy saved');
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to save settings';
+      const message = getApiErrorMessage(error, 'Failed to save settings');
       toast.error(message);
     }
   };

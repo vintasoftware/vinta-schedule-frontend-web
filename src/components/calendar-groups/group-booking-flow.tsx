@@ -57,6 +57,8 @@ import { cn } from '@/lib/utils/index';
 import type { CalendarGroup, BookableSlotProposal } from '@/client';
 import { zonedFormat } from '@/lib/datetime/index';
 
+import { handleMutationError } from '@/lib/utils/form-errors';
+
 // ---------------------------------------------------------------------------
 // Common IANA timezone options for the timezone picker.
 // ---------------------------------------------------------------------------
@@ -253,10 +255,7 @@ export function GroupBookingFlow({
       });
       setSuggestions(proposals);
     } catch (err) {
-      toast.error('Could not load bookable times', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Could not load bookable times' });
     } finally {
       setIsPending(false);
     }
@@ -305,10 +304,7 @@ export function GroupBookingFlow({
         return next;
       });
     } catch (err) {
-      toast.error('Availability check failed', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Availability check failed' });
     } finally {
       setIsPending(false);
     }
@@ -384,10 +380,7 @@ export function GroupBookingFlow({
       // check and the create call). Refresh availability BEFORE showing the
       // alert so the member sees the updated slot pickers immediately and can
       // re-submit without an extra "Check availability" click.
-      toast.error('Failed to book group event', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to book group event' });
       // Re-check availability with isPending still true to avoid flash of the
       // old state. setRaceDetected fires after the refresh completes.
       try {

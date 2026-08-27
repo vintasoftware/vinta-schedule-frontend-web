@@ -391,3 +391,168 @@ export function readFieldValidationErrors(
   // Return the map only if we found at least one valid field error.
   return foundAnyField ? result : null;
 }
+
+// ---------------------------------------------------------------------------
+// Generic message resolution
+//
+// The generated client throws the *parsed response body* (or the raw text when
+// the body is not JSON) rather than an `Error` — see `throw jsonError ??
+// textError` in `src/client/client/client.gen.ts`. So `err instanceof Error` is
+// false for every API rejection, and is true only for a transport failure like
+// fetch's `TypeError`. Reading `err.message` behind an `instanceof Error` check
+// therefore discards every server-supplied message and keeps only the one
+// message no user can act on. These readers work off the thrown value's shape
+// instead.
+// ---------------------------------------------------------------------------
+
+/** Message shown when the request never reached the server. */
+export const NETWORK_ERROR_MESSAGE =
+  'Could not reach the server. Check your connection and try again.';
+
+/** Message shown when nothing readable can be recovered from a rejection. */
+export const GENERIC_ERROR_MESSAGE = 'An unexpected error occurred.';
+
+/**
+ * True when a rejection is a transport failure — the request never got a
+ * response. `fetch` rejects with a `TypeError` in that case, which the
+ * generated client rethrows untouched.
+ */
+export function isNetworkError(error: unknown): boolean {
+  return (
+    error instanceof TypeError &&
+    /fetch|network|load failed/i.test(error.message)
+  );
+}
+
+/**
+ * Reads DRF's `{ "detail": "..." }` rejection into its message. Billing errors
+ * carry a `detail` alongside their `code`, so this reads those too.
+ */
+export function readDetailError(error: unknown): string | null {
+  if (error === null || typeof error !== 'object') {
+    return null;
+  }
+  const { detail } = error as Record<string, unknown>;
+  return typeof detail === 'string' && detail.trim() !== '' ? detail : null;
+}
+
+/**
+ * Turns a serializer field name into a human label: `street_name` → `Street
+ * name`. Used only when a field error has to be shown in a toast because the
+ * form has no matching input to attach it to.
+ */
+export function humanizeFieldName(field: string): string {
+  const last = field.split('.').pop() ?? field;
+  const words = last.replace(/_/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/**
+ * A single message from a django-allauth headless rejection.
+ *
+ * allauth does not use DRF's error shape. It returns
+ * `{ "status": 400, "errors": [{ "code", "message", "param"? }] }`, where
+ * `param` names the input the message belongs to. Both auth clients
+ * (`src/auth-client/`) reject with this body, so the auth forms need it read
+ * separately from the DRF readers above.
+ */
+export interface AllauthErrorMessage {
+  /** The input the message belongs to, or `null` for a form-level message. */
+  field: string | null;
+  message: string;
+}
+
+/**
+ * Reads a django-allauth headless rejection into its messages, or `null` when
+ * the body is not that shape.
+ */
+export function readAllauthErrors(
+  error: unknown
+): AllauthErrorMessage[] | null {
+  if (error === null || typeof error !== 'object') {
+    return null;
+  }
+  const { errors } = error as Record<string, unknown>;
+  if (!Array.isArray(errors) || errors.length === 0) {
+    return null;
+  }
+
+  const result: AllauthErrorMessage[] = [];
+  for (const entry of errors) {
+    if (entry === null || typeof entry !== 'object') {
+      continue;
+    }
+    const { message, param } = entry as Record<string, unknown>;
+    if (typeof message !== 'string' || message.trim() === '') {
+      continue;
+    }
+    result.push({
+      field: typeof param === 'string' && param !== '' ? param : null,
+      message,
+    });
+  }
+
+  return result.length > 0 ? result : null;
+}
+
+/**
+ * Resolves any thrown value into a message worth showing a user.
+ *
+ * Order matters: `detail` and `non_field_errors` are whole-request statements,
+ * so they win over per-field messages. Field errors come last because a form
+ * normally attaches them to inputs (see `applyServerFieldErrors`) — reaching
+ * them here means there was no form, or no matching input.
+ *
+ * A non-JSON body (Django's HTML 500 page, a proxy error page) is dropped in
+ * favour of `fallback`: showing markup to a user is worse than saying nothing.
+ */
+export function getApiErrorMessage(
+  error: unknown,
+  fallback: string = GENERIC_ERROR_MESSAGE
+): string {
+  if (error === null || error === undefined) {
+    return fallback;
+  }
+
+  if (isNetworkError(error)) {
+    return NETWORK_ERROR_MESSAGE;
+  }
+
+  if (typeof error === 'string') {
+    const text = error.trim();
+    // An HTML error page, not a message. Anything very long is also not a
+    // message a toast can carry.
+    if (text === '' || text.startsWith('<') || text.length > 300) {
+      return fallback;
+    }
+    return text;
+  }
+
+  if (error instanceof Error) {
+    return error.message.trim() || fallback;
+  }
+
+  const detail = readDetailError(error);
+  if (detail) {
+    return detail;
+  }
+
+  const nonField = readNonFieldError(error);
+  if (nonField) {
+    return nonField;
+  }
+
+  const allauthErrors = readAllauthErrors(error);
+  if (allauthErrors) {
+    return allauthErrors.map((e) => e.message).join(' ');
+  }
+
+  const fieldErrors = readFieldValidationErrors(error);
+  if (fieldErrors) {
+    return Object.entries(fieldErrors)
+      .map(([field, message]) => `${humanizeFieldName(field)}: ${message}`)
+      .join(' ');
+  }
+
+  return fallback;
+}

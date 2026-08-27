@@ -33,6 +33,7 @@ import {
 import { Box, FormLayout, HStack } from 'vinta-schedule-design-system/layout';
 import { useRoomsSyncConfig } from '@/hooks/sync/use-rooms-sync-config';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // ---------------------------------------------------------------------------
 // Zod schema
 // ---------------------------------------------------------------------------
@@ -72,8 +73,7 @@ export function RoomsSyncSettingsForm() {
       });
       toast.success('Rooms sync settings saved');
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to save settings';
+      const message = getApiErrorMessage(error, 'Failed to save settings');
       toast.error(message);
     }
   };

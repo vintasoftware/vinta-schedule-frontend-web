@@ -34,6 +34,7 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 const requestPasswordResetSchema = z.object({
   login: z
     .email({ message: 'Invalid email address' })
@@ -60,7 +61,7 @@ export default function RequestPasswordResetPage() {
       await requestPasswordReset({ email: values.login });
       setSuccess('If the account exists, a password reset link has been sent.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+      setError(getApiErrorMessage(err, 'Request failed'));
     }
   };
 

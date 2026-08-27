@@ -27,6 +27,8 @@ import {
   useReactivateUser,
 } from '@/hooks/team/use-disable-user';
 import { useSetMemberGroups } from '@/hooks/team/use-set-member-groups';
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
+import { handleMutationError } from '@/lib/utils/form-errors';
 import {
   PERMISSIONS,
   membershipLabel,
@@ -433,12 +435,7 @@ function TeamTableInner() {
           description: `${member.name} has been disabled and will lose access on their next request.`,
         });
       } catch (err) {
-        toast.error('Failed to disable user', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to disable user' });
       } finally {
         // Always clear the pending state, even on error.
         setPendingRowIds((prev) => {
@@ -463,12 +460,7 @@ function TeamTableInner() {
           description: `${member.name} has been re-enabled and can access the application again.`,
         });
       } catch (err) {
-        toast.error('Failed to re-enable user', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to re-enable user' });
       } finally {
         // Always clear the pending state, even on error.
         setPendingRowIds((prev) => {
@@ -493,12 +485,7 @@ function TeamTableInner() {
           description: `${member.name} is now ${promotedToAdmin ? 'an admin' : 'a member'}.`,
         });
       } catch (err) {
-        toast.error('Failed to update role', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to update role' });
       } finally {
         setPendingRowIds((prev) => {
           const next = new Set(prev);
@@ -517,9 +504,7 @@ function TeamTableInner() {
           Failed to load team members.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );

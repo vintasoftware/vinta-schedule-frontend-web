@@ -387,5 +387,71 @@ describe('CreateCalendarDialog', () => {
       // Dialog should still be open on error.
       expect(screen.getByText('Create a calendar')).toBeInTheDocument();
     });
+
+    it('shows a server field error on its own input, not in a toast', async () => {
+      const user = userEvent.setup();
+
+      // The generated client rejects with the parsed response body, not an
+      // Error — so this is the shape a DRF field-validation 400 arrives in.
+      vi.mocked(calendarCreate).mockRejectedValue({
+        name: ['A calendar with this name already exists.'],
+      });
+
+      renderDialog();
+
+      await user.type(screen.getByLabelText(/calendar name/i), 'Duplicate');
+      await user.click(
+        screen.getByRole('button', { name: /create calendar/i })
+      );
+
+      expect(
+        await screen.findByText('A calendar with this name already exists.')
+      ).toBeInTheDocument();
+      expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
+    });
+
+    it('shows a server non-field error at the top of the form', async () => {
+      const user = userEvent.setup();
+
+      vi.mocked(calendarCreate).mockRejectedValue({
+        non_field_errors: ['You have reached your calendar limit.'],
+      });
+
+      renderDialog();
+
+      await user.type(screen.getByLabelText(/calendar name/i), 'Over limit');
+      await user.click(
+        screen.getByRole('button', { name: /create calendar/i })
+      );
+
+      expect(
+        await screen.findByText('You have reached your calendar limit.')
+      ).toBeInTheDocument();
+      expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
+    });
+
+    it('toasts a DRF detail rejection, which belongs to no single input', async () => {
+      const user = userEvent.setup();
+
+      vi.mocked(calendarCreate).mockRejectedValue({
+        detail: 'You do not have permission to perform this action.',
+      });
+
+      renderDialog();
+
+      await user.type(screen.getByLabelText(/calendar name/i), 'Forbidden');
+      await user.click(
+        screen.getByRole('button', { name: /create calendar/i })
+      );
+
+      await waitFor(() => {
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+          'Failed to create calendar',
+          expect.objectContaining({
+            description: 'You do not have permission to perform this action.',
+          })
+        );
+      });
+    });
   });
 });

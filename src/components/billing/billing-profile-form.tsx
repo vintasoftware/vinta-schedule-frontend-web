@@ -85,6 +85,7 @@ import {
   PERMISSIONS,
 } from '@/components/navigation/permission-gate';
 import {
+  getApiErrorMessage,
   readBillingConflict,
   readErrorStatus,
   readFieldValidationErrors,
@@ -497,10 +498,7 @@ function BillingProfileEditor({
           ? 'Failed to update billing profile'
           : 'Failed to create billing profile',
         {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
+          description: getApiErrorMessage(err, 'An unexpected error occurred.'),
         }
       );
     }

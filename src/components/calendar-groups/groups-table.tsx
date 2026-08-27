@@ -27,6 +27,7 @@ import {
 } from '@/components/navigation/permission-gate';
 import { CreateGroupDialog } from './create-group-dialog';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // ---------------------------------------------------------------------------
 // Column definitions
 // Exported so stories and tests can import them directly.
@@ -195,9 +196,7 @@ function GroupsTableInner() {
           Failed to load calendar groups.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );

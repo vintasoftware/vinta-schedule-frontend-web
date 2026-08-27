@@ -33,6 +33,8 @@ import { VStack, Text } from 'vinta-schedule-design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useTransferEvent } from '@/hooks/events/use-transfer-event';
 
+import { handleMutationError } from '@/lib/utils/form-errors';
+
 export interface TransferEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -77,10 +79,7 @@ export function TransferEventDialog({
       onOpenChange(false);
       onTransferred?.();
     } catch (err) {
-      toast.error('Failed to transfer event', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to transfer event' });
     }
   };
 

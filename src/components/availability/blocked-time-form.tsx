@@ -49,6 +49,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import { Label } from 'vinta-schedule-design-system/ui/label';
 import {
@@ -61,6 +62,8 @@ import {
   Text,
 } from 'vinta-schedule-design-system/layout';
 import { useBlockedTimes } from '@/hooks/availability/use-blocked-times';
+import { handleMutationError } from '@/lib/utils/form-errors';
+
 import {
   serializeRRule,
   toNaiveLocal,
@@ -463,14 +466,16 @@ export function BlockedTimeForm({ calendarId = null }: BlockedTimeFormProps) {
       // Reset form after successful creation
       form.reset(getDefaultValues(timezone));
     } catch (err) {
-      toast.error('Failed to create blocked time', {
-        description: err instanceof Error ? err.message : 'Unknown error',
+      handleMutationError(err, {
+        title: 'Failed to create blocked time',
+        form,
       });
     }
   }
 
   return (
     <Form {...form}>
+      <FormRootMessage />
       <FormLayout gap={6} onSubmit={form.handleSubmit(onSubmit)}>
         {/* Basic fields */}
         <Stack gap={4}>

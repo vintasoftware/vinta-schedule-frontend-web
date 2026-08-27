@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
@@ -9,6 +10,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormRootMessage,
 } from './form';
 import { Input } from './input';
 import { Button } from './button';
@@ -61,3 +63,45 @@ const BookingForm = () => {
 };
 
 export const Default: Story = { render: () => <BookingForm /> };
+
+/**
+ * A form-level error — the shape a server returns when a rejection belongs to
+ * the submission as a whole rather than to any one input. `FormRootMessage`
+ * renders whatever react-hook-form holds under `root`.
+ */
+const ServerRejectedForm = () => {
+  const form = useForm<Values>({
+    defaultValues: { email: 'taken@example.com' },
+  });
+
+  // Stand in for a rejected submission having set the root error.
+  useEffect(() => {
+    form.setError('root', { message: 'That email is already registered.' });
+  }, [form]);
+
+  return (
+    <Form {...form}>
+      <FormRootMessage />
+      <form onSubmit={form.handleSubmit(() => {})} className='w-80 space-y-4'>
+        <FormField
+          control={form.control}
+          name='email'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder='you@example.com' {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type='submit'>Sign up</Button>
+      </form>
+    </Form>
+  );
+};
+
+export const WithRootError: Story = {
+  render: () => <ServerRejectedForm />,
+};

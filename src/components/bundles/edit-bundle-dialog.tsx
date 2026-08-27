@@ -39,7 +39,7 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from 'vinta-schedule-design-system/ui/radio-group';
-import { Form } from 'vinta-schedule-design-system/ui/form';
+import { Form, FormRootMessage } from 'vinta-schedule-design-system/ui/form';
 import { Label } from 'vinta-schedule-design-system/ui/label';
 import {
   VStack,
@@ -49,6 +49,8 @@ import {
 } from 'vinta-schedule-design-system/layout';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import { useUpdateBundle } from '@/hooks/bundles/use-update-bundle';
+
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -144,10 +146,7 @@ export function EditBundleDialog({
       });
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to update bundle', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to update bundle', form });
     }
   };
 
@@ -166,6 +165,7 @@ export function EditBundleDialog({
         </DialogHeader>
 
         <Form {...form}>
+          <FormRootMessage />
           <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             {/* Child calendars (multi-select checkboxes) */}
             <VStack gap={3}>

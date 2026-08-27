@@ -42,6 +42,8 @@ import { formatDurationShort } from './duration';
 import { getTargetEntityId, getTargetType, targetTypeLabel } from './target';
 import { useTargetOptions } from './use-target-options';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
+import { handleMutationError } from '@/lib/utils/form-errors';
 type ResolveTargetLabel = ReturnType<
   typeof useTargetOptions
 >['resolveTargetLabel'];
@@ -267,12 +269,7 @@ function BookingPoliciesTableInner({
         await deleteBookingPolicy(policy.id);
         toast.success('Booking policy deleted');
       } catch (err) {
-        toast.error('Failed to delete booking policy', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to delete booking policy' });
       } finally {
         setPendingRowIds((prev) => {
           const nextSet = new Set(prev);
@@ -291,9 +288,7 @@ function BookingPoliciesTableInner({
           Failed to load booking policies.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );

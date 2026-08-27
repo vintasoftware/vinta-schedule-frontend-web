@@ -36,6 +36,8 @@ import {
   type ExternalEventChangeRequestStatusEnum,
 } from '@/hooks/change-requests/use-change-requests';
 import { ChangeRequestDetailDialog } from './change-request-detail-dialog';
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
+import { handleMutationError } from '@/lib/utils/form-errors';
 import {
   STATUS_LABELS,
   STATUS_BADGE_VARIANTS,
@@ -343,11 +345,9 @@ function ChangeRequestsTableInner() {
           await approveChangeRequest(changeRequest.id);
           toast.success('Change request approved');
         } catch (err) {
-          toast.error('Failed to approve change request', {
-            description:
-              err instanceof Error
-                ? err.message
-                : 'It may no longer be pending. Refresh and try again.',
+          handleMutationError(err, {
+            title: 'Failed to approve change request',
+            fallback: 'It may no longer be pending. Refresh and try again.',
           });
         }
       });
@@ -362,11 +362,9 @@ function ChangeRequestsTableInner() {
           await rejectChangeRequest(changeRequest.id);
           toast.success('Change request rejected');
         } catch (err) {
-          toast.error('Failed to reject change request', {
-            description:
-              err instanceof Error
-                ? err.message
-                : 'It may no longer be pending. Refresh and try again.',
+          handleMutationError(err, {
+            title: 'Failed to reject change request',
+            fallback: 'It may no longer be pending. Refresh and try again.',
           });
         }
       });
@@ -385,9 +383,7 @@ function ChangeRequestsTableInner() {
           Failed to load change requests.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );
