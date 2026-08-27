@@ -70,6 +70,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import { Label } from 'vinta-schedule-design-system/ui/label';
 import {
@@ -96,6 +97,8 @@ import {
 } from '@/lib/datetime/index';
 import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
 import { useOrgMemberSearch } from '@/hooks/team/use-org-member-search';
+
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
 // Recurrence end-type discriminant
@@ -619,10 +622,7 @@ export function BookingFormDialog({
       }
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to create booking', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to create booking', form });
     } finally {
       setIsPending(false);
     }
@@ -708,6 +708,7 @@ export function BookingFormDialog({
         </DialogHeader>
 
         <Form {...form}>
+          <FormRootMessage />
           {/* Conflict surface overlay — shown INSTEAD of the form when conflicts are detected.
               The Form/rhf provider stays mounted around both branches so portaled
               Select/Radix children don't lose context. */}

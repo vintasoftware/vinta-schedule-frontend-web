@@ -34,6 +34,7 @@ import {
 import { useCreateOrganization } from '@/hooks/organizations/use-create-organization';
 import { useActiveOrganization } from '@/hooks/organizations/use-active-organization';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 const onboardingSchema = z.object({
   name: z
     .string()
@@ -70,9 +71,7 @@ export default function OnboardingPage() {
       // Now an ADMIN of a fresh org — back to the app.
       router.replace('/');
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Could not create organization.'
-      );
+      setError(getApiErrorMessage(err, 'Could not create organization.'));
     }
   };
 

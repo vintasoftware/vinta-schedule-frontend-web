@@ -62,6 +62,7 @@ import {
 } from 'vinta-schedule-design-system/layout';
 import { useUpsertServiceAccount } from '@/hooks/service-accounts/use-service-account';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // ---------------------------------------------------------------------------
 // Rooms-sync scopes — these MUST match the backend `_SA_SCOPES`
 // (calendar_integration/services/calendar_adapters/google_calendar_adapter.py).
@@ -371,10 +372,7 @@ export function ServiceAccountWizard({
           ? 'Failed to rotate service account credentials'
           : 'Failed to configure service account',
         {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
+          description: getApiErrorMessage(err, 'An unexpected error occurred.'),
         }
       );
     }

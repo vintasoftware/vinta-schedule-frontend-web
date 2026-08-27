@@ -26,6 +26,7 @@ import {
 } from 'vinta-schedule-design-system/ui/form';
 import { Input } from 'vinta-schedule-design-system/ui/input';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 import {
   Alert,
   AlertTitle,
@@ -86,9 +87,7 @@ export function CreateOrganizationDialog({
       form.reset();
       onCreated?.(newOrg);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Could not create organization.'
-      );
+      setError(getApiErrorMessage(err, 'Could not create organization.'));
     }
   };
 

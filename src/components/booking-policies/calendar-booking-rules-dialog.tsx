@@ -29,7 +29,11 @@ import {
   DialogFooter,
 } from 'vinta-schedule-design-system/ui/dialog';
 import { Button } from 'vinta-schedule-design-system/ui/button';
-import { Form, FormField } from 'vinta-schedule-design-system/ui/form';
+import {
+  Form,
+  FormField,
+  FormRootMessage,
+} from 'vinta-schedule-design-system/ui/form';
 import { Spacer, Text, FormLayout } from 'vinta-schedule-design-system/layout';
 import {
   useCreateBookingPolicy,
@@ -37,6 +41,8 @@ import {
   useDeleteBookingPolicy,
 } from '@/hooks/booking-policies/use-booking-policies';
 import { useCalendarBookingPolicy } from '@/hooks/booking-policies/use-calendar-booking-policy';
+import { handleMutationError } from '@/lib/utils/form-errors';
+
 import {
   DurationFormField,
   durationFieldSchema,
@@ -117,10 +123,7 @@ export function CalendarBookingRulesDialog({
       }
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to save booking rules', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to save booking rules', form });
     }
   };
 
@@ -131,10 +134,7 @@ export function CalendarBookingRulesDialog({
       toast.success('Booking rules removed');
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to remove booking rules', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to remove booking rules' });
     }
   };
 
@@ -156,6 +156,7 @@ export function CalendarBookingRulesDialog({
           </Text>
         ) : (
           <Form {...form}>
+            <FormRootMessage />
             <FormLayout
               onSubmit={form.handleSubmit(onSubmit)}
               gap={4}

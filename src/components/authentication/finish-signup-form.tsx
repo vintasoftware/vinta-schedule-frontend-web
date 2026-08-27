@@ -54,6 +54,7 @@ import { isAuthenticationResponse } from '@/lib/authentication-response-type-che
 import type { TenantBranding } from '@/lib/branding-shared';
 import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // Required signup fields that Google does not supply minus what it does.
 // `phone` must be E.164 (the field the provider never gives us).
 const providerSignupSchema = z.object({
@@ -196,7 +197,7 @@ export function FinishSignupForm({
 
       // Anything else (e.g. 410 invalid session, unexpected) -> flow control.
       authenticationFlowControl(err);
-      setFormError(err instanceof Error ? err.message : 'Signup failed');
+      setFormError(getApiErrorMessage(err, 'Signup failed'));
     }
   };
 

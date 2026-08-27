@@ -33,6 +33,10 @@ import {
   readBillingErrorCode,
   readFieldValidationErrors,
   billingUpgradePath,
+  getApiErrorMessage,
+  humanizeFieldName,
+  GENERIC_ERROR_MESSAGE,
+  NETWORK_ERROR_MESSAGE,
 } from './api-errors';
 
 describe('readOverLimitError', () => {
@@ -651,5 +655,70 @@ describe('readFieldValidationErrors', () => {
         },
       })
     ).toBeNull();
+  });
+});
+
+describe('getApiErrorMessage', () => {
+  it('prefers a DRF detail over anything else', () => {
+    expect(
+      getApiErrorMessage({ detail: 'Not allowed.', name: ['Required.'] })
+    ).toBe('Not allowed.');
+  });
+
+  it('reads non_field_errors when there is no detail', () => {
+    expect(getApiErrorMessage({ non_field_errors: ['Already exists.'] })).toBe(
+      'Already exists.'
+    );
+  });
+
+  it('labels field errors when they are all that is available', () => {
+    expect(
+      getApiErrorMessage({ street_name: ['This field is required.'] })
+    ).toBe('Street name: This field is required.');
+  });
+
+  it('reads a billing error detail that sits alongside a code', () => {
+    expect(
+      getApiErrorMessage({ code: 'charge_declined', detail: 'Card declined.' })
+    ).toBe('Card declined.');
+  });
+
+  it('reports a transport failure as a connectivity problem', () => {
+    expect(getApiErrorMessage(new TypeError('Failed to fetch'))).toBe(
+      NETWORK_ERROR_MESSAGE
+    );
+  });
+
+  it('passes through a plain-text error body', () => {
+    expect(getApiErrorMessage('Service unavailable')).toBe(
+      'Service unavailable'
+    );
+  });
+
+  it('drops an HTML error page in favour of the fallback', () => {
+    expect(
+      getApiErrorMessage(
+        '<!DOCTYPE html><html><body>Server Error</body></html>'
+      )
+    ).toBe(GENERIC_ERROR_MESSAGE);
+  });
+
+  it('falls back when the body carries nothing readable', () => {
+    expect(getApiErrorMessage({ unexpected: 1 }, 'Could not save.')).toBe(
+      'Could not save.'
+    );
+    expect(getApiErrorMessage(null, 'Could not save.')).toBe('Could not save.');
+  });
+});
+
+describe('humanizeFieldName', () => {
+  it('turns a serializer field name into a label', () => {
+    expect(humanizeFieldName('street_name')).toBe('Street name');
+  });
+
+  it('labels a nested path by its last segment', () => {
+    expect(humanizeFieldName('billing_address.street_name')).toBe(
+      'Street name'
+    );
   });
 });

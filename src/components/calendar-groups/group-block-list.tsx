@@ -61,6 +61,8 @@ import {
 } from './orphaned-bookings-alert';
 import type { GroupScopedBlockedTime } from '@/client';
 
+import { handleMutationError } from '@/lib/utils/form-errors';
+
 // ---------------------------------------------------------------------------
 // Row
 // ---------------------------------------------------------------------------
@@ -245,9 +247,7 @@ export function GroupBlockList({
           });
         }
       } catch (err) {
-        toast.error('Failed to delete block', {
-          description: err instanceof Error ? err.message : 'Unknown error',
-        });
+        handleMutationError(err, { title: 'Failed to delete block' });
       } finally {
         setPendingIds((prev) => {
           const next = new Set(prev);

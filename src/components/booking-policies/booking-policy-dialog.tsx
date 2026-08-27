@@ -73,6 +73,7 @@ import {
 } from './target';
 import { useTargetOptions } from './use-target-options';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // ---------------------------------------------------------------------------
 // Zod schema
 //
@@ -197,10 +198,7 @@ export function BookingPolicyDialog({
           ? 'Failed to update booking policy'
           : 'Failed to create booking policy',
         {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
+          description: getApiErrorMessage(err, 'An unexpected error occurred.'),
         }
       );
     }

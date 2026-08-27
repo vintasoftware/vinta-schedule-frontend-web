@@ -81,6 +81,7 @@ import {
 import type { PaymentProviderSdkFactory } from '@/lib/billing/payment-provider-sdk';
 import type { PaymentInstrumentResult } from '@/lib/billing/payment-token';
 import {
+  getApiErrorMessage,
   isAddOnNotPurchasableError,
   isPaymentTokenRequiredError,
   readBillingConflict,
@@ -298,9 +299,7 @@ export function PurchaseAddOnDialog({
         return;
       }
       setErrorMessage(
-        err instanceof Error
-          ? err.message
-          : 'Something went wrong. Please try again.'
+        getApiErrorMessage(err, 'Something went wrong. Please try again.')
       );
       return;
     }

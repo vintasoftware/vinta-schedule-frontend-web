@@ -49,6 +49,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import { FormLayout, VStack } from 'vinta-schedule-design-system/layout';
 import {
@@ -61,6 +62,8 @@ import { useAvailabilityCheck } from '@/hooks/bookings/use-availability-check';
 import { useRescheduleBooking } from '@/hooks/bookings/use-reschedule-booking';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
 import type { AvailabilityResult } from '@/hooks/bookings/use-availability-check';
+
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -253,10 +256,7 @@ export function RescheduleDialog({
       setScopeOpen(false);
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to reschedule event', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to reschedule event', form });
     } finally {
       setIsPending(false);
     }
@@ -362,6 +362,7 @@ export function RescheduleDialog({
           </DialogHeader>
 
           <Form {...form}>
+            <FormRootMessage />
             {conflicts ? (
               // Conflict surface overlays the form (warn-but-allow-override).
               <ConflictSurface

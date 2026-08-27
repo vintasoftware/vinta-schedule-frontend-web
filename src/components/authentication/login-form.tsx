@@ -43,6 +43,7 @@ import type { TenantBranding } from '@/lib/branding-shared';
 import { getSafeNextPath } from '@/lib/safe-redirect';
 import { SocialProviderIcon } from './social-provider-icon';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // Shared Zod schema for login: login can be email or phone (email-only account
 // model — usernames are not supported).
 const loginFieldSchema = z
@@ -139,7 +140,7 @@ export default function LoginForm({
       await login(loginPayload);
       router.push(getSafeNextPath(searchParams.get('next')) ?? '/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(getApiErrorMessage(err, 'Login failed'));
     }
   };
 
@@ -194,9 +195,10 @@ export default function LoginForm({
                             window.location.href = redirectUrl;
                           } catch (err) {
                             setSocialError(
-                              err instanceof Error
-                                ? err.message
-                                : 'Could not start social sign-in. Please try again.'
+                              getApiErrorMessage(
+                                err,
+                                'Could not start social sign-in. Please try again.'
+                              )
                             );
                           }
                         }}

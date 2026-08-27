@@ -30,6 +30,7 @@ import { useState } from 'react';
 import { useAuthenticationFlowControl } from '@/hooks/authentication/use-authentication-flow-control';
 import { useResendEmailVerificationCode } from '@/hooks/authentication/use-resend-email-verification-code';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 export default function VerifyEmailPage() {
   const router = useRouter();
   const authenticationFlowControl = useAuthenticationFlowControl(router);
@@ -54,7 +55,7 @@ export default function VerifyEmailPage() {
       authenticationFlowControl(response);
     } catch (err) {
       authenticationFlowControl(err);
-      setError(err instanceof Error ? err.message : 'Verification failed');
+      setError(getApiErrorMessage(err, 'Verification failed'));
     }
   };
 
@@ -144,9 +145,7 @@ export default function VerifyEmailPage() {
                       );
                     } catch (err) {
                       setResendMessage(
-                        err instanceof Error
-                          ? err.message
-                          : 'Failed to resend code'
+                        getApiErrorMessage(err, 'Failed to resend code')
                       );
                     }
                   }}

@@ -169,6 +169,40 @@ const FormMessage = React.forwardRef<
 });
 FormMessage.displayName = 'FormMessage';
 
+/**
+ * Renders the form-level error react-hook-form stores under `root` — the place
+ * a server's `non_field_errors` lands (see `applyServerFieldErrors` in the app's
+ * `lib/utils/form-errors`). Without this the message is set but never shown.
+ *
+ * Renders nothing when there is no root error, so it can sit unconditionally at
+ * the top of any form.
+ */
+const FormRootMessage = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => {
+  const {
+    formState: { errors },
+  } = useFormContext();
+  const message = errors.root?.message;
+
+  if (!message) {
+    return null;
+  }
+
+  return (
+    <p
+      ref={ref}
+      role='alert'
+      className={cn('text-destructive text-[0.8rem] font-medium', className)}
+      {...props}
+    >
+      {String(message)}
+    </p>
+  );
+});
+FormRootMessage.displayName = 'FormRootMessage';
+
 export {
   useFormField,
   Form,
@@ -177,5 +211,6 @@ export {
   FormControl,
   FormDescription,
   FormMessage,
+  FormRootMessage,
   FormField,
 };

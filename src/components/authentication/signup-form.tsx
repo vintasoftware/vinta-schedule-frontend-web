@@ -49,6 +49,7 @@ import { useAuthConfig } from '@/hooks/authentication/use-auth-config';
 import { useProviderLogin } from '@/hooks/authentication/use-provider-login';
 import type { TenantBranding } from '@/lib/branding-shared';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 const passwordStrengthRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
 
@@ -249,7 +250,7 @@ export default function SignupForm({
 
       // Anything else (410 invalid session, unexpected) -> flow control.
       authenticationFlowControl(err);
-      setError(err instanceof Error ? err.message : 'Signup failed');
+      setError(getApiErrorMessage(err, 'Signup failed'));
     }
   };
 
@@ -324,9 +325,10 @@ export default function SignupForm({
                             window.location.href = redirectUrl;
                           } catch (err) {
                             setSocialError(
-                              err instanceof Error
-                                ? err.message
-                                : 'Could not start social sign-in. Please try again.'
+                              getApiErrorMessage(
+                                err,
+                                'Could not start social sign-in. Please try again.'
+                              )
                             );
                           }
                         }}

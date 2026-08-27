@@ -32,6 +32,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { use, useState } from 'react';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // The token should be passed via query string (?token=...) from the reset link
 const resetPasswordSchema = z.object({
   password: z
@@ -71,7 +72,7 @@ export default function ResetPasswordPage({
         router.push('/auth/login');
       }, 10000); // Redirect after 2 seconds
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Reset failed');
+      setError(getApiErrorMessage(err, 'Reset failed'));
     }
   };
 

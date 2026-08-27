@@ -54,6 +54,7 @@ import {
 } from '@/components/navigation/permission-gate';
 import { resourceLabel } from '@/lib/billing/resource-labels';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
 /**
  * The "Stop renewing" confirm + DELETE for one recurring add-on. Owns the
  * `useCancelAddOn` mutation so it is only instantiated when a recurring add-on
@@ -73,9 +74,10 @@ function StopRenewingAction({ addOn }: { addOn: SubscriptionAddOn }) {
       setOpen(false);
     } catch (err) {
       setErrorMessage(
-        err instanceof Error
-          ? err.message
-          : "We couldn't stop this add-on from renewing. Please try again."
+        getApiErrorMessage(
+          err,
+          "We couldn't stop this add-on from renewing. Please try again."
+        )
       );
     }
   };

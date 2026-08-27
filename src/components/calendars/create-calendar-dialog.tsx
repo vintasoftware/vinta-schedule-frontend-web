@@ -21,9 +21,12 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import { FormLayout } from 'vinta-schedule-design-system/layout';
 import { useCreateCalendar } from '@/hooks/calendars/use-create-calendar';
+
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -88,10 +91,7 @@ export function CreateCalendarDialog({
       });
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to create calendar', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to create calendar', form });
     }
   };
 
@@ -103,6 +103,7 @@ export function CreateCalendarDialog({
         </DialogHeader>
 
         <Form {...form}>
+          <FormRootMessage />
           <FormLayout onSubmit={form.handleSubmit(onSubmit)} gap={4} noValidate>
             <FormField
               control={form.control}

@@ -89,6 +89,7 @@ import { formatMoney, formatPeriod } from '@/lib/billing/format';
 import type { PaymentProviderSdkFactory } from '@/lib/billing/payment-provider-sdk';
 import type { PaymentInstrumentResult } from '@/lib/billing/payment-token';
 import {
+  getApiErrorMessage,
   isChargeDeclinedError,
   isCollectionNotSupportedError,
   isNoOutstandingBalanceError,
@@ -267,9 +268,7 @@ export function ResolvePaymentForm({
         return;
       }
       setErrorMessage(
-        err instanceof Error
-          ? err.message
-          : 'Something went wrong. Please try again.'
+        getApiErrorMessage(err, 'Something went wrong. Please try again.')
       );
       return;
     }

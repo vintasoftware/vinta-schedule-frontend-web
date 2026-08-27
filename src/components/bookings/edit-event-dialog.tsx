@@ -50,12 +50,15 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import { FormLayout, VStack } from 'vinta-schedule-design-system/layout';
 import { ScopePromptDialog } from '@/components/bookings/scope-prompt-dialog';
 import type { RecurringScope } from '@/components/bookings/scope-prompt-dialog';
 import { useEditOccurrence } from '@/hooks/bookings/use-edit-occurrence';
 import type { CalendarEventVM } from '@/components/calendar/event-vm';
+
+import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -217,10 +220,7 @@ export function EditEventDialog({
       setScopeOpen(false);
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to update event', {
-        description:
-          err instanceof Error ? err.message : 'An unexpected error occurred.',
-      });
+      handleMutationError(err, { title: 'Failed to update event', form });
     } finally {
       setIsPending(false);
     }
@@ -257,6 +257,7 @@ export function EditEventDialog({
           </DialogHeader>
 
           <Form {...form}>
+            <FormRootMessage />
             <FormLayout
               gap={4}
               onSubmit={form.handleSubmit(onSubmit)}

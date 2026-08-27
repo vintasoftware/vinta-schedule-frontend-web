@@ -107,7 +107,7 @@ import {
   type RecurrenceRule,
 } from '@/lib/datetime/index';
 import { useGroupScopedBlocks } from '@/hooks/calendar-groups/use-group-scoped-blocks';
-import { readOverLimitError } from '@/lib/utils/api-errors';
+import { getApiErrorMessage, readOverLimitError } from '@/lib/utils/api-errors';
 import { OverLimitAlert } from './over-limit-alert';
 import type { OrphanedBooking } from './orphaned-bookings-alert';
 import type { GroupScopedBlockedTime } from '@/client';
@@ -684,7 +684,7 @@ export function GroupBlockForm({
             ? 'Failed to update blocked time'
             : 'Failed to create blocked time',
           {
-            description: err instanceof Error ? err.message : 'Unknown error',
+            description: getApiErrorMessage(err, 'Unknown error'),
           }
         );
       }

@@ -46,6 +46,8 @@ import { useCanEditCalendar } from './group-permissions-provider';
 import { classifyWindows } from './group-scoped-types';
 import type { GroupScopedAvailabilityWindow } from '@/client';
 
+import { handleMutationError } from '@/lib/utils/form-errors';
+
 // ---------------------------------------------------------------------------
 // Row
 // ---------------------------------------------------------------------------
@@ -192,9 +194,7 @@ export function UnsupportedWindowList({
           });
         }
       } catch (err) {
-        toast.error('Failed to delete window', {
-          description: err instanceof Error ? err.message : 'Unknown error',
-        });
+        handleMutationError(err, { title: 'Failed to delete window' });
       } finally {
         setPendingIds((prev) => {
           const next = new Set(prev);

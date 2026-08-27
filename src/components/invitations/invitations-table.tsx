@@ -29,6 +29,8 @@ import { useResendInvitation } from '@/hooks/invitations/use-resend-invitation';
 import { useRevokeInvitation } from '@/hooks/invitations/use-revoke-invitation';
 import { InviteMemberDialog } from './invite-member-dialog';
 
+import { getApiErrorMessage } from '@/lib/utils/api-errors';
+import { handleMutationError } from '@/lib/utils/form-errors';
 // ---------------------------------------------------------------------------
 // Column definitions
 // Exported so stories and sibling modules can import them directly rather than
@@ -271,12 +273,7 @@ function InvitationsTableInner() {
           description: `The invitation to ${invitation.email} was resent.`,
         });
       } catch (err) {
-        toast.error('Failed to resend invitation', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to resend invitation' });
       } finally {
         // Always clear the pending state, even on error.
         setPendingRowIds((prev) => {
@@ -302,12 +299,7 @@ function InvitationsTableInner() {
           description: `The invitation to ${invitation.email} was revoked.`,
         });
       } catch (err) {
-        toast.error('Failed to revoke invitation', {
-          description:
-            err instanceof Error
-              ? err.message
-              : 'An unexpected error occurred.',
-        });
+        handleMutationError(err, { title: 'Failed to revoke invitation' });
       } finally {
         // Always clear the pending state, even on error.
         // Note: on success, the row is removed by invalidation, so this cleanup
@@ -329,9 +321,7 @@ function InvitationsTableInner() {
           Failed to load invitations.
         </Text>
         <Text color='muted-foreground' size='sm'>
-          {error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.'}
+          {getApiErrorMessage(error, 'An unexpected error occurred.')}
         </Text>
       </VStack>
     );
