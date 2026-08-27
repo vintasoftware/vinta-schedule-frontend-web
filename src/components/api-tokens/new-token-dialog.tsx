@@ -35,33 +35,20 @@ import {
 } from 'vinta-schedule-design-system/layout';
 import type { AvailableResourcesEnum } from '@/client';
 import { useCreatePublicApiToken } from '@/hooks/api-tokens/use-public-api-tokens';
-
-// ---------------------------------------------------------------------------
-// All available resource scopes (from AvailableResourcesEnum)
-// ---------------------------------------------------------------------------
-
-const ALL_SCOPES: AvailableResourcesEnum[] = [
-  'calendar_event',
-  'calendar',
-  'recurrence_rule',
-  'external_attendee',
-  'external_attendance',
-  'attendance',
-  'user',
-  'resource_allocation',
-  'event_recurring_exception',
-  'blocked_time',
-  'blocked_time_recurring_exception',
-  'available_time',
-  'available_time_recurring_exception',
-  'availability_windows',
-  'unavailable_windows',
-  'organization',
-  'calendar_group',
-];
+import { usePublicApiScopes } from '@/hooks/api-tokens/use-public-api-scopes';
 
 // ---------------------------------------------------------------------------
 // Zod schema
+//
+// The set of selectable scopes comes from `GET /public-api-docs/scopes/` at
+// runtime, so it cannot be a `z.enum` over a compile-time list — this file used
+// to carry one, and it had drifted to 17 of the backend's 50+ resources, making
+// every scope added since un-grantable from this dialog.
+//
+// `z.custom` keeps the inferred type as `AvailableResourcesEnum` (the generated
+// client types the catalog's `value` as exactly that) while leaving the
+// membership check where it now belongs: the checkboxes can only ever produce
+// values the API just handed us, and the API validates the list again on POST.
 // ---------------------------------------------------------------------------
 
 const newTokenSchema = z.object({
@@ -71,9 +58,7 @@ const newTokenSchema = z.object({
     .min(1, { message: 'Token name is required' }),
   available_resources: z
     .array(
-      z.enum(
-        ALL_SCOPES as [AvailableResourcesEnum, ...AvailableResourcesEnum[]]
-      )
+      z.custom<AvailableResourcesEnum>((value) => typeof value === 'string')
     )
     .min(1, { message: 'At least one scope must be selected' }),
 });
@@ -115,6 +100,11 @@ interface NewTokenDialogProps {
 export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
   const { createPublicApiToken, createPublicApiTokenMutation } =
     useCreatePublicApiToken();
+  const {
+    scopes,
+    isLoading: isLoadingScopes,
+    isError: isScopesError,
+  } = usePublicApiScopes();
 
   const form = useForm<NewTokenSchema>({
     resolver: zodResolver(newTokenSchema),
@@ -159,6 +149,10 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
 
   const isPending = createPublicApiTokenMutation.isPending;
   const isCredentialView = onceCredential !== '';
+  // Nothing can be granted until the catalog is in hand: with no scopes
+  // rendered there is no valid selection to make, and submitting would only
+  // earn a 400 for an empty `available_resources`.
+  const canSubmit = !isPending && scopes.length > 0;
 
   // -------------------------------------------------------------------------
   // onSubmit — create the token; compose and capture the credential in local
@@ -314,36 +308,64 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Scopes</FormLabel>
-                      <VStack gap={2} maxHeight={240} overflow='auto'>
-                        {ALL_SCOPES.map((scope) => {
-                          const checked = field.value.includes(scope);
-                          return (
-                            <HStack key={scope} gap={2} align='center'>
-                              <Checkbox
-                                id={`scope-${scope}`}
-                                checked={checked}
-                                onCheckedChange={(val) => {
-                                  if (val) {
-                                    field.onChange([...field.value, scope]);
-                                  } else {
-                                    field.onChange(
-                                      field.value.filter((v) => v !== scope)
-                                    );
-                                  }
-                                }}
-                                data-testid={`scope-checkbox-${scope}`}
-                              />
-                              {/* Label (shadcn) has no cursor / font-family prop. */}
-                              <Label
-                                htmlFor={`scope-${scope}`}
-                                className='cursor-pointer font-mono'
-                              >
-                                {scope}
-                              </Label>
-                            </HStack>
-                          );
-                        })}
-                      </VStack>
+                      {isLoadingScopes ? (
+                        <Text
+                          size='sm'
+                          color='muted-foreground'
+                          data-testid='scopes-loading'
+                        >
+                          Loading scopes…
+                        </Text>
+                      ) : isScopesError ? (
+                        <Alert variant='destructive' data-testid='scopes-error'>
+                          <Icon icon={TriangleAlert} size='sm' />
+                          <AlertDescription>
+                            Could not load the available scopes. Close the
+                            dialog and try again.
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <VStack gap={2} maxHeight={240} overflow='auto'>
+                          {scopes.map(({ value, label }) => {
+                            const checked = field.value.includes(value);
+                            return (
+                              <HStack key={value} gap={2} align='center'>
+                                <Checkbox
+                                  id={`scope-${value}`}
+                                  checked={checked}
+                                  onCheckedChange={(val) => {
+                                    if (val) {
+                                      field.onChange([...field.value, value]);
+                                    } else {
+                                      field.onChange(
+                                        field.value.filter((v) => v !== value)
+                                      );
+                                    }
+                                  }}
+                                  data-testid={`scope-checkbox-${value}`}
+                                />
+                                {/* Label (shadcn) has no cursor prop. */}
+                                <Label
+                                  htmlFor={`scope-${value}`}
+                                  className='cursor-pointer'
+                                >
+                                  {label}
+                                </Label>
+                                {/* The machine value is what goes in the token
+                                    and what the GraphQL API checks, so it stays
+                                    visible next to the human-readable label. */}
+                                <Text
+                                  size='sm'
+                                  family='mono'
+                                  color='muted-foreground'
+                                >
+                                  {value}
+                                </Text>
+                              </HStack>
+                            );
+                          })}
+                        </VStack>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -360,7 +382,7 @@ export function NewTokenDialog({ open, onOpenChange }: NewTokenDialogProps) {
                   </Button>
                   <Button
                     type='submit'
-                    disabled={isPending}
+                    disabled={!canSubmit}
                     data-testid='create-token-submit'
                   >
                     {isPending ? 'Creating…' : 'Create token'}

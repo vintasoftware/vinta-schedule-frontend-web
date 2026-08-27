@@ -7,6 +7,9 @@
  * - After closing the dialog, the credential is no longer in the DOM / component state.
  * - The credential does NOT appear in the list (mock returns metadata only).
  * - No console.log of the credential.
+ * - The scope checkboxes are built from `GET /public-api-docs/scopes/`, not
+ *   from a hardcoded list: every value the catalog returns is offered, and the
+ *   dialog handles the catalog still loading / failing to load.
  */
 
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
@@ -58,6 +61,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     ...original,
     publicApiTokensCreate: vi.fn(),
     publicApiTokensList: vi.fn(),
+    publicApiDocsScopesList: vi.fn(),
   };
 });
 
@@ -65,16 +69,60 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
 }));
 
-import { publicApiTokensCreate, publicApiTokensList } from '@/client/sdk.gen';
+import {
+  publicApiTokensCreate,
+  publicApiTokensList,
+  publicApiDocsScopesList,
+} from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import { NewTokenDialog } from './new-token-dialog';
-import type { SystemUserToken, SystemUserTokenResponse } from '@/client';
+import type {
+  SystemUserToken,
+  SystemUserTokenResponse,
+  SystemUserScope,
+} from '@/client';
 
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
 const ONE_TIME_SECRET = 'plaintext-secret-once-only-abc123';
+
+// A stand-in for the backend's `PublicAPIResources` catalog. Deliberately
+// includes `webhook_configuration`, a scope the dialog's old hardcoded list did
+// NOT carry — the tests below assert it is offered, which is the whole point of
+// reading the catalog from the API.
+const SCOPE_CATALOG: SystemUserScope[] = [
+  { value: 'calendar', label: 'Calendar', provider_scoped: true },
+  { value: 'calendar_event', label: 'Calendar Event', provider_scoped: true },
+  { value: 'user', label: 'User', provider_scoped: false },
+  {
+    value: 'webhook_configuration',
+    label: 'Webhook Configuration',
+    provider_scoped: false,
+  },
+];
+
+function mockScopeCatalog(scopes: SystemUserScope[] = SCOPE_CATALOG) {
+  vi.mocked(publicApiDocsScopesList).mockResolvedValue({
+    data: scopes,
+    response: new Response(JSON.stringify(scopes), { status: 200 }),
+  } as unknown as Awaited<ReturnType<typeof publicApiDocsScopesList>>);
+}
+
+/**
+ * Wait for the scope catalog to render, then tick the named scope.
+ *
+ * The checkboxes no longer exist on first paint — they arrive with the
+ * `/public-api-docs/scopes/` response — so every interaction with one has to
+ * wait for it rather than reaching for it synchronously.
+ */
+async function selectScope(
+  user: ReturnType<typeof userEvent.setup>,
+  value: string
+) {
+  await user.click(await screen.findByTestId(`scope-checkbox-${value}`));
+}
 
 function makeCredential(id: number, secret: string): string {
   return `${id}:${secret}`;
@@ -133,6 +181,8 @@ function renderDialog(open = true, onOpenChangeFn?: (open: boolean) => void) {
 describe('NewTokenDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default catalog mock — the dialog cannot render a scope picker without it.
+    mockScopeCatalog();
     // Default list mock — no tokens
     vi.mocked(publicApiTokensList).mockResolvedValue({
       data: { count: 0, results: [] },
@@ -140,13 +190,100 @@ describe('NewTokenDialog', () => {
     } as unknown as Awaited<ReturnType<typeof publicApiTokensList>>);
   });
 
-  it('renders the form with name input and scope checkboxes', () => {
+  it('renders the form with name input and scope checkboxes', async () => {
     renderDialog();
 
     expect(screen.getByText('New API token')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('My integration')).toBeInTheDocument();
-    expect(screen.getByTestId('scope-checkbox-calendar')).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('scope-checkbox-calendar')
+    ).toBeInTheDocument();
     expect(screen.getByTestId('scope-checkbox-user')).toBeInTheDocument();
+  });
+
+  it('offers exactly the scopes the catalog returns, in catalog order', async () => {
+    renderDialog();
+
+    await screen.findByTestId('scope-checkbox-calendar');
+
+    // Every catalog entry is offered — including `webhook_configuration`, which
+    // the old hardcoded list omitted and which was therefore un-grantable.
+    const rendered = SCOPE_CATALOG.map(
+      ({ value }) => screen.getByTestId(`scope-checkbox-${value}`).id
+    );
+    expect(rendered).toEqual(
+      SCOPE_CATALOG.map(({ value }) => `scope-${value}`)
+    );
+
+    // ...and nothing else. A scope absent from the catalog must not appear
+    // just because some earlier copy of the list mentioned it.
+    expect(
+      screen.queryByTestId('scope-checkbox-recurrence_rule')
+    ).not.toBeInTheDocument();
+
+    // The catalog's human-readable labels are what the user reads.
+    expect(screen.getByText('Webhook Configuration')).toBeInTheDocument();
+  });
+
+  it('posts the catalog values the user ticked', async () => {
+    const user = userEvent.setup();
+    vi.mocked(publicApiTokensCreate).mockResolvedValueOnce(
+      makeCreateResponse(makeToken(8), ONE_TIME_SECRET)
+    );
+
+    renderDialog();
+
+    await user.type(
+      screen.getByPlaceholderText('My integration'),
+      'Catalog Token'
+    );
+    await selectScope(user, 'webhook_configuration');
+    await user.click(screen.getByTestId('create-token-submit'));
+
+    await screen.findByText('API token created');
+
+    expect(publicApiTokensCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: {
+          integration_name: 'Catalog Token',
+          available_resources: ['webhook_configuration'],
+        },
+      })
+    );
+  });
+
+  it('shows a loading placeholder while the scope catalog is in flight', async () => {
+    // A promise that never settles models the request still being in flight.
+    vi.mocked(publicApiDocsScopesList).mockReturnValue(
+      new Promise(() => {}) as unknown as ReturnType<
+        typeof publicApiDocsScopesList
+      >
+    );
+
+    renderDialog();
+
+    expect(await screen.findByTestId('scopes-loading')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('scope-checkbox-calendar')
+    ).not.toBeInTheDocument();
+    // Submitting with no scopes to pick can only earn a 400, so the button is
+    // held closed until the catalog lands.
+    expect(screen.getByTestId('create-token-submit')).toBeDisabled();
+  });
+
+  it('shows an error and blocks submit when the scope catalog fails to load', async () => {
+    vi.mocked(publicApiDocsScopesList).mockRejectedValue(
+      new Error('catalog unavailable')
+    );
+
+    renderDialog();
+
+    expect(await screen.findByTestId('scopes-error')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('scope-checkbox-calendar')
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('create-token-submit')).toBeDisabled();
+    expect(publicApiTokensCreate).not.toHaveBeenCalled();
   });
 
   it('shows the one-time composed credential after successful create with copy button and warning', async () => {
@@ -165,7 +302,7 @@ describe('NewTokenDialog', () => {
     );
 
     // Select a scope
-    await user.click(screen.getByTestId('scope-checkbox-calendar'));
+    await selectScope(user, 'calendar');
 
     // Submit
     await user.click(screen.getByTestId('create-token-submit'));
@@ -217,7 +354,7 @@ describe('NewTokenDialog', () => {
       screen.getByPlaceholderText('My integration'),
       'Integration 2'
     );
-    await user.click(screen.getByTestId('scope-checkbox-calendar'));
+    await selectScope(user, 'calendar');
     await user.click(screen.getByTestId('create-token-submit'));
 
     // Wait for credential view
@@ -289,7 +426,7 @@ describe('NewTokenDialog', () => {
       screen.getByPlaceholderText('My integration'),
       'Integration 7'
     );
-    await user.click(screen.getByTestId('scope-checkbox-calendar'));
+    await selectScope(user, 'calendar');
     await user.click(screen.getByTestId('create-token-submit'));
     await screen.findByText('API token created');
 
@@ -340,7 +477,7 @@ describe('NewTokenDialog', () => {
       screen.getByPlaceholderText('My integration'),
       'Integration 3'
     );
-    await user.click(screen.getByTestId('scope-checkbox-calendar'));
+    await selectScope(user, 'calendar');
     await user.click(screen.getByTestId('create-token-submit'));
 
     await screen.findByText('API token created');
@@ -383,7 +520,7 @@ describe('NewTokenDialog', () => {
       screen.getByPlaceholderText('My integration'),
       'Integration 4'
     );
-    await user.click(screen.getByTestId('scope-checkbox-calendar'));
+    await selectScope(user, 'calendar');
     await user.click(screen.getByTestId('create-token-submit'));
 
     await screen.findByText('API token created');
@@ -418,7 +555,7 @@ describe('NewTokenDialog', () => {
       screen.getByPlaceholderText('My integration'),
       'Integration 5'
     );
-    await user.click(screen.getByTestId('scope-checkbox-calendar'));
+    await selectScope(user, 'calendar');
     await user.click(screen.getByTestId('create-token-submit'));
 
     await screen.findByText('API token created');
@@ -438,7 +575,7 @@ describe('NewTokenDialog', () => {
     renderDialog();
 
     // Select scope but no name
-    await user.click(screen.getByTestId('scope-checkbox-calendar'));
+    await selectScope(user, 'calendar');
     await user.click(screen.getByTestId('create-token-submit'));
 
     await waitFor(() => {
@@ -452,6 +589,9 @@ describe('NewTokenDialog', () => {
     const user = userEvent.setup();
     renderDialog();
 
+    // Wait for the catalog so the button is enabled: this test is about the
+    // empty-selection rule, not about the catalog still loading.
+    await screen.findByTestId('scope-checkbox-calendar');
     await user.type(screen.getByPlaceholderText('My integration'), 'No Scopes');
     await user.click(screen.getByTestId('create-token-submit'));
 
@@ -476,7 +616,7 @@ describe('NewTokenDialog', () => {
       screen.getByPlaceholderText('My integration'),
       'Error Token'
     );
-    await user.click(screen.getByTestId('scope-checkbox-calendar'));
+    await selectScope(user, 'calendar');
     await user.click(screen.getByTestId('create-token-submit'));
 
     await waitFor(() => {
@@ -506,7 +646,7 @@ describe('NewTokenDialog', () => {
       screen.getByPlaceholderText('My integration'),
       'Integration 6'
     );
-    await user.click(screen.getByTestId('scope-checkbox-calendar'));
+    await selectScope(user, 'calendar');
     await user.click(screen.getByTestId('create-token-submit'));
 
     // Credential view: the one-time composed credential is shown in the input

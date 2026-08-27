@@ -2561,6 +2561,31 @@ export type SubscriptionAddOn = {
 };
 
 /**
+ * Read-only catalog entry for a single ``PublicAPIResources`` member.
+ *
+ * Plain ``Serializer`` over a dict built from the enum — there is no model
+ * backing this. Mirrors :class:`WebhookEventDocSerializer`, the other static
+ * catalog served off ``/public-api-docs/``.
+ *
+ * ``value`` is a ``ChoiceField`` over ``PublicAPIResources.choices`` on
+ * purpose: it makes the generated OpenAPI schema reference the very same
+ * ``AvailableResourcesEnum`` component that ``available_resources`` already
+ * uses on the token serializers, so a client that lists the catalog gets
+ * values typed identically to the ones it posts back.
+ *
+ * ``provider_scoped`` says whether the scope may be granted to a
+ * provider-scoped token (one minted with ``scoped_to_user``). The token
+ * endpoints reject anything outside ``PROVIDER_SCOPED_RESOURCES`` for those
+ * tokens, so a client building a scope picker needs the flag to disable the
+ * rest rather than letting the user pick a scope the API will refuse.
+ */
+export type SystemUserScope = {
+    value: AvailableResourcesEnum;
+    readonly label: string;
+    readonly provider_scoped: boolean;
+};
+
+/**
  * Read-only serializer for listing and retrieving public-API tokens.
  *
  * Exposes ``id``, ``integration_name``, ``is_active``, ``available_resources``
@@ -11272,6 +11297,34 @@ export type PublicApiDocsFormattedRetrieveResponses = {
 };
 
 export type PublicApiDocsFormattedRetrieveResponse = PublicApiDocsFormattedRetrieveResponses[keyof PublicApiDocsFormattedRetrieveResponses];
+
+export type PublicApiDocsScopesListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/public-api-docs/scopes/';
+};
+
+export type PublicApiDocsScopesListResponses = {
+    200: Array<SystemUserScope>;
+};
+
+export type PublicApiDocsScopesListResponse = PublicApiDocsScopesListResponses[keyof PublicApiDocsScopesListResponses];
+
+export type PublicApiDocsScopesFormattedListData = {
+    body?: never;
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/public-api-docs/scopes{format}';
+};
+
+export type PublicApiDocsScopesFormattedListResponses = {
+    200: Array<SystemUserScope>;
+};
+
+export type PublicApiDocsScopesFormattedListResponse = PublicApiDocsScopesFormattedListResponses[keyof PublicApiDocsScopesFormattedListResponses];
 
 export type PublicApiDocsWebhookEventsListData = {
     body?: never;
