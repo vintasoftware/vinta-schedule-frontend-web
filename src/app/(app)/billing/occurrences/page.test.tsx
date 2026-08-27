@@ -21,6 +21,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import type { MeteredOccurrence, UsageResponse } from '@/client';
+import type { CalendarLedgerEvent } from '@/lib/billing/ledger-event';
 import { PermissionProvider } from '@/components/navigation/permission-gate';
 
 // Map the legacy admin/member/null role param onto the resolved capability set
@@ -67,18 +68,31 @@ import { useOccurrenceLedger } from '@/hooks/billing/use-occurrence-ledger';
 import { useBillingUsage } from '@/hooks/billing/use-billing-usage';
 import BillingOccurrencesPage from './page';
 
+/**
+ * The event half of a ledger row, as this project's `OccurrenceSource` sends
+ * it. Built through a helper typed `CalendarLedgerEvent` rather than inlined:
+ * the generated `LedgerEvent` declares only `id`, so an inline literal would
+ * trip excess-property checking on every project field.
+ */
+function ledgerEvent(
+  overrides: Partial<CalendarLedgerEvent> = {}
+): CalendarLedgerEvent {
+  return {
+    id: 100,
+    title: 'Weekly sync',
+    calendar: { id: 5, name: 'Team calendar' },
+    owners: [{ user_id: 1, name: 'Ada Lovelace' }],
+    ...overrides,
+  };
+}
+
 function occurrence(
   overrides: Partial<MeteredOccurrence> = {}
 ): MeteredOccurrence {
   return {
     id: 1,
     organization: { id: 10, name: 'Acme Inc.' },
-    event: {
-      id: 100,
-      title: 'Weekly sync',
-      calendar: { id: 5, name: 'Team calendar' },
-      owners: [{ user_id: 1, name: 'Ada Lovelace' }],
-    },
+    event: ledgerEvent(),
     occurrence_start: '2026-08-03T14:00:00Z',
     billing_period_start: '2026-08-01T00:00:00Z',
     is_within_allowance: false,

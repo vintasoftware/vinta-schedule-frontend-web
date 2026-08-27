@@ -17,6 +17,12 @@
  *     occurrence's own. A modified occurrence shows the master's title, which
  *     can confuse a customer comparing against their calendar — so the title
  *     carries an explicit caveat affordance.
+ *
+ * The event's title / calendar / owners are this project's fields, not the
+ * billing package's: since `vinta-django-billing` 0.6.0 the package declares
+ * only `id` and passes the rest through from the project's `OccurrenceSource`.
+ * They are read through `normalizeLedgerEvent`, which resolves each to a total
+ * type — see `@/lib/billing/ledger-event`.
  */
 
 import { Info } from 'lucide-react';
@@ -28,6 +34,7 @@ import { HStack, Text } from 'vinta-schedule-design-system/layout';
 
 import type { MeteredOccurrence } from '@/client';
 import { formatMoney, formatPeriod } from '@/lib/billing/format';
+import { normalizeLedgerEvent } from '@/lib/billing/ledger-event';
 
 /** The caveat surfaced on every event title: it is the series root's, not the
  *  individual occurrence's. Exported so tests assert on the same string. */
@@ -48,7 +55,7 @@ export function OccurrenceLedgerRow({
   occurrence,
   currency,
 }: OccurrenceLedgerRowProps) {
-  const { event } = occurrence;
+  const event = normalizeLedgerEvent(occurrence.event);
   const owners = event?.owners.map((owner) => owner.name).join(', ') ?? '';
 
   return (
@@ -67,7 +74,7 @@ export function OccurrenceLedgerRow({
         ) : (
           <HStack gap={1} align='center'>
             <Text size='sm' truncate>
-              {event.title}
+              {event.title ?? 'Untitled event'}
             </Text>
             <Icon
               icon={Info}
