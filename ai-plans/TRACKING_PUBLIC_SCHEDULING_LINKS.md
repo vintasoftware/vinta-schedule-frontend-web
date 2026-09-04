@@ -250,16 +250,73 @@ time selection on `SLOT_UNAVAILABLE`.
 **Gate**: `pnpm run typecheck` exit 0, zero errors; `pnpm run lint` exit 0, 52 pre-existing
 warnings; `pnpm run test` 250 files / 2035 tests plus design-system 11 / 82, all pass.
 
+### Phase 4 — Admin-minted reschedule and cancel links ✅
+
+- **Status**: review clean — no BLOCKERs; 1 SHOULD-FIX and 2 NITs, all resolved, plus one
+  follow-up fix the orchestrator found while acting on the SHOULD-FIX.
+- **Models**: implementer Tier 3 (`claude-sonnet-5`); reviewer Tier 3 (`claude-sonnet-5`); fixer Tier 2 stepped up to `claude-sonnet-5`.
+- **Branch**: `plan/public-scheduling-links/phase-4`, base `plan/public-scheduling-links/phase-3`.
+- **PR**: [#131](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/131) — published, stacked on #130.
+- **PR context**: `.vinta-ai-workflows/prs-context/public-scheduling-links/phase-4.md` (`status: published`).
+- **Commits**: `fb1ab93` (implementation), `1026c44` (review fixes), `55b3605` (visibility fix).
+- **E2E**: none.
+
+Four new routes, two hooks, and an event-scoped mint target reached from the events sheet.
+29 files, ~3492 insertions.
+
+**Scope is encoded at mint time for `reschedule` too** — `build-url.ts` now writes `?target=` for
+`book` and `reschedule`. `cancel` gets none because only one cancel endpoint exists for both
+scopes (verified against the generated client). No endpoint is ever tried and recovered from.
+
+**SHOULD-FIX — the ungated events-sheet buttons rested on a false premise.** The implementer
+justified leaving "Get reschedule link" / "Get cancel link" ungated by claiming the events list is
+already scoped to what the viewer can act on. The reviewer disproved it: `CalendarEventVM.calendarId`
+is only populated in the single-calendar filtered view, so in the default aggregate view the list
+can include events the viewer does not own. The reviewer also drew the right distinction — the
+sheet's Edit/Cancel act as the signed-in member and are bounded by their session, whereas a minted
+code is a standalone credential.
+
+**User decision**: keep the buttons ungated and fix the false comment. Every available gate would
+hide the button from a plain member who legitimately owns the appointment's calendar — the common
+case — because no per-event calendar-owner id is reachable. Closing it properly needs
+`CalendarEvent` / `CalendarEventVM` to carry one.
+
+⚠️ **Follow-up the orchestrator found while applying that decision.** The ungated choice rests on
+"the server's 403 is surfaced inline". It was not. `applyServerFieldErrors` routes field errors and
+`non_field_errors` to the form but **not** a bare `{"detail": ...}` — its own header comment says a
+`detail` belongs in a toast — and no `<Toaster />` is mounted anywhere, so that toast renders
+nothing. `schema.yml` documents only a `201` for `POST /booking-codes/`, so the shape is not pinned,
+and DRF's default `PermissionDenied` body is exactly `{"detail": ...}`. **An unauthorized member
+clicked the button and nothing happened at all.** Fixed by forcing every mint failure shape onto the
+form root, and by giving a failed revoke its own inline alert saying the link is still active —
+previously toast-only, so a member could believe they had killed a live link.
+
+**Verified by falsification**: removing the inline-error line makes the new `{detail}` test fail.
+
+**Reviewer verified and accepted**: times-only reschedule (no editable title/description/attendee),
+`ALREADY_USED` wording distinct from the opaque invalid-link state, both hooks' real-request
+public-client tests, credential containment surviving the event-scoped target, cancel-as-204, the
+`group_selections.length > 0` scope inference, the reschedule duration from the event's own span,
+the structurally-unavoidable unset-group-duration gap for event-scoped reschedule, and the
+`play`-function stories.
+
+**Note on a flakiness report**: the fixer reported scattered full-suite failures in untouched files.
+The orchestrator re-ran the full suite on this branch and it was clean (260 files / 2085 tests, exit
+0). Sandbox contention in the subagent's environment, not a regression.
+
+**Gate**: `pnpm run typecheck` exit 0, zero errors; `pnpm run lint` exit 0, 55 warnings (3 above the
+52 baseline are unused `_req` params in the new `.public-client.test.ts` files); `pnpm run test`
+260 files / 2089 tests plus design-system 11 / 82, all pass.
+
 ## Current phase
 
-**Phase 4 — Admin-minted reschedule and cancel links** — next.
+**Phase 6 — Group public-scheduling settings** — next. Last plan phase in scope.
 
 ## Remaining phases
 
-| Phase | Title                                    | Implementer tier |
-| ----- | ---------------------------------------- | ---------------- |
-| 4     | Admin-minted reschedule and cancel links | 3                |
-| 6     | Group public-scheduling settings         | 2                |
+| Phase | Title                            | Implementer tier |
+| ----- | -------------------------------- | ---------------- |
+| 6     | Group public-scheduling settings | 2                |
 
 ## Deferred phases
 
