@@ -18,10 +18,12 @@
  *     succeeds.
  *
  * A group target with no pinned `duration` never reaches the form at all —
- * `groupDurationIsUnset` below blocks it with an explanation instead, since
- * the group-scoped bookable-slots read would otherwise silently hand every
- * attendee a frontend-chosen placeholder length nobody with authority
- * picked (SHOULD-FIX 1, Phase 3 review).
+ * `groupDurationIsUnset` (`@/lib/booking-links/duration-format`, the shared
+ * two-way duration<->minutes converter Phase 6 built for the group settings
+ * form) blocks it with an explanation instead, since the group-scoped
+ * bookable-slots read would otherwise silently hand every attendee a
+ * frontend-chosen placeholder length nobody with authority picked
+ * (SHOULD-FIX 1, Phase 3 review).
  *
  * SECURITY invariants (this is the phase's single most important file):
  *   - The plaintext `code` returned by `createBookingCode` is used ONLY to
@@ -88,6 +90,7 @@ import {
   type BookingLinkUrlScope,
 } from '@/lib/booking-links/build-url';
 import type { MintedBookingLink } from '@/lib/booking-links/types';
+import { groupDurationIsUnset } from '@/lib/booking-links/duration-format';
 import { handleMutationError } from '@/lib/utils/form-errors';
 // Reused rather than re-implemented: the {value, unit} number+select field and
 // its "0 means unconstrained" convention already exist for booking-policy rule
@@ -116,9 +119,10 @@ export type MintBookingLinkTarget =
        * `DurationField` string (`[DD] [HH:[MM:]]ss[.uuuuuu]`), NOT seconds
        * (see the plan's "`CalendarGroup.duration` is a string on the wire"
        * guiding decision). Absent/empty/all-zero means the group has no
-       * pinned length yet, which `groupDurationIsUnset` below checks for.
-       * Phase 6 owns the real two-way duration<->seconds conversion; this
-       * field is read-only here and never round-tripped.
+       * pinned length yet, which `groupDurationIsUnset`
+       * (`@/lib/booking-links/duration-format`) checks for below. This
+       * field is read-only here and never round-tripped — the editor lives
+       * in `public-scheduling-settings.tsx`.
        */
       duration?: string;
     }
@@ -160,29 +164,6 @@ export type MintBookingLinkTarget =
         | { kind: 'calendar'; durationSeconds: number }
         | { kind: 'group' };
     };
-
-/**
- * True when a group's `duration` cannot back a public booking: absent,
- * empty, or every numeric component is zero (e.g. `"0:00:00"`). A group in
- * this state has no server-pinned length, so the group-scoped bookable-slots
- * read's REQUIRED `duration_seconds` placeholder
- * (`GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS` in
- * `@/lib/booking-links/group-slots-duration-placeholder`) would stand as the
- * real booked length instead of being silently overridden — an anonymous
- * attendee getting a length nobody with authority chose. Refusing to mint
- * here is the fix.
- *
- * Deliberately minimal: this only answers "is it unset or zero", not a full
- * `[DD] [HH:[MM:]]ss[.uuuuuu]` parse. Phase 6's
- * `@src/lib/booking-links/duration-format.ts` owns the real two-way
- * duration<->seconds conversion; do not grow this into that parser.
- */
-function groupDurationIsUnset(duration: string | undefined): boolean {
-  if (!duration) return true;
-  const digitRuns = duration.match(/\d+/g) ?? [];
-  const total = digitRuns.reduce((sum, run) => sum + Number(run), 0);
-  return total === 0;
-}
 
 export interface MintBookingLinkDialogProps {
   open: boolean;

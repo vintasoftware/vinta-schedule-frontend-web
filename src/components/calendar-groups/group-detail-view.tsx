@@ -21,6 +21,7 @@ import {
 import type { CalendarGroup } from '@/client';
 import { useCanMintBookingLinkForGroup } from './group-permissions-provider';
 import { MintBookingLinkDialog } from '@/components/booking-links/mint-booking-link-dialog';
+import { PublicSchedulingSettings } from './public-scheduling-settings';
 import { SlotRoster } from './slot-roster';
 
 export interface GroupDetailViewProps {
@@ -36,7 +37,10 @@ export interface GroupDetailViewProps {
  * page — everything here is read-only (Non-goals, plan §1). Minting a
  * scheduling link is a new, additive action rather than an edit to the group
  * itself, so it lives in the header's actions slot without disturbing that
- * read-only contract.
+ * read-only contract. `PublicSchedulingSettings` (Phase 6) is the one
+ * deliberate exception — an org-admin-gated edit of the group's two
+ * public-scheduling fields — and owns its own admin/read-only split rather
+ * than this view re-deriving it.
  */
 export function GroupDetailView({ group }: GroupDetailViewProps) {
   const [mintDialogOpen, setMintDialogOpen] = React.useState(false);
@@ -75,6 +79,7 @@ export function GroupDetailView({ group }: GroupDetailViewProps) {
           }}
         />
       )}
+      <PublicSchedulingSettings group={group} />
       {group.slots.length === 0 ? (
         <Text color='muted-foreground' size='sm'>
           This group has no slots.
