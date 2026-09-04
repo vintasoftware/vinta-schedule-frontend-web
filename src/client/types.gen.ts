@@ -674,6 +674,26 @@ export type BookingCodeReschedule = {
 };
 
 /**
+ * The ``management`` object on a booking-code create/reschedule ``201``.
+ *
+ * ``reschedule_code`` and ``cancel_code`` are plaintext, single-use booking
+ * codes minted for the patient's own event (see
+ * ``booking_views.mint_management_code_pair``), returned exactly once here
+ * -- only their hashes are persisted, so this is the only response that
+ * will ever expose them. Never echoed on a read: none of the booking-code
+ * viewsets has one.
+ *
+ * Fields are read-only for documentation purposes only (this serializer
+ * never validates input, it only renders a nested attribute the view sets
+ * on the event instance before serialization -- see
+ * ``CalendarEventWithManagementCodesSerializer``).
+ */
+export type BookingManagementCodes = {
+    readonly reschedule_code: string;
+    readonly cancel_code: string;
+};
+
+/**
  * Serializer for ``BookingPolicy`` CRUD.
  *
  * Exactly one of ``calendar``, ``membership_user_id``, ``calendar_group``, or
@@ -838,6 +858,72 @@ export type CalendarEventGroupSelection = {
 
 export type CalendarEventTransfer = {
     target_calendar_id: number;
+};
+
+/**
+ * ``CalendarEventSerializer`` plus the self-service ``management`` object.
+ *
+ * Used ONLY to render the ``201`` response of a booking-code create or
+ * reschedule viewset (``BookingCodeCalendarEventViewSet``,
+ * ``BookingCodeGroupEventViewSet``, ``BookingCodeRescheduleEventViewSet``,
+ * ``BookingCodeRescheduleGroupEventViewSet``) -- never for a read, and
+ * never for ``get_optimized_queryset``: ``management`` is not a model field
+ * or relation, it does not exist on ``CalendarEventVirtualModel``, and
+ * django-virtual-models' ``LookupFinder`` would raise
+ * ``MissingVirtualModelFieldException`` if this subclass were ever handed
+ * to ``get_optimized_queryset`` (it walks every readable field looking for
+ * a matching virtual-model entry). Callers therefore build the optimized
+ * queryset with the PLAIN ``CalendarEventSerializer`` first, and only use
+ * this subclass afterwards, purely to render ``.data`` on the already-
+ * fetched instance.
+ *
+ * The view sets ``event.management`` (a plain object carrying
+ * ``reschedule_code`` / ``cancel_code``, matching
+ * ``BookingManagementCodesSerializer``'s two fields) on the event instance
+ * before calling this serializer -- there is nothing in the database for
+ * this field to read, ``to_representation`` finds it via a plain
+ * ``getattr(instance, "management")``, same as any other declared field.
+ */
+export type CalendarEventWithManagementCodes = {
+    readonly id: number;
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    timezone: string;
+    readonly created: string;
+    readonly modified: string;
+    readonly external_id: string;
+    external_attendances: Array<EventExternalAttendance>;
+    attendances: Array<EventAttendance>;
+    resource_allocations: Array<ResourceAllocation>;
+    /**
+     * Client-owned (system, identifier) pairs for this event. Omitted on a partial update leaves the stored set untouched; an explicit list (including []) replaces it.
+     */
+    external_client_identifiers?: Array<ExternalClientIdentifier>;
+    readonly group_selections: Array<CalendarEventGroupSelection>;
+    /**
+     * Recurrence rule data for creating recurring events
+     */
+    recurrence_rule?: RecurrenceRule;
+    parent_recurring_object: ParentEvent;
+    /**
+     * True if this is an instance of a recurring event
+     */
+    readonly is_recurring_instance: boolean;
+    /**
+     * True if this is a recurring event
+     */
+    readonly is_recurring: boolean;
+    /**
+     * True if this object is an exception to the recurrence rule (modified occurrence)
+     */
+    is_recurring_exception?: boolean;
+    /**
+     * For recurring instances, this identifies which occurrence this is
+     */
+    recurrence_id?: string | null;
+    management: BookingManagementCodes;
 };
 
 export type CalendarGroup = {
@@ -3310,6 +3396,68 @@ export type CalendarEventWritable = {
 
 export type CalendarEventGroupSelectionWritable = {
     [key: string]: unknown;
+};
+
+/**
+ * ``CalendarEventSerializer`` plus the self-service ``management`` object.
+ *
+ * Used ONLY to render the ``201`` response of a booking-code create or
+ * reschedule viewset (``BookingCodeCalendarEventViewSet``,
+ * ``BookingCodeGroupEventViewSet``, ``BookingCodeRescheduleEventViewSet``,
+ * ``BookingCodeRescheduleGroupEventViewSet``) -- never for a read, and
+ * never for ``get_optimized_queryset``: ``management`` is not a model field
+ * or relation, it does not exist on ``CalendarEventVirtualModel``, and
+ * django-virtual-models' ``LookupFinder`` would raise
+ * ``MissingVirtualModelFieldException`` if this subclass were ever handed
+ * to ``get_optimized_queryset`` (it walks every readable field looking for
+ * a matching virtual-model entry). Callers therefore build the optimized
+ * queryset with the PLAIN ``CalendarEventSerializer`` first, and only use
+ * this subclass afterwards, purely to render ``.data`` on the already-
+ * fetched instance.
+ *
+ * The view sets ``event.management`` (a plain object carrying
+ * ``reschedule_code`` / ``cancel_code``, matching
+ * ``BookingManagementCodesSerializer``'s two fields) on the event instance
+ * before calling this serializer -- there is nothing in the database for
+ * this field to read, ``to_representation`` finds it via a plain
+ * ``getattr(instance, "management")``, same as any other declared field.
+ */
+export type CalendarEventWithManagementCodesWritable = {
+    provider?: string;
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    timezone: string;
+    external_attendances: Array<EventExternalAttendanceWritable>;
+    attendances: Array<EventAttendanceWritable>;
+    resource_allocations: Array<ResourceAllocationWritable>;
+    /**
+     * Client-owned (system, identifier) pairs for this event. Omitted on a partial update leaves the stored set untouched; an explicit list (including []) replaces it.
+     */
+    external_client_identifiers?: Array<ExternalClientIdentifier>;
+    /**
+     * Recurrence rule data for creating recurring events
+     */
+    recurrence_rule?: RecurrenceRuleWritable;
+    /**
+     * RRULE string for creating recurring events
+     */
+    rrule_string?: string;
+    /**
+     * ID of parent event for recurring instances
+     */
+    parent_recurring_object_id?: number;
+    /**
+     * True if this object is an exception to the recurrence rule (modified occurrence)
+     */
+    is_recurring_exception?: boolean;
+    /**
+     * For recurring instances, this identifies which occurrence this is
+     */
+    recurrence_id?: string | null;
+    google_calendar_service_account?: number;
+    calendar?: number;
 };
 
 export type CalendarGroupWritable = {
@@ -12502,7 +12650,7 @@ export type PublicBookingCalendarEventsCreateData = {
 };
 
 export type PublicBookingCalendarEventsCreateResponses = {
-    201: CalendarEvent;
+    201: CalendarEventWithManagementCodes;
 };
 
 export type PublicBookingCalendarEventsCreateResponse = PublicBookingCalendarEventsCreateResponses[keyof PublicBookingCalendarEventsCreateResponses];
@@ -12571,6 +12719,58 @@ export type PublicBookingCalendarGroupBookableSlotsListResponses = {
 
 export type PublicBookingCalendarGroupBookableSlotsListResponse = PublicBookingCalendarGroupBookableSlotsListResponses[keyof PublicBookingCalendarGroupBookableSlotsListResponses];
 
+export type PublicBookingCalendarGroupsAvailabilityCreateData = {
+    body: CalendarGroupAvailabilityQuery;
+    path: {
+        public_slug: string;
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/public/booking/calendar-groups/{public_slug}/availability/';
+};
+
+export type PublicBookingCalendarGroupsAvailabilityCreateResponses = {
+    200: PaginatedCalendarGroupRangeAvailabilityList;
+};
+
+export type PublicBookingCalendarGroupsAvailabilityCreateResponse = PublicBookingCalendarGroupsAvailabilityCreateResponses[keyof PublicBookingCalendarGroupsAvailabilityCreateResponses];
+
+export type PublicBookingCalendarGroupsBookableSlotsListData = {
+    body?: never;
+    path: {
+        public_slug: string;
+    };
+    query: {
+        /**
+         * End of the search window (ISO 8601).
+         */
+        search_window_end: string;
+        /**
+         * Start of the search window (ISO 8601).
+         */
+        search_window_start: string;
+        /**
+         * Search step, in seconds (default 900 = 15min).
+         */
+        slot_step_seconds?: number;
+    };
+    url: '/public/booking/calendar-groups/{public_slug}/bookable-slots/';
+};
+
+export type PublicBookingCalendarGroupsBookableSlotsListResponses = {
+    200: Array<BookableSlotProposal>;
+};
+
+export type PublicBookingCalendarGroupsBookableSlotsListResponse = PublicBookingCalendarGroupsBookableSlotsListResponses[keyof PublicBookingCalendarGroupsBookableSlotsListResponses];
+
 export type PublicBookingCalendarGroupsEventsCreateData = {
     body: BookingCodeGroupEventCreate;
     headers?: {
@@ -12587,7 +12787,7 @@ export type PublicBookingCalendarGroupsEventsCreateData = {
 };
 
 export type PublicBookingCalendarGroupsEventsCreateResponses = {
-    201: CalendarEvent;
+    201: CalendarEventWithManagementCodes;
 };
 
 export type PublicBookingCalendarGroupsEventsCreateResponse = PublicBookingCalendarGroupsEventsCreateResponses[keyof PublicBookingCalendarGroupsEventsCreateResponses];
@@ -12628,7 +12828,7 @@ export type PublicBookingEventsRescheduleCreateData = {
 };
 
 export type PublicBookingEventsRescheduleCreateResponses = {
-    201: CalendarEvent;
+    201: CalendarEventWithManagementCodes;
 };
 
 export type PublicBookingEventsRescheduleCreateResponse = PublicBookingEventsRescheduleCreateResponses[keyof PublicBookingEventsRescheduleCreateResponses];
@@ -12647,7 +12847,7 @@ export type PublicBookingGroupEventsRescheduleCreateData = {
 };
 
 export type PublicBookingGroupEventsRescheduleCreateResponses = {
-    201: CalendarEvent;
+    201: CalendarEventWithManagementCodes;
 };
 
 export type PublicBookingGroupEventsRescheduleCreateResponse = PublicBookingGroupEventsRescheduleCreateResponses[keyof PublicBookingGroupEventsRescheduleCreateResponses];
