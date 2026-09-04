@@ -35,14 +35,26 @@ const DURATION_STRING_PATTERN =
  * meaning "unset") into whole minutes, rounding to the nearest minute.
  * Anything unparsable reads as `0`, the same "no length set" value as an
  * absent field — this form never needs to distinguish "unset" from
- * "malformed", both are treated the same way as "nothing to show".
+ * "malformed", both are treated the same way as "nothing to show". The
+ * return value stays `0` rather than surfacing the distinction (e.g. via
+ * `NaN` or a thrown error) because `groupDurationIsUnset` relies on this
+ * same conversion to decide whether to show the grandfathered-duration
+ * warning — a corrupted value from the API must still read as "unset"
+ * there, not as a false "healthy" state. A `console.warn` below keeps a
+ * genuinely malformed value distinguishable from a legitimately absent one
+ * without changing that behavior.
  */
 export function djangoDurationToMinutes(
   duration: string | null | undefined
 ): number {
   if (!duration) return 0;
   const match = DURATION_STRING_PATTERN.exec(duration.trim());
-  if (!match) return 0;
+  if (!match) {
+    console.warn(
+      `djangoDurationToMinutes: unparsable duration string ${JSON.stringify(duration)}, treating as unset`
+    );
+    return 0;
+  }
 
   const [, daysPart, firstField, secondField, thirdField] = match;
   const days = daysPart ? Number(daysPart) : 0;

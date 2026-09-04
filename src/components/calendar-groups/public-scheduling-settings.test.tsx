@@ -174,6 +174,115 @@ describe('PublicSchedulingSettings — non-admin read-only', () => {
   });
 });
 
+describe('PublicSchedulingSettings — unsaved edit survives a group-prop refetch', () => {
+  it('does not wipe an in-progress edit when `group` changes reference with the same values', async () => {
+    const user = userEvent.setup();
+    mockAdmin(true);
+    mockUpdateHook(vi.fn().mockResolvedValue({}));
+
+    const group = makeGroup({
+      accepts_public_scheduling: true,
+      duration: '00:30:00',
+    });
+    const { rerender } = renderSettings(group);
+
+    const durationInput = screen.getByRole('spinbutton', {
+      name: 'Appointment length in minutes',
+    });
+    await user.clear(durationInput);
+    await user.type(durationInput, '45');
+    expect(durationInput).toHaveValue(45);
+
+    // Simulate a background refetch landing mid-edit: a new `group` object
+    // reference (e.g. from an unrelated invalidated query) with unchanged
+    // server values.
+    const refetchedGroup = makeGroup({
+      accepts_public_scheduling: true,
+      duration: '00:30:00',
+    });
+    rerender(<PublicSchedulingSettings group={refetchedGroup} />);
+
+    expect(durationInput).toHaveValue(45);
+  });
+});
+
+describe('PublicSchedulingSettings — failure path surfaces on the form root', () => {
+  it('surfaces a bare {detail} rejection through FormRootMessage, not just a toast', async () => {
+    const user = userEvent.setup();
+    mockAdmin(true);
+    const updatePublicScheduling = vi
+      .fn()
+      .mockRejectedValueOnce({ detail: 'You do not have permission.' });
+    mockUpdateHook(updatePublicScheduling);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: '00:30:00' })
+    );
+
+    const durationInput = screen.getByRole('spinbutton', {
+      name: 'Appointment length in minutes',
+    });
+    await user.clear(durationInput);
+    await user.type(durationInput, '45');
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'You do not have permission.'
+    );
+  });
+});
+
+describe('PublicSchedulingSettings — two sequential saves without an intervening refetch', () => {
+  it('diffs the second save against the just-saved values, not the original group prop', async () => {
+    const user = userEvent.setup();
+    mockAdmin(true);
+    const updatePublicScheduling = vi.fn().mockResolvedValue({});
+    mockUpdateHook(updatePublicScheduling);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: false, duration: undefined })
+    );
+
+    // First save: enable + set a duration.
+    await user.click(
+      screen.getByRole('switch', { name: 'Accept public bookings' })
+    );
+    const durationInput = screen.getByRole('spinbutton', {
+      name: 'Appointment length in minutes',
+    });
+    await user.clear(durationInput);
+    await user.type(durationInput, '30');
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    await waitFor(() => {
+      expect(updatePublicScheduling).toHaveBeenCalledTimes(1);
+    });
+    expect(updatePublicScheduling).toHaveBeenNthCalledWith(1, {
+      accepts_public_scheduling: true,
+      duration: '00:30:00',
+    });
+
+    // Second save: only the duration changes. The `group` prop itself never
+    // changes (no intervening refetch), so the diff must come from
+    // `savedValues`, not the original prop — otherwise the toggle (already
+    // true, unchanged since the first save) would be wrongly resent.
+    await user.clear(durationInput);
+    await user.type(durationInput, '45');
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    await waitFor(() => {
+      expect(updatePublicScheduling).toHaveBeenCalledTimes(2);
+    });
+    const secondBody = updatePublicScheduling.mock.calls[1][0] as Record<
+      string,
+      unknown
+    >;
+    expect(secondBody).toEqual({ duration: '00:45:00' });
+    expect('accepts_public_scheduling' in secondBody).toBe(false);
+    expect(Object.values(secondBody)).not.toContain(null);
+  });
+});
+
 describe('PublicSchedulingSettings — grandfathered null-duration public group', () => {
   it('renders a warning instead of presenting the group as healthy', () => {
     mockAdmin(true);

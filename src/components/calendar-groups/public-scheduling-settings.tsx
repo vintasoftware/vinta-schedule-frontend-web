@@ -153,6 +153,7 @@ export function PublicSchedulingSettings({
   });
 
   React.useEffect(() => {
+    if (form.formState.isDirty) return;
     form.reset(defaultValues);
     setSavedValues(defaultValues);
   }, [defaultValues, form]);
