@@ -141,12 +141,15 @@ function MintLinkButton({
 // ---------------------------------------------------------------------------
 // createColumns — COLUMNS plus a permission-gated "actions" column. COLUMNS
 // itself stays a static 3-column export for backward compatibility (existing
-// tests and the stories import it directly); this factory is what the live
-// table actually renders, so per-row mint access can react to the resolved
-// permissions and ownership set.
+// tests import it directly); this factory is what the live table actually
+// renders, so per-row mint access can react to the resolved permissions and
+// ownership set. Exported so the story renders the same 4-column set the
+// live table does, and so its "actions" cell can be unit-tested directly for
+// the denied case, which is unreachable through the rendered table (see
+// groups-table.test.tsx).
 // ---------------------------------------------------------------------------
 
-function createColumns(
+export function createColumns(
   permissions: readonly string[] | null,
   ownedCalendarIds: ReadonlySet<number>,
   onMint: (group: CalendarGroup) => void

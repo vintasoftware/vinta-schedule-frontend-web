@@ -38,7 +38,10 @@ import { useToggleCalendarSync } from '@/hooks/calendars/use-toggle-calendar-syn
 import { useToggleCalendarManageWindows } from '@/hooks/calendars/use-toggle-calendar-manage-windows';
 import { useSetCalendarVisibility } from '@/hooks/calendars/use-set-calendar-visibility';
 import { useOwnedCalendarIds } from '@/hooks/calendars/use-owned-calendar-ids';
-import { usePermissions } from '@/components/navigation/permission-gate';
+import {
+  usePermissions,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import { canMintBookingLinkForCalendar } from '@/lib/booking-links/can-mint-booking-link';
 import { MintBookingLinkDialog } from '@/components/booking-links/mint-booking-link-dialog';
 import { CreateCalendarDialog } from './create-calendar-dialog';
@@ -87,6 +90,11 @@ function getStatusVariant(
 // renderer.
 // ---------------------------------------------------------------------------
 
+export interface CreateColumnsMintOptions {
+  onMintLink: (row: Calendar) => void;
+  canMintLink: (row: Calendar) => boolean;
+}
+
 export function createColumns(
   pendingRowIds: Set<number>,
   onDelete: (row: Calendar) => Promise<void>,
@@ -99,10 +107,14 @@ export function createColumns(
   // COLUMNS export below, and calendars-table.stories.tsx) keeps compiling
   // and keeps rendering without a mint action, which is exactly the
   // "flag-off" behavior this additive phase relies on (see the plan's "No
-  // feature flag" guiding decision).
-  onMintLink: (row: Calendar) => void = () => {},
-  canMintLink: (row: Calendar) => boolean = () => false
+  // feature flag" guiding decision). A single options object rather than two
+  // more positional params — a caller that forgets one of two independent
+  // trailing positional params silently loses the feature with no type
+  // error; an omitted options object is comparatively harder to miss.
+  mintOptions?: CreateColumnsMintOptions
 ): DataTableColumn<Calendar>[] {
+  const onMintLink = mintOptions?.onMintLink ?? (() => {});
+  const canMintLink = mintOptions?.canMintLink ?? (() => false);
   return [
     {
       accessorKey: 'name',
@@ -513,7 +525,13 @@ function CalendarsTableInner() {
   // fails closed via canMintBookingLinkForCalendar itself, so no separate
   // "loading" gate is needed here.
   const permissions = usePermissions();
-  const { ownedCalendarIds } = useOwnedCalendarIds();
+  // The table is already fed by useMyCalendars above (`owner: 'me'`-scoped),
+  // so fetching owned ids too is only needed to gate the mint action for a
+  // non-admin — an admin's mint access doesn't depend on ownership. Matches
+  // the sibling call sites (groups-table.tsx, groups/[id]/page.tsx), which
+  // also skip this fetch for an admin viewer.
+  const isAdmin = permissions?.includes(PERMISSIONS.manageMembers) ?? false;
+  const { ownedCalendarIds } = useOwnedCalendarIds({ enabled: !isAdmin });
   const canMintLink = React.useCallback(
     (calendar: Calendar) =>
       canMintBookingLinkForCalendar({
@@ -710,8 +728,7 @@ function CalendarsTableInner() {
     handleToggleManageWindows,
     handleToggleUnlisted,
     setRulesCalendar,
-    setMintCalendar,
-    canMintLink
+    { onMintLink: setMintCalendar, canMintLink }
   );
 
   return (

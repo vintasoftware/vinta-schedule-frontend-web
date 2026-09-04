@@ -23,13 +23,16 @@
  *     state. It is never assigned to any other variable, never logged, never
  *     written to `localStorage` / `sessionStorage`, and never survives past
  *     this dialog closing.
- *   - `createBookingCodeMutation.data` retains the full
+ *   - `createBookingCodeMutation.data` would otherwise retain the full
  *     `BookingCodeCreateResult` (including plaintext `code`) in TanStack
- *     Query's mutation cache even after this component's local state is
- *     cleared — visible via React Query Devtools for as long as the
- *     mutation's `gcTime` keeps it. The close effect below calls `.reset()`
- *     on both mutations to drop that copy, exactly as `NewTokenDialog` does
- *     for its credential.
+ *     Query's mutation cache after this component's local state is cleared.
+ *     `useCreateBookingCode` sets `gcTime: 0` (see its doc comment) so the
+ *     mutation is garbage-collected as soon as the last observer detaches,
+ *     rather than lingering for the app's default 5-minute mutation
+ *     `gcTime`. The close/unmount effects below additionally call `.reset()`
+ *     on both mutations — belt-and-suspenders with `gcTime: 0`, and it also
+ *     clears local `isPending`/`isError`/`data` state on `open === false`
+ *     re-renders — exactly as `NewTokenDialog` does for its credential.
  *   - Minting is a UI affordance gated by `canMintBookingLinkForCalendar` /
  *     `canMintBookingLinkForGroup` at the call site (the row action), never
  *     re-derived here — this component trusts its caller decided it should
@@ -153,6 +156,11 @@ export function MintBookingLinkDialog({
   );
   const [isRevoked, setIsRevoked] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  // Holds the "copied" reset timer so it can be cancelled instead of firing
+  // a `setState` after the component (or the copy indicator) is gone.
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   // Reset all local + mutation state when the dialog closes. See the
   // file-level SECURITY comment for why both mutations are explicitly
@@ -170,8 +178,29 @@ export function MintBookingLinkDialog({
       setCopied(false);
       resetCreateMutation();
       resetRevokeMutation();
+      if (copyTimeoutRef.current !== null) {
+        clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = null;
+      }
     }
   }, [open, form, resetCreateMutation, resetRevokeMutation]);
+
+  // Unmount cleanup: `calendars-table.tsx` and `groups-table.tsx` mount this
+  // dialog conditionally (`{mintTarget && <MintBookingLinkDialog .../>}`), so
+  // `onOpenChange(false)` unmounts the component before it ever re-renders
+  // with `open === false` — the effect above never runs at those call sites.
+  // This guarantees the mutation-reset guarantee holds regardless of how a
+  // caller mounts the dialog.
+  React.useEffect(
+    () => () => {
+      resetCreateMutation();
+      resetRevokeMutation();
+      if (copyTimeoutRef.current !== null) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    },
+    [resetCreateMutation, resetRevokeMutation]
+  );
 
   const isPending = createBookingCodeMutation.isPending;
   const isRevokePending = revokeBookingCodeMutation.isPending;
@@ -230,7 +259,7 @@ export function MintBookingLinkDialog({
     try {
       await navigator.clipboard.writeText(mintedLink.url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error('Failed to copy link to clipboard.');
     }
@@ -260,6 +289,11 @@ export function MintBookingLinkDialog({
           <>
             <DialogHeader>
               <DialogTitle>Scheduling link created</DialogTitle>
+              <DialogDescription>
+                {isRevoked
+                  ? 'This link has been revoked and no longer works.'
+                  : 'This is the only time this link is shown. Copy it now.'}
+              </DialogDescription>
             </DialogHeader>
 
             <VStack gap={4}>

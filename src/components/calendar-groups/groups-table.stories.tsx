@@ -7,7 +7,8 @@ import type { DataTableQuery } from '@/components/data-table/types';
 import { DEFAULT_DATA_TABLE_QUERY } from '@/components/data-table/types';
 import { VStack, Text } from 'vinta-schedule-design-system/layout';
 import type { CalendarGroup } from '@/client';
-import { COLUMNS } from './groups-table';
+import { PERMISSIONS } from '@/lib/permissions';
+import { createColumns } from './groups-table';
 
 // ---------------------------------------------------------------------------
 // Fixture data
@@ -67,14 +68,27 @@ const ALL_GROUPS: CalendarGroup[] = [
 // Story wrapper — useState instead of useDataTableQuery; no router needed.
 // ---------------------------------------------------------------------------
 
+// Admin so the mint action shows on every row regardless of ownership; an
+// empty permission set with no owned calendars is the other fixture used
+// below, so the story also covers the row it's absent from — the live table
+// renders exactly these four columns (createColumns), not the legacy
+// 3-column COLUMNS export, which would otherwise let the story drift from
+// production (see SHOULD-FIX 4 in the Phase 1 review).
+const ADMIN_PERMISSIONS: readonly string[] = [PERMISSIONS.manageMembers];
+const MEMBER_PERMISSIONS: readonly string[] = [];
+
 function GroupsTableStory({
   data = ALL_GROUPS,
   totalCount,
   isLoading = false,
+  permissions = ADMIN_PERMISSIONS,
+  ownedCalendarIds = new Set<number>(),
 }: {
   data?: CalendarGroup[];
   totalCount?: number;
   isLoading?: boolean;
+  permissions?: readonly string[] | null;
+  ownedCalendarIds?: ReadonlySet<number>;
 }) {
   const [query, setQuery] = React.useState<DataTableQuery>({
     ...DEFAULT_DATA_TABLE_QUERY,
@@ -91,11 +105,13 @@ function GroupsTableStory({
     </VStack>
   );
 
+  const columns = createColumns(permissions, ownedCalendarIds, () => {});
+
   return (
     <div className='p-6'>
       <DataTable<CalendarGroup>
         data={data}
-        columns={COLUMNS}
+        columns={columns}
         query={query}
         onQueryChange={setQuery}
         totalCount={count}
@@ -128,6 +144,15 @@ type Story = StoryObj;
 
 export const Populated: Story = {
   render: () => <GroupsTableStory />,
+};
+
+export const MintActionAbsentForMember: Story = {
+  render: () => (
+    <GroupsTableStory
+      permissions={MEMBER_PERMISSIONS}
+      ownedCalendarIds={new Set()}
+    />
+  ),
 };
 
 export const Empty: Story = {

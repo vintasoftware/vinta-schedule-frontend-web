@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -279,18 +279,19 @@ describe('MintBookingLinkDialog', () => {
     expect(screen.getByTestId('copy-booking-link-button')).toBeInTheDocument();
   });
 
-  it('the link is gone from the DOM after the dialog closes', async () => {
+  it('the link is gone from the DOM and mutation cache after the dialog closes', async () => {
     const user = userEvent.setup();
     vi.mocked(bookingCodesCreate).mockResolvedValueOnce(
       makeMintResponse(makeMintResult())
     );
 
-    let currentOpen = true;
-    const handleOpenChange = vi.fn((val: boolean) => {
-      currentOpen = val;
-    });
+    const handleOpenChange = vi.fn();
 
-    const { rerender } = renderDialog(CALENDAR_TARGET, true, handleOpenChange);
+    const { rerender, queryClient } = renderDialog(
+      CALENDAR_TARGET,
+      true,
+      handleOpenChange
+    );
 
     await user.click(screen.getByTestId('create-booking-link-submit'));
     const urlInput = (await screen.findByTestId(
@@ -315,8 +316,52 @@ describe('MintBookingLinkDialog', () => {
     expect(
       screen.queryByDisplayValue(new RegExp(ONE_TIME_CODE))
     ).not.toBeInTheDocument();
+    // Regression for BLOCKER 1: `gcTime: 0` on the create mutation must keep
+    // the plaintext code out of the mutation cache too, not just the DOM.
+    // `gcTime: 0` still schedules `optionalRemove()` via a 0ms timer rather
+    // than removing synchronously (`Removable.scheduleGc`), so this must be
+    // awaited rather than asserted immediately.
+    await waitFor(() => {
+      expect(
+        queryClient
+          .getMutationCache()
+          .getAll()
+          .every(
+            (m) => !JSON.stringify(m.state.data ?? '').includes(ONE_TIME_CODE)
+          )
+      ).toBe(true);
+    });
+  });
 
-    void currentOpen;
+  it('the link is gone from the mutation cache after the dialog unmounts', async () => {
+    const user = userEvent.setup();
+    vi.mocked(bookingCodesCreate).mockResolvedValueOnce(
+      makeMintResponse(makeMintResult())
+    );
+
+    const { unmount, queryClient } = renderDialog(CALENDAR_TARGET, true);
+
+    await user.click(screen.getByTestId('create-booking-link-submit'));
+    const urlInput = (await screen.findByTestId(
+      'booking-link-url-input'
+    )) as HTMLInputElement;
+    expect(urlInput.value).toContain(ONE_TIME_CODE);
+
+    // The two table call sites unmount the dialog on close rather than
+    // rerendering it with `open={false}` — this is what that looks like.
+    unmount();
+
+    // See the same note above: `gcTime: 0` still removes on a 0ms timer.
+    await waitFor(() => {
+      expect(
+        queryClient
+          .getMutationCache()
+          .getAll()
+          .every(
+            (m) => !JSON.stringify(m.state.data ?? '').includes(ONE_TIME_CODE)
+          )
+      ).toBe(true);
+    });
   });
 
   it('revoke calls bookingCodesDestroy with the minted id and moves to the revoked state', async () => {
@@ -341,7 +386,8 @@ describe('MintBookingLinkDialog', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('a failed mint reveals nothing', async () => {
+  it('a failed mint reveals nothing and surfaces the failure', async () => {
+    const { toast } = await import('sonner');
     const user = userEvent.setup();
     vi.mocked(bookingCodesCreate).mockRejectedValueOnce(
       new Error('Not permitted')
@@ -357,6 +403,11 @@ describe('MintBookingLinkDialog', () => {
     expect(
       screen.getByTestId('create-booking-link-submit')
     ).toBeInTheDocument();
+    // The failure must be surfaced, not silently swallowed.
+    expect(toast.error).toHaveBeenCalledWith(
+      'Failed to generate link',
+      expect.objectContaining({ description: expect.any(String) })
+    );
   });
 
   it('does not call console.log with the plaintext code', async () => {
