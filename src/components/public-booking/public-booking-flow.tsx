@@ -51,7 +51,10 @@ import {
   Text,
   VStack,
 } from 'vinta-schedule-design-system/layout';
-import type { BookableSlotProposal, CalendarEvent } from '@/client';
+import type {
+  BookableSlotProposal,
+  CalendarEventWithManagementCodes,
+} from '@/client';
 import { DateTime, zonedFormat } from '@/lib/datetime/index';
 import { usePublicBookableSlots } from '@/hooks/booking-codes/use-public-bookable-slots';
 import { usePublicBookEvent } from '@/hooks/booking-codes/use-public-book-event';
@@ -93,6 +96,14 @@ type FlowStep =
 export interface PublicBookingFlowProps {
   /** Plaintext booking code from the URL. */
   code: string;
+  /**
+   * Active organization slug, when known — threaded down from the branded
+   * `/o/[slug]/book/[code]` page (which knows it from its own route params)
+   * so `BookingConfirmation` can build branded self-service links. The bare
+   * `/book/[code]` route has no way to resolve one, so this stays
+   * `undefined` there.
+   */
+  slug?: string;
 }
 
 /**
@@ -140,7 +151,7 @@ export function terminalErrorCopy(failure: PublicWriteFailure): {
   }
 }
 
-export function PublicBookingFlow({ code }: PublicBookingFlowProps) {
+export function PublicBookingFlow({ code, slug }: PublicBookingFlowProps) {
   const searchParams = useSearchParams();
   const durationParam = searchParams.get('duration');
   const durationSeconds = durationParam !== null ? Number(durationParam) : NaN;
@@ -168,7 +179,7 @@ export function PublicBookingFlow({ code }: PublicBookingFlowProps) {
   const [selectedSlot, setSelectedSlot] =
     React.useState<BookableSlotProposal | null>(null);
   const [confirmedEvent, setConfirmedEvent] =
-    React.useState<CalendarEvent | null>(null);
+    React.useState<CalendarEventWithManagementCodes | null>(null);
   const [terminalFailure, setTerminalFailure] =
     React.useState<PublicWriteFailure | null>(null);
   const [slotUnavailableNotice, setSlotUnavailableNotice] =
@@ -183,6 +194,15 @@ export function PublicBookingFlow({ code }: PublicBookingFlowProps) {
   });
 
   const { bookEvent, bookEventMutation } = usePublicBookEvent();
+
+  // Belt-and-suspenders alongside `usePublicBookEvent`'s `gcTime: 0`: on
+  // unmount (navigating away from this confirmed booking), explicitly clear
+  // the mutation's cached response — which carries the plaintext
+  // self-service codes — rather than relying solely on the deferred
+  // 0ms-timer collection `gcTime: 0` schedules. Mirrors
+  // `mint-booking-link-dialog.tsx`'s identical unmount cleanup.
+  const resetBookEventMutation = bookEventMutation.reset;
+  React.useEffect(() => resetBookEventMutation, [resetBookEventMutation]);
 
   const handleSelectSlot = (proposal: BookableSlotProposal) => {
     setSlotUnavailableNotice(false);
@@ -306,7 +326,14 @@ export function PublicBookingFlow({ code }: PublicBookingFlowProps) {
   }
 
   if (step === 'confirmed' && confirmedEvent) {
-    return <BookingConfirmation event={confirmedEvent} timezone={timezone} />;
+    return (
+      <BookingConfirmation
+        event={confirmedEvent}
+        timezone={timezone}
+        scope={{ kind: 'calendar' }}
+        slug={slug}
+      />
+    );
   }
 
   return (

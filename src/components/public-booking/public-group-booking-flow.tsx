@@ -60,7 +60,7 @@ import {
 } from 'vinta-schedule-design-system/layout';
 import type {
   BookableSlotProposal,
-  CalendarEvent,
+  CalendarEventWithManagementCodes,
   CalendarGroupSlotAvailability,
   CalendarGroupSlotSelectionInput,
 } from '@/client';
@@ -105,6 +105,12 @@ type FlowStep =
 export interface PublicGroupBookingFlowProps {
   /** Plaintext booking code from the URL. */
   code: string;
+  /**
+   * Active organization slug, when known — threaded down from the branded
+   * `/o/[slug]/book/[code]` page so `BookingConfirmation` can build branded
+   * self-service links. `undefined` on the bare `/book/[code]` route.
+   */
+  slug?: string;
 }
 
 /** Build the public GroupSlotSelection view models from one range's
@@ -127,7 +133,10 @@ function toSlotViewModels(
   }));
 }
 
-export function PublicGroupBookingFlow({ code }: PublicGroupBookingFlowProps) {
+export function PublicGroupBookingFlow({
+  code,
+  slug,
+}: PublicGroupBookingFlowProps) {
   // Computed once per mount — a sliding search window mid-flow would be a
   // confusing moving target for the attendee.
   const [searchWindow] = React.useState(() => {
@@ -152,7 +161,7 @@ export function PublicGroupBookingFlow({ code }: PublicGroupBookingFlowProps) {
     CalendarGroupSlotSelectionInput[] | null
   >(null);
   const [confirmedEvent, setConfirmedEvent] =
-    React.useState<CalendarEvent | null>(null);
+    React.useState<CalendarEventWithManagementCodes | null>(null);
   const [terminalFailure, setTerminalFailure] =
     React.useState<PublicWriteFailure | null>(null);
   const [slotUnavailableNotice, setSlotUnavailableNotice] =
@@ -170,6 +179,14 @@ export function PublicGroupBookingFlow({ code }: PublicGroupBookingFlowProps) {
   });
 
   const { bookGroupEvent, bookGroupEventMutation } = usePublicGroupBookEvent();
+
+  // Belt-and-suspenders alongside `usePublicGroupBookEvent`'s `gcTime: 0` —
+  // see `public-booking-flow.tsx`'s identical cleanup for why.
+  const resetBookGroupEventMutation = bookGroupEventMutation.reset;
+  React.useEffect(
+    () => resetBookGroupEventMutation,
+    [resetBookGroupEventMutation]
+  );
 
   const loadSlotAvailability = async (proposal: BookableSlotProposal) => {
     setIsLoadingAvailability(true);
@@ -319,7 +336,14 @@ export function PublicGroupBookingFlow({ code }: PublicGroupBookingFlowProps) {
   }
 
   if (step === 'confirmed' && confirmedEvent) {
-    return <BookingConfirmation event={confirmedEvent} timezone={timezone} />;
+    return (
+      <BookingConfirmation
+        event={confirmedEvent}
+        timezone={timezone}
+        scope={{ kind: 'group' }}
+        slug={slug}
+      />
+    );
   }
 
   return (

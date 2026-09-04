@@ -133,14 +133,17 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
   } as CalendarEvent;
 }
 
-function renderReschedule(code = 'secret-code') {
+function renderReschedule(code = 'secret-code', slug?: string) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return render(<RescheduleFlow code={code} />, { wrapper: Wrapper });
+  return {
+    ...render(<RescheduleFlow code={code} slug={slug} />, { wrapper: Wrapper }),
+    queryClient,
+  };
 }
 
 function renderCancel(code = 'secret-code') {
@@ -376,6 +379,199 @@ describe('RescheduleFlow', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
+
+  // ---------------------------------------------------------------------
+  // Phase 5 — the reschedule write re-issues a FRESH pair of self-service
+  // links, so the chain continues.
+  // ---------------------------------------------------------------------
+
+  it("renders a FRESH pair of reschedule/cancel links (calendar-scoped) from its own write's management object", async () => {
+    const user = userEvent.setup();
+    vi.mocked(publicBookingCalendarBookableSlotsList).mockResolvedValueOnce(
+      slotsOk([
+        {
+          start_time: '2026-03-02T14:00:00.000Z',
+          end_time: '2026-03-02T14:30:00.000Z',
+        },
+      ])
+    );
+    const rescheduledEvent = {
+      ...makeEvent({
+        start_time: '2026-03-02T14:00:00.000Z',
+        end_time: '2026-03-02T14:30:00.000Z',
+      }),
+      management: {
+        reschedule_code: 'second-hop-reschedule-code',
+        cancel_code: 'second-hop-cancel-code',
+      },
+    };
+    vi.mocked(publicBookingEventsRescheduleCreate).mockResolvedValueOnce({
+      data: rescheduledEvent,
+      response: new Response(JSON.stringify(rescheduledEvent), {
+        status: 201,
+      }),
+    } as unknown as Awaited<
+      ReturnType<typeof publicBookingEventsRescheduleCreate>
+    >);
+
+    renderReschedule('secret-code', 'acme');
+
+    await selectFirstSlot(user);
+    await user.click(screen.getByTestId('reschedule-confirm'));
+
+    const rescheduleInput = (await screen.findByTestId(
+      'reschedule-link-input'
+    )) as HTMLInputElement;
+    const cancelInput = screen.getByTestId(
+      'cancel-link-input'
+    ) as HTMLInputElement;
+
+    // A FRESH pair, distinct from whatever code got the attendee to this
+    // page — the chain continues rather than reusing the consumed code.
+    expect(rescheduleInput.value).toContain('second-hop-reschedule-code');
+    expect(rescheduleInput.value).not.toContain('secret-code');
+    expect(rescheduleInput.value).toContain('/o/acme/book/');
+    expect(rescheduleInput.value).toContain('target=calendar');
+    expect(cancelInput.value).toContain('second-hop-cancel-code');
+  });
+
+  it('renders a FRESH pair of links with ?target=group (no duration) for a group-scoped reschedule', async () => {
+    currentSearch = new URLSearchParams({ target: 'group' });
+    const user = userEvent.setup();
+    vi.mocked(
+      publicBookingCalendarGroupBookableSlotsList
+    ).mockResolvedValueOnce({
+      data: [
+        {
+          start_time: '2026-03-05T09:00:00.000Z',
+          end_time: '2026-03-05T09:45:00.000Z',
+        },
+      ],
+      response: new Response('{}', { status: 200 }),
+    } as unknown as Awaited<
+      ReturnType<typeof publicBookingCalendarGroupBookableSlotsList>
+    >);
+    const rescheduledEvent = {
+      ...makeEvent({
+        start_time: '2026-03-05T09:00:00.000Z',
+        end_time: '2026-03-05T09:45:00.000Z',
+      }),
+      management: {
+        reschedule_code: 'group-second-hop-reschedule-code',
+        cancel_code: 'group-second-hop-cancel-code',
+      },
+    };
+    vi.mocked(publicBookingGroupEventsRescheduleCreate).mockResolvedValueOnce({
+      data: rescheduledEvent,
+      response: new Response(JSON.stringify(rescheduledEvent), {
+        status: 201,
+      }),
+    } as unknown as Awaited<
+      ReturnType<typeof publicBookingGroupEventsRescheduleCreate>
+    >);
+
+    renderReschedule('group-secret');
+
+    await selectFirstSlot(user);
+    await user.click(screen.getByTestId('reschedule-confirm'));
+
+    const rescheduleInput = (await screen.findByTestId(
+      'reschedule-link-input'
+    )) as HTMLInputElement;
+    expect(rescheduleInput.value).toContain('group-second-hop-reschedule-code');
+    expect(rescheduleInput.value).toContain('target=group');
+    expect(rescheduleInput.value).not.toContain('duration=');
+  });
+
+  it('a 201 with no management object (an older backend) degrades to the plain confirmation, no crash', async () => {
+    const user = userEvent.setup();
+    vi.mocked(publicBookingCalendarBookableSlotsList).mockResolvedValueOnce(
+      slotsOk([
+        {
+          start_time: '2026-03-02T14:00:00.000Z',
+          end_time: '2026-03-02T14:30:00.000Z',
+        },
+      ])
+    );
+    vi.mocked(publicBookingEventsRescheduleCreate).mockResolvedValueOnce({
+      data: makeEvent({
+        start_time: '2026-03-02T14:00:00.000Z',
+        end_time: '2026-03-02T14:30:00.000Z',
+      }),
+      response: new Response('{}', { status: 201 }),
+    } as unknown as Awaited<
+      ReturnType<typeof publicBookingEventsRescheduleCreate>
+    >);
+
+    renderReschedule();
+
+    await selectFirstSlot(user);
+    await user.click(screen.getByTestId('reschedule-confirm'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('booking-confirmation')).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByTestId('booking-management-links')
+    ).not.toBeInTheDocument();
+  });
+
+  it('the fresh management codes are gone from the mutation cache after unmount', async () => {
+    const user = userEvent.setup();
+    vi.mocked(publicBookingCalendarBookableSlotsList).mockResolvedValueOnce(
+      slotsOk([
+        {
+          start_time: '2026-03-02T14:00:00.000Z',
+          end_time: '2026-03-02T14:30:00.000Z',
+        },
+      ])
+    );
+    const rescheduledEvent = {
+      ...makeEvent({
+        start_time: '2026-03-02T14:00:00.000Z',
+        end_time: '2026-03-02T14:30:00.000Z',
+      }),
+      management: {
+        reschedule_code: 'reschedule-gone-after-unmount',
+        cancel_code: 'cancel-gone-after-unmount',
+      },
+    };
+    vi.mocked(publicBookingEventsRescheduleCreate).mockResolvedValueOnce({
+      data: rescheduledEvent,
+      response: new Response(JSON.stringify(rescheduledEvent), {
+        status: 201,
+      }),
+    } as unknown as Awaited<
+      ReturnType<typeof publicBookingEventsRescheduleCreate>
+    >);
+
+    const { unmount, queryClient } = renderReschedule();
+
+    await selectFirstSlot(user);
+    await user.click(screen.getByTestId('reschedule-confirm'));
+    await screen.findByTestId('reschedule-link-input');
+
+    unmount();
+
+    // See `public-booking-flow.test.tsx`'s identical regression test for why
+    // this must be awaited (`gcTime: 0` still removes on a 0ms timer).
+    await waitFor(() => {
+      expect(
+        queryClient
+          .getMutationCache()
+          .getAll()
+          .every(
+            (m) =>
+              !JSON.stringify(m.state.data ?? '').includes(
+                'reschedule-gone-after-unmount'
+              ) &&
+              !JSON.stringify(m.state.data ?? '').includes(
+                'cancel-gone-after-unmount'
+              )
+          )
+      ).toBe(true);
+    });
+  });
 });
 
 describe('CancelFlow', () => {
@@ -398,6 +594,19 @@ describe('CancelFlow', () => {
     expect(publicBookingEventsCancelCreate).toHaveBeenCalledWith(
       expect.objectContaining({ headers: { 'X-Booking-Code': 'secret-code' } })
     );
+    // Cancel returns 204 and issues nothing — no further self-service link,
+    // and no `BookingConfirmation` (which requires an event the cancel
+    // response never returns).
+    expect(
+      screen.queryByTestId('booking-management-links')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('reschedule-link-input')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cancel-link-input')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('booking-confirmation')
+    ).not.toBeInTheDocument();
   });
 
   it("ALREADY_USED is terminal, worded distinctly from RescheduleFlow's opaque link-invalid copy", async () => {

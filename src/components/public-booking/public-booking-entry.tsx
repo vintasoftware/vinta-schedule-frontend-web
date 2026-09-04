@@ -48,14 +48,20 @@ export function resolveBookingLinkTarget(
 export interface PublicBookingEntryProps {
   /** Plaintext booking code from the URL. */
   code: string;
+  /**
+   * Active organization slug, when known — passed straight through to
+   * whichever flow this mounts, so its confirmation can build branded
+   * self-service links. `undefined` on the bare `/book/[code]` route.
+   */
+  slug?: string;
 }
 
-export function PublicBookingEntry({ code }: PublicBookingEntryProps) {
+export function PublicBookingEntry({ code, slug }: PublicBookingEntryProps) {
   const searchParams = useSearchParams();
   const target = resolveBookingLinkTarget(searchParams);
 
   if (target === 'group') {
-    return <PublicGroupBookingFlow code={code} />;
+    return <PublicGroupBookingFlow code={code} slug={slug} />;
   }
-  return <PublicBookingFlow code={code} />;
+  return <PublicBookingFlow code={code} slug={slug} />;
 }

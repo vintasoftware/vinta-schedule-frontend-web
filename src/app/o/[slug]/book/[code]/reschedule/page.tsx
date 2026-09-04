@@ -18,6 +18,11 @@ export const metadata = NO_INDEX_METADATA;
  * `/o/[slug]/book/[code]` book route. An unknown/removed slug resolves to
  * `VINTA_DEFAULT_BRANDING` rather than erroring.
  *
+ * `slug` is ALSO passed straight through to `RescheduleFlow` (Phase 5) so
+ * the fresh confirmation a successful reschedule renders can build its
+ * self-service links in the branded `/o/[slug]/...` form — same reasoning
+ * as the branded book route.
+ *
  * Sits outside the `(app)` route group so the authenticated shell's
  * org/session gating never touches it.
  */
@@ -32,7 +37,7 @@ export default async function BrandedBookReschedulePage({
   return (
     <PublicBookingShell branding={branding}>
       <Suspense fallback={null}>
-        <RescheduleFlow code={code} />
+        <RescheduleFlow code={code} slug={slug} />
       </Suspense>
     </PublicBookingShell>
   );

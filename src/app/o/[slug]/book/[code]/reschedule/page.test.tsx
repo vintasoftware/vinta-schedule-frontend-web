@@ -28,9 +28,10 @@ vi.mock('@/components/public-booking/public-booking-shell', () => ({
 }));
 
 vi.mock('@/components/public-booking/reschedule-flow', () => ({
-  RescheduleFlow: ({ code }: { code: string }) => (
+  RescheduleFlow: ({ code, slug }: { code: string; slug?: string }) => (
     <div data-testid='flow'>
       <span data-testid='flow-code'>{code}</span>
+      <span data-testid='flow-slug'>{slug}</span>
     </div>
   ),
 }));
@@ -66,6 +67,9 @@ describe('BrandedBookReschedulePage (/o/[slug]/book/[code]/reschedule)', () => {
       'Acme Scheduling'
     );
     expect(screen.getByTestId('flow-code')).toHaveTextContent('abc123');
+    // Phase 5: the branded route passes its own slug through so a fresh
+    // reschedule confirmation's self-service links can be branded too.
+    expect(screen.getByTestId('flow-slug')).toHaveTextContent('acme');
   });
 
   it('falls back to default branding for an unknown slug (no error page)', async () => {

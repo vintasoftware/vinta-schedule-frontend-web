@@ -45,7 +45,7 @@ import {
 import type {
   BookableSlotProposal,
   BookingCodeGroupEventCreate,
-  CalendarEvent,
+  CalendarEventWithManagementCodes,
   CalendarGroupRangeAvailability,
 } from '@/client';
 import { publicBookingClient } from '@/lib/booking-links/public-client';
@@ -199,9 +199,17 @@ export interface PublicBookGroupEventParams {
   body: BookingCodeGroupEventCreate;
 }
 
+/**
+ * SECURITY (Phase 5): same `gcTime: 0` no-persistence discipline as
+ * `usePublicBookEvent` — the `201` now carries `management.reschedule_code`
+ * / `management.cancel_code` (`CalendarEventWithManagementCodes`), and this
+ * keeps that response out of the mutation cache beyond the last attached
+ * observer rather than the app's default 5-minute mutation `gcTime`. See
+ * `use-public-book-event.ts`'s doc comment for the full mechanics.
+ */
 export function usePublicGroupBookEvent() {
   const bookGroupEventMutation = useMutation<
-    CalendarEvent,
+    CalendarEventWithManagementCodes,
     PublicWriteFailureError,
     PublicBookGroupEventParams
   >({
@@ -209,6 +217,7 @@ export function usePublicGroupBookEvent() {
     // risk a duplicate booking attempt against a single-use code; fail once
     // and let the caller decide.
     retry: false,
+    gcTime: 0,
     mutationFn: async ({ code, body }) => {
       const { data, error, response } =
         await publicBookingCalendarGroupsEventsCreate({
@@ -231,7 +240,8 @@ export function usePublicGroupBookEvent() {
 
   const bookGroupEvent = async (
     params: PublicBookGroupEventParams
-  ): Promise<CalendarEvent> => bookGroupEventMutation.mutateAsync(params);
+  ): Promise<CalendarEventWithManagementCodes> =>
+    bookGroupEventMutation.mutateAsync(params);
 
   return { bookGroupEvent, bookGroupEventMutation };
 }

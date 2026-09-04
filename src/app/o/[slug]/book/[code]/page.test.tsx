@@ -29,9 +29,10 @@ vi.mock('@/components/public-booking/public-booking-shell', () => ({
 }));
 
 vi.mock('@/components/public-booking/public-booking-entry', () => ({
-  PublicBookingEntry: ({ code }: { code: string }) => (
+  PublicBookingEntry: ({ code, slug }: { code: string; slug?: string }) => (
     <div data-testid='flow'>
       <span data-testid='flow-code'>{code}</span>
+      <span data-testid='flow-slug'>{slug}</span>
     </div>
   ),
 }));
@@ -67,6 +68,9 @@ describe('BrandedBookPage (/o/[slug]/book/[code])', () => {
       'Acme Scheduling'
     );
     expect(screen.getByTestId('flow-code')).toHaveTextContent('abc123');
+    // Phase 5: the branded route passes its own slug through so a
+    // successful booking's self-service links can be branded too.
+    expect(screen.getByTestId('flow-slug')).toHaveTextContent('acme');
   });
 
   it('falls back to default branding for an unknown slug (no error page)', async () => {

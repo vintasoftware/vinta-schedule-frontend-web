@@ -19,6 +19,12 @@
  * `throwOnError: true`, which throws only the parsed error BODY and drops
  * the `Response` that `parseWriteFailure` needs. Every call goes through
  * `publicBookingClient`, never the shared authenticated client.
+ *
+ * SECURITY (Phase 5): the `201` re-issues a FRESH pair of self-service
+ * codes (`management.reschedule_code` / `management.cancel_code`,
+ * `CalendarEventWithManagementCodes`) so the chain continues. Same
+ * `gcTime: 0` no-persistence discipline as `usePublicBookEvent` — see that
+ * hook's doc comment for the full mechanics.
  */
 
 import { useMutation } from '@tanstack/react-query';
@@ -26,7 +32,10 @@ import {
   publicBookingEventsRescheduleCreate,
   publicBookingGroupEventsRescheduleCreate,
 } from '@/client/sdk.gen';
-import type { BookingCodeReschedule, CalendarEvent } from '@/client';
+import type {
+  BookingCodeReschedule,
+  CalendarEventWithManagementCodes,
+} from '@/client';
 import { publicBookingClient } from '@/lib/booking-links/public-client';
 import {
   parseWriteFailure,
@@ -50,7 +59,7 @@ export interface PublicRescheduleParams {
 
 export function usePublicReschedule() {
   const rescheduleMutation = useMutation<
-    CalendarEvent,
+    CalendarEventWithManagementCodes,
     PublicWriteFailureError,
     PublicRescheduleParams
   >({
@@ -58,6 +67,7 @@ export function usePublicReschedule() {
     // risk re-hitting a single-use, now-consumed code with a confusing
     // second error — fail once, same reasoning as `usePublicBookEvent`.
     retry: false,
+    gcTime: 0,
     mutationFn: async ({ code, target, body }) => {
       const { data, error, response } =
         target === 'group'
@@ -85,7 +95,8 @@ export function usePublicReschedule() {
 
   const reschedule = async (
     params: PublicRescheduleParams
-  ): Promise<CalendarEvent> => rescheduleMutation.mutateAsync(params);
+  ): Promise<CalendarEventWithManagementCodes> =>
+    rescheduleMutation.mutateAsync(params);
 
   return { reschedule, rescheduleMutation };
 }

@@ -14,11 +14,25 @@
  * `SLOT_UNAVAILABLE` is retryable — it does not consume the code, so the
  * caller (the booking flow) should send the attendee back to slot selection
  * and refetch the slot list. Every other `error_code` is terminal.
+ *
+ * SECURITY (Phase 5): the `201` now carries `management.reschedule_code` /
+ * `management.cancel_code` — plaintext, single-use, self-service codes
+ * (`CalendarEventWithManagementCodes`). Same no-persistence discipline as
+ * `useCreateBookingCode`: `gcTime: 0` keeps that response out of the
+ * TanStack *mutation* cache beyond the last attached observer, rather than
+ * lingering for the app's default 5-minute mutation `gcTime` — see that
+ * hook's doc comment for the full mechanics (`MutationObserver.reset()` only
+ * schedules collection; `gcTime: 0` is what makes it immediate). The caller
+ * (`public-booking-flow.tsx`) additionally holds the result in local
+ * component state only, never re-derives it from `bookEventMutation.data`.
  */
 
 import { useMutation } from '@tanstack/react-query';
 import { publicBookingCalendarEventsCreate } from '@/client/sdk.gen';
-import type { BookingCodeEventCreate, CalendarEvent } from '@/client';
+import type {
+  BookingCodeEventCreate,
+  CalendarEventWithManagementCodes,
+} from '@/client';
 import { publicBookingClient } from '@/lib/booking-links/public-client';
 import {
   parseWriteFailure,
@@ -33,7 +47,7 @@ export interface PublicBookEventParams {
 
 export function usePublicBookEvent() {
   const bookEventMutation = useMutation<
-    CalendarEvent,
+    CalendarEventWithManagementCodes,
     PublicWriteFailureError,
     PublicBookEventParams
   >({
@@ -42,6 +56,9 @@ export function usePublicBookEvent() {
     // let the caller decide (SLOT_UNAVAILABLE sends the attendee back to
     // slot selection deliberately, not via an automatic retry here).
     retry: false,
+    // See the SECURITY note above — keeps the plaintext management codes out
+    // of the mutation cache beyond the last attached observer.
+    gcTime: 0,
     mutationFn: async ({ code, body }) => {
       const { data, error, response } = await publicBookingCalendarEventsCreate(
         {
@@ -64,7 +81,8 @@ export function usePublicBookEvent() {
 
   const bookEvent = async (
     params: PublicBookEventParams
-  ): Promise<CalendarEvent> => bookEventMutation.mutateAsync(params);
+  ): Promise<CalendarEventWithManagementCodes> =>
+    bookEventMutation.mutateAsync(params);
 
   return { bookEvent, bookEventMutation };
 }

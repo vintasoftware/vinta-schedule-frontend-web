@@ -58,7 +58,10 @@ import {
   Text,
   VStack,
 } from 'vinta-schedule-design-system/layout';
-import type { BookableSlotProposal, CalendarEvent } from '@/client';
+import type {
+  BookableSlotProposal,
+  CalendarEventWithManagementCodes,
+} from '@/client';
 import { DateTime, zonedFormat } from '@/lib/datetime/index';
 import { usePublicBookableSlots } from '@/hooks/booking-codes/use-public-bookable-slots';
 import { usePublicGroupBookableSlots } from '@/hooks/booking-codes/use-public-group-booking';
@@ -84,9 +87,16 @@ type FlowStep = 'select-slot' | 'confirm-slot' | 'confirmed' | 'terminal-error';
 export interface RescheduleFlowProps {
   /** Plaintext booking code from the URL. */
   code: string;
+  /**
+   * Active organization slug, when known — threaded down from the branded
+   * `/o/[slug]/book/[code]/reschedule` page so the fresh confirmation this
+   * flow renders can build branded self-service links. `undefined` on the
+   * bare `/book/[code]/reschedule` route.
+   */
+  slug?: string;
 }
 
-export function RescheduleFlow({ code }: RescheduleFlowProps) {
+export function RescheduleFlow({ code, slug }: RescheduleFlowProps) {
   const searchParams = useSearchParams();
   const target = resolveBookingLinkTarget(searchParams);
 
@@ -119,7 +129,7 @@ export function RescheduleFlow({ code }: RescheduleFlowProps) {
   const [selectedSlot, setSelectedSlot] =
     React.useState<BookableSlotProposal | null>(null);
   const [confirmedEvent, setConfirmedEvent] =
-    React.useState<CalendarEvent | null>(null);
+    React.useState<CalendarEventWithManagementCodes | null>(null);
   const [terminalFailure, setTerminalFailure] =
     React.useState<PublicWriteFailure | null>(null);
   const [slotUnavailableNotice, setSlotUnavailableNotice] =
@@ -149,6 +159,14 @@ export function RescheduleFlow({ code }: RescheduleFlowProps) {
   const slotsQuery = target === 'group' ? groupSlotsQuery : calendarSlotsQuery;
 
   const { reschedule, rescheduleMutation } = usePublicReschedule();
+
+  // Belt-and-suspenders alongside `usePublicReschedule`'s `gcTime: 0` — see
+  // `public-booking-flow.tsx`'s identical cleanup for why: this clears the
+  // mutation's cached response (carrying a FRESH pair of plaintext
+  // self-service codes) as soon as this flow unmounts, rather than relying
+  // solely on the deferred 0ms-timer collection `gcTime: 0` schedules.
+  const resetRescheduleMutation = rescheduleMutation.reset;
+  React.useEffect(() => resetRescheduleMutation, [resetRescheduleMutation]);
 
   const handleSelectSlot = (proposal: BookableSlotProposal) => {
     setSlotUnavailableNotice(false);
@@ -264,7 +282,19 @@ export function RescheduleFlow({ code }: RescheduleFlowProps) {
   }
 
   if (step === 'confirmed' && confirmedEvent) {
-    return <BookingConfirmation event={confirmedEvent} timezone={timezone} />;
+    // The FRESH pair the reschedule write just re-issued renders through the
+    // SAME scope as this flow's own URL (`target`) — the new reschedule
+    // link must keep routing to the same one of the two un-collapsed
+    // reschedule endpoints, never guessed or switched (see the module doc
+    // comment's RULE 1).
+    return (
+      <BookingConfirmation
+        event={confirmedEvent}
+        timezone={timezone}
+        scope={target === 'group' ? { kind: 'group' } : { kind: 'calendar' }}
+        slug={slug}
+      />
+    );
   }
 
   return (

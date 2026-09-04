@@ -121,6 +121,20 @@ function eventOk(
   >;
 }
 
+/** A `201` carrying Phase 5's `management` object. */
+function eventOkWithManagement(
+  event: CalendarEvent,
+  managementCodes: { reschedule_code: string; cancel_code: string }
+): Awaited<ReturnType<typeof publicBookingCalendarGroupsEventsCreate>> {
+  const withManagement = { ...event, management: managementCodes };
+  return {
+    data: withManagement,
+    response: new Response(JSON.stringify(withManagement), { status: 201 }),
+  } as unknown as Awaited<
+    ReturnType<typeof publicBookingCalendarGroupsEventsCreate>
+  >;
+}
+
 function eventFailed(
   status: number,
   errorCode: string,
@@ -183,14 +197,19 @@ const RANGE_AVAILABILITY: CalendarGroupRangeAvailability = {
   ],
 };
 
-function renderFlow(code = 'secret-code') {
+function renderFlow(code = 'secret-code', slug?: string) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return render(<PublicGroupBookingFlow code={code} />, { wrapper: Wrapper });
+  return {
+    ...render(<PublicGroupBookingFlow code={code} slug={slug} />, {
+      wrapper: Wrapper,
+    }),
+    queryClient,
+  };
 }
 
 async function pickProposalAndCompleteSlots(
@@ -441,4 +460,111 @@ describe('PublicGroupBookingFlow', () => {
       expect(screen.queryByRole('radio')).not.toBeInTheDocument();
     }
   );
+
+  // ---------------------------------------------------------------------
+  // Phase 5 — self-service management links on the confirmation
+  // ---------------------------------------------------------------------
+
+  it("renders working, group-scoped (no duration) reschedule and cancel links from the write's management object", async () => {
+    const user = userEvent.setup();
+    vi.mocked(
+      publicBookingCalendarGroupBookableSlotsList
+    ).mockResolvedValueOnce(proposalsOk([PROPOSAL]));
+    vi.mocked(
+      publicBookingCalendarGroupAvailabilityCreate
+    ).mockResolvedValueOnce(availabilityOk(RANGE_AVAILABILITY));
+    vi.mocked(publicBookingCalendarGroupsEventsCreate).mockResolvedValueOnce(
+      eventOkWithManagement(makeEvent(), {
+        reschedule_code: 'fresh-group-reschedule-code',
+        cancel_code: 'fresh-group-cancel-code',
+      })
+    );
+
+    renderFlow('secret-code', 'acme');
+
+    await pickProposalAndCompleteSlots(user);
+    await fillAndSubmitAttendeeForm(user);
+
+    const rescheduleInput = (await screen.findByTestId(
+      'reschedule-link-input'
+    )) as HTMLInputElement;
+    const cancelInput = screen.getByTestId(
+      'cancel-link-input'
+    ) as HTMLInputElement;
+
+    expect(rescheduleInput.value).toContain('fresh-group-reschedule-code');
+    expect(rescheduleInput.value).toContain('/o/acme/book/');
+    expect(rescheduleInput.value).toContain('target=group');
+    expect(rescheduleInput.value).not.toContain('duration=');
+    expect(cancelInput.value).toContain('fresh-group-cancel-code');
+  });
+
+  it('a 201 with no management object (an older backend) degrades to the plain confirmation, no crash', async () => {
+    const user = userEvent.setup();
+    vi.mocked(
+      publicBookingCalendarGroupBookableSlotsList
+    ).mockResolvedValueOnce(proposalsOk([PROPOSAL]));
+    vi.mocked(
+      publicBookingCalendarGroupAvailabilityCreate
+    ).mockResolvedValueOnce(availabilityOk(RANGE_AVAILABILITY));
+    vi.mocked(publicBookingCalendarGroupsEventsCreate).mockResolvedValueOnce(
+      eventOk(makeEvent())
+    );
+
+    renderFlow();
+
+    await pickProposalAndCompleteSlots(user);
+    await fillAndSubmitAttendeeForm(user);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('booking-confirmation')).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByTestId('booking-management-links')
+    ).not.toBeInTheDocument();
+  });
+
+  it('the plaintext management codes are gone from the mutation cache after unmount', async () => {
+    const user = userEvent.setup();
+    vi.mocked(
+      publicBookingCalendarGroupBookableSlotsList
+    ).mockResolvedValueOnce(proposalsOk([PROPOSAL]));
+    vi.mocked(
+      publicBookingCalendarGroupAvailabilityCreate
+    ).mockResolvedValueOnce(availabilityOk(RANGE_AVAILABILITY));
+    vi.mocked(publicBookingCalendarGroupsEventsCreate).mockResolvedValueOnce(
+      eventOkWithManagement(makeEvent(), {
+        reschedule_code: 'group-gone-after-unmount-reschedule',
+        cancel_code: 'group-gone-after-unmount-cancel',
+      })
+    );
+
+    const { unmount, queryClient } = renderFlow();
+
+    await pickProposalAndCompleteSlots(user);
+    await fillAndSubmitAttendeeForm(user);
+
+    await screen.findByTestId('reschedule-link-input');
+
+    unmount();
+
+    // See `public-booking-flow.test.tsx`'s identical regression test for why
+    // this must be awaited (`gcTime: 0` still removes on a 0ms timer).
+    await waitFor(() => {
+      expect(
+        queryClient
+          .getMutationCache()
+          .getAll()
+          .every(
+            (m) =>
+              !JSON.stringify(m.state.data ?? '').includes(
+                'group-gone-after-unmount-reschedule'
+              ) &&
+              !JSON.stringify(m.state.data ?? '').includes(
+                'group-gone-after-unmount-cancel'
+              )
+          )
+      ).toBe(true);
+    });
+  });
 });

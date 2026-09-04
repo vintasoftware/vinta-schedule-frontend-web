@@ -102,6 +102,19 @@ function eventOk(
   } as unknown as Awaited<ReturnType<typeof publicBookingCalendarEventsCreate>>;
 }
 
+/** A `201` carrying Phase 5's `management` object — fresh, plaintext,
+ * single-use `reschedule_code` / `cancel_code`. */
+function eventOkWithManagement(
+  event: CalendarEvent,
+  managementCodes: { reschedule_code: string; cancel_code: string }
+): Awaited<ReturnType<typeof publicBookingCalendarEventsCreate>> {
+  const withManagement = { ...event, management: managementCodes };
+  return {
+    data: withManagement,
+    response: new Response(JSON.stringify(withManagement), { status: 201 }),
+  } as unknown as Awaited<ReturnType<typeof publicBookingCalendarEventsCreate>>;
+}
+
 function eventFailed(
   status: number,
   errorCode: string,
@@ -144,14 +157,19 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
   } as CalendarEvent;
 }
 
-function renderFlow(code = 'secret-code') {
+function renderFlow(code = 'secret-code', slug?: string) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return render(<PublicBookingFlow code={code} />, { wrapper: Wrapper });
+  return {
+    ...render(<PublicBookingFlow code={code} slug={slug} />, {
+      wrapper: Wrapper,
+    }),
+    queryClient,
+  };
 }
 
 /** Fills the attendee form's required email and submits it. */
@@ -434,5 +452,124 @@ describe('PublicBookingFlow', () => {
         query: expect.objectContaining({ duration_seconds: 1800 }),
       })
     );
+  });
+
+  // ---------------------------------------------------------------------
+  // Phase 5 — self-service management links on the confirmation
+  // ---------------------------------------------------------------------
+
+  it("renders working, calendar-scoped reschedule and cancel links from the write's management object", async () => {
+    const user = userEvent.setup();
+    vi.mocked(publicBookingCalendarBookableSlotsList).mockResolvedValueOnce(
+      slotsOk([
+        {
+          start_time: '2026-03-02T10:00:00.000Z',
+          end_time: '2026-03-02T10:30:00.000Z',
+        },
+      ])
+    );
+    vi.mocked(publicBookingCalendarEventsCreate).mockResolvedValueOnce(
+      eventOkWithManagement(makeEvent(), {
+        reschedule_code: 'fresh-reschedule-code',
+        cancel_code: 'fresh-cancel-code',
+      })
+    );
+
+    renderFlow('secret-code', 'acme');
+
+    await selectFirstSlot(user);
+    await fillAndSubmitAttendeeForm(user);
+
+    const rescheduleInput = (await screen.findByTestId(
+      'reschedule-link-input'
+    )) as HTMLInputElement;
+    const cancelInput = screen.getByTestId(
+      'cancel-link-input'
+    ) as HTMLInputElement;
+
+    expect(rescheduleInput.value).toContain('fresh-reschedule-code');
+    expect(rescheduleInput.value).toContain('/o/acme/book/');
+    expect(rescheduleInput.value).toContain('target=calendar');
+    expect(cancelInput.value).toContain('fresh-cancel-code');
+    expect(cancelInput.value).toContain('/o/acme/book/');
+  });
+
+  it('a 201 with no management object (an older backend) degrades to the plain confirmation, no crash', async () => {
+    const user = userEvent.setup();
+    vi.mocked(publicBookingCalendarBookableSlotsList).mockResolvedValueOnce(
+      slotsOk([
+        {
+          start_time: '2026-03-02T10:00:00.000Z',
+          end_time: '2026-03-02T10:30:00.000Z',
+        },
+      ])
+    );
+    // Plain CalendarEvent — no `management` key at all.
+    vi.mocked(publicBookingCalendarEventsCreate).mockResolvedValueOnce(
+      eventOk(makeEvent())
+    );
+
+    renderFlow();
+
+    await selectFirstSlot(user);
+    await fillAndSubmitAttendeeForm(user);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('booking-confirmation')).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByTestId('booking-management-links')
+    ).not.toBeInTheDocument();
+  });
+
+  it('the plaintext management codes do not outlive the confirmation: gone from the mutation cache after unmount, and never passed to router.push', async () => {
+    const user = userEvent.setup();
+    vi.mocked(publicBookingCalendarBookableSlotsList).mockResolvedValueOnce(
+      slotsOk([
+        {
+          start_time: '2026-03-02T10:00:00.000Z',
+          end_time: '2026-03-02T10:30:00.000Z',
+        },
+      ])
+    );
+    vi.mocked(publicBookingCalendarEventsCreate).mockResolvedValueOnce(
+      eventOkWithManagement(makeEvent(), {
+        reschedule_code: 'gone-after-unmount-reschedule',
+        cancel_code: 'gone-after-unmount-cancel',
+      })
+    );
+
+    const { unmount, queryClient } = renderFlow();
+
+    await selectFirstSlot(user);
+    await fillAndSubmitAttendeeForm(user);
+
+    const rescheduleInput = (await screen.findByTestId(
+      'reschedule-link-input'
+    )) as HTMLInputElement;
+    expect(rescheduleInput.value).toContain('gone-after-unmount-reschedule');
+
+    unmount();
+
+    // `gcTime: 0` on `usePublicBookEvent` (see its doc comment) still
+    // schedules `optionalRemove()` on a 0ms timer rather than removing
+    // synchronously, so this must be awaited — same convention as
+    // `mint-booking-link-dialog.test.tsx`'s identical regression test.
+    await waitFor(() => {
+      expect(
+        queryClient
+          .getMutationCache()
+          .getAll()
+          .every(
+            (m) =>
+              !JSON.stringify(m.state.data ?? '').includes(
+                'gone-after-unmount-reschedule'
+              ) &&
+              !JSON.stringify(m.state.data ?? '').includes(
+                'gone-after-unmount-cancel'
+              )
+          )
+      ).toBe(true);
+    });
   });
 });
