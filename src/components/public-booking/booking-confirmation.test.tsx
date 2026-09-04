@@ -10,12 +10,18 @@
  * - `management` absent (an older backend's `201`) degrades to the base
  *   confirmation with NO self-service section — never crashes.
  * - Copying a link writes the FULL url (including the code) to the
- *   clipboard.
+ *   clipboard, flips the copy icon, and resets it after 2s; a rejected
+ *   clipboard write renders an inline failure message instead of failing
+ *   silently.
  * - Neither code ever reaches `console.*` — the phase's named leak-guard.
+ * - Both read-only link inputs carry a distinct accessible name.
+ * - A calendar-scoped confirmation whose confirmed span cannot yield a
+ *   duration suppresses the reschedule link rather than offering a link
+ *   `reschedule-flow.tsx` would refuse to render.
  */
 
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import type { CalendarEvent, CalendarEventWithManagementCodes } from '@/client';
 import {
@@ -92,6 +98,19 @@ describe('extractManagementCodes', () => {
       management: { reschedule_code: 123, cancel_code: null },
     } as unknown as CalendarEventWithManagementCodes;
     expect(extractManagementCodes(event)).toBeNull();
+  });
+
+  it('returns null when either code is an empty string', () => {
+    const emptyReschedule = {
+      ...makeEvent(),
+      management: { reschedule_code: '', cancel_code: 'cancel-code' },
+    } as unknown as CalendarEventWithManagementCodes;
+    const emptyCancel = {
+      ...makeEvent(),
+      management: { reschedule_code: 'reschedule-code', cancel_code: '' },
+    } as unknown as CalendarEventWithManagementCodes;
+    expect(extractManagementCodes(emptyReschedule)).toBeNull();
+    expect(extractManagementCodes(emptyCancel)).toBeNull();
   });
 });
 
@@ -179,6 +198,54 @@ describe('BookingConfirmation', () => {
     expect(cancelInput.value).toContain('/o/acme/book/');
   });
 
+  it('gives both read-only link inputs a distinct accessible name', () => {
+    const event = makeEventWithManagement();
+    render(
+      <BookingConfirmation
+        event={event}
+        timezone='America/New_York'
+        scope={{ kind: 'calendar' }}
+      />
+    );
+
+    expect(screen.getByRole('textbox', { name: 'Reschedule link' })).toBe(
+      screen.getByTestId('reschedule-link-input')
+    );
+    expect(screen.getByRole('textbox', { name: 'Cancel link' })).toBe(
+      screen.getByTestId('cancel-link-input')
+    );
+  });
+
+  it('suppresses the reschedule link (but keeps the cancel link) when the confirmed span cannot yield a duration', () => {
+    // end_time <= start_time — a degenerate span `eventDurationSeconds`
+    // returns `undefined` for. A calendar-scoped reschedule link built with
+    // no `?duration=` is a link `reschedule-flow.tsx` refuses to render, so
+    // the confirmation must not offer it as if it worked.
+    const event = makeEventWithManagement({
+      start_time: '2026-03-02T15:00:00.000Z',
+      end_time: '2026-03-02T15:00:00.000Z',
+    });
+    render(
+      <BookingConfirmation
+        event={event}
+        timezone='America/New_York'
+        scope={{ kind: 'calendar' }}
+      />
+    );
+
+    expect(
+      screen.queryByTestId('reschedule-link-input')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('reschedule-link-unavailable')
+    ).toBeInTheDocument();
+    // The cancel link never needs a duration, so it still renders normally.
+    const cancelInput = screen.getByTestId(
+      'cancel-link-input'
+    ) as HTMLInputElement;
+    expect(cancelInput.value).toContain('plaintext-cancel-code');
+  });
+
   it("states plainly when the links expire — the event's own end time", () => {
     const event = makeEventWithManagement();
     render(
@@ -194,8 +261,7 @@ describe('BookingConfirmation', () => {
     );
   });
 
-  it('copying a link writes the FULL url, including the code, to the clipboard', async () => {
-    const user = userEvent.setup({ writeToClipboard: false });
+  it('copying a link writes the FULL url, including the code, to the clipboard, and flips the icon Copy -> CheckCheck -> Copy after 2s', async () => {
     const writeTextSpy = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText: writeTextSpy },
@@ -215,9 +281,62 @@ describe('BookingConfirmation', () => {
     const rescheduleInput = screen.getByTestId(
       'reschedule-link-input'
     ) as HTMLInputElement;
+    const copyButton = screen.getByTestId('copy-reschedule-link-button');
+    expect(copyButton.querySelector('.lucide-copy')).toBeInTheDocument();
+
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        fireEvent.click(copyButton);
+        // Flush the awaited `navigator.clipboard.writeText` microtask so
+        // `setCopied(true)` (and the `setTimeout` it schedules) has run.
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(writeTextSpy).toHaveBeenCalledWith(rescheduleInput.value);
+      expect(
+        copyButton.querySelector('.lucide-check-check')
+      ).toBeInTheDocument();
+      expect(copyButton.querySelector('.lucide-copy')).not.toBeInTheDocument();
+
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(copyButton.querySelector('.lucide-copy')).toBeInTheDocument();
+      expect(
+        copyButton.querySelector('.lucide-check-check')
+      ).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('renders an inline failure message when the clipboard write rejects, without touching the other link', async () => {
+    const user = userEvent.setup();
+    const writeTextSpy = vi.fn().mockRejectedValue(new Error('denied'));
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: writeTextSpy },
+      writable: true,
+      configurable: true,
+    });
+
+    const event = makeEventWithManagement();
+    render(
+      <BookingConfirmation
+        event={event}
+        timezone='America/New_York'
+        scope={{ kind: 'calendar' }}
+      />
+    );
+
     await user.click(screen.getByTestId('copy-reschedule-link-button'));
 
-    expect(writeTextSpy).toHaveBeenCalledWith(rescheduleInput.value);
+    expect(
+      await screen.findByTestId('reschedule-copy-failed')
+    ).toHaveTextContent(/copy failed/i);
+    expect(screen.queryByTestId('cancel-copy-failed')).not.toBeInTheDocument();
   });
 
   it('never passes the plaintext codes to console.log/warn/error', async () => {

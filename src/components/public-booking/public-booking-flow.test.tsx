@@ -45,8 +45,11 @@ beforeAll(() => {
 // ---------------------------------------------------------------------------
 
 let currentSearch = new URLSearchParams({ duration: '1800' });
+const pushSpy = vi.fn();
+const replaceSpy = vi.fn();
 vi.mock('next/navigation', () => ({
   useSearchParams: () => currentSearch,
+  useRouter: () => ({ push: pushSpy, replace: replaceSpy }),
 }));
 
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
@@ -548,6 +551,21 @@ describe('PublicBookingFlow', () => {
       'reschedule-link-input'
     )) as HTMLInputElement;
     expect(rescheduleInput.value).toContain('gone-after-unmount-reschedule');
+
+    // Neither code was ever handed to `router.push` / `router.replace` —
+    // both spies come from the `next/navigation` mock above, so a real
+    // navigation call carrying either plaintext code would show up here.
+    const navigationCalls = [...pushSpy.mock.calls, ...replaceSpy.mock.calls];
+    expect(
+      navigationCalls.some((args) =>
+        JSON.stringify(args).includes('gone-after-unmount-reschedule')
+      )
+    ).toBe(false);
+    expect(
+      navigationCalls.some((args) =>
+        JSON.stringify(args).includes('gone-after-unmount-cancel')
+      )
+    ).toBe(false);
 
     unmount();
 

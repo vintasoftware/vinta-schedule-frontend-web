@@ -83,7 +83,9 @@ export function extractManagementCodes(
     'management' in event &&
     event.management != null &&
     typeof event.management.reschedule_code === 'string' &&
-    typeof event.management.cancel_code === 'string'
+    event.management.reschedule_code.length > 0 &&
+    typeof event.management.cancel_code === 'string' &&
+    event.management.cancel_code.length > 0
   ) {
     return event.management;
   }
@@ -139,9 +141,15 @@ interface ManagementLinkRowProps {
 }
 
 /** One copyable self-service link row — reschedule or cancel. Each instance
- * owns its own "copied" indicator so copying one never affects the other. */
+ * owns its own "copied" indicator so copying one never affects the other.
+ *
+ * The `<Input readOnly>` — rather than an `<a>` — is deliberate: an anchor
+ * click would push the URL (carrying the plaintext code) into browser
+ * history, a leak vector for a single-use credential. Read-only + copy is
+ * the pattern that keeps the code out of history entirely. */
 function ManagementLinkRow({ label, url, testId }: ManagementLinkRowProps) {
   const [copied, setCopied] = React.useState(false);
+  const [copyFailed, setCopyFailed] = React.useState(false);
   const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -158,12 +166,15 @@ function ManagementLinkRow({ label, url, testId }: ManagementLinkRowProps) {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(url);
+      setCopyFailed(false);
       setCopied(true);
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Best-effort — the link is still visible and selectable in the input
-      // even if the clipboard write fails. This app mounts no `<Toaster/>`,
-      // so a toast would render nothing; the input itself is the fallback.
+      // The link is still visible and selectable in the input even if the
+      // clipboard write fails — surfaced inline below since this app mounts
+      // no `<Toaster/>` and a credential that cannot be re-issued must not
+      // fail silently.
+      setCopyFailed(true);
     }
   };
 
@@ -177,6 +188,7 @@ function ManagementLinkRow({ label, url, testId }: ManagementLinkRowProps) {
           readOnly
           value={url}
           className='font-mono text-sm'
+          aria-label={`${label} link`}
           data-testid={`${testId}-link-input`}
         />
         <Button
@@ -190,6 +202,15 @@ function ManagementLinkRow({ label, url, testId }: ManagementLinkRowProps) {
           {copied ? <CheckCheck /> : <Copy />}
         </Button>
       </HStack>
+      {copyFailed ? (
+        <Text
+          size='sm'
+          color='destructive'
+          data-testid={`${testId}-copy-failed`}
+        >
+          Copy failed — select the link above and copy it manually.
+        </Text>
+      ) : null}
     </VStack>
   );
 }
@@ -207,19 +228,32 @@ export function BookingConfirmation({
   // reschedule endpoint (see build-url.ts's "no probing" note). A
   // calendar-scoped link's advisory duration is recomputed from the
   // CONFIRMED event's own span, never from `scope.durationSeconds`.
+  const calendarDurationSeconds =
+    scope.kind === 'calendar' ? eventDurationSeconds(event) : undefined;
   const rescheduleScope: BookingLinkUrlScope =
     scope.kind === 'calendar'
-      ? { kind: 'calendar', durationSeconds: eventDurationSeconds(event) }
+      ? { kind: 'calendar', durationSeconds: calendarDurationSeconds }
       : scope;
 
-  const rescheduleUrl = management
-    ? buildBookingLinkUrl({
-        code: management.reschedule_code,
-        purpose: 'reschedule',
-        slug,
-        scope: rescheduleScope,
-      })
-    : null;
+  // A calendar-scoped reschedule link with no derivable duration is a link
+  // `reschedule-flow.tsx` will refuse to render ("missing a valid
+  // duration") — never build/show one in that case; the cancel link (which
+  // never needs a duration) is unaffected. A degenerate confirmed span
+  // (`end_time <= start_time`) is the only way this happens, and is itself
+  // a data anomaly worth hiding the reschedule offer for, not surfacing a
+  // link known to be broken.
+  const canBuildRescheduleLink =
+    scope.kind === 'group' || calendarDurationSeconds !== undefined;
+
+  const rescheduleUrl =
+    management && canBuildRescheduleLink
+      ? buildBookingLinkUrl({
+          code: management.reschedule_code,
+          purpose: 'reschedule',
+          slug,
+          scope: rescheduleScope,
+        })
+      : null;
 
   const cancelUrl = management
     ? buildBookingLinkUrl({
@@ -260,7 +294,7 @@ export function BookingConfirmation({
         </CardContent>
       </Card>
 
-      {management && rescheduleUrl && cancelUrl ? (
+      {management && cancelUrl ? (
         <Card data-testid='booking-management-links'>
           <CardHeader>
             <CardTitle>Manage your appointment</CardTitle>
@@ -277,11 +311,23 @@ export function BookingConfirmation({
                 )}
                 . Save them now — they will not be shown again.
               </Text>
-              <ManagementLinkRow
-                label='Reschedule'
-                url={rescheduleUrl}
-                testId='reschedule'
-              />
+              {rescheduleUrl ? (
+                <ManagementLinkRow
+                  label='Reschedule'
+                  url={rescheduleUrl}
+                  testId='reschedule'
+                />
+              ) : (
+                <Text
+                  size='sm'
+                  color='muted-foreground'
+                  data-testid='reschedule-link-unavailable'
+                >
+                  A reschedule link isn&apos;t available for this appointment.
+                  Use the cancel link below, or contact the organizer to
+                  reschedule.
+                </Text>
+              )}
               <ManagementLinkRow
                 label='Cancel'
                 url={cancelUrl}
