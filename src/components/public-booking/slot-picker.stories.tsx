@@ -12,11 +12,13 @@ const PROPOSALS: BookableSlotProposal[] = [
     start_time: '2026-03-02T16:00:00.000Z',
     end_time: '2026-03-02T16:30:00.000Z',
   },
-  // A pinned-duration proposal spanning 45 min — proves the picker renders
-  // each proposal's OWN length rather than a single assumed duration.
+  // A pinned-duration proposal spanning 45 min, on a DIFFERENT day — proves
+  // both that the picker renders each proposal's OWN length rather than a
+  // single assumed duration, and that only days with a proposal are
+  // selectable in the calendar.
   {
-    start_time: '2026-03-03T18:00:00.000Z',
-    end_time: '2026-03-03T18:45:00.000Z',
+    start_time: '2026-03-05T18:00:00.000Z',
+    end_time: '2026-03-05T18:45:00.000Z',
   },
 ];
 

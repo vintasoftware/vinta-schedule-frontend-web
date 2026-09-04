@@ -1,8 +1,17 @@
 'use client';
 
 /**
- * SlotPicker — renders `BookableSlotProposal[]` as a single-select list and
- * reports the chosen proposal back to the caller.
+ * SlotPicker — renders `BookableSlotProposal[]` as a month calendar (only
+ * days that actually have a proposal are selectable) plus a time list for
+ * the selected day, and reports the chosen proposal back to the caller.
+ *
+ * Replaces an earlier version that flattened every proposal into one long
+ * `RadioGroup` — at business hours and 30-minute granularity that was
+ * routinely ~200 rows in a single scroll, the first screen an external
+ * attendee sees. The day grid is the `Calendar` design-system atom (a
+ * `react-day-picker` wrapper); the time-of-day choice is still a
+ * `RadioGroup`, now scoped to one day's proposals instead of the whole
+ * search window.
  *
  * LOAD-BEARING: `proposalDurationMinutes` derives the displayed length from
  * the proposal's OWN `start_time`/`end_time`, never from a duration the
@@ -10,16 +19,19 @@
  * the request with no error (see the plan's "Read the duration off the
  * proposals, never off local state" guiding decision) — a picker that
  * echoed the requested duration back would misreport every pinned proposal.
- * This is the one function the flow-level regression test
- * (`public-booking-flow.test.tsx`) exercises directly.
+ * This is the one function the flow-level regression tests
+ * (`public-booking-flow.test.tsx`, `public-group-booking-flow.test.tsx`)
+ * exercise directly.
  */
 
+import * as React from 'react';
 import {
   RadioGroup,
   RadioGroupItem,
 } from 'vinta-schedule-design-system/ui/radio-group';
 import { Label } from 'vinta-schedule-design-system/ui/label';
 import { Skeleton } from 'vinta-schedule-design-system/ui/skeleton';
+import { Calendar } from 'vinta-schedule-design-system/ui/calendar';
 import { HStack, Text, VStack } from 'vinta-schedule-design-system/layout';
 import type { BookableSlotProposal } from '@/client';
 import { DateTime, zonedFormat } from '@/lib/datetime/index';
@@ -43,6 +55,37 @@ export function proposalDurationMinutes(
   if (!start.isValid || !end.isValid) return 0;
   const minutes = end.diff(start, 'minutes').minutes;
   return minutes > 0 ? Math.round(minutes) : 0;
+}
+
+/** The proposal's calendar day, as a `yyyy-MM-dd` key in `timezone` — the
+ * grouping key for the day grid. Two proposals on the same wall-clock day
+ * in `timezone` share a key even if their UTC dates differ. */
+function proposalDayKey(
+  proposal: BookableSlotProposal,
+  timezone: string
+): string | null {
+  const start = DateTime.fromISO(proposal.start_time, { zone: timezone });
+  return start.isValid ? start.toISODate() : null;
+}
+
+/**
+ * `yyyy-MM-dd` -> a plain local `Date` used ONLY as `react-day-picker`
+ * coordinate space (year/month/day matched via local getters, never
+ * `toISOString()`/UTC). The calendar never does real timezone math — the
+ * `timezone` prop's conversion already happened in `proposalDayKey`; from
+ * here on a day is just three integers.
+ */
+function dayKeyToDate(key: string): Date {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/** Inverse of `dayKeyToDate` — local getters only, see that function's note. */
+function dateToDayKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export interface SlotPickerProps {
@@ -79,55 +122,154 @@ export function SlotPicker({
     );
   }
 
-  const selectedKey = selectedSlot ? proposalKey(selectedSlot) : undefined;
+  // Grouped and keyed once per render — cheap for a two-week/one-month
+  // window's worth of proposals, and simpler than memoizing across a prop
+  // that changes on every refetch anyway.
+  const byDay = new Map<string, BookableSlotProposal[]>();
+  for (const proposal of proposals) {
+    const key = proposalDayKey(proposal, timezone);
+    if (!key) continue; // unparsable range — dropped rather than crashing the grid
+    const existing = byDay.get(key);
+    if (existing) existing.push(proposal);
+    else byDay.set(key, [proposal]);
+  }
+  for (const dayProposals of byDay.values()) {
+    dayProposals.sort((a, b) => a.start_time.localeCompare(b.start_time));
+  }
+  const availableDayKeys = Array.from(byDay.keys()).sort();
+
+  if (availableDayKeys.length === 0) {
+    // Every proposal had an unparsable range — degrade like the empty state
+    // rather than rendering a calendar with nothing selectable.
+    return (
+      <Text size='sm' color='muted-foreground' data-testid='slot-picker-empty'>
+        No bookable times are available in this window.
+      </Text>
+    );
+  }
 
   return (
-    <RadioGroup
-      value={selectedKey}
-      onValueChange={(key) => {
-        const match = proposals.find(
-          (proposal) => proposalKey(proposal) === key
-        );
-        if (match) onSelect(match);
-      }}
-      data-testid='slot-picker'
-    >
-      {proposals.map((proposal) => {
-        const key = proposalKey(proposal);
-        const minutes = proposalDurationMinutes(proposal);
-        return (
-          <HStack
-            key={key}
-            gap={3}
-            p={3}
-            border
-            radius='md'
-            align='center'
-            data-testid={`slot-option-${key}`}
-          >
-            <RadioGroupItem
-              value={key}
-              id={`slot-${key}`}
-              aria-label={`Book ${zonedFormat(proposal.start_time, timezone)}`}
-            />
-            <Label
-              htmlFor={`slot-${key}`}
-              className='flex flex-1 cursor-pointer flex-col'
-            >
-              <Text weight='medium'>
-                {zonedFormat(
-                  proposal.start_time,
-                  timezone,
-                  'MMM d, yyyy, h:mm a'
-                )}
-              </Text>
-              <Text size='sm' color='muted-foreground'>
-                {minutes} min
-              </Text>
-            </Label>
-          </HStack>
-        );
-      })}
-    </RadioGroup>
+    <SlotPickerCalendar
+      // Remounts (and re-derives its initial selected day) only when the SET
+      // of bookable days actually changes — e.g. a `SLOT_UNAVAILABLE` retry
+      // refetching an entirely different window. Untouched by a proposal
+      // list that reshuffles times within the same days.
+      key={availableDayKeys.join('|')}
+      byDay={byDay}
+      availableDayKeys={availableDayKeys}
+      timezone={timezone}
+      selectedSlot={selectedSlot}
+      onSelect={onSelect}
+    />
+  );
+}
+
+interface SlotPickerCalendarProps {
+  byDay: Map<string, BookableSlotProposal[]>;
+  availableDayKeys: string[];
+  timezone: string;
+  selectedSlot: BookableSlotProposal | null;
+  onSelect: (proposal: BookableSlotProposal) => void;
+}
+
+function SlotPickerCalendar({
+  byDay,
+  availableDayKeys,
+  timezone,
+  selectedSlot,
+  onSelect,
+}: SlotPickerCalendarProps) {
+  const availableDaySet = React.useMemo(
+    () => new Set(availableDayKeys),
+    [availableDayKeys]
+  );
+
+  const [selectedDay, setSelectedDay] = React.useState<string>(() => {
+    if (selectedSlot) {
+      const key = proposalDayKey(selectedSlot, timezone);
+      if (key && availableDaySet.has(key)) return key;
+    }
+    return availableDayKeys[0];
+  });
+
+  const dayProposals = byDay.get(selectedDay) ?? [];
+  const selectedKey = selectedSlot ? proposalKey(selectedSlot) : undefined;
+  const dayLabel = zonedFormat(
+    dayProposals[0]?.start_time,
+    timezone,
+    'MMM d, yyyy'
+  );
+
+  return (
+    <VStack gap={4} data-testid='slot-picker'>
+      <VStack gap={2}>
+        <Text size='sm' weight='medium' id='slot-picker-day-label'>
+          Choose a date
+        </Text>
+        <Calendar
+          mode='single'
+          aria-labelledby='slot-picker-day-label'
+          selected={dayKeyToDate(selectedDay)}
+          defaultMonth={dayKeyToDate(selectedDay)}
+          onSelect={(date) => {
+            if (!date) return;
+            const key = dateToDayKey(date);
+            if (availableDaySet.has(key)) setSelectedDay(key);
+          }}
+          disabled={(date) => !availableDaySet.has(dateToDayKey(date))}
+          data-testid='slot-picker-calendar'
+        />
+      </VStack>
+
+      <VStack gap={2}>
+        <Text size='sm' weight='medium' id='slot-picker-time-label'>
+          Available times for {dayLabel}
+        </Text>
+        <RadioGroup
+          value={selectedKey}
+          onValueChange={(key) => {
+            const match = dayProposals.find(
+              (proposal) => proposalKey(proposal) === key
+            );
+            if (match) onSelect(match);
+          }}
+          aria-labelledby='slot-picker-time-label'
+          data-testid='slot-picker-times'
+        >
+          {dayProposals.map((proposal) => {
+            const key = proposalKey(proposal);
+            const minutes = proposalDurationMinutes(proposal);
+            return (
+              <HStack
+                key={key}
+                gap={3}
+                p={3}
+                border
+                radius='md'
+                align='center'
+                data-testid={`slot-option-${key}`}
+              >
+                <RadioGroupItem
+                  value={key}
+                  id={`slot-${key}`}
+                  aria-label={`Book ${zonedFormat(proposal.start_time, timezone)}`}
+                />
+                <Label
+                  htmlFor={`slot-${key}`}
+                  className='flex flex-1 cursor-pointer flex-col'
+                >
+                  <Text weight='medium'>
+                    {zonedFormat(proposal.start_time, timezone, 'h:mm a')}
+                  </Text>
+                  <Text size='sm' color='muted-foreground'>
+                    {minutes} min
+                  </Text>
+                </Label>
+              </HStack>
+            );
+          })}
+        </RadioGroup>
+      </VStack>
+    </VStack>
   );
 }

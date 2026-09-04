@@ -65,9 +65,15 @@ import { AttendeeForm, type AttendeeFormValues } from './attendee-form';
 import { BookingConfirmation } from './booking-confirmation';
 import { LinkInvalid } from './link-invalid';
 
-/** How far ahead the slot search window looks — not specified by the plan;
- * a reasonable "next couple weeks" default for a picker UI. */
-const SEARCH_WINDOW_DAYS = 14;
+/**
+ * How far ahead the slot search window looks. Not specified by the plan.
+ * The picker now shows a month calendar (`slot-picker.tsx`) rather than a
+ * flat list, so a two-week window that can only ever light up half of a
+ * displayed month reads as broken — 30 days gives the grid roughly a full
+ * month's worth of bookable days, matching what an attendee expects to see
+ * when they land on a month view.
+ */
+const SEARCH_WINDOW_DAYS = 30;
 
 /**
  * `BookingCodeEventCreate.title` is required by the API, but nothing in this

@@ -85,8 +85,9 @@ import { GroupSlotSelection } from './group-slot-selection';
 import { terminalErrorCopy } from './public-booking-flow';
 
 /** How far ahead the whole-group proposal search window looks — matches
- * the single-calendar flow's default. */
-const SEARCH_WINDOW_DAYS = 14;
+ * the single-calendar flow's default; see that constant's comment in
+ * `public-booking-flow.tsx` for why 30 (a month grid, not a flat list). */
+const SEARCH_WINDOW_DAYS = 30;
 
 /**
  * No anonymous attendee titles their own group appointment either — same

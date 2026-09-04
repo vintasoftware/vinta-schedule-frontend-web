@@ -75,8 +75,9 @@ import { BookingConfirmation } from './booking-confirmation';
 import { LinkInvalid } from './link-invalid';
 import { terminalErrorCopy } from './public-booking-flow';
 
-/** Matches the book flows' default "next couple weeks" search window. */
-const SEARCH_WINDOW_DAYS = 14;
+/** Matches the book flows' default month-grid search window — see
+ * `public-booking-flow.tsx`'s `SEARCH_WINDOW_DAYS` comment. */
+const SEARCH_WINDOW_DAYS = 30;
 
 type FlowStep = 'select-slot' | 'confirm-slot' | 'confirmed' | 'terminal-error';
 
