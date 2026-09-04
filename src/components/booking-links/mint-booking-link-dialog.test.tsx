@@ -223,19 +223,40 @@ describe('MintBookingLinkDialog', () => {
     expect(urlInput.value).toContain('duration=1800');
   });
 
-  it('mints a calendar link with no ?duration= when the duration is left at 0', async () => {
+  it('blocks minting a calendar link with a zero duration and issues no mutation', async () => {
+    const user = userEvent.setup();
+
+    renderDialog(CALENDAR_TARGET);
+
+    const durationInput = screen.getByLabelText('Booking duration value');
+    await user.clear(durationInput);
+    await user.type(durationInput, '0');
+
+    await user.click(screen.getByTestId('create-booking-link-submit'));
+
+    expect(
+      await screen.findByText(/duration greater than zero/i)
+    ).toBeInTheDocument();
+    expect(bookingCodesCreate).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId('booking-link-url-input')
+    ).not.toBeInTheDocument();
+  });
+
+  it('defaults a calendar target to a working non-zero duration (30 minutes)', async () => {
     const user = userEvent.setup();
     vi.mocked(bookingCodesCreate).mockResolvedValueOnce(
       makeMintResponse(makeMintResult({ calendar: 5 }))
     );
 
     renderDialog(CALENDAR_TARGET);
+    // Duration control untouched — exercises the default value directly.
     await user.click(screen.getByTestId('create-booking-link-submit'));
 
     const urlInput = (await screen.findByTestId(
       'booking-link-url-input'
     )) as HTMLInputElement;
-    expect(urlInput.value).not.toContain('duration=');
+    expect(urlInput.value).toContain('duration=1800');
   });
 
   it('mints a group link and surfaces a URL with no ?duration=, regardless of anything a caller might supply', async () => {

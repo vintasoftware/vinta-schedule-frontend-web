@@ -147,6 +147,72 @@ describe('usePublicBookEvent', () => {
     }
   );
 
+  it('a thrown fetch (network failure) propagates without being misreported as a code failure', async () => {
+    // Unlike a resolved-with-error-shape response, a rejection from the sdk
+    // call itself bypasses `parseWriteFailure` entirely — the raw error
+    // propagates as-is. The important property this guards is the negative
+    // one: it must never surface disguised as a `PublicWriteFailureError`
+    // carrying an invented `error_code` (e.g. ALREADY_USED) — that would
+    // tell the attendee something specific and false about their code.
+    vi.mocked(publicBookingCalendarEventsCreate).mockRejectedValueOnce(
+      new TypeError('Failed to fetch')
+    );
+
+    const Wrapper = createWrapper();
+    const { result } = renderHook(() => usePublicBookEvent(), {
+      wrapper: Wrapper,
+    });
+
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.bookEvent({ code: 'secret-code', body });
+      } catch (err) {
+        caught = err;
+      }
+    });
+
+    expect(caught).not.toBeInstanceOf(PublicWriteFailureError);
+    expect(caught).toBeInstanceOf(TypeError);
+  });
+
+  it('a non-JSON (malformed) error body maps to a null error_code, not a fabricated one', async () => {
+    // `error` is a plain string here, not the `{ error_code, detail }`
+    // shape the backend documents for writes — `parseWriteFailure` must
+    // degrade to `errorCode: null` rather than guessing.
+    const rawTextBody = 'Internal Server Error';
+    vi.mocked(publicBookingCalendarEventsCreate).mockResolvedValueOnce({
+      data: undefined,
+      error: rawTextBody,
+      response: new Response(rawTextBody, {
+        status: 500,
+        statusText: 'Internal Server Error',
+      }),
+    } as unknown as Awaited<
+      ReturnType<typeof publicBookingCalendarEventsCreate>
+    >);
+
+    const Wrapper = createWrapper();
+    const { result } = renderHook(() => usePublicBookEvent(), {
+      wrapper: Wrapper,
+    });
+
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.bookEvent({ code: 'secret-code', body });
+      } catch (err) {
+        caught = err;
+      }
+    });
+
+    expect(caught).toBeInstanceOf(PublicWriteFailureError);
+    const failure = (caught as PublicWriteFailureError).failure;
+    expect(failure.errorCode).toBeNull();
+    expect(failure.isRetryable).toBe(false);
+    expect(failure.detail).toBe('Internal Server Error');
+  });
+
   it('ALREADY_USED and EXPIRED are distinct failures', async () => {
     const alreadyUsedBody = {
       error_code: 'ALREADY_USED',

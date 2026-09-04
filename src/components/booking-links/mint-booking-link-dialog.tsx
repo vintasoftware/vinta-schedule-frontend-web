@@ -90,7 +90,10 @@ import {
   durationFieldSchema,
   ZERO_DURATION,
 } from '@/components/booking-policies/rule-fields';
-import { durationToSeconds } from '@/components/booking-policies/duration';
+import {
+  durationToSeconds,
+  type DurationValue,
+} from '@/components/booking-policies/duration';
 
 export type MintBookingLinkTarget =
   | { kind: 'calendar'; id: number; name: string }
@@ -107,7 +110,7 @@ export interface MintBookingLinkDialogProps {
 // for "never expires"); duration is only read for a calendar target.
 // ---------------------------------------------------------------------------
 
-const mintFormSchema = z.object({
+const mintFormBaseSchema = z.object({
   expiresAt: z
     .string()
     .refine((value) => value === '' || !Number.isNaN(Date.parse(value)), {
@@ -119,12 +122,48 @@ const mintFormSchema = z.object({
   duration: durationFieldSchema,
 });
 
-type MintFormValues = z.infer<typeof mintFormSchema>;
+type MintFormValues = z.infer<typeof mintFormBaseSchema>;
 
-const DEFAULT_VALUES: MintFormValues = {
-  expiresAt: '',
-  duration: { ...ZERO_DURATION },
-};
+// A calendar link's `?duration=` is the only length the public booking read
+// (`PublicBookingCalendarBookableSlotsListData.query.duration_seconds`) will
+// ever see — that read documents the param as ALWAYS REQUIRED, with no
+// "unconstrained" mode. The shared rule-fields "0 = unconstrained" convention
+// (used for booking-policy guardrails) does not apply here: a calendar link
+// minted with a zero duration builds a URL with no `?duration=`, and
+// `public-booking-flow.tsx` correctly refuses to invent one, so every
+// recipient sees a permanently broken "missing a valid duration" link. Group
+// targets are unaffected — they have no duration control and their length is
+// server-pinned on `CalendarGroup`, never taken from this form.
+function buildMintFormSchema(targetKind: MintBookingLinkTarget['kind']) {
+  return mintFormBaseSchema.refine(
+    (values) =>
+      targetKind !== 'calendar' || durationToSeconds(values.duration) > 0,
+    {
+      message:
+        'Set a duration greater than zero — the public booking page requires a fixed length for a calendar link.',
+      path: ['duration'],
+    }
+  );
+}
+
+// A calendar target defaults to a working, non-zero length (30 minutes) so
+// generating a link without touching the duration control still produces a
+// usable link, rather than defaulting to the now-blocked zero. Group targets
+// keep the neutral `ZERO_DURATION` default — their duration control isn't
+// rendered and the value is never sent (see `onSubmit`).
+const DEFAULT_CALENDAR_DURATION: DurationValue = { value: 30, unit: 'minutes' };
+
+function defaultValuesForTarget(
+  targetKind: MintBookingLinkTarget['kind']
+): MintFormValues {
+  return {
+    expiresAt: '',
+    duration:
+      targetKind === 'calendar'
+        ? { ...DEFAULT_CALENDAR_DURATION }
+        : { ...ZERO_DURATION },
+  };
+}
 
 export function MintBookingLinkDialog({
   open,
@@ -142,9 +181,23 @@ export function MintBookingLinkDialog({
   const rawSlug = organization?.slug;
   const slug = typeof rawSlug === 'string' ? rawSlug : undefined;
 
+  // `target.kind` is fixed for the lifetime of one dialog instance (the
+  // calling tables mount/unmount this dialog per target rather than
+  // re-targeting it in place), but the schema and defaults are still
+  // computed from it via `useMemo` rather than as a module-level constant,
+  // since both branch on the calendar/group distinction.
+  const mintFormSchema = React.useMemo(
+    () => buildMintFormSchema(target.kind),
+    [target.kind]
+  );
+  const defaultValues = React.useMemo(
+    () => defaultValuesForTarget(target.kind),
+    [target.kind]
+  );
+
   const form = useForm<MintFormValues>({
     resolver: zodResolver(mintFormSchema),
-    defaultValues: DEFAULT_VALUES,
+    defaultValues,
   });
 
   // ---------------------------------------------------------------------------
@@ -172,7 +225,7 @@ export function MintBookingLinkDialog({
   const resetRevokeMutation = revokeBookingCodeMutation.reset;
   React.useEffect(() => {
     if (!open) {
-      form.reset(DEFAULT_VALUES);
+      form.reset(defaultValues);
       setMintedLink(null);
       setIsRevoked(false);
       setCopied(false);
@@ -183,7 +236,7 @@ export function MintBookingLinkDialog({
         copyTimeoutRef.current = null;
       }
     }
-  }, [open, form, resetCreateMutation, resetRevokeMutation]);
+  }, [open, form, defaultValues, resetCreateMutation, resetRevokeMutation]);
 
   // Unmount cleanup: `calendars-table.tsx` and `groups-table.tsx` mount this
   // dialog conditionally (`{mintTarget && <MintBookingLinkDialog .../>}`), so
@@ -423,7 +476,7 @@ export function MintBookingLinkDialog({
                       <DurationFormField
                         field={field}
                         label='Booking duration'
-                        description='Advisory only — anyone holding the link can change it in the URL. Set to 0 for no suggested length. To enforce a duration server-side, wrap this calendar in a one-slot group and set the group duration instead.'
+                        description='Advisory only — anyone holding the link can change it in the URL, but a value is required so the public booking page has a length to request. To enforce a duration server-side, wrap this calendar in a one-slot group and set the group duration instead.'
                       />
                     )}
                   />

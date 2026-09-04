@@ -352,6 +352,57 @@ describe('PublicBookingFlow', () => {
     expect(usedText).not.toEqual(expiredText);
   });
 
+  it('renders the missing-duration card and issues no slot read when ?duration= is absent', () => {
+    // No `?duration=` at all — a broken/hand-edited link, not a code-validity
+    // question, so it must never route through the read hook or LinkInvalid.
+    currentSearch = new URLSearchParams();
+
+    renderFlow();
+
+    expect(screen.getByTestId('invalid-duration')).toBeInTheDocument();
+    expect(
+      vi.mocked(publicBookingCalendarBookableSlotsList)
+    ).not.toHaveBeenCalled();
+  });
+
+  it('renders the missing-duration card for a malformed (non-numeric) ?duration=', () => {
+    currentSearch = new URLSearchParams({ duration: 'not-a-number' });
+
+    renderFlow();
+
+    expect(screen.getByTestId('invalid-duration')).toBeInTheDocument();
+    expect(
+      vi.mocked(publicBookingCalendarBookableSlotsList)
+    ).not.toHaveBeenCalled();
+  });
+
+  it('renders a generic load-error card (not link-invalid) on a non-403 slot-read failure', async () => {
+    vi.mocked(publicBookingCalendarBookableSlotsList).mockResolvedValueOnce(
+      slotsFailed(500, { detail: 'Internal server error' })
+    );
+
+    renderFlow();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('slots-load-error')).toBeInTheDocument()
+    );
+    expect(screen.queryByTestId('link-invalid')).not.toBeInTheDocument();
+
+    // The retry button refetches rather than leaving a dead end.
+    vi.mocked(publicBookingCalendarBookableSlotsList).mockResolvedValueOnce(
+      slotsOk([
+        {
+          start_time: '2026-03-02T10:00:00.000Z',
+          end_time: '2026-03-02T10:30:00.000Z',
+        },
+      ])
+    );
+    await userEvent.setup().click(screen.getByTestId('retry-load-slots'));
+    await waitFor(() =>
+      expect(screen.queryByTestId('slots-load-error')).not.toBeInTheDocument()
+    );
+  });
+
   it('REGRESSION: renders a proposal at ITS OWN length, not the requested ?duration=', async () => {
     // The URL asks for 1800s (30 min); the returned proposal spans 45 min —
     // simulating a server-side pin silently overriding the request. The

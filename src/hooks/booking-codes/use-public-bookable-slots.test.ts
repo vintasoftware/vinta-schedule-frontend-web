@@ -114,6 +114,80 @@ describe('usePublicBookableSlots', () => {
     );
   });
 
+  it('a thrown fetch (network failure) maps to the generic error state, never link-invalid', async () => {
+    // `hey-api`'s client wraps `fetch` in its own try/catch and normally
+    // resolves with `{ error, response: undefined }` rather than rejecting
+    // — but exercise the literal thrown case too, since nothing guarantees
+    // every `fetch` implementation behaves that way. Either way, `response`
+    // stays unset, so `usePublicBookableSlots` must map this to the generic
+    // 'error' state, never the opaque 'link-invalid' — misreporting a
+    // network blip as a dead link would tell the attendee their link is
+    // broken when it is not.
+    const mockFetch = vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    });
+    publicBookingClient.setConfig({
+      fetch: mockFetch as unknown as typeof fetch,
+      baseUrl: 'http://test.local',
+    });
+
+    const Wrapper = createWrapper();
+    const { result } = renderHook(
+      () =>
+        usePublicBookableSlots({
+          code: 'secret-code',
+          durationSeconds: 1800,
+          searchWindowStart: '2026-01-01T00:00:00Z',
+          searchWindowEnd: '2026-01-02T00:00:00Z',
+        }),
+      { wrapper: Wrapper }
+    );
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error).toBeInstanceOf(PublicReadFailureError);
+    const state = (result.current.error as PublicReadFailureError).state;
+    expect(state).not.toBe('link-invalid');
+    expect(state).toBe('error');
+  });
+
+  it('an ok response with an unparseable (non-JSON) body maps to the generic error state, not link-invalid', async () => {
+    // Simulates hey-api catching a `JSON.parse` failure on an otherwise-ok
+    // response: `response.ok` is true but no `data` comes through. The hook
+    // must not read this as success, and must not misreport it as a code
+    // failure either.
+    const mockFetch = vi.fn(
+      async () =>
+        new Response('not valid json{', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+    );
+    publicBookingClient.setConfig({
+      fetch: mockFetch as unknown as typeof fetch,
+      baseUrl: 'http://test.local',
+    });
+
+    const Wrapper = createWrapper();
+    const { result } = renderHook(
+      () =>
+        usePublicBookableSlots({
+          code: 'secret-code',
+          durationSeconds: 1800,
+          searchWindowStart: '2026-01-01T00:00:00Z',
+          searchWindowEnd: '2026-01-02T00:00:00Z',
+        }),
+      { wrapper: Wrapper }
+    );
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error).toBeInstanceOf(PublicReadFailureError);
+    const state = (result.current.error as PublicReadFailureError).state;
+    expect(state).not.toBe('link-invalid');
+    expect(state).toBe('error');
+  });
+
   it('does not fire when disabled', () => {
     const mockFetch = vi.fn();
     publicBookingClient.setConfig({

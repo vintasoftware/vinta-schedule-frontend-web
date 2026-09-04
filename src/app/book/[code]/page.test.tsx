@@ -33,9 +33,13 @@ vi.mock('@/components/public-booking/public-booking-flow', () => ({
   ),
 }));
 
-import BookPage from './page';
+import BookPage, { metadata } from './page';
 
 describe('BookPage (/book/[code])', () => {
+  it('is noindex — a booking code in the URL is a live credential', () => {
+    expect(metadata.robots).toMatchObject({ index: false, follow: false });
+  });
+
   it('renders default (vinta) branding — a bare code has no org to look up', async () => {
     render(await BookPage({ params: Promise.resolve({ code: 'abc123' }) }));
 

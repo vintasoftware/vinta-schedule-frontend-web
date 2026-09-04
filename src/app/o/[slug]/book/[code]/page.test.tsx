@@ -36,11 +36,15 @@ vi.mock('@/components/public-booking/public-booking-flow', () => ({
   ),
 }));
 
-import BrandedBookPage from './page';
+import BrandedBookPage, { metadata } from './page';
 
 describe('BrandedBookPage (/o/[slug]/book/[code])', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('is noindex — a booking code in the URL is a live credential', () => {
+    expect(metadata.robots).toMatchObject({ index: false, follow: false });
   });
 
   it('fetches branding by slug and passes it to the shell', async () => {

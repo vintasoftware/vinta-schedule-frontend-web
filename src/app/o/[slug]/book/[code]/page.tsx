@@ -1,7 +1,15 @@
 import { Suspense } from 'react';
 import { fetchBrandingForSlug } from '@/lib/branding-server';
+import { NO_INDEX_METADATA } from '@/lib/booking-links/no-index-metadata';
 import { PublicBookingShell } from '@/components/public-booking/public-booking-shell';
 import { PublicBookingFlow } from '@/components/public-booking/public-booking-flow';
+
+/**
+ * `noindex` — a booking code in the URL is a live credential. See the plan's
+ * Open Questions row "Should the public booking pages be indexable?"
+ * (resolved: no). Do not remove this thinking it is dead weight.
+ */
+export const metadata = NO_INDEX_METADATA;
 
 /**
  * Branded public booking route — `/o/[slug]/book/[code]`.

@@ -24,6 +24,13 @@ sb.mock(import('../src/hooks/calendar-groups/use-group-scoped-quota.ts'), {
 sb.mock(import('../src/hooks/organizations/use-current-organization.ts'), {
   spy: true,
 });
+// PublicBookingFlow's stories drive the read states (loading / loaded /
+// opaque link-invalid / generic load error) directly through this hook's
+// return value, same rationale as `useGroupScopedQuota` above — there is no
+// real `/public/booking/*` backend behind Storybook.
+sb.mock(import('../src/hooks/booking-codes/use-public-bookable-slots.ts'), {
+  spy: true,
+});
 
 import { patchFocus } from './patch-focus';
 import '../src/app/globals.css';
