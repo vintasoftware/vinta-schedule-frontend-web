@@ -167,9 +167,10 @@ export type MintBookingLinkTarget =
  * this state has no server-pinned length, so the group-scoped bookable-slots
  * read's REQUIRED `duration_seconds` placeholder
  * (`GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS` in
- * `public-group-booking-flow.tsx`) would stand as the real booked length
- * instead of being silently overridden — an anonymous attendee getting a
- * length nobody with authority chose. Refusing to mint here is the fix.
+ * `@/lib/booking-links/group-slots-duration-placeholder`) would stand as the
+ * real booked length instead of being silently overridden — an anonymous
+ * attendee getting a length nobody with authority chose. Refusing to mint
+ * here is the fix.
  *
  * Deliberately minimal: this only answers "is it unset or zero", not a full
  * `[DD] [HH:[MM:]]ss[.uuuuuu]` parse. Phase 6's

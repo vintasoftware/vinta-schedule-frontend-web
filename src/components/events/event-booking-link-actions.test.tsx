@@ -75,6 +75,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   };
 });
 
+import { toast } from 'sonner';
 import { calendarList, bookingCodesCreate } from '@/client/sdk.gen';
 import * as orgHook from '@/hooks/organizations/use-current-organization';
 import { EventAttendeesSheet } from './event-attendees-editor';
@@ -266,7 +267,7 @@ describe('EventAttendeesSheet — booking-link actions', () => {
       id: 1,
       slot: { id: 1, name: 'Slot', calendars: [], pools: [] },
       calendar: { id: 1, name: 'Room A' },
-      is_stale: false,
+      is_in_current_roster: true,
     } as unknown as CalendarEventGroupSelection;
     renderSheet(makeEventVM(makeRaw({ group_selections: [groupSelection] })));
 
@@ -288,7 +289,7 @@ describe('EventAttendeesSheet — booking-link actions', () => {
       id: 1,
       slot: { id: 1, name: 'Slot', calendars: [], pools: [] },
       calendar: { id: 1, name: 'Room A' },
-      is_stale: false,
+      is_in_current_roster: true,
     } as unknown as CalendarEventGroupSelection;
 
     renderSheet(makeEventVM(makeRaw({ group_selections: [groupSelection] })));
@@ -344,5 +345,35 @@ describe('EventAttendeesSheet — booking-link actions', () => {
     expect(urlInput.value).toContain('/cancel');
     expect(urlInput.value).not.toContain('target=');
     expect(urlInput.value).not.toContain('duration=');
+  });
+
+  // These buttons are deliberately ungated (see the doc comment above them
+  // in event-attendees-editor.tsx) on the strength of the server's own
+  // owner-or-org-admin check plus this inline surfacing of its rejection.
+  // If a future change to handleMutationError / applyServerFieldErrors ever
+  // demotes this to a toast-only failure, that reasoning stops holding.
+  it("an unauthorized mint's 403 is surfaced inline on the form, not just as a toast", async () => {
+    const user = userEvent.setup();
+    vi.mocked(bookingCodesCreate).mockRejectedValueOnce({
+      non_field_errors: [
+        'You do not have permission to mint a link for this event.',
+      ],
+    });
+
+    renderSheet(makeEventVM(makeRaw()));
+
+    await user.click(
+      screen.getByRole('button', { name: /get reschedule link/i })
+    );
+    await user.click(await screen.findByTestId('create-booking-link-submit'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'You do not have permission to mint a link for this event.'
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    // Still on the form view — no link was revealed.
+    expect(
+      screen.queryByTestId('booking-link-url-input')
+    ).not.toBeInTheDocument();
   });
 });

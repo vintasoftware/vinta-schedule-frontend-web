@@ -710,15 +710,39 @@ export function EventAttendeesSheet({
 
             {/* Public scheduling links (Phase 4) — mint a single-use link an
                 external attendee can use, with no account, to reschedule or
-                cancel THIS appointment. Distinct from "Reschedule event" /
-                "Cancel event" above, which act on the event directly as the
-                signed-in member. No extra permission gate here, matching
-                the ungated edit/reschedule/cancel actions above: visibility
-                of this event already implies eligibility (the events list
-                is scoped to calendars/groups the viewer can act on) — the
-                server re-checks the real owner-or-admin rule on mint
-                regardless (see can-mint-booking-link.ts's "UI affordance
-                only" doc comment). */}
+                cancel THIS appointment.
+
+                Deliberately ungated, unlike Phase 1's row actions on the
+                calendars and groups tables. This is NOT because visibility
+                here already implies eligibility: the events list is not
+                reliably scoped to what the viewer owns.
+                `CalendarEventVM.calendarId` (@/components/calendar/event-vm.ts)
+                is only populated when the view is filtered to a single
+                calendar, so in the default aggregate view it is `undefined`
+                for every event and the list can include events the viewer
+                does not own.
+
+                Minting a reschedule/cancel code is also a different risk
+                than "Edit event" / "Reschedule event" / "Cancel event"
+                above: those act on the event directly as the signed-in
+                member and are bounded by their session, while a minted
+                code is a standalone credential handed to a third party.
+
+                No gate is used anyway because: (1) the server enforces the
+                real owner-or-admin rule on mint and answers an unauthorized
+                attempt with a 403 that `handleMutationError(err, { form })`
+                in mint-booking-link-dialog.tsx surfaces inline on the form,
+                not just as a toast (see its test asserting this); and (2)
+                no gate is currently available that wouldn't produce false
+                negatives for a plain member who legitimately owns this
+                event's calendar — no per-event calendar-owner id is
+                reachable here (see the `isGroupEvent` comment above for why
+                `CalendarEvent` carries no `calendar` field of its own).
+
+                What would let this be gated properly: a reliable per-event
+                calendar-owner id on `CalendarEvent` / `CalendarEventVM`,
+                which would feed `canMintBookingLinkForCalendar`
+                (@/lib/booking-links/can-mint-booking-link.ts). */}
             <Button
               variant='outline'
               onClick={handleGetRescheduleLink}

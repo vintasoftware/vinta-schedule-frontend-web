@@ -16,8 +16,9 @@
  *    link carries no `?duration=` at all (see the plan's "Group duration
  *    comes from the server" guiding decision — `build-url.ts` makes a
  *    client-chosen duration for a group link unrepresentable, not just
- *    discouraged). `GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS` below
- *    exists ONLY to satisfy the bookable-slots read's required
+ *    discouraged). `GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS` (shared
+ *    from `@/lib/booking-links/group-slots-duration-placeholder`) exists
+ *    ONLY to satisfy the bookable-slots read's required
  *    `duration_seconds` param; when the group pins a duration (the normal
  *    case for any group a link was minted for) it's silently overridden and
  *    never reaches the UI. The rendered length always comes from the
@@ -75,6 +76,7 @@ import {
   type PublicWriteFailure,
 } from '@/lib/booking-links/errors';
 import type { SlotViewModel } from '@/lib/booking-links/group-selection';
+import { GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS } from '@/lib/booking-links/group-slots-duration-placeholder';
 import { SlotPicker, proposalDurationMinutes } from './slot-picker';
 import { AttendeeForm, type AttendeeFormValues } from './attendee-form';
 import { BookingConfirmation } from './booking-confirmation';
@@ -85,14 +87,6 @@ import { terminalErrorCopy } from './public-booking-flow';
 /** How far ahead the whole-group proposal search window looks — matches
  * the single-calendar flow's default. */
 const SEARCH_WINDOW_DAYS = 14;
-
-/**
- * See the module doc comment, rule 1: this never reaches the UI when the
- * group pins a duration (the expected case), and only stands as-is in the
- * out-of-scope case of a group link minted against a group with no pinned
- * duration at all.
- */
-const GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS = 1800;
 
 /**
  * No anonymous attendee titles their own group appointment either — same

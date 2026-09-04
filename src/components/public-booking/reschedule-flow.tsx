@@ -68,6 +68,7 @@ import {
   PublicWriteFailureError,
   type PublicWriteFailure,
 } from '@/lib/booking-links/errors';
+import { GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS } from '@/lib/booking-links/group-slots-duration-placeholder';
 import { resolveBookingLinkTarget } from './public-booking-entry';
 import { SlotPicker, proposalDurationMinutes } from './slot-picker';
 import { BookingConfirmation } from './booking-confirmation';
@@ -76,17 +77,6 @@ import { terminalErrorCopy } from './public-booking-flow';
 
 /** Matches the book flows' default "next couple weeks" search window. */
 const SEARCH_WINDOW_DAYS = 14;
-
-/**
- * A group-scoped reschedule link carries no `?duration=` at all — same "the
- * group's own duration is server-pinned, never client-chosen" rule as a
- * group `book` link (see `build-url.ts`'s "Group duration comes from the
- * server"). This placeholder only shapes the REQUEST when the group has no
- * pinned duration; it is silently overridden otherwise, and the picker
- * always renders each returned proposal's own length. Mirrors
- * `public-group-booking-flow.tsx`'s identical constant exactly.
- */
-const GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS = 1800;
 
 type FlowStep = 'select-slot' | 'confirm-slot' | 'confirmed' | 'terminal-error';
 
