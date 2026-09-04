@@ -729,11 +729,18 @@ export function EventAttendeesSheet({
                 code is a standalone credential handed to a third party.
 
                 No gate is used anyway because: (1) the server enforces the
-                real owner-or-admin rule on mint and answers an unauthorized
-                attempt with a 403 that `handleMutationError(err, { form })`
-                in mint-booking-link-dialog.tsx surfaces inline on the form,
-                not just as a toast (see its test asserting this); and (2)
-                no gate is currently available that wouldn't produce false
+                real owner-or-admin rule on mint, and
+                mint-booking-link-dialog.tsx's `onSubmit` forces EVERY mint
+                failure shape onto the form root, not just a toast — because
+                `handleMutationError` alone would not: it only attaches a
+                message to the form when the rejection is field-shaped
+                (`non_field_errors` / per-field), and falls through to
+                `toast.error` for a bare `{"detail": "..."}` body (DRF's
+                default `PermissionDenied` shape, the likely response to this
+                rejection), and this app mounts no `<Toaster />` anywhere, so
+                that toast would render nothing (see its tests asserting both
+                shapes land inline); and (2) no gate is currently available
+                that wouldn't produce false
                 negatives for a plain member who legitimately owns this
                 event's calendar — no per-event calendar-owner id is
                 reachable here (see the `isGroupEvent` comment above for why

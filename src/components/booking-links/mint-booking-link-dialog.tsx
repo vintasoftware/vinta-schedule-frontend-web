@@ -318,6 +318,11 @@ export function MintBookingLinkDialog({
     null
   );
   const [isRevoked, setIsRevoked] = React.useState(false);
+  // Set only when a revoke attempt fails, so the dialog can say so inline —
+  // without this the link would fail to revoke silently (toast-only, and
+  // this app mounts no `<Toaster />`) and a member could reasonably believe
+  // a still-live link was dead.
+  const [revokeError, setRevokeError] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
   // Holds the "copied" reset timer so it can be cancelled instead of firing
   // a `setState` after the component (or the copy indicator) is gone.
@@ -338,6 +343,7 @@ export function MintBookingLinkDialog({
       form.reset(defaultValues);
       setMintedLink(null);
       setIsRevoked(false);
+      setRevokeError(null);
       setCopied(false);
       resetCreateMutation();
       resetRevokeMutation();
@@ -459,7 +465,21 @@ export function MintBookingLinkDialog({
         durationSeconds: mintedDurationSeconds,
       });
     } catch (err) {
-      handleMutationError(err, { title: 'Failed to generate link', form });
+      // `handleMutationError` only places a message on the form when the
+      // rejection is field-shaped (`non_field_errors` / per-field). A bare
+      // `{"detail": "..."}` body — DRF's default `PermissionDenied` shape,
+      // the most likely response to the server's owner-or-org-admin check —
+      // falls through to `toast.error` instead, and this app mounts no
+      // `<Toaster />`, so that toast would render nothing. Forcing the
+      // returned description onto the form root guarantees every mint
+      // failure shape ends up visible inline in this dialog.
+      const description = handleMutationError(err, {
+        title: 'Failed to generate link',
+        form,
+      });
+      if (description) {
+        form.setError('root', { message: description });
+      }
     }
   };
 
@@ -476,6 +496,7 @@ export function MintBookingLinkDialog({
 
   const handleRevoke = async () => {
     if (!mintedLink) return;
+    setRevokeError(null);
     try {
       await revokeBookingCode(mintedLink.id);
       setIsRevoked(true);
@@ -483,7 +504,19 @@ export function MintBookingLinkDialog({
         description: 'The link no longer works for anyone holding it.',
       });
     } catch (err) {
-      handleMutationError(err, { title: 'Failed to revoke link' });
+      // No `form` here — the reveal view has no form, only the `Alert` this
+      // dialog already renders for the revoked state. `handleMutationError`
+      // always falls through to `toast.error` in this no-`form` case, and
+      // this app mounts no `<Toaster />`, so relying on the toast alone
+      // would leave a failed revoke completely invisible: the member could
+      // walk away believing a still-live link was dead. Capture the
+      // description and show it inline instead, without flipping
+      // `isRevoked` — the link must never be presented as revoked when it
+      // isn't.
+      const description = handleMutationError(err, {
+        title: 'Failed to revoke link',
+      });
+      setRevokeError(description);
     }
   };
 
@@ -552,6 +585,15 @@ export function MintBookingLinkDialog({
                   </AlertDescription>
                 </Alert>
               )}
+              {revokeError && !isRevoked ? (
+                <Alert variant='destructive' data-testid='revoke-failed-notice'>
+                  <Icon icon={TriangleAlert} size='sm' />
+                  <AlertDescription>
+                    Failed to revoke this link — it is still active and working
+                    for anyone holding it. {revokeError}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
 
               <VStack gap={1}>
                 <Text size='sm' color='muted-foreground'>

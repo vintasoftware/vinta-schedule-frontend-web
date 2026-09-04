@@ -376,4 +376,33 @@ describe('EventAttendeesSheet — booking-link actions', () => {
       screen.queryByTestId('booking-link-url-input')
     ).not.toBeInTheDocument();
   });
+
+  // The case the above test misses: DRF's default `PermissionDenied` body is
+  // a bare `{"detail": "..."}`, not `non_field_errors` — and
+  // `applyServerFieldErrors` does not route `detail` to the form at all, so
+  // `handleMutationError` alone falls through to `toast.error` for this
+  // shape. Since the app mounts no `<Toaster />`, that toast renders
+  // nothing. `MintBookingLinkDialog`'s `onSubmit` must force this shape onto
+  // the form root too, or an unauthorized member sees nothing at all.
+  it("an unauthorized mint's bare {detail} rejection is also surfaced inline on the form, not left toast-only", async () => {
+    const user = userEvent.setup();
+    vi.mocked(bookingCodesCreate).mockRejectedValueOnce({
+      detail: 'You do not have permission to perform this action.',
+    });
+
+    renderSheet(makeEventVM(makeRaw()));
+
+    await user.click(
+      screen.getByRole('button', { name: /get reschedule link/i })
+    );
+    await user.click(await screen.findByTestId('create-booking-link-submit'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'You do not have permission to perform this action.'
+    );
+    // Still on the form view — no link was revealed.
+    expect(
+      screen.queryByTestId('booking-link-url-input')
+    ).not.toBeInTheDocument();
+  });
 });

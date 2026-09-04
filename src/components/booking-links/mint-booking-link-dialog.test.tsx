@@ -497,6 +497,38 @@ describe('MintBookingLinkDialog', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('a failed revoke shows an inline failure and does NOT present the link as revoked', async () => {
+    const { toast } = await import('sonner');
+    const user = userEvent.setup();
+    vi.mocked(bookingCodesCreate).mockResolvedValueOnce(
+      makeMintResponse(makeMintResult({ id: 77 }))
+    );
+    vi.mocked(bookingCodesDestroy).mockRejectedValueOnce({
+      detail: 'You do not have permission to perform this action.',
+    });
+
+    renderDialog(CALENDAR_TARGET);
+    await user.click(screen.getByTestId('create-booking-link-submit'));
+    await screen.findByTestId('booking-link-url-input');
+
+    await user.click(screen.getByTestId('revoke-booking-link-button'));
+
+    // The failure must be visible inline, not left to a toast the app never
+    // renders (no <Toaster /> is mounted).
+    expect(await screen.findByTestId('revoke-failed-notice')).toHaveTextContent(
+      'You do not have permission to perform this action.'
+    );
+    // Never presented as revoked — the link is still live.
+    expect(screen.queryByTestId('revoked-notice')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('revoke-booking-link-button')
+    ).toBeInTheDocument();
+    // The one-time reveal notice (implying the link is still active) is
+    // still shown, not replaced by a false "revoked" state.
+    expect(screen.getByTestId('one-time-reveal-notice')).toBeInTheDocument();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
   it('a failed mint reveals nothing and surfaces the failure', async () => {
     const { toast } = await import('sonner');
     const user = userEvent.setup();
@@ -519,6 +551,42 @@ describe('MintBookingLinkDialog', () => {
       'Failed to generate link',
       expect.objectContaining({ description: expect.any(String) })
     );
+  });
+
+  it('a mint rejected with a bare {detail} body surfaces inline on the form, not just via toast', async () => {
+    const user = userEvent.setup();
+    vi.mocked(bookingCodesCreate).mockRejectedValueOnce({
+      detail: 'You do not have permission to perform this action.',
+    });
+
+    renderDialog(CALENDAR_TARGET);
+    await user.click(screen.getByTestId('create-booking-link-submit'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'You do not have permission to perform this action.'
+    );
+    expect(
+      screen.queryByTestId('booking-link-url-input')
+    ).not.toBeInTheDocument();
+  });
+
+  it('a mint rejected with non_field_errors surfaces inline on the form', async () => {
+    const { toast } = await import('sonner');
+    const user = userEvent.setup();
+    vi.mocked(bookingCodesCreate).mockRejectedValueOnce({
+      non_field_errors: ['You do not have permission to mint this link.'],
+    });
+
+    renderDialog(CALENDAR_TARGET);
+    await user.click(screen.getByTestId('create-booking-link-submit'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'You do not have permission to mint this link.'
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId('booking-link-url-input')
+    ).not.toBeInTheDocument();
   });
 
   it('does not call console.log with the plaintext code', async () => {
