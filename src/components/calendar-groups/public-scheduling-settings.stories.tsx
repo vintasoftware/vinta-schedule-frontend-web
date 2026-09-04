@@ -1,7 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { mocked } from 'storybook/test';
 import type { CalendarGroup } from '@/client';
 import { PermissionProvider } from '@/components/navigation/permission-gate';
+// Mocked in .storybook/preview.tsx via `sb.mock(...)`; `mocked()` just types
+// it — a real `/organizations/current` fetch would fail in Storybook, so
+// this gives the Phase 7 reusable-link section a deterministic branded slug
+// instead of falling back to the bare `/g/...` URL on every story.
+import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
 import { PublicSchedulingSettings } from './public-scheduling-settings';
 
 function makeGroup(overrides: Partial<CalendarGroup> = {}): CalendarGroup {
@@ -43,6 +49,23 @@ function Seeded({
 const meta = {
   title: 'Components/CalendarGroups/PublicSchedulingSettings',
   tags: ['autodocs'],
+  decorators: [
+    (Story) => {
+      mocked(useCurrentOrganization).mockReturnValue({
+        organization: { slug: 'acme' },
+        isOnboarded: true,
+        isGated: false,
+        isDisabled: false,
+        membership: null,
+        permissions: [],
+        isLoading: false,
+        isError: false,
+        error: null,
+        query: {} as unknown as never,
+      } as unknown as ReturnType<typeof useCurrentOrganization>);
+      return <Story />;
+    },
+  ],
 } satisfies Meta;
 
 export default meta;

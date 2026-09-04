@@ -15,4 +15,13 @@ describe('robots', () => {
       ]),
     });
   });
+
+  it('disallows every codeless group scheduling route too — an unauthenticated write surface, even without a code in the URL', () => {
+    const result = robots();
+
+    expect(result.rules).toMatchObject({
+      userAgent: '*',
+      disallow: expect.arrayContaining(['/g', '/g/*', '/o/*/g', '/o/*/g/*']),
+    });
+  });
 });

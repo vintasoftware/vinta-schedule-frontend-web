@@ -36,6 +36,12 @@ sb.mock(import('../src/hooks/booking-codes/use-public-bookable-slots.ts'), {
 sb.mock(import('../src/hooks/booking-codes/use-public-group-booking.ts'), {
   spy: true,
 });
+// CodelessGroupBookingFlow's stories (unknown-slug / not-public states) drive
+// the same kind of read states through this hook's return value — same
+// rationale as `usePublicGroupBookableSlots` above.
+sb.mock(import('../src/hooks/booking-codes/use-codeless-group-booking.ts'), {
+  spy: true,
+});
 // RescheduleFlow's and CancelFlow's terminal-write-error stories drive the
 // write hooks directly (there is no real `/public/booking/*` backend behind
 // Storybook, so a rejected mutation has to be stubbed) — same rationale as

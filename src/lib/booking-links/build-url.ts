@@ -95,3 +95,46 @@ export function buildBookingLinkUrl(params: BuildBookingLinkUrlParams): string {
 
   return url.toString();
 }
+
+export interface BuildGroupPublicBookingUrlParams {
+  /**
+   * The group's opaque, globally-unique `CalendarGroup.public_booking_slug`
+   * — never a minted `code`. This is a DIFFERENT kind of link from
+   * everything else in this module: it is not minted, does not expire, and
+   * is never consumed, so there is nothing here to reveal once and never
+   * show again.
+   */
+  publicSlug: string;
+  /**
+   * The active organization's slug, when known. Present → the branded route
+   * (`/o/[slug]/g/[public_slug]`); absent → the bare route
+   * (`/g/[public_slug]`), same branded/bare rule as `buildBookingLinkUrl`.
+   */
+  slug?: string;
+}
+
+/**
+ * Build the absolute, shareable URL for a calendar group's REUSABLE,
+ * codeless public scheduling link (Phase 7).
+ *
+ * Deliberately its own function, not a `purpose` on `buildBookingLinkUrl`:
+ * that function's whole shape (a `code`, a one-time-reveal purpose, an
+ * optional `?target=`/`?duration=`) describes a MINTED, single-use booking
+ * code. A group's `public_booking_slug` is neither minted nor single-use —
+ * it is a stable identifier the group already carries, safe to display
+ * repeatedly (see `public-scheduling-settings.tsx`, which is the only
+ * caller). Never route it through `buildBookingLinkUrl` just to avoid a
+ * second small function; that would misrepresent a reusable identifier as a
+ * one-time credential.
+ */
+export function buildGroupPublicBookingUrl({
+  publicSlug,
+  slug,
+}: BuildGroupPublicBookingUrlParams): string {
+  const encodedPublicSlug = encodeURIComponent(publicSlug);
+  const path = slug
+    ? `/o/${encodeURIComponent(slug)}/g/${encodedPublicSlug}`
+    : `/g/${encodedPublicSlug}`;
+
+  return new URL(path, window.location.origin).toString();
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildBookingLinkUrl } from './build-url';
+import { buildBookingLinkUrl, buildGroupPublicBookingUrl } from './build-url';
 
 describe('buildBookingLinkUrl', () => {
   it('builds a bare book link with an explicit calendar target when no slug is given', () => {
@@ -148,6 +148,44 @@ describe('buildBookingLinkUrl', () => {
     });
     expect(url).toBe(
       'http://localhost:3000/o/acme%2Fco%3Fx%23y/book/abc123?target=calendar'
+    );
+  });
+});
+
+describe('buildGroupPublicBookingUrl', () => {
+  it('builds a bare codeless group link when no org slug is given', () => {
+    const url = buildGroupPublicBookingUrl({ publicSlug: 'surgery-team' });
+    expect(url).toBe('http://localhost:3000/g/surgery-team');
+  });
+
+  it('builds a branded codeless group link when an org slug is given', () => {
+    const url = buildGroupPublicBookingUrl({
+      publicSlug: 'surgery-team',
+      slug: 'acme',
+    });
+    expect(url).toBe('http://localhost:3000/o/acme/g/surgery-team');
+  });
+
+  it('never appends a target or duration query — unlike a minted book link, this URL has neither concept', () => {
+    const url = buildGroupPublicBookingUrl({ publicSlug: 'surgery-team' });
+    expect(url).not.toContain('target');
+    expect(url).not.toContain('duration');
+  });
+
+  it('encodes a public_slug containing reserved characters instead of producing a broken path', () => {
+    const url = buildGroupPublicBookingUrl({
+      publicSlug: 'team/a?b#c',
+    });
+    expect(url).toBe('http://localhost:3000/g/team%2Fa%3Fb%23c');
+  });
+
+  it('encodes an org slug containing reserved characters instead of producing a broken path', () => {
+    const url = buildGroupPublicBookingUrl({
+      publicSlug: 'surgery-team',
+      slug: 'acme/co?x#y',
+    });
+    expect(url).toBe(
+      'http://localhost:3000/o/acme%2Fco%3Fx%23y/g/surgery-team'
     );
   });
 });

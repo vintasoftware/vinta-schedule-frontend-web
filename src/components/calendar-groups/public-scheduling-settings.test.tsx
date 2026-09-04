@@ -1,5 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+import {
+  render,
+  screen,
+  waitFor,
+  act,
+  fireEvent,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -7,6 +13,7 @@ import type { CalendarGroup } from '@/client';
 import { PublicSchedulingSettings } from './public-scheduling-settings';
 import * as permissionGateModule from '@/components/navigation/permission-gate';
 import * as updateHookModule from '@/hooks/calendar-groups/use-update-calendar-group-public-scheduling';
+import * as orgHookModule from '@/hooks/organizations/use-current-organization';
 
 type UpdateHookMock = ReturnType<
   typeof updateHookModule.useUpdateCalendarGroupPublicScheduling
@@ -28,6 +35,31 @@ function mockUpdateHook(
 function mockAdmin(isAdmin: boolean) {
   vi.spyOn(permissionGateModule, 'useHasPermission').mockReturnValue(isAdmin);
 }
+
+/** Same helper shape as `mint-booking-link-dialog.test.tsx`'s `mockOrgSlug`
+ * — resolves the active org's slug for the branded public link URL. */
+function mockOrgSlug(slug: string | undefined) {
+  vi.spyOn(orgHookModule, 'useCurrentOrganization').mockReturnValue({
+    organization: slug ? { slug } : null,
+    isOnboarded: true,
+    isGated: false,
+    isDisabled: false,
+    membership: null,
+    permissions: [],
+    isLoading: false,
+    isError: false,
+    error: null,
+    query: { data: undefined },
+  } as unknown as ReturnType<typeof orgHookModule.useCurrentOrganization>);
+}
+
+beforeAll(() => {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    writable: true,
+    configurable: true,
+  });
+});
 
 function renderSettings(group: CalendarGroup) {
   const queryClient = new QueryClient({
@@ -321,5 +353,157 @@ describe('PublicSchedulingSettings — grandfathered null-duration public group'
     expect(
       screen.queryByTestId('grandfathered-duration-warning')
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('PublicSchedulingSettings — Phase 7: the reusable public link', () => {
+  it('renders the bare /g/[public_slug] link when no active org slug is known', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({
+        accepts_public_scheduling: true,
+        duration: '00:30:00',
+        public_booking_slug: 'surgery-team',
+      })
+    );
+
+    const input = screen.getByTestId(
+      'public-group-link-input'
+    ) as HTMLInputElement;
+    expect(input.value).toBe('http://localhost:3000/g/surgery-team');
+  });
+
+  it('renders the branded /o/[slug]/g/[public_slug] link when the active org slug is known', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug('acme');
+
+    renderSettings(
+      makeGroup({
+        accepts_public_scheduling: true,
+        duration: '00:30:00',
+        public_booking_slug: 'surgery-team',
+      })
+    );
+
+    const input = screen.getByTestId(
+      'public-group-link-input'
+    ) as HTMLInputElement;
+    expect(input.value).toBe('http://localhost:3000/o/acme/g/surgery-team');
+  });
+
+  it('is visible for a non-admin, read-only viewer too — it is not gated behind manage-members', () => {
+    mockAdmin(false);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: '00:30:00' })
+    );
+
+    expect(screen.getByTestId('public-group-link-card')).toBeInTheDocument();
+  });
+
+  it('says the link is inactive when public scheduling is off, without hiding it', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: false, duration: undefined })
+    );
+
+    expect(
+      screen.getByTestId('public-group-link-inactive-toggle')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('public-group-link-input')).toBeInTheDocument();
+  });
+
+  it('says the link is inactive for a grandfathered public-but-duration-unset group', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: undefined })
+    );
+
+    expect(
+      screen.getByTestId('public-group-link-inactive-duration')
+    ).toBeInTheDocument();
+  });
+
+  it('shows neither inactive notice for a healthy public group with a duration set', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: '00:30:00' })
+    );
+
+    expect(
+      screen.queryByTestId('public-group-link-inactive-toggle')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('public-group-link-inactive-duration')
+    ).not.toBeInTheDocument();
+  });
+
+  it('copies the reusable link to the clipboard and flips the icon Copy -> CheckCheck -> Copy after 2s', async () => {
+    const writeTextSpy = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: writeTextSpy },
+      writable: true,
+      configurable: true,
+    });
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({
+        accepts_public_scheduling: true,
+        duration: '00:30:00',
+        public_booking_slug: 'surgery-team',
+      })
+    );
+
+    const copyButton = screen.getByTestId('copy-public-group-link-button');
+    expect(copyButton.querySelector('.lucide-copy')).toBeInTheDocument();
+
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        fireEvent.click(copyButton);
+        // Flush the awaited `navigator.clipboard.writeText` microtask so
+        // `setCopied(true)` (and the `setTimeout` it schedules) has run —
+        // same pattern as `booking-confirmation.test.tsx`'s identical test.
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(writeTextSpy).toHaveBeenCalledWith(
+        'http://localhost:3000/g/surgery-team'
+      );
+      expect(
+        copyButton.querySelector('.lucide-check-check')
+      ).toBeInTheDocument();
+      expect(copyButton.querySelector('.lucide-copy')).not.toBeInTheDocument();
+
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(copyButton.querySelector('.lucide-copy')).toBeInTheDocument();
+      expect(
+        copyButton.querySelector('.lucide-check-check')
+      ).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -42,13 +42,34 @@
  * `handleMutationError` falls through to `toast.error` — and this app mounts
  * no `<Toaster />`. Forced onto the form root instead, following the same
  * pattern `mint-booking-link-dialog.tsx` established in Phase 4.
+ *
+ * PHASE 7 — the reusable public link:
+ *
+ * `group.public_booking_slug` is a `readonly` field on `CalendarGroup`,
+ * always present regardless of `accepts_public_scheduling` — the backend
+ * mints it once at group creation and never rotates it. Once Phase 7's
+ * `/g/[public_slug]` (and branded `/o/[slug]/g/[public_slug]`) route
+ * answers at that address, this settings panel is the one place a member
+ * can find and copy it, via `buildGroupPublicBookingUrl`.
+ *
+ * UNLIKE every other link this feature produces (a minted booking code, or
+ * a self-service reschedule/cancel code on the confirmation screen), this
+ * link is NOT a one-time credential: it never expires, is never consumed,
+ * and is safe to look at, copy, and show again as many times as needed. The
+ * copy below says so explicitly, because a member who has seen this
+ * feature's other one-time-reveal links would otherwise reasonably assume
+ * the same about this one. It is shown regardless of whether public
+ * scheduling is currently on — the slug itself is stable — but the section
+ * says plainly when the link won't actually work yet (toggle off, or a
+ * grandfathered public group with no duration), so nobody copies a link
+ * expecting it to already be live.
  */
 
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { TriangleAlert } from 'lucide-react';
+import { Copy, CheckCheck, TriangleAlert } from 'lucide-react';
 import {
   Card,
   CardHeader,
@@ -83,12 +104,14 @@ import {
   useHasPermission,
   PERMISSIONS,
 } from '@/components/navigation/permission-gate';
+import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
 import { useUpdateCalendarGroupPublicScheduling } from '@/hooks/calendar-groups/use-update-calendar-group-public-scheduling';
 import {
   djangoDurationToMinutes,
   minutesToDjangoDuration,
   groupDurationIsUnset,
 } from '@/lib/booking-links/duration-format';
+import { buildGroupPublicBookingUrl } from '@/lib/booking-links/build-url';
 import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
@@ -116,6 +139,125 @@ function valuesFromGroup(group: CalendarGroup): PublicSchedulingFormValues {
     enabled: Boolean(group.accepts_public_scheduling),
     durationMinutes: djangoDurationToMinutes(group.duration),
   };
+}
+
+/**
+ * PublicGroupLinkCard — the group's stable, reusable `public_booking_slug`
+ * link, rendered as its own card below the settings form.
+ *
+ * See the file-level "PHASE 7" doc comment for why this is NOT modeled as a
+ * one-time reveal the way `mint-booking-link-dialog.tsx` and
+ * `booking-confirmation.tsx`'s management links are — this link is safe to
+ * show every time this page loads.
+ */
+function PublicGroupLinkCard({ group }: { group: CalendarGroup }) {
+  // Resolves the active org's slug for the branded URL only — never sent to
+  // any request this component makes (it makes none). Same usage as
+  // `mint-booking-link-dialog.tsx`.
+  const { organization } = useCurrentOrganization();
+  const rawSlug = organization?.slug;
+  const slug = typeof rawSlug === 'string' ? rawSlug : undefined;
+
+  const url = buildGroupPublicBookingUrl({
+    publicSlug: group.public_booking_slug,
+    slug,
+  });
+
+  const [copied, setCopied] = React.useState(false);
+  const [copyFailed, setCopyFailed] = React.useState(false);
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  React.useEffect(
+    () => () => {
+      if (copyTimeoutRef.current !== null) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    },
+    []
+  );
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyFailed(false);
+      setCopied(true);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Still visible/selectable in the input even if the clipboard write
+      // fails — surfaced inline since this app mounts no `<Toaster />`.
+      setCopyFailed(true);
+    }
+  };
+
+  const isPublic = Boolean(group.accepts_public_scheduling);
+  const isGrandfathered = isPublic && groupDurationIsUnset(group.duration);
+
+  return (
+    <Card data-testid='public-group-link-card'>
+      <CardHeader>
+        <CardTitle>Public scheduling link</CardTitle>
+        <CardDescription>
+          Unlike the codes this feature mints elsewhere, this link is stable and
+          reusable — it never expires, is never consumed, and is safe to copy
+          and share again any time. Anyone who has it can use it to book,
+          repeatedly.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <VStack gap={3}>
+          {!isPublic ? (
+            <Text
+              size='sm'
+              color='muted-foreground'
+              data-testid='public-group-link-inactive-toggle'
+            >
+              Public scheduling is off above, so this link won&apos;t work yet —
+              turn it on to activate it.
+            </Text>
+          ) : isGrandfathered ? (
+            <Text
+              size='sm'
+              color='muted-foreground'
+              data-testid='public-group-link-inactive-duration'
+            >
+              This group has no appointment length set, so this link won&apos;t
+              work yet — set one above to activate it.
+            </Text>
+          ) : null}
+          <HStack gap={2}>
+            <Input
+              readOnly
+              value={url}
+              className='font-mono text-sm'
+              aria-label='Public scheduling link'
+              data-testid='public-group-link-input'
+            />
+            <Button
+              type='button'
+              variant='outline'
+              size='icon'
+              onClick={() => void handleCopy()}
+              aria-label='Copy public scheduling link to clipboard'
+              data-testid='copy-public-group-link-button'
+            >
+              {copied ? <CheckCheck /> : <Copy />}
+            </Button>
+          </HStack>
+          {copyFailed ? (
+            <Text
+              size='sm'
+              color='destructive'
+              data-testid='public-group-link-copy-failed'
+            >
+              Copy failed — select the link above and copy it manually.
+            </Text>
+          ) : null}
+        </VStack>
+      </CardContent>
+    </Card>
+  );
 }
 
 export interface PublicSchedulingSettingsProps {
@@ -202,118 +344,121 @@ export function PublicSchedulingSettings({
   };
 
   return (
-    <Card data-testid='public-scheduling-settings'>
-      <CardHeader>
-        <CardTitle>Public scheduling</CardTitle>
-        <CardDescription>
-          Let anyone holding this group&apos;s link book an appointment without
-          a code.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <VStack gap={4}>
-          {isGrandfathered ? (
-            <Alert
-              variant='warning'
-              data-testid='grandfathered-duration-warning'
-            >
-              <Icon icon={TriangleAlert} size='sm' />
-              <AlertDescription>
-                This group is public but has no appointment length set —
-                bookings will fail until a length is set below.
-              </AlertDescription>
-            </Alert>
-          ) : null}
+    <VStack gap={4}>
+      <Card data-testid='public-scheduling-settings'>
+        <CardHeader>
+          <CardTitle>Public scheduling</CardTitle>
+          <CardDescription>
+            Let anyone holding this group&apos;s link book an appointment
+            without a code.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <VStack gap={4}>
+            {isGrandfathered ? (
+              <Alert
+                variant='warning'
+                data-testid='grandfathered-duration-warning'
+              >
+                <Icon icon={TriangleAlert} size='sm' />
+                <AlertDescription>
+                  This group is public but has no appointment length set —
+                  bookings will fail until a length is set below.
+                </AlertDescription>
+              </Alert>
+            ) : null}
 
-          {!canManage ? (
-            <Text size='sm' color='muted-foreground'>
-              Only an organization admin can change these settings.
-            </Text>
-          ) : null}
+            {!canManage ? (
+              <Text size='sm' color='muted-foreground'>
+                Only an organization admin can change these settings.
+              </Text>
+            ) : null}
 
-          <Form {...form}>
-            <FormRootMessage />
-            <FormLayout
-              onSubmit={form.handleSubmit(onSubmit)}
-              gap={4}
-              noValidate
-            >
-              <FormField
-                control={form.control}
-                name='enabled'
-                render={({ field }) => (
-                  <FormItem>
-                    <HStack gap={4} align='center' justify='between'>
-                      <Box grow>
-                        <FormLabel className='text-base font-semibold'>
-                          Accept public bookings
-                        </FormLabel>
-                        <FormDescription>
-                          Anyone holding the group&apos;s public link can book
-                          without a code.
-                        </FormDescription>
+            <Form {...form}>
+              <FormRootMessage />
+              <FormLayout
+                onSubmit={form.handleSubmit(onSubmit)}
+                gap={4}
+                noValidate
+              >
+                <FormField
+                  control={form.control}
+                  name='enabled'
+                  render={({ field }) => (
+                    <FormItem>
+                      <HStack gap={4} align='center' justify='between'>
+                        <Box grow>
+                          <FormLabel className='text-base font-semibold'>
+                            Accept public bookings
+                          </FormLabel>
+                          <FormDescription>
+                            Anyone holding the group&apos;s public link can book
+                            without a code.
+                          </FormDescription>
+                        </Box>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={!canManage || isPending}
+                            aria-label='Accept public bookings'
+                          />
+                        </FormControl>
+                      </HStack>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='durationMinutes'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Appointment length (minutes)</FormLabel>
+                      <Box width={128}>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={0}
+                            step={1}
+                            inputMode='numeric'
+                            disabled={!canManage || isPending}
+                            aria-label='Appointment length in minutes'
+                            value={Number.isNaN(field.value) ? '' : field.value}
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value === ''
+                                  ? Number.NaN
+                                  : Number(e.target.value)
+                              )
+                            }
+                          />
+                        </FormControl>
                       </Box>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={!canManage || isPending}
-                          aria-label='Accept public bookings'
-                        />
-                      </FormControl>
-                    </HStack>
-                  </FormItem>
-                )}
-              />
+                      <FormDescription>
+                        Applies to every booking made through this group&apos;s
+                        links — there is no per-link duration for a group.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name='durationMinutes'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Appointment length (minutes)</FormLabel>
-                    <Box width={128}>
-                      <FormControl>
-                        <Input
-                          type='number'
-                          min={0}
-                          step={1}
-                          inputMode='numeric'
-                          disabled={!canManage || isPending}
-                          aria-label='Appointment length in minutes'
-                          value={Number.isNaN(field.value) ? '' : field.value}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === ''
-                                ? Number.NaN
-                                : Number(e.target.value)
-                            )
-                          }
-                        />
-                      </FormControl>
-                    </Box>
-                    <FormDescription>
-                      Applies to every booking made through this group&apos;s
-                      links — there is no per-link duration for a group.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {canManage ? (
-                <Button
-                  type='submit'
-                  disabled={isPending}
-                  data-testid='save-public-scheduling-settings'
-                >
-                  {isPending ? 'Saving…' : 'Save'}
-                </Button>
-              ) : null}
-            </FormLayout>
-          </Form>
-        </VStack>
-      </CardContent>
-    </Card>
+                {canManage ? (
+                  <Button
+                    type='submit'
+                    disabled={isPending}
+                    data-testid='save-public-scheduling-settings'
+                  >
+                    {isPending ? 'Saving…' : 'Save'}
+                  </Button>
+                ) : null}
+              </FormLayout>
+            </Form>
+          </VStack>
+        </CardContent>
+      </Card>
+      <PublicGroupLinkCard group={group} />
+    </VStack>
   );
 }
