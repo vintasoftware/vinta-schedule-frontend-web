@@ -18,6 +18,12 @@ sb.mock(import('../src/hooks/availability/use-blocked-times.ts'), {
 sb.mock(import('../src/hooks/calendar-groups/use-group-scoped-quota.ts'), {
   spy: true,
 });
+// MintBookingLinkDialog resolves the active org's slug for the branded URL —
+// mocked so its story gets a deterministic slug instead of a real (failing)
+// `/organizations/current` fetch.
+sb.mock(import('../src/hooks/organizations/use-current-organization.ts'), {
+  spy: true,
+});
 
 import { patchFocus } from './patch-focus';
 import '../src/app/globals.css';
