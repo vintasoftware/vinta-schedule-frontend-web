@@ -194,15 +194,70 @@ called in that state, so there is no oracle risk).
 **Gate**: `pnpm run typecheck` exit 0, zero errors; `pnpm run lint` exit 0, 52 pre-existing
 warnings; `pnpm run test` 244 files / 1994 tests plus design-system 11 / 82, all pass.
 
+### Phase 3 — Public booking page, calendar group ✅
+
+- **Status**: review clean — no BLOCKERs; 2 SHOULD-FIX and 1 NIT, all fixed.
+- **Models**: implementer Tier 3 (`claude-sonnet-5`); reviewer Tier 3 (`claude-sonnet-5`); fixer Tier 2 stepped up to `claude-sonnet-5`.
+- **Branch**: `plan/public-scheduling-links/phase-3`, base `plan/public-scheduling-links/phase-2`.
+- **PR**: [#130](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/130) — published, stacked on #129.
+- **PR context**: `.vinta-ai-workflows/prs-context/public-scheduling-links/phase-3.md` (`status: published`).
+- **Commits**: `34d36a7` (implementation), `831f216` (review fixes).
+- **E2E**: none.
+
+The group hook (three operations), `group-slot-selection.tsx`, `public-group-booking-flow.tsx`,
+and `public-booking-entry.tsx`. 27 files, ~2874 insertions.
+
+**Target resolution is URL-encoded, never probed.** `build-url.ts` writes
+`?target=calendar|group` on every `book` link; `resolveBookingLinkTarget` is pure and
+zero-network. The rejected alternative — try the calendar read, fall back to group on 403 — would
+have turned the deliberately-uniform 403 into the state oracle it exists to prevent. Only the
+literal `target=group` means group; anything else resolves to calendar, so a pre-change calendar
+link still works. Flipping the marker by hand yields a clean 403-driven invalid-link state.
+
+**SHOULD-FIX — a group with no pinned duration silently booked a frontend-chosen 30 minutes.**
+The group bookable-slots read requires `duration_seconds` (verified: it is a required `number`, so
+the plan's "sends no duration of its own" is literally impossible), so the flow sends a 1800s
+placeholder that a pinned duration silently overrides. When the group pins **no** duration, that
+placeholder became the real booked length. Code-gated booking does not require
+`accepts_public_scheduling`, so such a link was mintable. The implementer called this
+"out-of-scope"; the reviewer overruled that, correctly. Closed at the source: the mint dialog now
+refuses to create a `book` link for a group whose duration is unset, and
+`MintBookingLinkTarget`'s group variant carries the duration so it can check.
+
+⚠️ **Note for Phase 6**: `mint-booking-link-dialog.tsx`'s `groupDurationIsUnset` is a deliberately
+minimal "unset or zero" predicate, not a real parser. Its comment points at
+`@src/lib/booking-links/duration-format.ts` as Phase 6's file. **Phase 6 must either create that
+path or update the comment**, and should consolidate the predicate into the real two-way helper.
+
+**SHOULD-FIX — the group hook's tests could not catch a swap to the authenticated client.** All
+three assertions omitted `client: publicBookingClient`. Fixed, plus a dedicated
+`use-public-group-booking.public-client.test.ts` that drives a real request through the public
+client. It needs its own file because the main hook test mocks `@/client/sdk.gen` at module scope,
+so nothing there reaches a real `fetch`.
+
+**Helpers moved on evidence, as the plan required.** The plan said to extract the selection helpers
+only if importing them from the authenticated hook drags authenticated-client code into the public
+bundle. A probe build showed `useCalendarEvents`, `toCalendarEventVMs` and
+`invalidateCalendarEvents` reaching the `/book/[code]` chunks; after moving to
+`src/lib/booking-links/group-selection.ts`, a rebuild confirmed they are gone.
+`use-group-booking.ts` re-exports everything and `src/components/calendar-groups/` tests pass
+untouched.
+
+**Accepted without change**: the `'via-code'` path-segment placeholder (the server resolves the
+group from the token on the coded branch and answers 403, never 404), and returning to whole-group
+time selection on `SLOT_UNAVAILABLE`.
+
+**Gate**: `pnpm run typecheck` exit 0, zero errors; `pnpm run lint` exit 0, 52 pre-existing
+warnings; `pnpm run test` 250 files / 2035 tests plus design-system 11 / 82, all pass.
+
 ## Current phase
 
-**Phase 3 — Public booking page, calendar group** — next.
+**Phase 4 — Admin-minted reschedule and cancel links** — next.
 
 ## Remaining phases
 
 | Phase | Title                                    | Implementer tier |
 | ----- | ---------------------------------------- | ---------------- |
-| 3     | Public booking page, calendar group      | 3                |
 | 4     | Admin-minted reschedule and cancel links | 3                |
 | 6     | Group public-scheduling settings         | 2                |
 
