@@ -28,8 +28,8 @@ vi.mock('@/components/public-booking/public-booking-shell', () => ({
   ),
 }));
 
-vi.mock('@/components/public-booking/public-booking-flow', () => ({
-  PublicBookingFlow: ({ code }: { code: string }) => (
+vi.mock('@/components/public-booking/public-booking-entry', () => ({
+  PublicBookingEntry: ({ code }: { code: string }) => (
     <div data-testid='flow'>
       <span data-testid='flow-code'>{code}</span>
     </div>

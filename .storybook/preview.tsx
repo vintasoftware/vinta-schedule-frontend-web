@@ -31,6 +31,11 @@ sb.mock(import('../src/hooks/organizations/use-current-organization.ts'), {
 sb.mock(import('../src/hooks/booking-codes/use-public-bookable-slots.ts'), {
   spy: true,
 });
+// PublicGroupBookingFlow's stories drive the same kind of read states, plus
+// the imperative per-range availability fetch — same rationale as above.
+sb.mock(import('../src/hooks/booking-codes/use-public-group-booking.ts'), {
+  spy: true,
+});
 
 import { patchFocus } from './patch-focus';
 import '../src/app/globals.css';

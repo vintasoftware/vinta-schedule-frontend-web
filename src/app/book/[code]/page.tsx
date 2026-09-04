@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
 import { NO_INDEX_METADATA } from '@/lib/booking-links/no-index-metadata';
 import { PublicBookingShell } from '@/components/public-booking/public-booking-shell';
-import { PublicBookingFlow } from '@/components/public-booking/public-booking-flow';
+import { PublicBookingEntry } from '@/components/public-booking/public-booking-entry';
 
 /**
  * `noindex` — a booking code in the URL is a live credential. See the plan's
@@ -32,11 +32,11 @@ export default async function BookPage({
 
   return (
     <PublicBookingShell branding={VINTA_DEFAULT_BRANDING}>
-      {/* PublicBookingFlow reads `?duration=` via useSearchParams(), which
-          requires a Suspense boundary — same convention as the branded
-          login page's LoginForm. */}
+      {/* PublicBookingEntry (and the flow it mounts) reads the URL via
+          useSearchParams(), which requires a Suspense boundary — same
+          convention as the branded login page's LoginForm. */}
       <Suspense fallback={null}>
-        <PublicBookingFlow code={code} />
+        <PublicBookingEntry code={code} />
       </Suspense>
     </PublicBookingShell>
   );

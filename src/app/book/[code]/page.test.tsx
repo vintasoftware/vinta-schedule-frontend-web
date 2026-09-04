@@ -1,8 +1,10 @@
 /**
  * BookPage is an async Server Component — render the awaited element
  * directly, same pattern as the branded login page test. `PublicBookingShell`
- * and `PublicBookingFlow` are mocked to thin stubs; this suite only checks
- * the bare route's wiring: default branding, and the code reaching the flow.
+ * and `PublicBookingEntry` are mocked to thin stubs; this suite only checks
+ * the bare route's wiring: default branding, and the code reaching the
+ * calendar/group routing entry point (Phase 3 — the route no longer mounts
+ * `PublicBookingFlow` directly, since it now serves both flows).
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
@@ -25,8 +27,8 @@ vi.mock('@/components/public-booking/public-booking-shell', () => ({
   ),
 }));
 
-vi.mock('@/components/public-booking/public-booking-flow', () => ({
-  PublicBookingFlow: ({ code }: { code: string }) => (
+vi.mock('@/components/public-booking/public-booking-entry', () => ({
+  PublicBookingEntry: ({ code }: { code: string }) => (
     <div data-testid='flow'>
       <span data-testid='flow-code'>{code}</span>
     </div>
@@ -51,7 +53,7 @@ describe('BookPage (/book/[code])', () => {
     );
   });
 
-  it('passes the code through to PublicBookingFlow', async () => {
+  it('passes the code through to PublicBookingEntry', async () => {
     render(await BookPage({ params: Promise.resolve({ code: 'abc123' }) }));
 
     expect(screen.getByTestId('flow-code')).toHaveTextContent('abc123');

@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { fetchBrandingForSlug } from '@/lib/branding-server';
 import { NO_INDEX_METADATA } from '@/lib/booking-links/no-index-metadata';
 import { PublicBookingShell } from '@/components/public-booking/public-booking-shell';
-import { PublicBookingFlow } from '@/components/public-booking/public-booking-flow';
+import { PublicBookingEntry } from '@/components/public-booking/public-booking-entry';
 
 /**
  * `noindex` — a booking code in the URL is a live credential. See the plan's
@@ -33,7 +33,7 @@ export default async function BrandedBookPage({
   return (
     <PublicBookingShell branding={branding}>
       <Suspense fallback={null}>
-        <PublicBookingFlow code={code} />
+        <PublicBookingEntry code={code} />
       </Suspense>
     </PublicBookingShell>
   );

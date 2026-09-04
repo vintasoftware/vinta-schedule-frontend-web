@@ -31,6 +31,28 @@ export interface BuildBookingLinkUrlParams {
  * is in the path, not discoverable from the code"); `book` uses the bare
  * `/book/[code]` path with no extra segment.
  *
+ * A `book` link also carries an explicit `?target=calendar|group` marker
+ * (Phase 3 of the public scheduling links plan). Both `/book/[code]` and
+ * `/o/[slug]/book/[code]` serve BOTH a single-calendar and a calendar-group
+ * flow, and the page holding only a code has no way to introspect which one
+ * it is — the code resolves server-side, and probing (try the calendar read,
+ * fall back to the group read on the opaque 403) would turn that uniform
+ * 403 into exactly the state oracle it exists to prevent. Marking the
+ * target here, at mint time — when the caller already knows it from `scope`
+ * — means the page never has to guess or probe; see
+ * `public-booking-entry.tsx`'s `resolveBookingLinkTarget`, which reads this
+ * param and NOTHING else to route.
+ *
+ * BACK-COMPAT: a calendar link minted before this marker existed (Phase 2)
+ * has `?duration=` but no `?target=`. `resolveBookingLinkTarget` treats
+ * anything other than the literal `target=group` as calendar, so those
+ * links keep working unchanged. A group link minted before this marker
+ * (Phase 1 shipped group minting before Phase 3 shipped a page that could
+ * render one) had no query param at all and was already unusable — it
+ * degrades to the same "missing a valid duration" state it always has,
+ * rather than being guessed at. That's an accepted, documented consequence,
+ * not a probe.
+ *
  * Browser-only: called from the mint dialog (`'use client'`), so
  * `window.location.origin` is always available. Matches the repo's existing
  * pattern for building absolute app URLs (compare
@@ -46,12 +68,11 @@ export function buildBookingLinkUrl(params: BuildBookingLinkUrlParams): string {
   const path = purpose === 'book' ? basePath : `${basePath}/${purpose}`;
 
   const url = new URL(path, window.location.origin);
-  if (
-    purpose === 'book' &&
-    scope.kind === 'calendar' &&
-    scope.durationSeconds != null
-  ) {
-    url.searchParams.set('duration', String(scope.durationSeconds));
+  if (purpose === 'book') {
+    url.searchParams.set('target', scope.kind);
+    if (scope.kind === 'calendar' && scope.durationSeconds != null) {
+      url.searchParams.set('duration', String(scope.durationSeconds));
+    }
   }
 
   return url.toString();
