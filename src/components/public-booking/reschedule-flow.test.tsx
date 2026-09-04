@@ -154,7 +154,10 @@ function renderCancel(code = 'secret-code') {
 }
 
 async function selectFirstSlot(user: ReturnType<typeof userEvent.setup>) {
-  const radio = await screen.findByRole('radio');
+  // `findAllByRole` — a day with 2+ proposals renders multiple radios, and
+  // `findByRole` (singular) throws "found multiple elements" instead of
+  // selecting the first one.
+  const [radio] = await screen.findAllByRole('radio');
   await user.click(radio);
 }
 

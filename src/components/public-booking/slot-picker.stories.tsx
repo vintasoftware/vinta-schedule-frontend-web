@@ -51,3 +51,31 @@ export const Loading: Story = {
 export const Empty: Story = {
   args: { proposals: [] },
 };
+
+// A non-UTC zone exercises the exact conversion `proposalDayKey` introduces:
+// times that read as one UTC calendar day group under a DIFFERENT day once
+// converted to `timezone`, so the day grid and the per-day time list must
+// agree on the SAME (converted) day, not the raw UTC date.
+const MULTI_DAY_MULTI_PROPOSAL_PROPOSALS: BookableSlotProposal[] = [
+  // 23:00 UTC on the 2nd is 15:00 on the 3rd in Asia/Tokyo (UTC+9) — day A.
+  {
+    start_time: '2026-03-02T23:00:00.000Z',
+    end_time: '2026-03-02T23:30:00.000Z',
+  },
+  {
+    start_time: '2026-03-03T00:00:00.000Z',
+    end_time: '2026-03-03T00:30:00.000Z',
+  },
+  // A different UTC day that lands on a different Tokyo day too — day B.
+  {
+    start_time: '2026-03-05T09:00:00.000Z',
+    end_time: '2026-03-05T09:45:00.000Z',
+  },
+];
+
+export const MultiDayMultiProposal: Story = {
+  args: {
+    proposals: MULTI_DAY_MULTI_PROPOSAL_PROPOSALS,
+    timezone: 'Asia/Tokyo',
+  },
+};

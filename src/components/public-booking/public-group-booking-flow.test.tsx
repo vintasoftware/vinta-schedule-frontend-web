@@ -196,7 +196,10 @@ function renderFlow(code = 'secret-code') {
 async function pickProposalAndCompleteSlots(
   user: ReturnType<typeof userEvent.setup>
 ) {
-  const radio = await screen.findByRole('radio');
+  // `findAllByRole` — a day with 2+ proposals renders multiple radios, and
+  // `findByRole` (singular) throws "found multiple elements" instead of
+  // selecting the first one.
+  const [radio] = await screen.findAllByRole('radio');
   await user.click(radio);
   const candidate = await screen.findByTestId('group-slot-1-option-10');
   await user.click(candidate);
@@ -227,7 +230,10 @@ describe('PublicGroupBookingFlow', () => {
 
     renderFlow();
 
-    const radio = await screen.findByRole('radio');
+    // `findAllByRole` — a day with 2+ proposals renders multiple radios, and
+    // `findByRole` (singular) throws "found multiple elements" instead of
+    // selecting the first one.
+    const [radio] = await screen.findAllByRole('radio');
     await user.click(radio);
 
     await waitFor(() =>
@@ -274,7 +280,10 @@ describe('PublicGroupBookingFlow', () => {
 
     renderFlow();
 
-    const radio = await screen.findByRole('radio');
+    // `findAllByRole` — a day with 2+ proposals renders multiple radios, and
+    // `findByRole` (singular) throws "found multiple elements" instead of
+    // selecting the first one.
+    const [radio] = await screen.findAllByRole('radio');
     await user.click(radio);
 
     await waitFor(() =>
@@ -351,7 +360,10 @@ describe('PublicGroupBookingFlow', () => {
 
     renderFlow();
 
-    const radio = await screen.findByRole('radio');
+    // `findAllByRole` — a day with 2+ proposals renders multiple radios, and
+    // `findByRole` (singular) throws "found multiple elements" instead of
+    // selecting the first one.
+    const [radio] = await screen.findAllByRole('radio');
     await user.click(radio);
 
     await waitFor(() =>

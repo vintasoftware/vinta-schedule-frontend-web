@@ -104,6 +104,28 @@ export function SlotPicker({
   onSelect,
   isLoading = false,
 }: SlotPickerProps) {
+  // Memoized on `proposals`/`timezone` (not recomputed on every render) so
+  // `SlotPickerCalendar`'s own `availableDaySet` memo — keyed on
+  // `availableDayKeys` by reference — actually hits instead of recomputing
+  // every time this array would otherwise be a fresh literal.
+  const { byDay, availableDayKeys } = React.useMemo(() => {
+    const grouped = new Map<string, BookableSlotProposal[]>();
+    for (const proposal of proposals) {
+      const key = proposalDayKey(proposal, timezone);
+      if (!key) continue; // unparsable range — dropped rather than crashing the grid
+      const existing = grouped.get(key);
+      if (existing) existing.push(proposal);
+      else grouped.set(key, [proposal]);
+    }
+    for (const dayProposals of grouped.values()) {
+      dayProposals.sort((a, b) => a.start_time.localeCompare(b.start_time));
+    }
+    return {
+      byDay: grouped,
+      availableDayKeys: Array.from(grouped.keys()).sort(),
+    };
+  }, [proposals, timezone]);
+
   if (isLoading) {
     return (
       <VStack gap={2} data-testid='slot-picker-loading'>
@@ -121,22 +143,6 @@ export function SlotPicker({
       </Text>
     );
   }
-
-  // Grouped and keyed once per render — cheap for a two-week/one-month
-  // window's worth of proposals, and simpler than memoizing across a prop
-  // that changes on every refetch anyway.
-  const byDay = new Map<string, BookableSlotProposal[]>();
-  for (const proposal of proposals) {
-    const key = proposalDayKey(proposal, timezone);
-    if (!key) continue; // unparsable range — dropped rather than crashing the grid
-    const existing = byDay.get(key);
-    if (existing) existing.push(proposal);
-    else byDay.set(key, [proposal]);
-  }
-  for (const dayProposals of byDay.values()) {
-    dayProposals.sort((a, b) => a.start_time.localeCompare(b.start_time));
-  }
-  const availableDayKeys = Array.from(byDay.keys()).sort();
 
   if (availableDayKeys.length === 0) {
     // Every proposal had an unparsable range — degrade like the empty state
@@ -208,7 +214,17 @@ function SlotPickerCalendar({
         </Text>
         <Calendar
           mode='single'
-          aria-labelledby='slot-picker-day-label'
+          // `aria-labelledby` on `<Calendar>` only reaches DayPicker's Root
+          // wrapper (a plain, roleless `<div>`) — the interactive
+          // `role="grid"` element computes its OWN `aria-label` from
+          // `labelGrid` (month/year only, e.g. "March 2026") regardless, so
+          // an `aria-labelledby` here would silently do nothing for a screen
+          // reader. `labels.labelGrid` is the supported hook that actually
+          // reaches the grid's accessible name.
+          labels={{
+            labelGrid: (date) =>
+              `Choose a date, ${date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+          }}
           selected={dayKeyToDate(selectedDay)}
           defaultMonth={dayKeyToDate(selectedDay)}
           onSelect={(date) => {
