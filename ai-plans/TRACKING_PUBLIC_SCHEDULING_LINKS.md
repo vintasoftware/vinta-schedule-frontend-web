@@ -143,15 +143,65 @@ gap is not re-filed later.
 **Gate**: `pnpm run typecheck` exit 0, zero errors; `pnpm run lint` exit 0, 51 pre-existing
 warnings; `pnpm run test` 237 files / 1963 tests plus design-system 11 / 82, all pass.
 
+### Phase 2 — Public booking page, single calendar ✅
+
+- **Status**: review clean — 1 BLOCKER and 3 SHOULD-FIX raised, all fixed.
+- **Models**: implementer Tier 3 (`claude-sonnet-5`); reviewer Tier 3 (`claude-sonnet-5`); fixer Tier 2 stepped up to `claude-sonnet-5`.
+- **Branch**: `plan/public-scheduling-links/phase-2`, base `plan/public-scheduling-links/phase-1`.
+- **PR**: [#129](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/129) — published, stacked on #128.
+- **PR context**: `.vinta-ai-workflows/prs-context/public-scheduling-links/phase-2.md` (`status: published`).
+- **Commits**: `efd890c` (implementation), `f2f7135` (review fixes).
+- **E2E**: none.
+
+Both public routes, the two hooks, and six components under `src/components/public-booking/`.
+29 files, ~2739 insertions.
+
+**BLOCKER — the public routes were indexable.** The plan's **Open Questions** row settles this
+unconditionally: a booking link in a search index is a leaked credential, so `noindex` goes on
+every `/book/*` and `/g/*` route, added in Phase 2 and carried into every later public route.
+Neither page exported `metadata` and there was no `src/app/robots.ts`. Closed with a shared
+`NO_INDEX_METADATA` constant (`src/lib/booking-links/no-index-metadata.ts`), used by both routes,
+plus a crawler-level `src/app/robots.ts`, plus per-route tests. **Phases 3, 4 and 7 must import
+that constant for every new public route.**
+
+**Cross-phase SHOULD-FIX — the mint dialog's default produced a permanently broken link.** This
+lived in `mint-booking-link-dialog.tsx`, a Phase 1 file, but was only reachable once Phase 2
+shipped the page that opens the link, so it was fixed here rather than by rewriting Phase 1's
+branch. The duration field defaulted to zero and the dialog applied the booking-policy
+"0 = unconstrained" convention, emitting no `?duration=`. That convention does not apply: the
+generated client documents `duration_seconds` as "ALWAYS REQUIRED to be present (a request
+omitting it is a 400…)" — there is no unconstrained mode on this read. So minting a calendar link
+without touching the duration control — **the default path** — produced a link that showed
+"missing a valid duration" to every recipient, forever. Fixed by defaulting calendar targets to 30
+minutes and adding a zod refinement requiring a duration above zero. Group targets untouched.
+
+One pre-existing test was replaced, legitimately: it asserted that a zero duration mints a link
+with no `?duration=`, which is exactly the broken behavior. It now asserts the case is blocked with
+a visible message and issues no mutation. Verified the diff removed only that test's title and its
+one invalid assertion.
+
+Other fixes: a colocated story plus tests for `public-booking-flow.tsx`'s two previously uncovered
+inline branches (`invalid-duration`, `slots-load-error`), and network-failure / non-JSON-body tests
+for both hooks — asserting in particular that a network failure is **not** reported as
+`'link-invalid'`, which would tell an attendee their link is dead when it is not.
+
+**Reviewer ruled three implementer judgment calls acceptable, no change needed**: the hardcoded
+`title: 'Appointment'` (the public endpoints never expose a calendar name to an unauthenticated
+caller, so there is nothing non-guessed to derive one from), the 14-day search window, and the
+separate "missing duration" card being distinct from `LinkInvalid` (the code-gated read is never
+called in that state, so there is no oracle risk).
+
+**Gate**: `pnpm run typecheck` exit 0, zero errors; `pnpm run lint` exit 0, 52 pre-existing
+warnings; `pnpm run test` 244 files / 1994 tests plus design-system 11 / 82, all pass.
+
 ## Current phase
 
-**Phase 2 — Public booking page, single calendar** — next.
+**Phase 3 — Public booking page, calendar group** — next.
 
 ## Remaining phases
 
 | Phase | Title                                    | Implementer tier |
 | ----- | ---------------------------------------- | ---------------- |
-| 2     | Public booking page, single calendar     | 3                |
 | 3     | Public booking page, calendar group      | 3                |
 | 4     | Admin-minted reschedule and cancel links | 3                |
 | 6     | Group public-scheduling settings         | 2                |
