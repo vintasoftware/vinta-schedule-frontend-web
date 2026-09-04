@@ -169,6 +169,30 @@ const GROUP_TARGET_EMPTY_DURATION: MintBookingLinkTarget = {
   duration: '',
 };
 
+const EVENT_RESCHEDULE_CALENDAR_TARGET: MintBookingLinkTarget = {
+  kind: 'event',
+  id: 100,
+  name: 'Checkup with Dr. Smith',
+  purpose: 'reschedule',
+  eventScope: { kind: 'calendar', durationSeconds: 2700 },
+};
+
+const EVENT_RESCHEDULE_GROUP_TARGET: MintBookingLinkTarget = {
+  kind: 'event',
+  id: 101,
+  name: 'Surgery consult',
+  purpose: 'reschedule',
+  eventScope: { kind: 'group' },
+};
+
+const EVENT_CANCEL_TARGET: MintBookingLinkTarget = {
+  kind: 'event',
+  id: 102,
+  name: 'Checkup with Dr. Smith',
+  purpose: 'cancel',
+  eventScope: { kind: 'calendar', durationSeconds: 1800 },
+};
+
 function renderDialog(
   target: MintBookingLinkTarget = CALENDAR_TARGET,
   open = true,
@@ -536,5 +560,128 @@ describe('MintBookingLinkDialog', () => {
     await user.click(screen.getByTestId('copy-booking-link-button'));
 
     expect(writeTextSpy).toHaveBeenCalledWith(urlInput.value);
+  });
+
+  // -------------------------------------------------------------------------
+  // Event-scoped targets (Phase 4: reschedule / cancel links)
+  // -------------------------------------------------------------------------
+
+  describe('event target — reschedule (calendar-scoped)', () => {
+    it("offers a duration control, defaulted to the event's own current length", () => {
+      renderDialog(EVENT_RESCHEDULE_CALENDAR_TARGET);
+
+      const durationInput = screen.getByLabelText(
+        'Booking duration value'
+      ) as HTMLInputElement;
+      expect(durationInput).toBeInTheDocument();
+      // 2700s === 45 minutes — the fixture's `eventScope.durationSeconds`.
+      expect(durationInput.value).toBe('45');
+    });
+
+    it('mints a reschedule code with `event`, and a URL carrying ?target=calendar&duration=', async () => {
+      const user = userEvent.setup();
+      vi.mocked(bookingCodesCreate).mockResolvedValueOnce(
+        makeMintResponse(makeMintResult({ purpose: 'reschedule', event: 100 }))
+      );
+
+      renderDialog(EVENT_RESCHEDULE_CALENDAR_TARGET);
+      await user.click(screen.getByTestId('create-booking-link-submit'));
+
+      const urlInput = (await screen.findByTestId(
+        'booking-link-url-input'
+      )) as HTMLInputElement;
+
+      expect(bookingCodesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ purpose: 'reschedule', event: 100 }),
+        })
+      );
+      expect(urlInput.value).toContain(
+        `/o/acme/book/${ONE_TIME_CODE}/reschedule`
+      );
+      expect(urlInput.value).toContain('target=calendar');
+      expect(urlInput.value).toContain('duration=2700');
+    });
+  });
+
+  describe('event target — reschedule (group-scoped)', () => {
+    it('offers no duration control', () => {
+      renderDialog(EVENT_RESCHEDULE_GROUP_TARGET);
+
+      expect(
+        screen.queryByLabelText('Booking duration value')
+      ).not.toBeInTheDocument();
+    });
+
+    it('is never blocked by an unset group duration — the events surface has no way to check it', () => {
+      renderDialog(EVENT_RESCHEDULE_GROUP_TARGET);
+
+      expect(
+        screen.queryByText(/can't take public bookings yet/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('create-booking-link-submit')
+      ).toBeInTheDocument();
+    });
+
+    it('a group-scoped reschedule code is minted with ?target=group and NEVER a calendar-shaped URL — the two reschedule endpoints must never be confused at mint time', async () => {
+      const user = userEvent.setup();
+      vi.mocked(bookingCodesCreate).mockResolvedValueOnce(
+        makeMintResponse(makeMintResult({ purpose: 'reschedule', event: 101 }))
+      );
+
+      renderDialog(EVENT_RESCHEDULE_GROUP_TARGET);
+      await user.click(screen.getByTestId('create-booking-link-submit'));
+
+      const urlInput = (await screen.findByTestId(
+        'booking-link-url-input'
+      )) as HTMLInputElement;
+
+      expect(bookingCodesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ purpose: 'reschedule', event: 101 }),
+        })
+      );
+      // The load-bearing assertion for "no probing": the URL built at MINT
+      // time is the only thing that decides which reschedule endpoint the
+      // page will call. It must say `target=group`, never `target=calendar`.
+      const target = new URL(urlInput.value).searchParams.get('target');
+      expect(target).toBe('group');
+      expect(target).not.toBe('calendar');
+      expect(urlInput.value).not.toContain('duration=');
+    });
+  });
+
+  describe('event target — cancel', () => {
+    it("offers no duration control, regardless of the event's scope", () => {
+      renderDialog(EVENT_CANCEL_TARGET);
+
+      expect(
+        screen.queryByLabelText('Booking duration value')
+      ).not.toBeInTheDocument();
+    });
+
+    it('mints a cancel code with `event`, and a URL with no ?target= or ?duration= at all', async () => {
+      const user = userEvent.setup();
+      vi.mocked(bookingCodesCreate).mockResolvedValueOnce(
+        makeMintResponse(makeMintResult({ purpose: 'cancel', event: 102 }))
+      );
+
+      renderDialog(EVENT_CANCEL_TARGET);
+      await user.click(screen.getByTestId('create-booking-link-submit'));
+
+      const urlInput = (await screen.findByTestId(
+        'booking-link-url-input'
+      )) as HTMLInputElement;
+
+      expect(bookingCodesCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ purpose: 'cancel', event: 102 }),
+        })
+      );
+      expect(urlInput.value).toContain(`/o/acme/book/${ONE_TIME_CODE}/cancel`);
+      expect(urlInput.value).not.toContain('target=');
+      expect(urlInput.value).not.toContain('duration=');
+    });
   });
 });

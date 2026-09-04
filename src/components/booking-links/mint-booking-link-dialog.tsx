@@ -83,7 +83,10 @@ import type { BookingCodeCreate } from '@/client';
 import { useCreateBookingCode } from '@/hooks/booking-codes/use-create-booking-code';
 import { useRevokeBookingCode } from '@/hooks/booking-codes/use-revoke-booking-code';
 import { useCurrentOrganization } from '@/hooks/organizations/use-current-organization';
-import { buildBookingLinkUrl } from '@/lib/booking-links/build-url';
+import {
+  buildBookingLinkUrl,
+  type BookingLinkUrlScope,
+} from '@/lib/booking-links/build-url';
 import type { MintedBookingLink } from '@/lib/booking-links/types';
 import { handleMutationError } from '@/lib/utils/form-errors';
 // Reused rather than re-implemented: the {value, unit} number+select field and
@@ -98,6 +101,7 @@ import {
 } from '@/components/booking-policies/rule-fields';
 import {
   durationToSeconds,
+  secondsToDuration,
   type DurationValue,
 } from '@/components/booking-policies/duration';
 
@@ -117,6 +121,44 @@ export type MintBookingLinkTarget =
        * field is read-only here and never round-tripped.
        */
       duration?: string;
+    }
+  | {
+      kind: 'event';
+      /** The event id — `BookingCodeCreate.event`. */
+      id: number;
+      /** Display label for the dialog copy — usually the event's title. */
+      name: string;
+      purpose: 'reschedule' | 'cancel';
+      /**
+       * Which reschedule endpoint a reschedule link must route to — the
+       * EVENT's own scope (single-calendar vs. calendar-group), not
+       * something the member picks. Irrelevant for `purpose: 'cancel'`
+       * (`publicBookingEventsCancelCreate` is a single endpoint for both —
+       * see the plan's Phase 4 body, point 4), but always supplied so
+       * callers need only one target shape.
+       *
+       * A calendar-scoped reschedule needs an advisory `durationSeconds`
+       * for the same reason a fresh calendar `book` link does — the
+       * calendar-bookable-slots read's `duration_seconds` param is always
+       * required. Callers should pass the EVENT's own current length
+       * (`end_time - start_time`), not an arbitrary default; it remains
+       * editable here, same as a `book` link's advisory duration.
+       *
+       * A group-scoped reschedule carries no per-link duration at all,
+       * mirroring "Group duration comes from the server" for `book` links.
+       * UNLIKE the plain `group` target above, this dialog does NOT block
+       * minting on an unset group duration for this case: the events
+       * surface has no reliable way to read the parent group's CURRENT
+       * `duration` off an already-created event
+       * (`CalendarEventGroupSelection` carries a slot and a calendar, never
+       * the group entity itself), so there is nothing here to check. This
+       * is an accepted, documented gap — see the phase report, not an
+       * oversight — and the reschedule page behaves exactly like an
+       * unset-duration group `book` link already does (Phase 3).
+       */
+      eventScope:
+        | { kind: 'calendar'; durationSeconds: number }
+        | { kind: 'group' };
     };
 
 /**
@@ -166,20 +208,37 @@ const mintFormBaseSchema = z.object({
 
 type MintFormValues = z.infer<typeof mintFormBaseSchema>;
 
-// A calendar link's `?duration=` is the only length the public booking read
-// (`PublicBookingCalendarBookableSlotsListData.query.duration_seconds`) will
-// ever see — that read documents the param as ALWAYS REQUIRED, with no
+/**
+ * True when this target's form should show (and require a non-zero)
+ * duration control: a `calendar` `book` target always does; a
+ * calendar-scoped `event` `reschedule` target does for the same reason
+ * (the calendar-bookable-slots read's `duration_seconds` param is always
+ * required); every other target (`group`, or an `event` `cancel` /
+ * group-scoped `reschedule`) does not.
+ */
+function needsDurationControl(target: MintBookingLinkTarget): boolean {
+  if (target.kind === 'calendar') return true;
+  if (target.kind === 'event') {
+    return (
+      target.purpose === 'reschedule' && target.eventScope.kind === 'calendar'
+    );
+  }
+  return false;
+}
+
+// A calendar-scoped link's `?duration=` is the only length the public
+// booking read (`PublicBookingCalendarBookableSlotsListData.query.duration_seconds`)
+// will ever see — that read documents the param as ALWAYS REQUIRED, with no
 // "unconstrained" mode. The shared rule-fields "0 = unconstrained" convention
-// (used for booking-policy guardrails) does not apply here: a calendar link
-// minted with a zero duration builds a URL with no `?duration=`, and
-// `public-booking-flow.tsx` correctly refuses to invent one, so every
-// recipient sees a permanently broken "missing a valid duration" link. Group
-// targets are unaffected — they have no duration control and their length is
-// server-pinned on `CalendarGroup`, never taken from this form.
-function buildMintFormSchema(targetKind: MintBookingLinkTarget['kind']) {
+// (used for booking-policy guardrails) does not apply here: a calendar-scoped
+// link minted with a zero duration builds a URL with no `?duration=`, and
+// the public flow correctly refuses to invent one, so every recipient sees a
+// permanently broken "missing a valid duration" link. Group targets (and
+// `cancel` links) are unaffected — they have no duration control.
+function buildMintFormSchema(target: MintBookingLinkTarget) {
   return mintFormBaseSchema.refine(
     (values) =>
-      targetKind !== 'calendar' || durationToSeconds(values.duration) > 0,
+      !needsDurationControl(target) || durationToSeconds(values.duration) > 0,
     {
       message:
         'Set a duration greater than zero — the public booking page requires a fixed length for a calendar link.',
@@ -188,23 +247,31 @@ function buildMintFormSchema(targetKind: MintBookingLinkTarget['kind']) {
   );
 }
 
-// A calendar target defaults to a working, non-zero length (30 minutes) so
-// generating a link without touching the duration control still produces a
-// usable link, rather than defaulting to the now-blocked zero. Group targets
-// keep the neutral `ZERO_DURATION` default — their duration control isn't
-// rendered and the value is never sent (see `onSubmit`).
+// A calendar `book` target defaults to a working, non-zero length (30
+// minutes) so generating a link without touching the duration control still
+// produces a usable link, rather than defaulting to the now-blocked zero.
+// Targets with no duration control keep the neutral `ZERO_DURATION` default
+// — the value is never sent (see `onSubmit`).
 const DEFAULT_CALENDAR_DURATION: DurationValue = { value: 30, unit: 'minutes' };
 
-function defaultValuesForTarget(
-  targetKind: MintBookingLinkTarget['kind']
-): MintFormValues {
-  return {
-    expiresAt: '',
-    duration:
-      targetKind === 'calendar'
-        ? { ...DEFAULT_CALENDAR_DURATION }
-        : { ...ZERO_DURATION },
-  };
+function defaultValuesForTarget(target: MintBookingLinkTarget): MintFormValues {
+  if (target.kind === 'calendar') {
+    return { expiresAt: '', duration: { ...DEFAULT_CALENDAR_DURATION } };
+  }
+  if (
+    target.kind === 'event' &&
+    target.purpose === 'reschedule' &&
+    target.eventScope.kind === 'calendar'
+  ) {
+    // Default to the EVENT's own current length — the most sensible
+    // advisory starting point for "reschedule to a new time of about this
+    // length". Still editable, same as a fresh calendar `book` link.
+    return {
+      expiresAt: '',
+      duration: secondsToDuration(target.eventScope.durationSeconds),
+    };
+  }
+  return { expiresAt: '', duration: { ...ZERO_DURATION } };
 }
 
 export function MintBookingLinkDialog({
@@ -223,18 +290,18 @@ export function MintBookingLinkDialog({
   const rawSlug = organization?.slug;
   const slug = typeof rawSlug === 'string' ? rawSlug : undefined;
 
-  // `target.kind` is fixed for the lifetime of one dialog instance (the
-  // calling tables mount/unmount this dialog per target rather than
-  // re-targeting it in place), but the schema and defaults are still
-  // computed from it via `useMemo` rather than as a module-level constant,
-  // since both branch on the calendar/group distinction.
+  // `target` is fixed for the lifetime of one dialog instance (the calling
+  // tables mount/unmount this dialog per target rather than re-targeting it
+  // in place), but the schema and defaults are still computed from it via
+  // `useMemo` rather than as a module-level constant, since both branch on
+  // the target's kind/purpose/scope.
   const mintFormSchema = React.useMemo(
-    () => buildMintFormSchema(target.kind),
-    [target.kind]
+    () => buildMintFormSchema(target),
+    [target]
   );
   const defaultValues = React.useMemo(
-    () => defaultValuesForTarget(target.kind),
-    [target.kind]
+    () => defaultValuesForTarget(target),
+    [target]
   );
 
   const form = useForm<MintFormValues>({
@@ -302,6 +369,7 @@ export function MintBookingLinkDialog({
   const isRevealView = mintedLink !== null;
 
   const targetLabel = target.kind === 'calendar' ? 'calendar' : 'group';
+  const needsDuration = needsDurationControl(target);
 
   // Refuse to mint at the source (SHOULD-FIX 1, Phase 3 review): a group
   // with no pinned duration would otherwise silently hand every attendee
@@ -317,13 +385,59 @@ export function MintBookingLinkDialog({
       values.expiresAt !== ''
         ? new Date(values.expiresAt).toISOString()
         : undefined;
-    const durationSeconds =
-      target.kind === 'calendar' ? durationToSeconds(values.duration) : 0;
 
-    const body: BookingCodeCreate =
-      target.kind === 'calendar'
-        ? { purpose: 'book', calendar: target.id, expires_at: expiresAt }
-        : { purpose: 'book', calendar_group: target.id, expires_at: expiresAt };
+    let body: BookingCodeCreate;
+    let scope: BookingLinkUrlScope;
+    // Only set for a calendar-scoped duration control (calendar `book`, or
+    // an event-scoped calendar `reschedule`) — `null` means "no advisory
+    // duration to echo back into `mintedLink`".
+    let mintedDurationSeconds: number | null = null;
+
+    if (target.kind === 'calendar') {
+      const durationSeconds = durationToSeconds(values.duration);
+      body = { purpose: 'book', calendar: target.id, expires_at: expiresAt };
+      scope = {
+        kind: 'calendar',
+        durationSeconds: durationSeconds > 0 ? durationSeconds : undefined,
+      };
+      mintedDurationSeconds = durationSeconds > 0 ? durationSeconds : null;
+    } else if (target.kind === 'group') {
+      body = {
+        purpose: 'book',
+        calendar_group: target.id,
+        expires_at: expiresAt,
+      };
+      scope = { kind: 'group' };
+    } else {
+      // Event-scoped reschedule/cancel: `event` is the only association the
+      // mint body needs — calendar/group is inferred server-side from the
+      // event itself (`BookingCodeCreate` has no separate field for it).
+      body = {
+        purpose: target.purpose,
+        event: target.id,
+        expires_at: expiresAt,
+      };
+
+      if (
+        target.purpose === 'reschedule' &&
+        target.eventScope.kind === 'calendar'
+      ) {
+        const durationSeconds = durationToSeconds(values.duration);
+        scope = {
+          kind: 'calendar',
+          durationSeconds: durationSeconds > 0 ? durationSeconds : undefined,
+        };
+        mintedDurationSeconds = durationSeconds > 0 ? durationSeconds : null;
+      } else if (target.purpose === 'reschedule') {
+        scope = { kind: 'group' };
+      } else {
+        // `cancel` writes no `?target=`/`?duration=` at all —
+        // `buildBookingLinkUrl` ignores `scope` for this purpose. A bare
+        // calendar scope is the simplest value satisfying the type; it is
+        // never read.
+        scope = { kind: 'calendar' };
+      }
+    }
 
     try {
       const result = await createBookingCode(body);
@@ -331,14 +445,7 @@ export function MintBookingLinkDialog({
         code: result.code,
         purpose: result.purpose,
         slug,
-        scope:
-          target.kind === 'calendar'
-            ? {
-                kind: 'calendar',
-                durationSeconds:
-                  durationSeconds > 0 ? durationSeconds : undefined,
-              }
-            : { kind: 'group' },
+        scope,
       });
       // The ONLY place `result.code` is read. From here on, only `url`
       // (which embeds it) is retained, in local state that is cleared on
@@ -348,10 +455,7 @@ export function MintBookingLinkDialog({
         purpose: result.purpose,
         url,
         expiresAt: result.expires_at,
-        durationSeconds:
-          target.kind === 'calendar' && durationSeconds > 0
-            ? durationSeconds
-            : null,
+        durationSeconds: mintedDurationSeconds,
       });
     } catch (err) {
       handleMutationError(err, { title: 'Failed to generate link', form });
@@ -509,14 +613,34 @@ export function MintBookingLinkDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>New scheduling link</DialogTitle>
+              <DialogTitle>
+                {target.kind === 'event'
+                  ? target.purpose === 'reschedule'
+                    ? 'New reschedule link'
+                    : 'New cancel link'
+                  : 'New scheduling link'}
+              </DialogTitle>
               <DialogDescription>
-                Generate a shareable booking link for the {targetLabel}{' '}
-                <Text as='span' weight='medium'>
-                  {target.name}
-                </Text>
-                . The link can be copied and revoked once, but never shown again
-                after this dialog closes.
+                {target.kind === 'event' ? (
+                  <>
+                    Generate a link that lets the attendee{' '}
+                    {target.purpose === 'reschedule' ? 'reschedule' : 'cancel'}{' '}
+                    <Text as='span' weight='medium'>
+                      {target.name}
+                    </Text>
+                    . The link can be copied and revoked once, but never shown
+                    again after this dialog closes.
+                  </>
+                ) : (
+                  <>
+                    Generate a shareable booking link for the {targetLabel}{' '}
+                    <Text as='span' weight='medium'>
+                      {target.name}
+                    </Text>
+                    . The link can be copied and revoked once, but never shown
+                    again after this dialog closes.
+                  </>
+                )}
               </DialogDescription>
             </DialogHeader>
 
@@ -548,7 +672,7 @@ export function MintBookingLinkDialog({
                   )}
                 />
 
-                {target.kind === 'calendar' ? (
+                {needsDuration ? (
                   <FormField
                     control={form.control}
                     name='duration'
@@ -560,13 +684,20 @@ export function MintBookingLinkDialog({
                       />
                     )}
                   />
-                ) : (
+                ) : target.kind === 'group' ? (
                   <Text size='sm' color='muted-foreground'>
                     This group&apos;s own duration applies to every booking made
                     through this link — there is no per-link duration for a
                     group target.
                   </Text>
-                )}
+                ) : target.kind === 'event' &&
+                  target.purpose === 'reschedule' ? (
+                  <Text size='sm' color='muted-foreground'>
+                    This appointment&apos;s group has its own server-pinned
+                    duration — there is no per-link duration for a group-scoped
+                    reschedule.
+                  </Text>
+                ) : null}
 
                 <DialogFooter>
                   <Button

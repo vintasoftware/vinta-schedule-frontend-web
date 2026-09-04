@@ -46,6 +46,30 @@ const GROUP_TARGET_NO_DURATION: MintBookingLinkTarget = {
   duration: undefined,
 };
 
+const EVENT_RESCHEDULE_CALENDAR_TARGET: MintBookingLinkTarget = {
+  kind: 'event',
+  id: 100,
+  name: 'Checkup with Dr. Smith',
+  purpose: 'reschedule',
+  eventScope: { kind: 'calendar', durationSeconds: 2700 },
+};
+
+const EVENT_RESCHEDULE_GROUP_TARGET: MintBookingLinkTarget = {
+  kind: 'event',
+  id: 101,
+  name: 'Surgery consult',
+  purpose: 'reschedule',
+  eventScope: { kind: 'group' },
+};
+
+const EVENT_CANCEL_TARGET: MintBookingLinkTarget = {
+  kind: 'event',
+  id: 102,
+  name: 'Checkup with Dr. Smith',
+  purpose: 'cancel',
+  eventScope: { kind: 'calendar', durationSeconds: 1800 },
+};
+
 const meta = {
   title: 'Components/BookingLinks/MintBookingLinkDialog',
   component: MintBookingLinkDialog,
@@ -99,4 +123,28 @@ export const GroupTarget: Story = {
  */
 export const GroupTargetBlockedNoDuration: Story = {
   args: { target: GROUP_TARGET_NO_DURATION },
+};
+
+/**
+ * A calendar-scoped `event` reschedule target offers the same advisory
+ * duration control as a calendar `book` target, defaulted to the EVENT's
+ * own current length rather than a fixed 30 minutes.
+ */
+export const EventRescheduleCalendarTarget: Story = {
+  args: { target: EVENT_RESCHEDULE_CALENDAR_TARGET },
+};
+
+/**
+ * A group-scoped `event` reschedule target shows no duration control — the
+ * group's own server-pinned duration applies, mirroring a plain `group`
+ * `book` target. Never blocked on an unset group duration here (see the
+ * type's doc comment for why).
+ */
+export const EventRescheduleGroupTarget: Story = {
+  args: { target: EVENT_RESCHEDULE_GROUP_TARGET },
+};
+
+/** An `event` cancel target offers no duration control at all. */
+export const EventCancelTarget: Story = {
+  args: { target: EVENT_CANCEL_TARGET },
 };

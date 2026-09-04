@@ -36,6 +36,16 @@ sb.mock(import('../src/hooks/booking-codes/use-public-bookable-slots.ts'), {
 sb.mock(import('../src/hooks/booking-codes/use-public-group-booking.ts'), {
   spy: true,
 });
+// RescheduleFlow's and CancelFlow's terminal-write-error stories drive the
+// write hooks directly (there is no real `/public/booking/*` backend behind
+// Storybook, so a rejected mutation has to be stubbed) — same rationale as
+// the read hooks above.
+sb.mock(import('../src/hooks/booking-codes/use-public-reschedule.ts'), {
+  spy: true,
+});
+sb.mock(import('../src/hooks/booking-codes/use-public-cancel.ts'), {
+  spy: true,
+});
 
 import { patchFocus } from './patch-focus';
 import '../src/app/globals.css';
