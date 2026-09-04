@@ -101,3 +101,35 @@ export function parseWriteFailure(
     isRetryable: errorCode === 'SLOT_UNAVAILABLE',
   };
 }
+
+/**
+ * Thrown by the public read hooks (`use-public-bookable-slots.ts` and
+ * later Phase 3's group equivalent) so a failed `useQuery` carries the
+ * already-collapsed `PublicReadState` in `.state` rather than the raw
+ * generated-client error shape. Components branch on `.state`, never on the
+ * underlying response body — see `parseReadFailure`'s doc comment for why.
+ */
+export class PublicReadFailureError extends Error {
+  readonly state: Exclude<PublicReadState, 'ok'>;
+
+  constructor(state: Exclude<PublicReadState, 'ok'>) {
+    super(`public booking read failed: ${state}`);
+    this.name = 'PublicReadFailureError';
+    this.state = state;
+  }
+}
+
+/**
+ * Thrown by the public write hooks (`use-public-book-event.ts` and later
+ * Phase 3/4's equivalents) so a failed `useMutation` carries the parsed
+ * `PublicWriteFailure` in `.failure` instead of the raw response body.
+ */
+export class PublicWriteFailureError extends Error {
+  readonly failure: PublicWriteFailure;
+
+  constructor(failure: PublicWriteFailure) {
+    super(failure.detail);
+    this.name = 'PublicWriteFailureError';
+    this.failure = failure;
+  }
+}
