@@ -45,6 +45,7 @@ const SLOT: CalendarGroupSlot = {
       calendar_type: 'resource',
     },
   ],
+  pools: [],
 };
 
 function makeListResponse<T>(results: T[]) {
@@ -282,7 +283,13 @@ describe('SlotRoster', () => {
     render(
       <SlotRoster
         groupId={1}
-        slot={{ id: 20, name: 'Nurse', required_count: 1, calendars: [] }}
+        slot={{
+          id: 20,
+          name: 'Nurse',
+          required_count: 1,
+          calendars: [],
+          pools: [],
+        }}
       />,
       { wrapper }
     );

@@ -88,8 +88,10 @@ const FIXTURE_GROUP: CalendarGroup = {
           calendar_type: 'personal',
         },
       ],
+      pools: [],
     },
   ],
+  public_booking_slug: 'surgery-team',
   created: '2024-01-01T00:00:00Z',
   modified: '2024-01-01T00:00:00Z',
 };
