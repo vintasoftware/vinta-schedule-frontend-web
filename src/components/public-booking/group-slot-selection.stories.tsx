@@ -54,11 +54,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
-
-export const WithABusyCandidate: Story = {
-  args: { slots: SATISFIABLE_SLOTS },
-};
+// `Default` (via `meta.args`) already uses `SATISFIABLE_SLOTS`, which bakes
+// in a busy candidate (id 21, in Slot 2's pool but absent from
+// `availableCalendarIds`) — a separate `WithABusyCandidate` story using the
+// same fixture would render identically, so that state is covered by
+// `Default` alone.
 
 export const CompleteSelection: Story = {
   args: { selection: WITH_SELECTION },

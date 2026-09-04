@@ -145,6 +145,28 @@ const GROUP_TARGET: MintBookingLinkTarget = {
   kind: 'group',
   id: 9,
   name: 'Surgery Team',
+  duration: '0:30:00',
+};
+
+const GROUP_TARGET_NO_DURATION: MintBookingLinkTarget = {
+  kind: 'group',
+  id: 10,
+  name: 'Unconfigured Team',
+  duration: undefined,
+};
+
+const GROUP_TARGET_ZERO_DURATION: MintBookingLinkTarget = {
+  kind: 'group',
+  id: 11,
+  name: 'Zeroed Team',
+  duration: '00:00:00',
+};
+
+const GROUP_TARGET_EMPTY_DURATION: MintBookingLinkTarget = {
+  kind: 'group',
+  id: 12,
+  name: 'Blank Team',
+  duration: '',
 };
 
 function renderDialog(
@@ -257,6 +279,50 @@ describe('MintBookingLinkDialog', () => {
       'booking-link-url-input'
     )) as HTMLInputElement;
     expect(urlInput.value).toContain('duration=1800');
+  });
+
+  it.each([
+    ['unset', GROUP_TARGET_NO_DURATION],
+    ['zero-valued', GROUP_TARGET_ZERO_DURATION],
+    ['empty', GROUP_TARGET_EMPTY_DURATION],
+  ] as const)(
+    'blocks minting for a group with %s duration, explains why, and issues no mutation',
+    (_label, target) => {
+      renderDialog(target);
+
+      expect(
+        screen.getByText(/can't take public bookings yet/i)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('group-duration-required-notice')
+      ).toHaveTextContent(/needs a duration/i);
+      expect(
+        screen.queryByTestId('create-booking-link-submit')
+      ).not.toBeInTheDocument();
+      expect(bookingCodesCreate).not.toHaveBeenCalled();
+    }
+  );
+
+  it('does not block minting for a group with a real duration', () => {
+    renderDialog(GROUP_TARGET);
+
+    expect(
+      screen.queryByText(/can't take public bookings yet/i)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('create-booking-link-submit')
+    ).toBeInTheDocument();
+  });
+
+  it('does not block minting for a calendar target, regardless of any duration field', () => {
+    renderDialog(CALENDAR_TARGET);
+
+    expect(
+      screen.queryByText(/can't take public bookings yet/i)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('create-booking-link-submit')
+    ).toBeInTheDocument();
   });
 
   it('mints a group link and surfaces a URL with no ?duration=, regardless of anything a caller might supply', async () => {

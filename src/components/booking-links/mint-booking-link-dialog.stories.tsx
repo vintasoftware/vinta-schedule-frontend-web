@@ -36,6 +36,14 @@ const GROUP_TARGET: MintBookingLinkTarget = {
   kind: 'group',
   id: 9,
   name: 'Surgery Team',
+  duration: '0:30:00',
+};
+
+const GROUP_TARGET_NO_DURATION: MintBookingLinkTarget = {
+  kind: 'group',
+  id: 10,
+  name: 'Unconfigured Team',
+  duration: undefined,
 };
 
 const meta = {
@@ -83,4 +91,12 @@ export const CalendarTarget: Story = {};
  */
 export const GroupTarget: Story = {
   args: { target: GROUP_TARGET },
+};
+
+/**
+ * A group with no pinned duration is refused before the form even renders —
+ * see `groupDurationIsUnset` in `mint-booking-link-dialog.tsx`.
+ */
+export const GroupTargetBlockedNoDuration: Story = {
+  args: { target: GROUP_TARGET_NO_DURATION },
 };

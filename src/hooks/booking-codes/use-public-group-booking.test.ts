@@ -10,12 +10,21 @@
  *   `public_slug` path placeholder, resolves with the created event, and
  *   maps the write error vocabulary (`SLOT_UNAVAILABLE` retryable, others
  *   not) via `PublicWriteFailureError`.
+ * - All three operations are called with `client: publicBookingClient` —
+ *   asserted explicitly (not just `objectContaining` on `headers`/`body`) so
+ *   a regression that swapped in the shared authenticated client (which
+ *   injects `Authorization` / `X-Organization-Id`) fails this file. One of
+ *   the three (`usePublicGroupBookableSlots`) additionally gets the same
+ *   real-client, real-`fetch` regression test as
+ *   `use-public-bookable-slots.test.ts`, exercising `publicBookingClient`
+ *   itself rather than a mock of it.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement, type ReactNode } from 'react';
+import { publicBookingClient } from '@/lib/booking-links/public-client';
 
 vi.mock('@/client/sdk.gen', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/client/sdk.gen')>();
@@ -130,6 +139,7 @@ describe('usePublicGroupBookableSlots', () => {
       vi.mocked(publicBookingCalendarGroupBookableSlotsList)
     ).toHaveBeenCalledWith(
       expect.objectContaining({
+        client: publicBookingClient,
         headers: { 'X-Booking-Code': 'secret-code' },
       })
     );
@@ -222,6 +232,7 @@ describe('fetchPublicGroupSlotAvailability', () => {
       vi.mocked(publicBookingCalendarGroupAvailabilityCreate)
     ).toHaveBeenCalledWith(
       expect.objectContaining({
+        client: publicBookingClient,
         headers: { 'X-Booking-Code': 'secret-code' },
         body: {
           ranges: [{ start_time: range.start_time, end_time: range.end_time }],
@@ -282,6 +293,7 @@ describe('usePublicGroupBookEvent', () => {
       vi.mocked(publicBookingCalendarGroupsEventsCreate)
     ).toHaveBeenCalledWith(
       expect.objectContaining({
+        client: publicBookingClient,
         headers: { 'X-Booking-Code': 'secret-code' },
         body: groupEventBody,
         path: { public_slug: expect.any(String) },

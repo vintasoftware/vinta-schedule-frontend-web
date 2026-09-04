@@ -341,7 +341,12 @@ function GroupsTableInner() {
           onOpenChange={(open) => {
             if (!open) setMintTarget(null);
           }}
-          target={{ kind: 'group', id: mintTarget.id, name: mintTarget.name }}
+          target={{
+            kind: 'group',
+            id: mintTarget.id,
+            name: mintTarget.name,
+            duration: mintTarget.duration,
+          }}
         />
       )}
     </>

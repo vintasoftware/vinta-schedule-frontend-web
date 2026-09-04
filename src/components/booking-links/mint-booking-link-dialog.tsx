@@ -17,6 +17,12 @@
  *     URL with a plain "this link no longer works" notice once revoke
  *     succeeds.
  *
+ * A group target with no pinned `duration` never reaches the form at all —
+ * `groupDurationIsUnset` below blocks it with an explanation instead, since
+ * the group-scoped bookable-slots read would otherwise silently hand every
+ * attendee a frontend-chosen placeholder length nobody with authority
+ * picked (SHOULD-FIX 1, Phase 3 review).
+ *
  * SECURITY invariants (this is the phase's single most important file):
  *   - The plaintext `code` returned by `createBookingCode` is used ONLY to
  *     build `mintedLink.url` (via `buildBookingLinkUrl`) in local component
@@ -97,7 +103,43 @@ import {
 
 export type MintBookingLinkTarget =
   | { kind: 'calendar'; id: number; name: string }
-  | { kind: 'group'; id: number; name: string };
+  | {
+      kind: 'group';
+      id: number;
+      name: string;
+      /**
+       * `CalendarGroup.duration` verbatim off the wire — a Django
+       * `DurationField` string (`[DD] [HH:[MM:]]ss[.uuuuuu]`), NOT seconds
+       * (see the plan's "`CalendarGroup.duration` is a string on the wire"
+       * guiding decision). Absent/empty/all-zero means the group has no
+       * pinned length yet, which `groupDurationIsUnset` below checks for.
+       * Phase 6 owns the real two-way duration<->seconds conversion; this
+       * field is read-only here and never round-tripped.
+       */
+      duration?: string;
+    };
+
+/**
+ * True when a group's `duration` cannot back a public booking: absent,
+ * empty, or every numeric component is zero (e.g. `"0:00:00"`). A group in
+ * this state has no server-pinned length, so the group-scoped bookable-slots
+ * read's REQUIRED `duration_seconds` placeholder
+ * (`GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS` in
+ * `public-group-booking-flow.tsx`) would stand as the real booked length
+ * instead of being silently overridden — an anonymous attendee getting a
+ * length nobody with authority chose. Refusing to mint here is the fix.
+ *
+ * Deliberately minimal: this only answers "is it unset or zero", not a full
+ * `[DD] [HH:[MM:]]ss[.uuuuuu]` parse. Phase 6's
+ * `@src/lib/booking-links/duration-format.ts` owns the real two-way
+ * duration<->seconds conversion; do not grow this into that parser.
+ */
+function groupDurationIsUnset(duration: string | undefined): boolean {
+  if (!duration) return true;
+  const digitRuns = duration.match(/\d+/g) ?? [];
+  const total = digitRuns.reduce((sum, run) => sum + Number(run), 0);
+  return total === 0;
+}
 
 export interface MintBookingLinkDialogProps {
   open: boolean;
@@ -261,6 +303,15 @@ export function MintBookingLinkDialog({
 
   const targetLabel = target.kind === 'calendar' ? 'calendar' : 'group';
 
+  // Refuse to mint at the source (SHOULD-FIX 1, Phase 3 review): a group
+  // with no pinned duration would otherwise silently hand every attendee
+  // the group-slots read's placeholder length. Blocked before the form even
+  // renders, not surfaced as a validation error on submit — there is no
+  // valid input the member could supply here to fix it; the group itself
+  // needs a duration first.
+  const isBlockedGroup =
+    target.kind === 'group' && groupDurationIsUnset(target.duration);
+
   const onSubmit = async (values: MintFormValues) => {
     const expiresAt =
       values.expiresAt !== ''
@@ -338,7 +389,36 @@ export function MintBookingLinkDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        {isRevealView ? (
+        {isBlockedGroup ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>
+                This group can&apos;t take public bookings yet
+              </DialogTitle>
+              <DialogDescription>
+                <Text as='span' weight='medium'>
+                  {target.name}
+                </Text>{' '}
+                has no appointment length set.
+              </DialogDescription>
+            </DialogHeader>
+            <Alert
+              variant='warning'
+              data-testid='group-duration-required-notice'
+            >
+              <Icon icon={TriangleAlert} size='sm' />
+              <AlertDescription>
+                The group needs a duration before it can take public bookings —
+                set one on the group&apos;s settings, then generate the link.
+              </AlertDescription>
+            </Alert>
+            <DialogFooter>
+              <Button type='button' onClick={handleClose}>
+                Close
+              </Button>
+            </DialogFooter>
+          </>
+        ) : isRevealView ? (
           <>
             <DialogHeader>
               <DialogTitle>Scheduling link created</DialogTitle>

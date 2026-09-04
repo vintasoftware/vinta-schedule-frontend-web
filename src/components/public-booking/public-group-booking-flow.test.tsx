@@ -246,6 +246,49 @@ describe('PublicGroupBookingFlow', () => {
     );
   });
 
+  it('a group with no pinned duration renders the placeholder length verbatim, unmodified by the server', async () => {
+    const user = userEvent.setup();
+    // No `CalendarGroup.duration` pinned: the server does not override
+    // `duration_seconds`, so the returned proposal's span comes back
+    // exactly equal to the read placeholder
+    // (`GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS` = 1800s = 30min).
+    // Minting a link for a group in this state is refused at the source
+    // (see `mint-booking-link-dialog.tsx`'s `groupDurationIsUnset`), but
+    // this pins down what the flow itself renders on that placeholder path.
+    const unpinnedDurationProposal: BookableSlotProposal = {
+      start_time: '2026-03-02T10:00:00.000Z',
+      end_time: '2026-03-02T10:30:00.000Z',
+    };
+    vi.mocked(
+      publicBookingCalendarGroupBookableSlotsList
+    ).mockResolvedValueOnce(proposalsOk([unpinnedDurationProposal]));
+    vi.mocked(
+      publicBookingCalendarGroupAvailabilityCreate
+    ).mockResolvedValueOnce(
+      availabilityOk({
+        start_time: unpinnedDurationProposal.start_time,
+        end_time: unpinnedDurationProposal.end_time,
+        slots: RANGE_AVAILABILITY.slots,
+      })
+    );
+
+    renderFlow();
+
+    const radio = await screen.findByRole('radio');
+    await user.click(radio);
+
+    await waitFor(() =>
+      expect(screen.getByText('30 min appointment')).toBeInTheDocument()
+    );
+    expect(
+      vi.mocked(publicBookingCalendarGroupBookableSlotsList)
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ duration_seconds: 1800 }),
+      })
+    );
+  });
+
   it('a satisfiable selection books with the right slot_selections and confirms', async () => {
     const user = userEvent.setup();
     vi.mocked(

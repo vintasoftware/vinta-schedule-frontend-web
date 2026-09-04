@@ -67,7 +67,12 @@ export function GroupDetailView({ group }: GroupDetailViewProps) {
         <MintBookingLinkDialog
           open={mintDialogOpen}
           onOpenChange={setMintDialogOpen}
-          target={{ kind: 'group', id: group.id, name: group.name }}
+          target={{
+            kind: 'group',
+            id: group.id,
+            name: group.name,
+            duration: group.duration,
+          }}
         />
       )}
       {group.slots.length === 0 ? (
