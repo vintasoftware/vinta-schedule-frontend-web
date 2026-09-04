@@ -308,15 +308,70 @@ The orchestrator re-ran the full suite on this branch and it was clean (260 file
 52 baseline are unused `_req` params in the new `.public-client.test.ts` files); `pnpm run test`
 260 files / 2089 tests plus design-system 11 / 82, all pass.
 
+### Phase 6 — Group public-scheduling settings ✅
+
+- **Status**: review clean — no BLOCKERs; 2 SHOULD-FIX and 1 NIT, all fixed.
+- **Models**: implementer Tier 2 stepped up to `claude-sonnet-5`; reviewer Tier 3 (`claude-sonnet-5`); fixer Tier 2 stepped up to `claude-sonnet-5`.
+- **Branch**: `plan/public-scheduling-links/phase-6`, base `plan/public-scheduling-links/phase-4`.
+- **PR**: [#132](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/132) — published, stacked on #131.
+- **PR context**: `.vinta-ai-workflows/prs-context/public-scheduling-links/phase-6.md` (`status: published`).
+- **Commits**: `e272aa1` (implementation), `75d6447` (review fixes).
+- **E2E**: none.
+
+`duration-format.ts`, the public-scheduling settings section on the group detail view, and its
+update hook. 8 files, ~990 insertions.
+
+**The representation asymmetry is contained in one module**, as the plan required.
+`CalendarGroup.duration` is a Django `DurationField` **string**; everything else in the domain
+speaks `duration_seconds` integers. `src/lib/booking-links/duration-format.ts` is the only place
+they meet, with its own round-trip tests covering the hour boundary and a no-hours value.
+
+**Phase 3's stub is consolidated.** `groupDurationIsUnset` moved into `duration-format.ts`, the mint
+dialog imports it, and both stale "Phase 6 owns this" forward-reference comments are gone. There is
+now exactly one way to answer "does this group have a duration".
+
+**SHOULD-FIX — a background refetch silently wiped the admin's unsaved edit.** The hydration effect
+had no dirty check, unlike the precedent in `group-window-grid.tsx:474-476`. Saving invalidates the
+query, so an admin typing a new duration before the refetch landed lost it with no warning. Fixed
+with the same `isDirty` guard. **Verified by falsification**: removing the guard makes the new test
+fail.
+
+**SHOULD-FIX — the failure path and sequential saves were untested.** The `PATCH` failure path
+exists precisely because `handleMutationError` routes a bare `{"detail": ...}` to an invisible
+toast — the same bug class Phase 4 had to fix after shipping — yet it had no coverage. Now tested
+with a `detail`-shaped body, plus a two-sequential-saves-without-refetch test proving the diff is
+computed against the last saved values rather than the original prop.
+
+**NIT** — an unparsable duration string now logs a `console.warn`. The return value deliberately
+stays `0`: `groupDurationIsUnset` shares the conversion, so a corrupted duration on a public group
+still surfaces the grandfathered warning rather than a false "healthy" state. Changing the return
+would break that invariant.
+
+**Gate**: `pnpm run typecheck` exit 0, zero errors; `pnpm run lint` exit 0, 56 warnings;
+`pnpm run test` 262 files / 2111 tests plus design-system 11 / 82, all pass.
+
 ## Current phase
 
-**Phase 6 — Group public-scheduling settings** — next. Last plan phase in scope.
+**Follow-up: date-picker atom** — in progress. Not a plan phase.
+
+The public slot picker ships as a flat `RadioGroup` over a hardcoded `SEARCH_WINDOW_DAYS = 14`,
+which is roughly 200 radio rows on the first screen an external attendee sees. The plan says only
+"slot picker", so this is not a spec violation, but the user reviewed it and chose to replace it
+with a real date-picker atom (`react-day-picker`, the shadcn/ui Calendar standard) rather than ship
+the flat list.
+
+**Licence check passed**: `react-day-picker@10.0.1` is MIT, and its runtime deps `date-fns@^4` and
+`@date-fns/tz` are both MIT. None are in the forbidden list.
+
+⚠️ **Bundle note**: `react-day-picker@10` pulls in `date-fns`, but this repo standardizes on
+**luxon** (48 files) and has zero `date-fns` usage. So this adds a second date library to the
+public bundle — on the unauthenticated pages, the ones most worth keeping small. Keep luxon as the
+app's date library and confine `date-fns` to the picker's internals. Measure the public-route bundle
+cost and report back if it is material.
 
 ## Remaining phases
 
-| Phase | Title                            | Implementer tier |
-| ----- | -------------------------------- | ---------------- |
-| 6     | Group public-scheduling settings | 2                |
+_None in scope._
 
 ## Deferred phases
 
