@@ -87,19 +87,74 @@ warnings; `pnpm run test` green — 233 files / 1925 tests, plus design-system 1
 `ai-plans/2026-08-*` markdown files. They are unmodified on this branch and already unformatted on
 `main`, so they were left alone to keep them out of this diff.
 
+### Phase 1 — Mint and revoke a scheduling link ✅
+
+- **Status**: review clean — 3 BLOCKERs and 6 SHOULD-FIX raised, all fixed.
+- **Models**: implementer Tier 3 (`claude-sonnet-5`); reviewer **Tier 4** (`claude-opus-5`, plan
+  override); fixer Tier 2 stepped up to `claude-sonnet-5` (>3 files).
+- **Branch**: `plan/public-scheduling-links/phase-1`, base `plan/public-scheduling-links/phase-0`.
+- **PR**: [#128](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/128) — published, stacked on #127.
+- **PR context**: `.vinta-ai-workflows/prs-context/public-scheduling-links/phase-1.md` (`status: published`).
+- **Commits**: `aa36f66` (implementation), `40cf0da` (review fixes).
+- **E2E**: none.
+
+Both booking-code hooks, the `canMintBookingLink*` predicate, `MintedBookingLink`, the
+mint/reveal/revoke dialog, row actions on both tables, and a header action on the group detail
+view. 20 files, ~2095 insertions.
+
+**The Tier 4 escalation earned its keep.** The plan escalated this phase's reviewer because the
+code is a live credential delivered exactly once. It found a real leak that the implementer's own
+doc comment claimed was handled:
+
+- **BLOCKER — the plaintext code survived in the TanStack mutation cache for ~5 minutes after the
+  dialog closed.** `MutationObserver.reset()` only calls `removeObserver()` → `scheduleGc()`; the
+  mutation holding `state.data.code` is dropped after `gcTime`, not synchronously, and the app
+  sets no mutation `gcTime`. Fixed with `gcTime: 0`.
+- **BLOCKER — the close-reset effect was dead code at two of three call sites.** Both tables mount
+  the dialog conditionally, so it unmounts before ever re-rendering with `open={false}`. Added an
+  unmount cleanup.
+- **BLOCKER — the phase's required permission tests were entirely missing.** `canMintLink` /
+  `onMintLink` / "Get scheduling link" appeared in no test file. Closed across both table test
+  files plus `group-detail-view.test.tsx`.
+
+**Verified by falsification**: removing `gcTime: 0` makes both containment tests fail, so they are
+real regression tests rather than vacuous ones. Confirmed by the orchestrator, not taken on the
+fixer's report.
+
+Notable SHOULD-FIX: `retry: 0` on the create mutation. The app retries mutations once by default,
+so a network failure after the server committed would create a **second live code** that the UI
+never reveals and that — with no list or retrieve endpoint — could never be revoked.
+
+**Pre-existing assertions confirmed untouched** in both table test files. The only removed lines
+are the `renderCalendarsTable` signature (now with an optional `permissions` defaulting to `null`,
+so existing call sites behave identically) and an extended import. No `it(...)` body changed.
+
+**Accepted deviation**: the dialog stories cover the pre-mint form only, not the reveal or revoked
+states. Precedent is `new-token-dialog.stories.tsx`, the sibling one-time-credential dialog, and a
+reveal story would mean checking a plausible-looking `code` fixture into the repo. Reveal and
+revoked are covered in the colocated test. The Tier 4 reviewer read the precedent and agreed.
+
+**Known coverage shape**: the groups-table denied case cannot be produced through the rendered
+table — the pre-existing `groupHasOwnedCalendar` filter removes exactly the rows a member would be
+denied, and `permissions === null` holds the table in its loading branch. It is unit-tested
+against `createColumns`' actions cell instead, with a comment in the test recording why, so the
+gap is not re-filed later.
+
+**Gate**: `pnpm run typecheck` exit 0, zero errors; `pnpm run lint` exit 0, 51 pre-existing
+warnings; `pnpm run test` 237 files / 1963 tests plus design-system 11 / 82, all pass.
+
 ## Current phase
 
-**Phase 1 — Mint and revoke a scheduling link** — next.
+**Phase 2 — Public booking page, single calendar** — next.
 
 ## Remaining phases
 
-| Phase | Title                                    | Implementer tier         |
-| ----- | ---------------------------------------- | ------------------------ |
-| 1     | Mint and revoke a scheduling link        | 3 (reviewer override: 4) |
-| 2     | Public booking page, single calendar     | 3                        |
-| 3     | Public booking page, calendar group      | 3                        |
-| 4     | Admin-minted reschedule and cancel links | 3                        |
-| 6     | Group public-scheduling settings         | 2                        |
+| Phase | Title                                    | Implementer tier |
+| ----- | ---------------------------------------- | ---------------- |
+| 2     | Public booking page, single calendar     | 3                |
+| 3     | Public booking page, calendar group      | 3                |
+| 4     | Admin-minted reschedule and cancel links | 3                |
+| 6     | Group public-scheduling settings         | 2                |
 
 ## Deferred phases
 
