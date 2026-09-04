@@ -37,9 +37,23 @@ missing-module error, that is the first thing to re-check.
 
 - **Status**: review clean — no BLOCKERs; 3 SHOULD-FIX raised and all fixed.
 - **Models**: implementer Tier 2; reviewer Tier 3 (`claude-sonnet-5`); fixer Tier 2 (`claude-sonnet-5`).
-- **Branch**: `plan/public-scheduling-links/phase-0`, base `plan-public-scheduling-links`.
+- **Branch**: `plan/public-scheduling-links/phase-0`, base `main`.
+- **PR**: [#127](https://github.com/vintasoftware/vinta-schedule-frontend-web/pull/127) — published.
+- **PR context**: `.vinta-ai-workflows/prs-context/public-scheduling-links/phase-0.md` (`status: published`).
 - **Commit**: `681d431`.
 - **E2E**: none — the plan declares no e2e.
+
+**Base-branch note**: `plan-public-scheduling-links` was created but never got a commit of its
+own, so it is byte-identical to `main` at `8f1d151`. Phase 0's PR therefore targets `main`
+directly, which matches the prs-context template's rule that the first stacked phase targets the
+default branch. Phase 1 stacks on `plan/public-scheduling-links/phase-0` as normal.
+
+**Symlink repair**: the worktree's `.vinta-ai-workflows` symlink pointed at `../../.vinta-ai-workflows`,
+which resolves to `.claude/.vinta-ai-workflows` and does not exist. Repointed to
+`../../../.vinta-ai-workflows` (the main checkout's copy, which holds this plan's worktree
+summary). Local gitignored state only. Note the symlink itself still shows as untracked because
+`.gitignore` has `.vinta-ai-workflows/` with a trailing slash, which does not match a symlink —
+do not stage it.
 
 `schema.yml` synced from `vinta-schedule-api@main` at `272c5e33` and `src/client/` regenerated via
 `pnpm run openapi-ts`. All ten operations the plan names are importable from `@/client/sdk.gen`:
