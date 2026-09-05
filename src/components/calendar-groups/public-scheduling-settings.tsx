@@ -13,6 +13,15 @@
  * `null` would break the request outright. See the plan's tri-state guiding
  * decision.
  *
+ * That tri-state applies to THESE TWO FIELDS ONLY. The rest of the body is not
+ * partial: `CalendarGroupSerializer` replaces `slots` wholesale with no
+ * unchanged sentinel and refuses a partial update that omits it, reads `name`
+ * unguarded, and defaults `description` to `""` (clearing it). So the changed
+ * field(s) go through `buildGroupUpdateBody`, which carries `name`,
+ * `description` and the full `slots` list — each slot's inline roster split
+ * back out from its attached pools — over from the group as last read. A body
+ * holding only the toggle and the duration is a 400, not a partial save.
+ *
  * `duration` travels the wire as a Django `DurationField` string
  * (`"HH:MM:SS"`), never seconds — `@/lib/booking-links/duration-format` is
  * the sole place that converts to/from the plain number of minutes this form
@@ -112,6 +121,7 @@ import {
   groupDurationIsUnset,
 } from '@/lib/booking-links/duration-format';
 import { buildGroupPublicBookingUrl } from '@/lib/booking-links/build-url';
+import { buildGroupUpdateBody } from '@/lib/calendar-groups/group-payload';
 import { handleMutationError } from '@/lib/utils/form-errors';
 
 // ---------------------------------------------------------------------------
@@ -310,22 +320,26 @@ export function PublicSchedulingSettings({
     groupDurationIsUnset(group.duration);
 
   const onSubmit = async (values: PublicSchedulingFormValues) => {
-    const body: { accepts_public_scheduling?: boolean; duration?: string } = {};
+    const changes: { accepts_public_scheduling?: boolean; duration?: string } =
+      {};
     if (values.enabled !== savedValues.enabled) {
-      body.accepts_public_scheduling = values.enabled;
+      changes.accepts_public_scheduling = values.enabled;
     }
     if (values.durationMinutes !== savedValues.durationMinutes) {
-      body.duration = minutesToDjangoDuration(values.durationMinutes);
+      changes.duration = minutesToDjangoDuration(values.durationMinutes);
     }
     // Nothing actually changed (e.g. a resubmit with identical values) —
     // an empty PATCH is pointless and would still round-trip through the
     // "omit, don't send null" contract for no reason.
-    if (Object.keys(body).length === 0) {
+    if (Object.keys(changes).length === 0) {
       return;
     }
 
     try {
-      await updatePublicScheduling(body);
+      // The changed field(s) plus the group's current name, description and
+      // full slot list — see the header: a group PATCH is only partial for
+      // these two fields, and omitting `slots` is a 400.
+      await updatePublicScheduling(buildGroupUpdateBody(group, changes));
       setSavedValues(values);
       form.reset(values);
     } catch (err) {

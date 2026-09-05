@@ -15,6 +15,13 @@
  *   warns before submit, since the API matches slots by name and removes any
  *   saved slot the payload no longer carries.
  * - A slot-removal rejection (`non_field_errors`) surfaces on the form.
+ * - The PATCH body is complete — name and description ride along with slots,
+ *   because a group PATCH is only partial for `duration` and
+ *   `accepts_public_scheduling`, and those two are left to
+ *   PublicSchedulingSettings rather than sent from here.
+ *
+ * The roster helpers this form uses live in `@/lib/calendar-groups/group-payload`
+ * and are covered by that module's own test.
  */
 
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
@@ -65,12 +72,7 @@ import {
   calendarGroupsPartialUpdate,
 } from '@/client/sdk.gen';
 import { toast } from 'sonner';
-import {
-  GroupFormDialog,
-  effectiveRoster,
-  splitSavedSlotRoster,
-  buildPoolRosters,
-} from './group-form-dialog';
+import { GroupFormDialog } from './group-form-dialog';
 import type { Calendar, CalendarGroup, CalendarPool } from '@/client';
 
 // ---------------------------------------------------------------------------
@@ -145,42 +147,6 @@ function lastUpdateBody() {
 }
 
 // ---------------------------------------------------------------------------
-// Pure helpers
-// ---------------------------------------------------------------------------
-
-describe('effectiveRoster', () => {
-  const rosters = buildPoolRosters([POOL_NURSES]);
-
-  it('unions the individual picks with every attached pool roster', () => {
-    expect(effectiveRoster([3], [7], rosters).sort()).toEqual([1, 2, 3]);
-  });
-
-  it('counts a calendar present in both sources once', () => {
-    expect(effectiveRoster([1], [7], rosters).sort()).toEqual([1, 2]);
-  });
-
-  it('contributes nothing for a pool id it has no roster for', () => {
-    expect(effectiveRoster([3], [999], rosters)).toEqual([3]);
-  });
-});
-
-describe('splitSavedSlotRoster', () => {
-  it('subtracts the attached pools rosters to recover the individual picks', () => {
-    expect(splitSavedSlotRoster([CAL_A, CAL_B, CAL_C], [POOL_NURSES])).toEqual({
-      calendar_ids: [3],
-      pool_ids: [7],
-    });
-  });
-
-  it('treats every calendar as individual when no pool is attached', () => {
-    expect(splitSavedSlotRoster([CAL_A, CAL_C], [])).toEqual({
-      calendar_ids: [1, 3],
-      pool_ids: [],
-    });
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Edit mode
 // ---------------------------------------------------------------------------
 
@@ -225,6 +191,42 @@ describe('GroupFormDialog (edit mode)', () => {
     expect(screen.getByTestId('slot-roster-size-0')).toHaveTextContent(
       'Roster: 3 calendars (2 from pools).'
     );
+  });
+
+  it('does not offer the public-scheduling fields in edit mode', () => {
+    // Those two belong to PublicSchedulingSettings on the detail page once the
+    // group exists — two editors for one setting would be one too many.
+    renderEditDialog();
+
+    expect(
+      screen.queryByRole('switch', { name: 'Accept public bookings' })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('spinbutton', {
+        name: 'Appointment length in minutes',
+      })
+    ).not.toBeInTheDocument();
+  });
+
+  it('leaves duration and accepts_public_scheduling out of the PATCH', async () => {
+    // Both are tri-state server-side, so their absence is what keeps a roster
+    // edit from also rewriting the group's public-scheduling state.
+    const user = userEvent.setup();
+    renderEditDialog({
+      ...SAVED_GROUP,
+      accepts_public_scheduling: true,
+      duration: '00:45:00',
+    });
+
+    await screen.findByTestId('slot-editor-0');
+    await user.click(screen.getByTestId('edit-group-submit'));
+
+    await waitFor(() => {
+      expect(calendarGroupsPartialUpdate).toHaveBeenCalledOnce();
+    });
+    const body = lastUpdateBody() as Record<string, unknown>;
+    expect('duration' in body).toBe(false);
+    expect('accepts_public_scheduling' in body).toBe(false);
   });
 
   it('PATCHes by id and sends pool_ids for every slot, even one left untouched', async () => {

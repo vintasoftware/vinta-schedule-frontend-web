@@ -522,6 +522,111 @@ describe('CreateGroupDialog', () => {
     expect(calendarGroupsCreate).not.toHaveBeenCalled();
   });
 
+  it('sets accepts_public_scheduling and duration at creation time', async () => {
+    // Regression: these two were unsettable at creation, so a new group could
+    // not be made publicly bookable without a second trip to the detail page.
+    const user = userEvent.setup();
+    mockGroupCreate();
+    renderDialog();
+
+    await screen.findByTestId('slot-editor-0');
+
+    await user.type(
+      screen.getByPlaceholderText('e.g. Frontend Team'),
+      'Clinic'
+    );
+    const slot0 = screen.getByTestId('slot-editor-0');
+    await user.type(
+      within(slot0).getByPlaceholderText('e.g. Interviewer'),
+      'Nurse'
+    );
+    await pickIndividualCalendars(user, slot0, ['Calendar A']);
+
+    await user.click(
+      screen.getByRole('switch', { name: 'Accept public bookings' })
+    );
+    const durationInput = screen.getByRole('spinbutton', {
+      name: 'Appointment length in minutes',
+    });
+    await user.clear(durationInput);
+    await user.type(durationInput, '30');
+
+    await user.click(screen.getByTestId('create-group-submit'));
+
+    await waitFor(() => {
+      expect(calendarGroupsCreate).toHaveBeenCalledOnce();
+    });
+    expect(
+      vi.mocked(calendarGroupsCreate).mock.calls[0]?.[0]?.body
+    ).toMatchObject({
+      name: 'Clinic',
+      accepts_public_scheduling: true,
+      duration: '00:30:00',
+    });
+  });
+
+  it('blocks accepting public bookings with no appointment length', async () => {
+    // The server rejects a public group with no duration; catch it here so the
+    // request is never sent.
+    const user = userEvent.setup();
+    renderDialog();
+
+    await screen.findByTestId('slot-editor-0');
+
+    await user.type(
+      screen.getByPlaceholderText('e.g. Frontend Team'),
+      'Clinic'
+    );
+    const slot0 = screen.getByTestId('slot-editor-0');
+    await user.type(
+      within(slot0).getByPlaceholderText('e.g. Interviewer'),
+      'Nurse'
+    );
+    await pickIndividualCalendars(user, slot0, ['Calendar A']);
+
+    await user.click(
+      screen.getByRole('switch', { name: 'Accept public bookings' })
+    );
+    await user.click(screen.getByTestId('create-group-submit'));
+
+    expect(
+      await screen.findByText(/set an appointment length before accepting/i)
+    ).toBeInTheDocument();
+    expect(calendarGroupsCreate).not.toHaveBeenCalled();
+  });
+
+  it('omits duration entirely when no length was typed', async () => {
+    // `duration` refuses an explicit null, and 0 is how "unset" reads back —
+    // so a private group with no length sends no key at all.
+    const user = userEvent.setup();
+    mockGroupCreate();
+    renderDialog();
+
+    await screen.findByTestId('slot-editor-0');
+
+    await user.type(
+      screen.getByPlaceholderText('e.g. Frontend Team'),
+      'Clinic'
+    );
+    const slot0 = screen.getByTestId('slot-editor-0');
+    await user.type(
+      within(slot0).getByPlaceholderText('e.g. Interviewer'),
+      'Nurse'
+    );
+    await pickIndividualCalendars(user, slot0, ['Calendar A']);
+
+    await user.click(screen.getByTestId('create-group-submit'));
+
+    await waitFor(() => {
+      expect(calendarGroupsCreate).toHaveBeenCalledOnce();
+    });
+    const body = vi.mocked(calendarGroupsCreate).mock.calls[0]?.[0]?.body as
+      | Record<string, unknown>
+      | undefined;
+    expect(body && 'duration' in body).toBe(false);
+    expect(body?.accepts_public_scheduling).toBe(false);
+  });
+
   it('shows a toast error if calendarGroupsCreate throws', async () => {
     const user = userEvent.setup();
     vi.mocked(calendarGroupsCreate).mockRejectedValueOnce(

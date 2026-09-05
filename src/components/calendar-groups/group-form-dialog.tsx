@@ -13,11 +13,19 @@
  * Fields:
  *   - name (required)
  *   - description (optional)
+ *   - accepts_public_scheduling + duration (create mode only — see below)
  *   - slots (useFieldArray, ≥1 slot required)
  *       - name (required)
  *       - required_count (≥1, must not exceed the effective roster size)
  *       - pool_ids (calendar pools attached to the slot)
  *       - calendar_ids (calendars picked individually for this slot)
+ *
+ * Public scheduling is settable at CREATE time only. After that it belongs to
+ * `PublicSchedulingSettings` on the group detail page, which owns the same two
+ * fields plus the group's public link — two editors for one setting would be
+ * one too many. Both honour the server invariant that a group accepting public
+ * bookings must have a duration; here it is a zod refine, so the request is
+ * never sent at all.
  *
  * Two API behaviors shape the edit mode:
  *
@@ -56,22 +64,36 @@ import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Input } from 'vinta-schedule-design-system/ui/input';
 import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
 import { Label } from 'vinta-schedule-design-system/ui/label';
+import { Switch } from 'vinta-schedule-design-system/ui/switch';
 import {
   Form,
   FormField,
   FormItem,
   FormLabel,
   FormControl,
+  FormDescription,
   FormMessage,
   FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
 import {
+  Box,
   FormLayout,
   VStack,
   HStack,
   Text,
 } from 'vinta-schedule-design-system/layout';
 import type { Calendar, CalendarGroup } from '@/client';
+import {
+  buildGroupUpdateBody,
+  buildPoolRosters,
+  effectiveRoster,
+  splitSavedSlotRoster,
+  type PoolRosters,
+} from '@/lib/calendar-groups/group-payload';
+import {
+  djangoDurationToMinutes,
+  minutesToDjangoDuration,
+} from '@/lib/booking-links/duration-format';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
 import {
   useAllCalendarPools,
@@ -83,59 +105,6 @@ import { handleMutationError } from '@/lib/utils/form-errors';
 
 /** One page wide enough to offer every calendar an org realistically has. */
 const CALENDARS_PAGE_SIZE = 200;
-
-// ---------------------------------------------------------------------------
-// Roster resolution
-// ---------------------------------------------------------------------------
-
-/** Pool id → the calendar ids on that pool's roster. */
-export type PoolRosters = ReadonlyMap<number, readonly number[]>;
-
-export function buildPoolRosters(pools: readonly CalendarPool[]): PoolRosters {
-  return new Map(pools.map((p) => [p.id, p.calendars.map((c) => c.id)]));
-}
-
-/**
- * The calendars a slot actually offers: its individual picks plus every
- * attached pool's roster, deduplicated. A pool id with no entry in `rosters`
- * contributes nothing — that happens only while the pool list is still
- * loading, and the form blocks submit until it has resolved.
- */
-export function effectiveRoster(
-  calendarIds: readonly number[],
-  poolIds: readonly number[],
-  rosters: PoolRosters
-): number[] {
-  const union = new Set<number>(calendarIds);
-  for (const poolId of poolIds) {
-    for (const calendarId of rosters.get(poolId) ?? []) {
-      union.add(calendarId);
-    }
-  }
-  return [...union];
-}
-
-/**
- * Splits a saved slot's roster back into the two form inputs.
- *
- * The API reports a slot's roster as one flat `calendars` list with no marker
- * for where each calendar came from, so "individual" is derived by subtracting
- * the attached pools' rosters. A calendar that is BOTH an individual pick and a
- * pool member therefore comes back as pool-only. That is invisible until the
- * pool is later detached, at which point the calendar leaves the slot where
- * before it would have stayed — the API has no way to express the distinction
- * on read, so the form cannot preserve it.
- */
-export function splitSavedSlotRoster(
-  calendars: readonly Calendar[],
-  pools: readonly CalendarPool[]
-): { calendar_ids: number[]; pool_ids: number[] } {
-  const fromPools = new Set(pools.flatMap((p) => p.calendars.map((c) => c.id)));
-  return {
-    calendar_ids: calendars.map((c) => c.id).filter((id) => !fromPools.has(id)),
-    pool_ids: pools.map((p) => p.id),
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -174,13 +143,27 @@ export function createGroupFormSchema(rosters: PoolRosters) {
       }
     });
 
-  return z.object({
-    name: z.string().trim().min(1, { message: 'Group name is required' }),
-    description: z.string().optional(),
-    slots: z
-      .array(slotSchema)
-      .min(1, { message: 'At least one slot is required' }),
-  });
+  return z
+    .object({
+      name: z.string().trim().min(1, { message: 'Group name is required' }),
+      description: z.string().optional(),
+      acceptsPublicScheduling: z.boolean(),
+      durationMinutes: z
+        .number({ message: 'Enter a number of minutes' })
+        .int({ message: 'Whole numbers only' })
+        .min(0, { message: 'Must be 0 or more' }),
+      slots: z
+        .array(slotSchema)
+        .min(1, { message: 'At least one slot is required' }),
+    })
+    .refine(
+      (values) => !values.acceptsPublicScheduling || values.durationMinutes > 0,
+      {
+        message:
+          'Set an appointment length before accepting public bookings — the server rejects a public group with no duration.',
+        path: ['durationMinutes'],
+      }
+    );
 }
 
 export type GroupFormValues = z.infer<ReturnType<typeof createGroupFormSchema>>;
@@ -198,11 +181,21 @@ const DEFAULT_SLOT = {
 
 function getDefaultValues(group: CalendarGroup | null): GroupFormValues {
   if (group === null) {
-    return { name: '', description: '', slots: [{ ...DEFAULT_SLOT }] };
+    return {
+      name: '',
+      description: '',
+      acceptsPublicScheduling: false,
+      durationMinutes: 0,
+      slots: [{ ...DEFAULT_SLOT }],
+    };
   }
   return {
     name: group.name,
     description: group.description ?? '',
+    // Seeded so the schema's cross-field rule reads the group's real state,
+    // but never submitted from edit mode — see the header.
+    acceptsPublicScheduling: Boolean(group.accepts_public_scheduling),
+    durationMinutes: djangoDurationToMinutes(group.duration),
     slots: group.slots.map((slot) => ({
       name: slot.name,
       required_count: slot.required_count ?? 1,
@@ -306,11 +299,18 @@ export function GroupFormDialog({
 
     try {
       if (isEdit) {
-        await updateCalendarGroup(group.id, {
-          name: values.name,
-          description: values.description ?? '',
-          slots,
-        });
+        // Through buildGroupUpdateBody so name/description/slots are always
+        // carried — a group PATCH is only partial for duration and
+        // accepts_public_scheduling, which this form leaves to
+        // PublicSchedulingSettings and so never sends.
+        await updateCalendarGroup(
+          group.id,
+          buildGroupUpdateBody(group, {
+            name: values.name,
+            description: values.description ?? '',
+            slots,
+          })
+        );
         toast.success('Calendar group updated', {
           description: `"${values.name}" has been saved.`,
         });
@@ -319,9 +319,19 @@ export function GroupFormDialog({
           name: values.name,
           description: values.description ?? undefined,
           slots,
+          accepts_public_scheduling: values.acceptsPublicScheduling,
+          // Sent whenever a length was typed, not only when the group is
+          // public: a private group can carry one now and be flipped public
+          // later without having to set it again. Omitted at 0 — the field
+          // refuses an explicit null and 0 is how "unset" reads back.
+          ...(values.durationMinutes > 0
+            ? { duration: minutesToDjangoDuration(values.durationMinutes) }
+            : {}),
         });
         toast.success('Calendar group created', {
-          description: `"${values.name}" is now available for booking.`,
+          description: values.acceptsPublicScheduling
+            ? `"${values.name}" is now available for public booking.`
+            : `"${values.name}" is now available for booking.`,
         });
       }
       onOpenChange(false);
@@ -392,6 +402,73 @@ export function GroupFormDialog({
                 </FormItem>
               )}
             />
+
+            {/* Public scheduling — create only; after that the detail page's
+                PublicSchedulingSettings owns these two fields. */}
+            {!isEdit ? (
+              <VStack gap={3} p={3} border radius='md'>
+                <FormField
+                  control={form.control}
+                  name='acceptsPublicScheduling'
+                  render={({ field }) => (
+                    <FormItem>
+                      <HStack gap={4} align='center' justify='between'>
+                        <Box grow>
+                          <FormLabel>Accept public bookings</FormLabel>
+                          <FormDescription>
+                            Anyone holding the group&apos;s public link can book
+                            without a code. You can change this later.
+                          </FormDescription>
+                        </Box>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={isPending}
+                            aria-label='Accept public bookings'
+                          />
+                        </FormControl>
+                      </HStack>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='durationMinutes'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Appointment length (minutes)</FormLabel>
+                      <Box width={128}>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={0}
+                            step={1}
+                            inputMode='numeric'
+                            disabled={isPending}
+                            aria-label='Appointment length in minutes'
+                            value={Number.isNaN(field.value) ? '' : field.value}
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value === ''
+                                  ? Number.NaN
+                                  : Number(e.target.value)
+                              )
+                            }
+                          />
+                        </FormControl>
+                      </Box>
+                      <FormDescription>
+                        Required to accept public bookings. Applies to every
+                        booking made through this group&apos;s links.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </VStack>
+            ) : null}
 
             {/* Slots */}
             <VStack gap={3}>
