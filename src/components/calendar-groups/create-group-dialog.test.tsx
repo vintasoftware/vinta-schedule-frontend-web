@@ -2,12 +2,16 @@
  * CreateGroupDialog tests.
  *
  * Covers:
- * - Building a group with 2 slots (names, required counts, calendar pools) →
- *   submit calls calendarGroupsCreate with the correct nested body.
- * - Zod validation:
+ * - Building a group with 2 slots (names, required counts, individually picked
+ *   calendars) → submit calls calendarGroupsCreate with the correct nested body.
+ * - Attaching a calendar pool to a slot: the pool's calendars count toward the
+ *   slot's roster, and `pool_ids` is sent alongside `calendar_ids`.
+ * - Zod validation, all of it against the EFFECTIVE roster (individual picks ∪
+ *   attached pools' calendars), not the individual picks alone:
  *     - No slots → form error shown (blocked by RHF — at least 1 slot shown)
- *     - Empty pool in a slot → form error shown; submit blocked.
- *     - required_count > pool size → form error shown; submit blocked.
+ *     - Empty roster in a slot → form error shown; submit blocked.
+ *     - required_count > roster size → form error shown; submit blocked.
+ *     - required_count satisfied purely by a pool → submit allowed.
  */
 
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
@@ -52,6 +56,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     ...original,
     calendarList: vi.fn(),
     calendarGroupsCreate: vi.fn(),
+    calendarPoolsList: vi.fn(),
   };
 });
 
@@ -59,10 +64,14 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
 }));
 
-import { calendarList, calendarGroupsCreate } from '@/client/sdk.gen';
+import {
+  calendarList,
+  calendarGroupsCreate,
+  calendarPoolsList,
+} from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import { CreateGroupDialog } from './create-group-dialog';
-import type { Calendar, CalendarGroup } from '@/client';
+import type { Calendar, CalendarGroup, CalendarPool } from '@/client';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -87,6 +96,16 @@ const CAL_C = cal(3, 'Calendar C');
 
 const MOCK_CALENDARS = [CAL_A, CAL_B, CAL_C];
 
+/** "Nurses" — a pool holding Calendar A and Calendar B. */
+const POOL_NURSES: CalendarPool = {
+  id: 7,
+  name: 'Nurses',
+  description: '',
+  calendars: [CAL_A, CAL_B],
+  created: '2024-01-01T00:00:00Z',
+  modified: '2024-01-01T00:00:00Z',
+};
+
 // ---------------------------------------------------------------------------
 // Mock response helpers
 // ---------------------------------------------------------------------------
@@ -96,6 +115,13 @@ function mockCalendarList() {
     data: { count: 3, results: MOCK_CALENDARS },
     response: new Response('{}', { status: 200 }),
   } as unknown as Awaited<ReturnType<typeof calendarList>>);
+}
+
+function mockPoolList(pools: CalendarPool[] = [POOL_NURSES]) {
+  vi.mocked(calendarPoolsList).mockResolvedValue({
+    data: { count: pools.length, results: pools },
+    response: new Response('{}', { status: 200 }),
+  } as unknown as Awaited<ReturnType<typeof calendarPoolsList>>);
 }
 
 function mockGroupCreate(result?: Partial<CalendarGroup>) {
@@ -135,24 +161,40 @@ function renderDialog(open = true) {
 }
 
 /**
- * Select calendars in a slot's "Calendar pool" multi-select combobox: open the
- * trigger, click each option (options render in a portal, so query via
- * `screen`), then close the popover with Escape so the rest of the form is
- * interactable.
+ * Pick options in one of a slot's multi-select comboboxes: open the trigger,
+ * click each option (options render in a portal, so query via `screen`), then
+ * close the popover with Escape so the rest of the form is interactable.
  */
-async function pickPoolCalendars(
+async function pickInCombobox(
+  user: ReturnType<typeof userEvent.setup>,
+  slotEl: HTMLElement,
+  comboboxName: RegExp,
+  optionNames: (string | RegExp)[]
+) {
+  const trigger = within(slotEl).getByRole('combobox', { name: comboboxName });
+  await user.click(trigger);
+  for (const name of optionNames) {
+    await user.click(await screen.findByRole('option', { name }));
+  }
+  await user.keyboard('{Escape}');
+}
+
+/** Pick calendars in a slot's "Individual calendars" combobox. */
+async function pickIndividualCalendars(
   user: ReturnType<typeof userEvent.setup>,
   slotEl: HTMLElement,
   names: string[]
 ) {
-  const trigger = within(slotEl).getByRole('combobox', {
-    name: /calendar pool/i,
-  });
-  await user.click(trigger);
-  for (const name of names) {
-    await user.click(await screen.findByRole('option', { name }));
-  }
-  await user.keyboard('{Escape}');
+  await pickInCombobox(user, slotEl, /individual calendars/i, names);
+}
+
+/** Attach pools in a slot's "Calendar pools" combobox. */
+async function pickPools(
+  user: ReturnType<typeof userEvent.setup>,
+  slotEl: HTMLElement,
+  names: RegExp[]
+) {
+  await pickInCombobox(user, slotEl, /calendar pools/i, names);
 }
 
 // ---------------------------------------------------------------------------
@@ -163,6 +205,7 @@ describe('CreateGroupDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCalendarList();
+    mockPoolList();
   });
 
   it('renders the dialog with form fields', async () => {
@@ -180,7 +223,7 @@ describe('CreateGroupDialog', () => {
     expect(screen.getByText('Slot 1')).toBeInTheDocument();
   });
 
-  it('builds a group with 2 slots and correct calendar pools → calls calendarGroupsCreate with the right body', async () => {
+  it('builds a group with 2 slots and correct rosters → calls calendarGroupsCreate with the right body', async () => {
     const user = userEvent.setup();
     mockGroupCreate();
     const { onOpenChange } = renderDialog();
@@ -207,7 +250,7 @@ describe('CreateGroupDialog', () => {
     await user.type(slot0CountInput, '2');
 
     // Pick Calendar A and Calendar B for slot 1's pool
-    await pickPoolCalendars(user, slot0, ['Calendar A', 'Calendar B']);
+    await pickIndividualCalendars(user, slot0, ['Calendar A', 'Calendar B']);
 
     // Add a second slot
     const addSlotButton = screen.getByRole('button', { name: /add slot/i });
@@ -224,7 +267,7 @@ describe('CreateGroupDialog', () => {
     await user.type(slot1NameInput, 'Room');
 
     // required_count stays at 1 — pick Calendar C only
-    await pickPoolCalendars(user, slot1, ['Calendar C']);
+    await pickIndividualCalendars(user, slot1, ['Calendar C']);
 
     // Submit
     const submitBtn = screen.getByTestId('create-group-submit');
@@ -267,13 +310,13 @@ describe('CreateGroupDialog', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it('blocks submit when a slot has an empty calendar pool', async () => {
+  it('blocks submit when a slot has an empty roster', async () => {
     const user = userEvent.setup();
     renderDialog();
 
     await screen.findByTestId('slot-editor-0');
 
-    // Fill only group name + slot name, but leave pool empty
+    // Fill only group name + slot name, but leave the roster empty
     await user.type(
       screen.getByPlaceholderText('e.g. Frontend Team'),
       'Empty Pool Group'
@@ -288,10 +331,10 @@ describe('CreateGroupDialog', () => {
     const submitBtn = screen.getByTestId('create-group-submit');
     await user.click(submitBtn);
 
-    // Error message should appear for empty pool
+    // Error message should appear for the empty roster
     await waitFor(() => {
       expect(
-        screen.getByText(/at least one calendar must be in the pool/i)
+        screen.getByText(/add at least one calendar or pool to this slot/i)
       ).toBeInTheDocument();
     });
 
@@ -299,7 +342,7 @@ describe('CreateGroupDialog', () => {
     expect(calendarGroupsCreate).not.toHaveBeenCalled();
   });
 
-  it('blocks submit when required_count exceeds pool size', async () => {
+  it('blocks submit when required_count exceeds the roster size', async () => {
     const user = userEvent.setup();
     renderDialog();
 
@@ -325,14 +368,14 @@ describe('CreateGroupDialog', () => {
     await user.type(countInput, '2');
 
     // Only pick 1 calendar (pool size = 1, required = 2)
-    await pickPoolCalendars(user, slot0, ['Calendar A']);
+    await pickIndividualCalendars(user, slot0, ['Calendar A']);
 
     // Submit
     await user.click(screen.getByTestId('create-group-submit'));
 
     await waitFor(() => {
       expect(
-        screen.getByText(/required count cannot exceed pool size/i)
+        screen.getByText(/required count cannot exceed the roster size \(1\)/i)
       ).toBeInTheDocument();
     });
 
@@ -371,6 +414,114 @@ describe('CreateGroupDialog', () => {
     });
   });
 
+  it('sends pool_ids alongside calendar_ids when a pool is attached', async () => {
+    const user = userEvent.setup();
+    mockGroupCreate();
+    renderDialog();
+
+    await screen.findByTestId('slot-editor-0');
+
+    await user.type(
+      screen.getByPlaceholderText('e.g. Frontend Team'),
+      'Clinic'
+    );
+    const slot0 = screen.getByTestId('slot-editor-0');
+    await user.type(
+      within(slot0).getByPlaceholderText('e.g. Interviewer'),
+      'Nurse'
+    );
+
+    // The pool contributes Calendar A + B; Calendar C is picked individually.
+    await pickPools(user, slot0, [/^Nurses \(2\)$/]);
+    await pickIndividualCalendars(user, slot0, ['Calendar C']);
+
+    await user.click(screen.getByTestId('create-group-submit'));
+
+    await waitFor(() => {
+      expect(calendarGroupsCreate).toHaveBeenCalledOnce();
+    });
+
+    const callBody = vi.mocked(calendarGroupsCreate).mock.calls[0]?.[0]?.body;
+    expect(callBody.slots[0]).toMatchObject({
+      name: 'Nurse',
+      calendar_ids: [3],
+      pool_ids: [7],
+    });
+  });
+
+  it('counts an attached pool toward the roster, so required_count 2 passes with no individual calendars', async () => {
+    const user = userEvent.setup();
+    mockGroupCreate();
+    renderDialog();
+
+    await screen.findByTestId('slot-editor-0');
+
+    await user.type(
+      screen.getByPlaceholderText('e.g. Frontend Team'),
+      'Two Nurses'
+    );
+    const slot0 = screen.getByTestId('slot-editor-0');
+    await user.type(
+      within(slot0).getByPlaceholderText('e.g. Interviewer'),
+      'Nurses'
+    );
+
+    const countInput = within(slot0).getByDisplayValue('1');
+    await user.clear(countInput);
+    await user.type(countInput, '2');
+
+    // No individual calendars at all — the pool's two calendars are the roster.
+    await pickPools(user, slot0, [/^Nurses \(2\)$/]);
+
+    await user.click(screen.getByTestId('create-group-submit'));
+
+    await waitFor(() => {
+      expect(calendarGroupsCreate).toHaveBeenCalledOnce();
+    });
+
+    const callBody = vi.mocked(calendarGroupsCreate).mock.calls[0]?.[0]?.body;
+    expect(callBody.slots[0]).toMatchObject({
+      required_count: 2,
+      calendar_ids: [],
+      pool_ids: [7],
+    });
+  });
+
+  it('deduplicates a calendar present both individually and via a pool when sizing the roster', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await screen.findByTestId('slot-editor-0');
+
+    await user.type(
+      screen.getByPlaceholderText('e.g. Frontend Team'),
+      'Overlap'
+    );
+    const slot0 = screen.getByTestId('slot-editor-0');
+    await user.type(
+      within(slot0).getByPlaceholderText('e.g. Interviewer'),
+      'Nurses'
+    );
+
+    // Pool = {A, B}; picking A individually must NOT make the roster look like 3.
+    await pickPools(user, slot0, [/^Nurses \(2\)$/]);
+    await pickIndividualCalendars(user, slot0, ['Calendar A']);
+
+    const countInput = within(slot0).getByDisplayValue('1');
+    await user.clear(countInput);
+    await user.type(countInput, '3');
+
+    await user.click(screen.getByTestId('create-group-submit'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/required count cannot exceed the roster size \(2\)/i)
+      ).toBeInTheDocument();
+    });
+
+    expect(calendarGroupsCreate).not.toHaveBeenCalled();
+  });
+
   it('shows a toast error if calendarGroupsCreate throws', async () => {
     const user = userEvent.setup();
     vi.mocked(calendarGroupsCreate).mockRejectedValueOnce(
@@ -390,7 +541,7 @@ describe('CreateGroupDialog', () => {
       within(slot0).getByPlaceholderText('e.g. Interviewer'),
       'Slot One'
     );
-    await pickPoolCalendars(user, slot0, ['Calendar A']);
+    await pickIndividualCalendars(user, slot0, ['Calendar A']);
 
     await user.click(screen.getByTestId('create-group-submit'));
 

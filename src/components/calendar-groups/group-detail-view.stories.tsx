@@ -3,6 +3,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { CalendarGroup } from '@/client';
 import { GroupDetailView } from './group-detail-view';
 import { GroupPermissionsProvider } from './group-permissions-provider';
+import { PermissionProvider } from '@/components/navigation/permission-gate';
+import { STORY_POOLS } from '@/components/calendar-pools/fixtures';
+
+const ADMIN_PERMISSIONS = ['organizations.manage_members'];
 
 const GROUP: CalendarGroup = {
   id: 1,
@@ -54,6 +58,19 @@ const GROUP: CalendarGroup = {
   public_booking_slug: 'surgery-team',
   created: '2024-01-01T00:00:00Z',
   modified: '2024-01-01T00:00:00Z',
+};
+
+/**
+ * The same group with each slot fed by a pool — the slot header then names the
+ * pools behind its roster.
+ */
+const POOLED_GROUP: CalendarGroup = {
+  ...GROUP,
+  id: 3,
+  slots: [
+    { ...GROUP.slots[0], pools: [STORY_POOLS[0]] },
+    { ...GROUP.slots[1], pools: [STORY_POOLS[1]] },
+  ],
 };
 
 const EMPTY_SLOTS_GROUP: CalendarGroup = {
@@ -109,6 +126,32 @@ export const MintLinkAvailable: Story = {
           <GroupDetailView group={GROUP} />
         </div>
       </GroupPermissionsProvider>
+    </QueryClientProvider>
+  ),
+};
+
+/** An org admin: the header carries the "Edit group" action. */
+export const AsAdmin: Story = {
+  render: () => (
+    <QueryClientProvider client={makeQueryClient()}>
+      <PermissionProvider permissions={ADMIN_PERMISSIONS}>
+        <div className='p-6'>
+          <GroupDetailView group={GROUP} />
+        </div>
+      </PermissionProvider>
+    </QueryClientProvider>
+  ),
+};
+
+/** Slots fed by calendar pools — each slot names the pools behind its roster. */
+export const WithPools: Story = {
+  render: () => (
+    <QueryClientProvider client={makeQueryClient()}>
+      <PermissionProvider permissions={ADMIN_PERMISSIONS}>
+        <div className='p-6'>
+          <GroupDetailView group={POOLED_GROUP} />
+        </div>
+      </PermissionProvider>
     </QueryClientProvider>
   ),
 };

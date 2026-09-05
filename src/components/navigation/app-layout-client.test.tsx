@@ -53,6 +53,7 @@ describe('buildNavGroups', () => {
     // not here.
     expect(idsOf(adminGroup?.items ?? [])).toEqual([
       'team',
+      'pools',
       'people-calendars',
       'resources',
       'bundles',

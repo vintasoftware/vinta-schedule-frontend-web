@@ -11,8 +11,8 @@ import type {
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
-import { Plus, Link2 } from 'lucide-react';
-import { VStack, Text } from 'vinta-schedule-design-system/layout';
+import { Link2, Pencil, Plus } from 'lucide-react';
+import { HStack, VStack, Text } from 'vinta-schedule-design-system/layout';
 import {
   useCalendarGroups,
   type CalendarGroup,
@@ -28,6 +28,7 @@ import {
 import { canMintBookingLinkForGroup } from '@/lib/booking-links/can-mint-booking-link';
 import { MintBookingLinkDialog } from '@/components/booking-links/mint-booking-link-dialog';
 import { CreateGroupDialog } from './create-group-dialog';
+import { EditGroupDialog } from './edit-group-dialog';
 
 import { getApiErrorMessage } from '@/lib/utils/api-errors';
 // ---------------------------------------------------------------------------
@@ -69,7 +70,36 @@ export const COLUMNS: DataTableColumn<CalendarGroup>[] = [
       <Badge variant='secondary'>{row.original.slots.length}</Badge>
     ),
   },
+  {
+    id: 'pools',
+    header: 'Pools',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const names = distinctPoolNames(row.original);
+      return names.length === 0 ? (
+        <Text color='muted-foreground' size='sm'>
+          —
+        </Text>
+      ) : (
+        <HStack gap={1} wrap>
+          {names.map((name) => (
+            <Badge key={name} variant='outline'>
+              {name}
+            </Badge>
+          ))}
+        </HStack>
+      );
+    },
+  },
 ];
+
+// A pool can be attached to more than one slot of the same group; the column
+// names each pool once rather than repeating it per slot.
+function distinctPoolNames(group: CalendarGroup): string[] {
+  return [
+    ...new Set(group.slots.flatMap((slot) => slot.pools.map((p) => p.name))),
+  ];
+}
 
 // ---------------------------------------------------------------------------
 // groupHasOwnedCalendar — true when any slot in the group's roster contains
@@ -98,43 +128,71 @@ function groupCalendarIds(group: CalendarGroup): number[] {
 }
 
 // ---------------------------------------------------------------------------
-// MintLinkButton — per-row action to open MintBookingLinkDialog for a group.
-// Hidden entirely for a viewer the owner-or-org-admin predicate would deny —
-// a UI affordance only, since the server re-checks the real rule at mint time
-// regardless (see can-mint-booking-link.ts).
+// RowActions — the per-row action cell.
+//
+// Two independent affordances, each gated by its own rule: "Get link" for a
+// viewer the owner-or-org-admin predicate allows (a UI affordance only — the
+// server re-checks the real rule at mint time regardless, see
+// can-mint-booking-link.ts), and "Edit" for an org admin, matching the API
+// where every group-shape write (slots, rosters, pool attachments) is
+// admin-only.
+//
+// Renders null rather than an empty container when a viewer gets neither, so a
+// denied row has no stray action cell.
+//
+// Deliberately stateless: the columns array is rebuilt on every render, which
+// remounts these cells — anything stateful belongs in GroupsTableInner.
 // ---------------------------------------------------------------------------
 
-interface MintLinkButtonProps {
+interface RowActionsProps {
   group: CalendarGroup;
   permissions: readonly string[] | null;
   ownedCalendarIds: ReadonlySet<number>;
   onMint: (group: CalendarGroup) => void;
+  onEdit: (group: CalendarGroup) => void;
 }
 
-function MintLinkButton({
+function RowActions({
   group,
   permissions,
   ownedCalendarIds,
   onMint,
-}: MintLinkButtonProps) {
+  onEdit,
+}: RowActionsProps) {
   const canMint = canMintBookingLinkForGroup({
     permissions,
     ownedCalendarIds,
     groupCalendarIds: groupCalendarIds(group),
   });
+  const canEdit = permissions?.includes(PERMISSIONS.manageMembers) ?? false;
 
-  if (!canMint) return null;
+  if (!canMint && !canEdit) return null;
 
   return (
-    <Button
-      size='sm'
-      variant='outline'
-      onClick={() => onMint(group)}
-      aria-label={`Get scheduling link for ${group.name}`}
-    >
-      <Link2 aria-hidden />
-      Get link
-    </Button>
+    <HStack gap={2}>
+      {canMint ? (
+        <Button
+          size='sm'
+          variant='outline'
+          onClick={() => onMint(group)}
+          aria-label={`Get scheduling link for ${group.name}`}
+        >
+          <Link2 aria-hidden />
+          Get link
+        </Button>
+      ) : null}
+      {canEdit ? (
+        <Button
+          size='sm'
+          variant='outline'
+          onClick={() => onEdit(group)}
+          aria-label={`Edit group ${group.name}`}
+        >
+          <Pencil aria-hidden />
+          Edit
+        </Button>
+      ) : null}
+    </HStack>
   );
 }
 
@@ -152,7 +210,8 @@ function MintLinkButton({
 export function createColumns(
   permissions: readonly string[] | null,
   ownedCalendarIds: ReadonlySet<number>,
-  onMint: (group: CalendarGroup) => void
+  onMint: (group: CalendarGroup) => void,
+  onEdit: (group: CalendarGroup) => void
 ): DataTableColumn<CalendarGroup>[] {
   return [
     ...COLUMNS,
@@ -161,11 +220,12 @@ export function createColumns(
       header: 'Actions',
       enableSorting: false,
       cell: ({ row }) => (
-        <MintLinkButton
+        <RowActions
           group={row.original}
           permissions={permissions}
           ownedCalendarIds={ownedCalendarIds}
           onMint={onMint}
+          onEdit={onEdit}
         />
       ),
     },
@@ -195,6 +255,7 @@ function GroupsTableInner() {
   const [mintTarget, setMintTarget] = React.useState<CalendarGroup | null>(
     null
   );
+  const [editing, setEditing] = React.useState<CalendarGroup | null>(null);
   const { query, setPage, setSearch, setOrdering } = useDataTableQuery();
 
   const handleQueryChange = React.useCallback(
@@ -303,6 +364,7 @@ function GroupsTableInner() {
     );
   }
 
+  // Members get the read-only column set; only an admin gets the Edit action.
   const toolbarActions = !isAdmin ? undefined : (
     <Button
       size='sm'
@@ -314,7 +376,12 @@ function GroupsTableInner() {
     </Button>
   );
 
-  const columns = createColumns(permissions, ownedCalendarIds, setMintTarget);
+  const columns = createColumns(
+    permissions,
+    ownedCalendarIds,
+    setMintTarget,
+    setEditing
+  );
 
   return (
     <>
@@ -330,10 +397,19 @@ function GroupsTableInner() {
         toolbarActions={toolbarActions}
       />
       {isAdmin && (
-        <CreateGroupDialog
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-        />
+        <>
+          <CreateGroupDialog
+            open={createDialogOpen}
+            onOpenChange={setCreateDialogOpen}
+          />
+          <EditGroupDialog
+            open={editing !== null}
+            onOpenChange={(open) => {
+              if (!open) setEditing(null);
+            }}
+            group={editing}
+          />
+        </>
       )}
       {mintTarget && (
         <MintBookingLinkDialog
