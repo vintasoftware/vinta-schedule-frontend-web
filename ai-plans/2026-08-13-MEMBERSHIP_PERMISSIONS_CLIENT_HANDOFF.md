@@ -16,7 +16,7 @@ replaced by `POST /organization-members/{user_id}/groups/`, which takes a list o
 names. The public GraphQL `createInvitation` mutation takes `groups: [String!]` instead of
 `role: OrgRole`, and the `OrgRole` enum has been deleted from the schema.
 
-Nothing about *who is allowed to do what* changed. An admin is still an admin; they now
+Nothing about _who is allowed to do what_ changed. An admin is still an admin; they now
 report as holding four capabilities instead of reporting `role: "admin"`. Every change
 below is a change of representation, and every one of them breaks an unmodified client
 that reads or writes `role`.
@@ -26,15 +26,15 @@ same deploy.
 
 ## Breaking changes
 
-| # | What breaks | Where | What the client must do |
-|---|---|---|---|
-| 1 | `role` removed from the response | `GET /organizations/current/` | Read `permissions` (array of strings) instead. |
-| 2 | `role` removed from each row | `GET /organizations/mine/` | Read `permissions` per row. |
-| 3 | `role` removed from each row | `GET /organization-members/`, `GET /organization-members/{user_id}/` | Read `permissions` per row. |
-| 4 | Endpoint removed (404) | `POST /organization-members/{user_id}/update-role/` | Call `POST /organization-members/{user_id}/groups/` with a group list. |
-| 5 | `role` removed from the membership identity object | REST `CalendarOwnership.membership`, `EventAttendance.membership`; GraphQL `owners { membership }`, `attendeeMemberships`, `externalEventChangeRequests { resolvedBy }` | Drop the field from your selection set (GraphQL will **error** on an unknown field, not ignore it). If you used it to decide what to render, read the member's `permissions` from `GET /organization-members/` instead. |
-| 6 | Input field `role: OrgRole` replaced by `groups: [String!]` | GraphQL `createInvitation` | Send `groups: ["organization_admin"]` instead of `role: ADMIN`; omit the field for the previous `MEMBER` default. |
-| 7 | Enum `OrgRole` deleted from the GraphQL schema | GraphQL | Remove any generated `OrgRole` type / variable declaration. A query declaring `$role: OrgRole` now fails validation. |
+| #   | What breaks                                                 | Where                                                                                                                                                                   | What the client must do                                                                                                                                                                                                 |
+| --- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `role` removed from the response                            | `GET /organizations/current/`                                                                                                                                           | Read `permissions` (array of strings) instead.                                                                                                                                                                          |
+| 2   | `role` removed from each row                                | `GET /organizations/mine/`                                                                                                                                              | Read `permissions` per row.                                                                                                                                                                                             |
+| 3   | `role` removed from each row                                | `GET /organization-members/`, `GET /organization-members/{user_id}/`                                                                                                    | Read `permissions` per row.                                                                                                                                                                                             |
+| 4   | Endpoint removed (404)                                      | `POST /organization-members/{user_id}/update-role/`                                                                                                                     | Call `POST /organization-members/{user_id}/groups/` with a group list.                                                                                                                                                  |
+| 5   | `role` removed from the membership identity object          | REST `CalendarOwnership.membership`, `EventAttendance.membership`; GraphQL `owners { membership }`, `attendeeMemberships`, `externalEventChangeRequests { resolvedBy }` | Drop the field from your selection set (GraphQL will **error** on an unknown field, not ignore it). If you used it to decide what to render, read the member's `permissions` from `GET /organization-members/` instead. |
+| 6   | Input field `role: OrgRole` replaced by `groups: [String!]` | GraphQL `createInvitation`                                                                                                                                              | Send `groups: ["organization_admin"]` instead of `role: ADMIN`; omit the field for the previous `MEMBER` default.                                                                                                       |
+| 7   | Enum `OrgRole` deleted from the GraphQL schema              | GraphQL                                                                                                                                                                 | Remove any generated `OrgRole` type / variable declaration. A query declaring `$role: OrgRole` now fails validation.                                                                                                    |
 
 Deploy ordering: these all ship in one release. There is no interim release in which both
 representations are available.
@@ -43,12 +43,12 @@ representations are available.
 
 `permissions` is a flat array of `"<app_label>.<codename>"` strings. Today four exist:
 
-| Capability string | Means |
-|---|---|
-| `organizations.manage_members` | May invite, deactivate, reactivate and re-group members. **This is the old `role === "admin"`.** |
-| `organizations.manage_organization` | May change the organization's own settings. |
-| `organizations.manage_branding` | The permission half of the white-label branding gate (see `can_manage_branding` below for the whole gate). |
-| `payments.manage_billing` | May change the plan, buy add-ons, manage the payment method, cancel the subscription. |
+| Capability string                   | Means                                                                                                      |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `organizations.manage_members`      | May invite, deactivate, reactivate and re-group members. **This is the old `role === "admin"`.**           |
+| `organizations.manage_organization` | May change the organization's own settings.                                                                |
+| `organizations.manage_branding`     | The permission half of the white-label branding gate (see `can_manage_branding` below for the whole gate). |
+| `payments.manage_billing`           | May change the plan, buy add-ons, manage the payment method, cancel the subscription.                      |
 
 Direct translations:
 
@@ -74,10 +74,10 @@ Notes that matter when you write that code:
 - **The array is unordered by contract** (it is currently sorted, but do not depend on that).
   Compare with `includes`, not by index or equality.
 - **`permissions` is organization-scoped.** In `GET /organizations/mine/` each row reports
-  the capabilities for *that row's* organization; a user who administers one organization
+  the capabilities for _that row's_ organization; a user who administers one organization
   and is a plain member of another gets two different arrays in the same response.
 - **`can_manage_branding` remains a separate boolean.** It is the
-  *composite* of `organizations.manage_branding`, the organization's white-label
+  _composite_ of `organizations.manage_branding`, the organization's white-label
   entitlement, and the "has no parent organization" rule. Do not replace it with a
   `permissions.includes("organizations.manage_branding")` check — that would show the
   branding UI to a permitted member of an organization whose plan does not include it.
@@ -99,7 +99,12 @@ Before:
 ```json
 {
   "role": "admin",
-  "organization": { "id": 42, "name": "Acme Inc", "slug": "acme-inc", "...": "..." },
+  "organization": {
+    "id": 42,
+    "name": "Acme Inc",
+    "slug": "acme-inc",
+    "...": "..."
+  },
   "can_manage_branding": true
 }
 ```
@@ -114,7 +119,12 @@ After:
     "organizations.manage_organization",
     "payments.manage_billing"
   ],
-  "organization": { "id": 42, "name": "Acme Inc", "slug": "acme-inc", "...": "..." },
+  "organization": {
+    "id": 42,
+    "name": "Acme Inc",
+    "slug": "acme-inc",
+    "...": "..."
+  },
   "can_manage_branding": true
 }
 ```
@@ -137,8 +147,16 @@ Before:
 
 ```json
 [
-  { "organization": { "id": 42, "name": "Acme Inc", "slug": "acme-inc" }, "role": "admin",  "can_manage_branding": true },
-  { "organization": { "id": 77, "name": "Beta LLC", "slug": "beta-llc" }, "role": "member", "can_manage_branding": false }
+  {
+    "organization": { "id": 42, "name": "Acme Inc", "slug": "acme-inc" },
+    "role": "admin",
+    "can_manage_branding": true
+  },
+  {
+    "organization": { "id": 77, "name": "Beta LLC", "slug": "beta-llc" },
+    "role": "member",
+    "can_manage_branding": false
+  }
 ]
 ```
 
@@ -146,13 +164,21 @@ After:
 
 ```json
 [
-  { "organization": { "id": 42, "name": "Acme Inc", "slug": "acme-inc" },
-    "permissions": ["organizations.manage_branding", "organizations.manage_members",
-                    "organizations.manage_organization", "payments.manage_billing"],
-    "can_manage_branding": true },
-  { "organization": { "id": 77, "name": "Beta LLC", "slug": "beta-llc" },
+  {
+    "organization": { "id": 42, "name": "Acme Inc", "slug": "acme-inc" },
+    "permissions": [
+      "organizations.manage_branding",
+      "organizations.manage_members",
+      "organizations.manage_organization",
+      "payments.manage_billing"
+    ],
+    "can_manage_branding": true
+  },
+  {
+    "organization": { "id": 77, "name": "Beta LLC", "slug": "beta-llc" },
     "permissions": [],
-    "can_manage_branding": false }
+    "can_manage_branding": false
+  }
 ]
 ```
 
@@ -213,9 +239,9 @@ After:
   endpoint; a `user_id` outside it returns `404`.
 - **Request:**
 
-  | Field | Type | Required | Constraints |
-  |---|---|---|---|
-  | `groups` | array of string | yes | Non-empty. Each item must be one of `organization_admin`, `organization_billing_owner`, `organization_member`. |
+  | Field    | Type            | Required | Constraints                                                                                                    |
+  | -------- | --------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+  | `groups` | array of string | yes      | Non-empty. Each item must be one of `organization_admin`, `organization_billing_owner`, `organization_member`. |
 
   The list **replaces** the member's current groups; it is not additive.
 
@@ -234,17 +260,17 @@ After:
 
 - **Errors:**
 
-  | Status | When | Body |
-  |---|---|---|
-  | `400` | Unknown group name, or an empty / missing `groups` list | DRF field-error object: `{"groups": {"0": ["\"owner\" is not a valid choice."]}}` |
-  | `400` | The assignment would leave the organization with nobody who can manage members | `{"detail": "Cannot remove the last active member who can manage members from the organization."}` |
-  | `402` | The organization's billing state forbids writes | standard billing-restriction body |
-  | `403` | Caller does not hold `organizations.manage_members` | `{"detail": "..."}` |
-  | `404` | `user_id` is not a member of the active organization | `{"detail": "Not found."}` |
+  | Status | When                                                                           | Body                                                                                               |
+  | ------ | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+  | `400`  | Unknown group name, or an empty / missing `groups` list                        | DRF field-error object: `{"groups": {"0": ["\"owner\" is not a valid choice."]}}`                  |
+  | `400`  | The assignment would leave the organization with nobody who can manage members | `{"detail": "Cannot remove the last active member who can manage members from the organization."}` |
+  | `402`  | The organization's billing state forbids writes                                | standard billing-restriction body                                                                  |
+  | `403`  | Caller does not hold `organizations.manage_members`                            | `{"detail": "..."}`                                                                                |
+  | `404`  | `user_id` is not a member of the active organization                           | `{"detail": "Not found."}`                                                                         |
 
 - **Idempotency:** assigning the groups a member already holds is a `200`, not an error —
   including the sole administrator re-assigning `organization_admin` to themselves. The
-  last-administrator guard fires only on *losing* `organizations.manage_members`.
+  last-administrator guard fires only on _losing_ `organizations.manage_members`.
 
 - **Example:**
 
@@ -302,28 +328,51 @@ After:
 Before:
 
 ```graphql
-mutation ($input: CreateInvitationInput!) { createInvitation(input: $input) { invitation { id email expiresAt } token inviteUrl } }
+mutation ($input: CreateInvitationInput!) {
+  createInvitation(input: $input) {
+    invitation {
+      id
+      email
+      expiresAt
+    }
+    token
+    inviteUrl
+  }
+}
 ```
+
 ```json
-{"input": {"userEmail": "new@partner.example", "organizationId": "77", "role": "ADMIN"}}
+{
+  "input": {
+    "userEmail": "new@partner.example",
+    "organizationId": "77",
+    "role": "ADMIN"
+  }
+}
 ```
 
 After:
 
 ```json
-{"input": {"userEmail": "new@partner.example", "organizationId": "77", "groups": ["organization_admin"]}}
+{
+  "input": {
+    "userEmail": "new@partner.example",
+    "organizationId": "77",
+    "groups": ["organization_admin"]
+  }
+}
 ```
 
-  - Omitting `groups` invites a plain member — identical to the old `role: MEMBER` default.
-  - `groups: []` is also accepted and means the same as omitting it.
-  - `role: ADMIN` → `groups: ["organization_admin"]`.
-  - `organization_billing_owner` is **refused at invitation time** with
-    `"Cannot assign organization_billing_owner to an invitation. Allowed groups:
-    organization_member, organization_admin."` — an invitation has no way to carry it.
-    Assign it after the invitation is accepted, via
-    `POST /organization-members/{user_id}/groups/`.
-  - Any other value is refused with `"Cannot assign <name> to an invitation. …"`. Nothing
-    is created when the mutation errors.
+- Omitting `groups` invites a plain member — identical to the old `role: MEMBER` default.
+- `groups: []` is also accepted and means the same as omitting it.
+- `role: ADMIN` → `groups: ["organization_admin"]`.
+- `organization_billing_owner` is **refused at invitation time** with
+  `"Cannot assign organization_billing_owner to an invitation. Allowed groups:
+organization_member, organization_admin."` — an invitation has no way to carry it.
+  Assign it after the invitation is accepted, via
+  `POST /organization-members/{user_id}/groups/`.
+- Any other value is refused with `"Cannot assign <name> to an invitation. …"`. Nothing
+  is created when the mutation errors.
 
 - **Response:** unchanged (`invitation { id email expiresAt }`, plus `token` / `inviteUrl`
   when `sendEmail: false`).

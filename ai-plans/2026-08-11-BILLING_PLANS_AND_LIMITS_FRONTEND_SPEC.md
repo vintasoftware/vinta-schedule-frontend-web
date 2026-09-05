@@ -8,11 +8,12 @@ The backend shipped a complete billing surface — plan catalog, subscription, p
 
 The web app has **no billing surface today**. There is no billing-profile screen, no plan picker, no usage view, and no handling for the new "payment required" rejection. So nothing in the current app is broken by the contract change right now — there is no code correlating the old identifiers, and no non-admin write path to reject. The work is therefore **net-new**, and the requirement is to build that surface adopting the new contract correctly from day one, so that when real plans and ceilings roll out the app already behaves correctly with zero further changes.
 
-The hardening pass matters because it changes *how* the app must read errors: billing errors now carry a stable `code` (snake_case, never reworded once shipped) alongside a human-readable `detail` (English, may change wording, not for display or matching). The app must branch on `code`, never on message text — including distinguishing two different `402` responses that share the same status.
+The hardening pass matters because it changes _how_ the app must read errors: billing errors now carry a stable `code` (snake_case, never reworded once shipped) alongside a human-readable `detail` (English, may change wording, not for display or matching). The app must branch on `code`, never on message text — including distinguishing two different `402` responses that share the same status.
 
 The payment provider is **Stripe** — the only provider an organization is routed to today; there is no MercadoPago account yet. The backend exposes both providers behind one abstraction, and the app reads the resolved provider and its browser-safe publishable key at runtime, so a later MercadoPago rollout is an incremental addition rather than a rewrite.
 
 Who cares this lands:
+
 - **Organization admins / billing owners** — the people who will pick a plan, add capacity, replace a dead card, settle balances, and reconcile the usage ledger. Today they cannot self-serve any of this in the app.
 - **All members** — anyone who creates a resource (invites a teammate, adds a calendar, schedules an event) can hit a capacity ceiling once real plans exist; they need to understand what happened and where to go.
 - **Product / growth** — self-serve upgrade and add-on purchase is the paid-conversion path.
@@ -247,7 +248,7 @@ stateDiagram-v2
 - **No subscription** — the subscription and usage screens handle "this organization has no subscription" without erroring the app.
 - **Reseller / child organization** — reads resolve against the organization's billing root (a child sees the pooled, parent-level subscription, usage, and ledger); the app displays these read values but offers no reseller management UI (see Negative scope).
 
-**Idempotency:** plan changes, add-on purchases, and retry-payment are idempotent on a client-generated key. The app generates one key per distinct user intent and reuses that same key on any retry of the *same* submission (double-click, network retry), so the provider collapses it into a single charge. A genuinely new attempt — for example a second card after the first was declined — uses a **new** key, which is deliberately allowed to drive a second charge attempt. Generating a fresh key on an automatic retry of the same submission would risk double-charging, so keys are generated once per intent and held across retries.
+**Idempotency:** plan changes, add-on purchases, and retry-payment are idempotent on a client-generated key. The app generates one key per distinct user intent and reuses that same key on any retry of the _same_ submission (double-click, network retry), so the provider collapses it into a single charge. A genuinely new attempt — for example a second card after the first was declined — uses a **new** key, which is deliberately allowed to drive a second charge attempt. Generating a fresh key on an automatic retry of the same submission would risk double-charging, so keys are generated once per intent and held across retries.
 
 **Concurrency:** a plan change while another is already awaiting confirmation is a conflict (`unconfirmed_plan_change`); the app surfaces "a change is already pending" and does not issue a competing change. Billing-profile edits use last-write-wins at the field level as the server allows; the admin-only gate is the primary guard.
 
@@ -283,17 +284,17 @@ stateDiagram-v2
    Given a retry-payment attempt where the subscription was never paid, when the server returns `subscription_not_attached`, then the app routes the user to the first-payment / upgrade flow rather than showing a retry error; and `retry_payment_not_applicable`, `no_outstanding_balance`, and `collection_not_supported` each show their own distinct message.
 
 10. **Ledger — admin reconciles a period; non-admin cannot open the ledger.**
-   Given an admin, when they open a billing period, then they see the line-item ledger of metered occurrences filterable by period and time range; and given a non-admin member, when they open the billing history, then the period list is visible but the line-item ledger drill-in is not available to them.
+    Given an admin, when they open a billing period, then they see the line-item ledger of metered occurrences filterable by period and time range; and given a non-admin member, when they open the billing history, then the period list is visible but the line-item ledger drill-in is not available to them.
 
 11. **Restricted — writes blocked, reads open.**
-   Given an organization in the restricted state, when a member opens the app, then a restricted banner routes to the retry-payment recovery path, guarded writes are rejected and routed to the settle-balance remedy, and usage / ledger / billing screens and exports remain readable.
+    Given an organization in the restricted state, when a member opens the app, then a restricted banner routes to the retry-payment recovery path, guarded writes are rejected and routed to the settle-balance remedy, and usage / ledger / billing screens and exports remain readable.
 
 ### 4.4 Negative scope
 
 - **Grace recovery via re-affirming the current plan through change-plan** — explicitly not used; it never worked (returns a silent success that moves no money). The only supported grace-recovery path is retry-payment. Reason: documented dead end.
 - **MercadoPago card capture / collection** — the provider abstraction includes MercadoPago, but there is no account yet, no organization is routed to it, and its retry-payment collection is unsupported. Only the Stripe path is built and verified in this feature. Reason: no live MercadoPago account.
 - **Standalone "manage saved card" while active** — there is no endpoint to view or replace the payment instrument outside a first payment (change-plan / add-on) or grace recovery (retry-payment). The app captures a card only within those flows; a general saved-card management surface is out until the backend exposes one. Reason: no backing endpoint.
-- **Formal invoice / receipt documents** — no PDF or line-item *invoice* document surface exists; the usage-ledger history (billing periods + metered-occurrence ledger) is the in-scope reconciliation surface. Reason: no invoice-document endpoint.
+- **Formal invoice / receipt documents** — no PDF or line-item _invoice_ document surface exists; the usage-ledger history (billing periods + metered-occurrence ledger) is the in-scope reconciliation surface. Reason: no invoice-document endpoint.
 - **Reseller / child-organization billing management** — no UI to manage a parent's billing from a child, and no reseller-root acting-as flow. Read values that resolve to the billing root are displayed, but management is out. Reason: distinct permission model and audience.
 - **Dunning / grace email flows** — the frontend plays no part in failed-payment email sequences; only the in-app grace/restricted banner. The automatic dunning ladder's collection is a backend concern the app only observes. Reason: server/notification concern.
 - **GraphQL error handling** — the app has no GraphQL data layer; the guarded operations exist here as REST calls, so only the REST rejection needs handling. Reason: the GraphQL variant of the contract has no consumer in this app.
