@@ -18,6 +18,40 @@ sb.mock(import('../src/hooks/availability/use-blocked-times.ts'), {
 sb.mock(import('../src/hooks/calendar-groups/use-group-scoped-quota.ts'), {
   spy: true,
 });
+// MintBookingLinkDialog resolves the active org's slug for the branded URL —
+// mocked so its story gets a deterministic slug instead of a real (failing)
+// `/organizations/current` fetch.
+sb.mock(import('../src/hooks/organizations/use-current-organization.ts'), {
+  spy: true,
+});
+// PublicBookingFlow's stories drive the read states (loading / loaded /
+// opaque link-invalid / generic load error) directly through this hook's
+// return value, same rationale as `useGroupScopedQuota` above — there is no
+// real `/public/booking/*` backend behind Storybook.
+sb.mock(import('../src/hooks/booking-codes/use-public-bookable-slots.ts'), {
+  spy: true,
+});
+// PublicGroupBookingFlow's stories drive the same kind of read states, plus
+// the imperative per-range availability fetch — same rationale as above.
+sb.mock(import('../src/hooks/booking-codes/use-public-group-booking.ts'), {
+  spy: true,
+});
+// CodelessGroupBookingFlow's stories (unknown-slug / not-public states) drive
+// the same kind of read states through this hook's return value — same
+// rationale as `usePublicGroupBookableSlots` above.
+sb.mock(import('../src/hooks/booking-codes/use-codeless-group-booking.ts'), {
+  spy: true,
+});
+// RescheduleFlow's and CancelFlow's terminal-write-error stories drive the
+// write hooks directly (there is no real `/public/booking/*` backend behind
+// Storybook, so a rejected mutation has to be stubbed) — same rationale as
+// the read hooks above.
+sb.mock(import('../src/hooks/booking-codes/use-public-reschedule.ts'), {
+  spy: true,
+});
+sb.mock(import('../src/hooks/booking-codes/use-public-cancel.ts'), {
+  spy: true,
+});
 
 import { patchFocus } from './patch-focus';
 import '../src/app/globals.css';

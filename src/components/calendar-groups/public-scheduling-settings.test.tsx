@@ -1,0 +1,509 @@
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+import {
+  render,
+  screen,
+  waitFor,
+  act,
+  fireEvent,
+} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
+import type { CalendarGroup } from '@/client';
+import { PublicSchedulingSettings } from './public-scheduling-settings';
+import * as permissionGateModule from '@/components/navigation/permission-gate';
+import * as updateHookModule from '@/hooks/calendar-groups/use-update-calendar-group-public-scheduling';
+import * as orgHookModule from '@/hooks/organizations/use-current-organization';
+
+type UpdateHookMock = ReturnType<
+  typeof updateHookModule.useUpdateCalendarGroupPublicScheduling
+>;
+
+function mockUpdateHook(
+  updatePublicScheduling: ReturnType<typeof vi.fn>,
+  isPending = false
+) {
+  vi.spyOn(
+    updateHookModule,
+    'useUpdateCalendarGroupPublicScheduling'
+  ).mockReturnValue({
+    updatePublicScheduling,
+    updatePublicSchedulingMutation: { isPending },
+  } as unknown as UpdateHookMock);
+}
+
+function mockAdmin(isAdmin: boolean) {
+  vi.spyOn(permissionGateModule, 'useHasPermission').mockReturnValue(isAdmin);
+}
+
+/** Same helper shape as `mint-booking-link-dialog.test.tsx`'s `mockOrgSlug`
+ * — resolves the active org's slug for the branded public link URL. */
+function mockOrgSlug(slug: string | undefined) {
+  vi.spyOn(orgHookModule, 'useCurrentOrganization').mockReturnValue({
+    organization: slug ? { slug } : null,
+    isOnboarded: true,
+    isGated: false,
+    isDisabled: false,
+    membership: null,
+    permissions: [],
+    isLoading: false,
+    isError: false,
+    error: null,
+    query: { data: undefined },
+  } as unknown as ReturnType<typeof orgHookModule.useCurrentOrganization>);
+}
+
+beforeAll(() => {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    writable: true,
+    configurable: true,
+  });
+});
+
+function renderSettings(group: CalendarGroup) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  return render(<PublicSchedulingSettings group={group} />, { wrapper });
+}
+
+function makeGroup(overrides: Partial<CalendarGroup> = {}): CalendarGroup {
+  return {
+    id: 1,
+    name: 'Surgery Team',
+    description: 'Operating room coverage',
+    slots: [],
+    public_booking_slug: 'surgery-team',
+    created: '2024-01-01T00:00:00Z',
+    modified: '2024-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('PublicSchedulingSettings — admin: single PATCH with both fields', () => {
+  it('issues one PATCH carrying both the toggle and the duration, with no null', async () => {
+    const user = userEvent.setup();
+    mockAdmin(true);
+    const updatePublicScheduling = vi.fn().mockResolvedValue({});
+    mockUpdateHook(updatePublicScheduling);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: false, duration: undefined })
+    );
+
+    await user.click(
+      screen.getByRole('switch', { name: 'Accept public bookings' })
+    );
+    const durationInput = screen.getByRole('spinbutton', {
+      name: 'Appointment length in minutes',
+    });
+    await user.clear(durationInput);
+    await user.type(durationInput, '30');
+
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    await waitFor(() => {
+      expect(updatePublicScheduling).toHaveBeenCalledTimes(1);
+    });
+    expect(updatePublicScheduling).toHaveBeenCalledWith({
+      accepts_public_scheduling: true,
+      duration: '00:30:00',
+    });
+    // Guard the tri-state contract directly: never an explicit null.
+    const body = updatePublicScheduling.mock.calls[0][0];
+    expect(Object.values(body)).not.toContain(null);
+  });
+});
+
+describe('PublicSchedulingSettings — unrelated edit omits the unchanged field', () => {
+  it('keeps duration omitted (not resent) when only the toggle changes', async () => {
+    const user = userEvent.setup();
+    mockAdmin(true);
+    const updatePublicScheduling = vi.fn().mockResolvedValue({});
+    mockUpdateHook(updatePublicScheduling);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: '00:45:00' })
+    );
+
+    // Unrelated edit: flip the toggle off, never touch the duration input.
+    await user.click(
+      screen.getByRole('switch', { name: 'Accept public bookings' })
+    );
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    await waitFor(() => {
+      expect(updatePublicScheduling).toHaveBeenCalledTimes(1);
+    });
+    expect(updatePublicScheduling).toHaveBeenCalledWith({
+      accepts_public_scheduling: false,
+    });
+    const body = updatePublicScheduling.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect('duration' in body).toBe(false);
+  });
+});
+
+describe('PublicSchedulingSettings — enabling with no duration is blocked client-side', () => {
+  it('never calls the PATCH when enabling without a duration', async () => {
+    const user = userEvent.setup();
+    mockAdmin(true);
+    const updatePublicScheduling = vi.fn().mockResolvedValue({});
+    mockUpdateHook(updatePublicScheduling);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: false, duration: undefined })
+    );
+
+    await user.click(
+      screen.getByRole('switch', { name: 'Accept public bookings' })
+    );
+    // Duration left at its unset default (0) — do not touch the input.
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Set an appointment length before enabling/)
+      ).toBeInTheDocument();
+    });
+    expect(updatePublicScheduling).not.toHaveBeenCalled();
+  });
+});
+
+describe('PublicSchedulingSettings — non-admin read-only', () => {
+  it('renders the controls disabled and offers no save action', () => {
+    mockAdmin(false);
+    mockUpdateHook(vi.fn());
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: '00:30:00' })
+    );
+
+    expect(
+      screen.getByRole('switch', { name: 'Accept public bookings' })
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('spinbutton', {
+        name: 'Appointment length in minutes',
+      })
+    ).toBeDisabled();
+    expect(
+      screen.queryByTestId('save-public-scheduling-settings')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Only an organization admin can change these settings.')
+    ).toBeInTheDocument();
+  });
+});
+
+describe('PublicSchedulingSettings — unsaved edit survives a group-prop refetch', () => {
+  it('does not wipe an in-progress edit when `group` changes reference with the same values', async () => {
+    const user = userEvent.setup();
+    mockAdmin(true);
+    mockUpdateHook(vi.fn().mockResolvedValue({}));
+
+    const group = makeGroup({
+      accepts_public_scheduling: true,
+      duration: '00:30:00',
+    });
+    const { rerender } = renderSettings(group);
+
+    const durationInput = screen.getByRole('spinbutton', {
+      name: 'Appointment length in minutes',
+    });
+    await user.clear(durationInput);
+    await user.type(durationInput, '45');
+    expect(durationInput).toHaveValue(45);
+
+    // Simulate a background refetch landing mid-edit: a new `group` object
+    // reference (e.g. from an unrelated invalidated query) with unchanged
+    // server values.
+    const refetchedGroup = makeGroup({
+      accepts_public_scheduling: true,
+      duration: '00:30:00',
+    });
+    rerender(<PublicSchedulingSettings group={refetchedGroup} />);
+
+    expect(durationInput).toHaveValue(45);
+  });
+});
+
+describe('PublicSchedulingSettings — failure path surfaces on the form root', () => {
+  it('surfaces a bare {detail} rejection through FormRootMessage, not just a toast', async () => {
+    const user = userEvent.setup();
+    mockAdmin(true);
+    const updatePublicScheduling = vi
+      .fn()
+      .mockRejectedValueOnce({ detail: 'You do not have permission.' });
+    mockUpdateHook(updatePublicScheduling);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: '00:30:00' })
+    );
+
+    const durationInput = screen.getByRole('spinbutton', {
+      name: 'Appointment length in minutes',
+    });
+    await user.clear(durationInput);
+    await user.type(durationInput, '45');
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'You do not have permission.'
+    );
+  });
+});
+
+describe('PublicSchedulingSettings — two sequential saves without an intervening refetch', () => {
+  it('diffs the second save against the just-saved values, not the original group prop', async () => {
+    const user = userEvent.setup();
+    mockAdmin(true);
+    const updatePublicScheduling = vi.fn().mockResolvedValue({});
+    mockUpdateHook(updatePublicScheduling);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: false, duration: undefined })
+    );
+
+    // First save: enable + set a duration.
+    await user.click(
+      screen.getByRole('switch', { name: 'Accept public bookings' })
+    );
+    const durationInput = screen.getByRole('spinbutton', {
+      name: 'Appointment length in minutes',
+    });
+    await user.clear(durationInput);
+    await user.type(durationInput, '30');
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    await waitFor(() => {
+      expect(updatePublicScheduling).toHaveBeenCalledTimes(1);
+    });
+    expect(updatePublicScheduling).toHaveBeenNthCalledWith(1, {
+      accepts_public_scheduling: true,
+      duration: '00:30:00',
+    });
+
+    // Second save: only the duration changes. The `group` prop itself never
+    // changes (no intervening refetch), so the diff must come from
+    // `savedValues`, not the original prop — otherwise the toggle (already
+    // true, unchanged since the first save) would be wrongly resent.
+    await user.clear(durationInput);
+    await user.type(durationInput, '45');
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    await waitFor(() => {
+      expect(updatePublicScheduling).toHaveBeenCalledTimes(2);
+    });
+    const secondBody = updatePublicScheduling.mock.calls[1][0] as Record<
+      string,
+      unknown
+    >;
+    expect(secondBody).toEqual({ duration: '00:45:00' });
+    expect('accepts_public_scheduling' in secondBody).toBe(false);
+    expect(Object.values(secondBody)).not.toContain(null);
+  });
+});
+
+describe('PublicSchedulingSettings — grandfathered null-duration public group', () => {
+  it('renders a warning instead of presenting the group as healthy', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: undefined })
+    );
+
+    expect(
+      screen.getByTestId('grandfathered-duration-warning')
+    ).toBeInTheDocument();
+  });
+
+  it('does not render the warning for a healthy public group with a duration', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: '00:30:00' })
+    );
+
+    expect(
+      screen.queryByTestId('grandfathered-duration-warning')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render the warning for a private group with no duration', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: false, duration: undefined })
+    );
+
+    expect(
+      screen.queryByTestId('grandfathered-duration-warning')
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('PublicSchedulingSettings — Phase 7: the reusable public link', () => {
+  it('renders the bare /g/[public_slug] link when no active org slug is known', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({
+        accepts_public_scheduling: true,
+        duration: '00:30:00',
+        public_booking_slug: 'surgery-team',
+      })
+    );
+
+    const input = screen.getByTestId(
+      'public-group-link-input'
+    ) as HTMLInputElement;
+    expect(input.value).toBe('http://localhost:3000/g/surgery-team');
+  });
+
+  it('renders the branded /o/[slug]/g/[public_slug] link when the active org slug is known', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug('acme');
+
+    renderSettings(
+      makeGroup({
+        accepts_public_scheduling: true,
+        duration: '00:30:00',
+        public_booking_slug: 'surgery-team',
+      })
+    );
+
+    const input = screen.getByTestId(
+      'public-group-link-input'
+    ) as HTMLInputElement;
+    expect(input.value).toBe('http://localhost:3000/o/acme/g/surgery-team');
+  });
+
+  it('is visible for a non-admin, read-only viewer too — it is not gated behind manage-members', () => {
+    mockAdmin(false);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: '00:30:00' })
+    );
+
+    expect(screen.getByTestId('public-group-link-card')).toBeInTheDocument();
+  });
+
+  it('says the link is inactive when public scheduling is off, without hiding it', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: false, duration: undefined })
+    );
+
+    expect(
+      screen.getByTestId('public-group-link-inactive-toggle')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('public-group-link-input')).toBeInTheDocument();
+  });
+
+  it('says the link is inactive for a grandfathered public-but-duration-unset group', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: undefined })
+    );
+
+    expect(
+      screen.getByTestId('public-group-link-inactive-duration')
+    ).toBeInTheDocument();
+  });
+
+  it('shows neither inactive notice for a healthy public group with a duration set', () => {
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: true, duration: '00:30:00' })
+    );
+
+    expect(
+      screen.queryByTestId('public-group-link-inactive-toggle')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('public-group-link-inactive-duration')
+    ).not.toBeInTheDocument();
+  });
+
+  it('copies the reusable link to the clipboard and flips the icon Copy -> CheckCheck -> Copy after 2s', async () => {
+    const writeTextSpy = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: writeTextSpy },
+      writable: true,
+      configurable: true,
+    });
+    mockAdmin(true);
+    mockUpdateHook(vi.fn());
+    mockOrgSlug(undefined);
+
+    renderSettings(
+      makeGroup({
+        accepts_public_scheduling: true,
+        duration: '00:30:00',
+        public_booking_slug: 'surgery-team',
+      })
+    );
+
+    const copyButton = screen.getByTestId('copy-public-group-link-button');
+    expect(copyButton.querySelector('.lucide-copy')).toBeInTheDocument();
+
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        fireEvent.click(copyButton);
+        // Flush the awaited `navigator.clipboard.writeText` microtask so
+        // `setCopied(true)` (and the `setTimeout` it schedules) has run —
+        // same pattern as `booking-confirmation.test.tsx`'s identical test.
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(writeTextSpy).toHaveBeenCalledWith(
+        'http://localhost:3000/g/surgery-team'
+      );
+      expect(
+        copyButton.querySelector('.lucide-check-check')
+      ).toBeInTheDocument();
+      expect(copyButton.querySelector('.lucide-copy')).not.toBeInTheDocument();
+
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(copyButton.querySelector('.lucide-copy')).toBeInTheDocument();
+      expect(
+        copyButton.querySelector('.lucide-check-check')
+      ).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

@@ -11,7 +11,7 @@ import type {
 import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { TextLink } from 'vinta-schedule-design-system/ui/text-link';
-import { Plus } from 'lucide-react';
+import { Plus, Link2 } from 'lucide-react';
 import { VStack, Text } from 'vinta-schedule-design-system/layout';
 import {
   useCalendarGroups,
@@ -25,6 +25,8 @@ import {
   usePermissions,
   PERMISSIONS,
 } from '@/components/navigation/permission-gate';
+import { canMintBookingLinkForGroup } from '@/lib/booking-links/can-mint-booking-link';
+import { MintBookingLinkDialog } from '@/components/booking-links/mint-booking-link-dialog';
 import { CreateGroupDialog } from './create-group-dialog';
 
 import { getApiErrorMessage } from '@/lib/utils/api-errors';
@@ -90,6 +92,86 @@ function groupHasOwnedCalendar(
   );
 }
 
+/** Every calendar id anywhere in a group's slot roster. */
+function groupCalendarIds(group: CalendarGroup): number[] {
+  return group.slots.flatMap((slot) => slot.calendars.map((c) => c.id));
+}
+
+// ---------------------------------------------------------------------------
+// MintLinkButton — per-row action to open MintBookingLinkDialog for a group.
+// Hidden entirely for a viewer the owner-or-org-admin predicate would deny —
+// a UI affordance only, since the server re-checks the real rule at mint time
+// regardless (see can-mint-booking-link.ts).
+// ---------------------------------------------------------------------------
+
+interface MintLinkButtonProps {
+  group: CalendarGroup;
+  permissions: readonly string[] | null;
+  ownedCalendarIds: ReadonlySet<number>;
+  onMint: (group: CalendarGroup) => void;
+}
+
+function MintLinkButton({
+  group,
+  permissions,
+  ownedCalendarIds,
+  onMint,
+}: MintLinkButtonProps) {
+  const canMint = canMintBookingLinkForGroup({
+    permissions,
+    ownedCalendarIds,
+    groupCalendarIds: groupCalendarIds(group),
+  });
+
+  if (!canMint) return null;
+
+  return (
+    <Button
+      size='sm'
+      variant='outline'
+      onClick={() => onMint(group)}
+      aria-label={`Get scheduling link for ${group.name}`}
+    >
+      <Link2 aria-hidden />
+      Get link
+    </Button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// createColumns — COLUMNS plus a permission-gated "actions" column. COLUMNS
+// itself stays a static 3-column export for backward compatibility (existing
+// tests import it directly); this factory is what the live table actually
+// renders, so per-row mint access can react to the resolved permissions and
+// ownership set. Exported so the story renders the same 4-column set the
+// live table does, and so its "actions" cell can be unit-tested directly for
+// the denied case, which is unreachable through the rendered table (see
+// groups-table.test.tsx).
+// ---------------------------------------------------------------------------
+
+export function createColumns(
+  permissions: readonly string[] | null,
+  ownedCalendarIds: ReadonlySet<number>,
+  onMint: (group: CalendarGroup) => void
+): DataTableColumn<CalendarGroup>[] {
+  return [
+    ...COLUMNS,
+    {
+      id: 'actions',
+      header: 'Actions',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <MintLinkButton
+          group={row.original}
+          permissions={permissions}
+          ownedCalendarIds={ownedCalendarIds}
+          onMint={onMint}
+        />
+      ),
+    },
+  ];
+}
+
 // ---------------------------------------------------------------------------
 // GroupsTableEmpty — custom empty state
 // ---------------------------------------------------------------------------
@@ -110,6 +192,9 @@ function GroupsTableEmpty() {
 
 function GroupsTableInner() {
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [mintTarget, setMintTarget] = React.useState<CalendarGroup | null>(
+    null
+  );
   const { query, setPage, setSearch, setOrdering } = useDataTableQuery();
 
   const handleQueryChange = React.useCallback(
@@ -229,11 +314,13 @@ function GroupsTableInner() {
     </Button>
   );
 
+  const columns = createColumns(permissions, ownedCalendarIds, setMintTarget);
+
   return (
     <>
       <DataTable<CalendarGroup>
         data={groups}
-        columns={COLUMNS}
+        columns={columns}
         query={query}
         onQueryChange={handleQueryChange}
         totalCount={totalCount}
@@ -246,6 +333,20 @@ function GroupsTableInner() {
         <CreateGroupDialog
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
+        />
+      )}
+      {mintTarget && (
+        <MintBookingLinkDialog
+          open={mintTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setMintTarget(null);
+          }}
+          target={{
+            kind: 'group',
+            id: mintTarget.id,
+            name: mintTarget.name,
+            duration: mintTarget.duration,
+          }}
         />
       )}
     </>

@@ -9,6 +9,7 @@ import {
   EyeOff,
   Eye,
   SlidersHorizontal,
+  Link2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
@@ -36,6 +37,13 @@ import { useRequestCalendarSync } from '@/hooks/calendars/use-request-calendar-s
 import { useToggleCalendarSync } from '@/hooks/calendars/use-toggle-calendar-sync';
 import { useToggleCalendarManageWindows } from '@/hooks/calendars/use-toggle-calendar-manage-windows';
 import { useSetCalendarVisibility } from '@/hooks/calendars/use-set-calendar-visibility';
+import { useOwnedCalendarIds } from '@/hooks/calendars/use-owned-calendar-ids';
+import {
+  usePermissions,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
+import { canMintBookingLinkForCalendar } from '@/lib/booking-links/can-mint-booking-link';
+import { MintBookingLinkDialog } from '@/components/booking-links/mint-booking-link-dialog';
 import { CreateCalendarDialog } from './create-calendar-dialog';
 import { CalendarBookingRulesDialog } from '@/components/booking-policies/calendar-booking-rules-dialog';
 
@@ -82,6 +90,11 @@ function getStatusVariant(
 // renderer.
 // ---------------------------------------------------------------------------
 
+export interface CreateColumnsMintOptions {
+  onMintLink: (row: Calendar) => void;
+  canMintLink: (row: Calendar) => boolean;
+}
+
 export function createColumns(
   pendingRowIds: Set<number>,
   onDelete: (row: Calendar) => Promise<void>,
@@ -89,8 +102,19 @@ export function createColumns(
   onToggleSync: (row: Calendar, next: boolean) => Promise<void>,
   onToggleManageWindows: (row: Calendar, next: boolean) => Promise<void>,
   onToggleUnlisted: (row: Calendar) => Promise<void>,
-  onEditRules: (row: Calendar) => void
+  onEditRules: (row: Calendar) => void,
+  // Optional and trailing so every pre-existing positional call (the legacy
+  // COLUMNS export below, and calendars-table.stories.tsx) keeps compiling
+  // and keeps rendering without a mint action, which is exactly the
+  // "flag-off" behavior this additive phase relies on (see the plan's "No
+  // feature flag" guiding decision). A single options object rather than two
+  // more positional params — a caller that forgets one of two independent
+  // trailing positional params silently loses the feature with no type
+  // error; an omitted options object is comparatively harder to miss.
+  mintOptions?: CreateColumnsMintOptions
 ): DataTableColumn<Calendar>[] {
+  const onMintLink = mintOptions?.onMintLink ?? (() => {});
+  const canMintLink = mintOptions?.canMintLink ?? (() => false);
   return [
     {
       accessorKey: 'name',
@@ -162,6 +186,11 @@ export function createColumns(
       enableSorting: false,
       cell: ({ row }) => (
         <HStack gap={2}>
+          <MintLinkButton
+            calendar={row.original}
+            canMint={canMintLink(row.original)}
+            onMintLink={onMintLink}
+          />
           <BookingRulesButton
             calendar={row.original}
             isLoading={pendingRowIds.has(row.original.id)}
@@ -248,6 +277,39 @@ function ManageWindowsToggle({
       onCheckedChange={(next) => onToggleManageWindows(calendar, next)}
       aria-label={`${enabled ? 'Disable' : 'Enable'} managing available windows for ${calendar.name}`}
     />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MintLinkButton — per-row action to open MintBookingLinkDialog for a
+// calendar. Hidden entirely for a viewer canMintBookingLinkForCalendar would
+// deny — a UI affordance only; the server re-checks the real owner-or-admin
+// rule at mint time regardless (see can-mint-booking-link.ts).
+// ---------------------------------------------------------------------------
+
+interface MintLinkButtonProps {
+  calendar: Calendar;
+  canMint: boolean;
+  onMintLink: (calendar: Calendar) => void;
+}
+
+function MintLinkButton({
+  calendar,
+  canMint,
+  onMintLink,
+}: MintLinkButtonProps) {
+  if (!canMint) return null;
+
+  return (
+    <Button
+      size='sm'
+      variant='outline'
+      onClick={() => onMintLink(calendar)}
+      aria-label={`Get scheduling link for ${calendar.name}`}
+    >
+      <Link2 aria-hidden />
+      Get link
+    </Button>
   );
 }
 
@@ -451,10 +513,34 @@ function CalendarsTableInner() {
   const [rulesCalendar, setRulesCalendar] = React.useState<Calendar | null>(
     null
   );
+  const [mintCalendar, setMintCalendar] = React.useState<Calendar | null>(null);
   const [pendingRowIds, setPendingRowIds] = React.useState<Set<number>>(
     new Set()
   );
   const { query, setPage } = useDataTableQuery();
+
+  // There is no calendar detail page, so minting a link is a row action here
+  // rather than a page-header action (contrast group-detail-view.tsx, which
+  // has a detail page to hang it on). A null (unresolved) permissions set
+  // fails closed via canMintBookingLinkForCalendar itself, so no separate
+  // "loading" gate is needed here.
+  const permissions = usePermissions();
+  // The table is already fed by useMyCalendars above (`owner: 'me'`-scoped),
+  // so fetching owned ids too is only needed to gate the mint action for a
+  // non-admin — an admin's mint access doesn't depend on ownership. Matches
+  // the sibling call sites (groups-table.tsx, groups/[id]/page.tsx), which
+  // also skip this fetch for an admin viewer.
+  const isAdmin = permissions?.includes(PERMISSIONS.manageMembers) ?? false;
+  const { ownedCalendarIds } = useOwnedCalendarIds({ enabled: !isAdmin });
+  const canMintLink = React.useCallback(
+    (calendar: Calendar) =>
+      canMintBookingLinkForCalendar({
+        permissions,
+        ownedCalendarIds,
+        calendarId: calendar.id,
+      }),
+    [permissions, ownedCalendarIds]
+  );
 
   const handleQueryChange = React.useCallback(
     (next: typeof query) => {
@@ -641,7 +727,8 @@ function CalendarsTableInner() {
     handleToggleSync,
     handleToggleManageWindows,
     handleToggleUnlisted,
-    setRulesCalendar
+    setRulesCalendar,
+    { onMintLink: setMintCalendar, canMintLink }
   );
 
   return (
@@ -666,6 +753,19 @@ function CalendarsTableInner() {
           }}
           calendarId={rulesCalendar.id}
           calendarName={rulesCalendar.name}
+        />
+      )}
+      {mintCalendar && (
+        <MintBookingLinkDialog
+          open={mintCalendar !== null}
+          onOpenChange={(open) => {
+            if (!open) setMintCalendar(null);
+          }}
+          target={{
+            kind: 'calendar',
+            id: mintCalendar.id,
+            name: mintCalendar.name,
+          }}
         />
       )}
     </>

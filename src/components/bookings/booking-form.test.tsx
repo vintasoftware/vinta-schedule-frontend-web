@@ -134,6 +134,7 @@ const FIXTURE_CREATED_EVENT: CalendarEvent = {
   external_attendances: [],
   attendances: [],
   resource_allocations: [],
+  group_selections: [],
   parent_recurring_object: {
     id: 0,
     title: '',

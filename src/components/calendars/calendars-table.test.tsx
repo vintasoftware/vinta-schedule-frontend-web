@@ -40,6 +40,14 @@ vi.mock('sonner', () => ({
   },
 }));
 
+// MintBookingLinkDialog (opened by the "get scheduling link" action) reads
+// the active org's slug through this hook — irrelevant to what this file
+// asserts (the dialog opening for the right row), and mocking it keeps the
+// dialog's behavior tests from making a real network call.
+vi.mock('@/hooks/organizations/use-current-organization', () => ({
+  useCurrentOrganization: () => ({ organization: null }),
+}));
+
 // After mocks are hoisted, import the modules under test.
 import {
   calendarList,
@@ -49,6 +57,7 @@ import {
 } from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import userEvent from '@testing-library/user-event';
+import { PermissionProvider } from '@/components/navigation/permission-gate';
 import { CalendarsTable } from './calendars-table';
 
 // ---------------------------------------------------------------------------
@@ -64,10 +73,17 @@ function makeQueryClient() {
   });
 }
 
-function renderCalendarsTable() {
+// `permissions` defaults to `null` (unresolved) — every pre-existing test in
+// this file relies on that default so the mint action's fail-closed
+// predicate never renders it and none of those assertions change.
+function renderCalendarsTable(permissions: readonly string[] | null = null) {
   const queryClient = makeQueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <PermissionProvider permissions={permissions}>
+        {children}
+      </PermissionProvider>
+    </QueryClientProvider>
   );
   return render(<CalendarsTable />, { wrapper });
 }
@@ -916,6 +932,105 @@ describe('CalendarsTable', () => {
           expect.objectContaining({ description: 'Update failed' })
         );
       });
+    });
+  });
+
+  describe('get scheduling link action', () => {
+    // `calendarList` backs both `useMyCalendars` (owner: 'me', page-sized
+    // limit) and `useOwnedCalendarIds` (owner: 'me', limit 200) — branch on
+    // the limit to give the ownership check a different result set than the
+    // rendered list.
+    function mockCalendarList(
+      listResults: PaginatedCalendarList['results'],
+      ownedResults: PaginatedCalendarList['results']
+    ) {
+      vi.mocked(calendarList).mockImplementation(((options) => {
+        const query = options?.query as
+          | { owner?: string; limit?: number }
+          | undefined;
+        const results =
+          query?.owner === 'me' && query.limit === 200
+            ? ownedResults
+            : listResults;
+        return Promise.resolve(makePagedResponse(results));
+      }) as typeof calendarList);
+    }
+
+    it('shows the action for a viewer authorized by ownership', async () => {
+      mockCalendarList(CALENDARS_FIXTURE, [CALENDARS_FIXTURE[0]]);
+
+      renderCalendarsTable([]);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', {
+            name: 'Get scheduling link for Personal Calendar',
+          })
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('shows the action for a viewer authorized by the admin short-circuit', async () => {
+      mockCalendarList(CALENDARS_FIXTURE, []);
+
+      renderCalendarsTable(['organizations.manage_members']);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', {
+            name: 'Get scheduling link for Personal Calendar',
+          })
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('hides the action for an unauthorized viewer, without hiding the row', async () => {
+      mockCalendarList(CALENDARS_FIXTURE, []);
+
+      renderCalendarsTable([]);
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByRole('button', {
+          name: 'Get scheduling link for Personal Calendar',
+        })
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides the action while permissions are unresolved', async () => {
+      mockCalendarList(CALENDARS_FIXTURE, [CALENDARS_FIXTURE[0]]);
+
+      renderCalendarsTable(null);
+
+      await waitFor(() => {
+        expect(screen.getByText('Personal Calendar')).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByRole('button', {
+          name: 'Get scheduling link for Personal Calendar',
+        })
+      ).not.toBeInTheDocument();
+    });
+
+    it('opens the mint dialog for the row the action was clicked on', async () => {
+      mockCalendarList(CALENDARS_FIXTURE, [CALENDARS_FIXTURE[0]]);
+
+      const user = userEvent.setup();
+      renderCalendarsTable([]);
+
+      const mintButton = await screen.findByRole('button', {
+        name: 'Get scheduling link for Personal Calendar',
+      });
+      await user.click(mintButton);
+
+      expect(
+        await screen.findByText('New scheduling link')
+      ).toBeInTheDocument();
+      expect(screen.getAllByText('Personal Calendar').length).toBeGreaterThan(
+        1
+      );
     });
   });
 });

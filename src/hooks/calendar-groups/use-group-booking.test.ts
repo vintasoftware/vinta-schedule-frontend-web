@@ -83,6 +83,7 @@ const SLOT_NURSES: CalendarGroupSlot = {
     makeCalendar(11, 'Nurse B'),
     makeCalendar(12, 'Nurse C'),
   ],
+  pools: [],
 };
 
 /** Slot "Room" requires 1 from a pool of 2 calendars (20, 21). */
@@ -91,6 +92,7 @@ const SLOT_ROOM: CalendarGroupSlot = {
   name: 'Room',
   required_count: 1,
   calendars: [makeCalendar(20, 'Room 1'), makeCalendar(21, 'Room 2')],
+  pools: [],
 };
 
 const FIXTURE_EVENT: CalendarEvent = {
@@ -105,6 +107,7 @@ const FIXTURE_EVENT: CalendarEvent = {
   external_attendances: [],
   attendances: [],
   resource_allocations: [],
+  group_selections: [],
   parent_recurring_object: {
     id: 0,
     title: '',

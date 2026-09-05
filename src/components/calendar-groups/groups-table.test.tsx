@@ -8,7 +8,7 @@ import type {
   PaginatedCalendarGroupList,
   PaginatedCalendarList,
 } from '@/client';
-import { GroupsTable, COLUMNS } from './groups-table';
+import { GroupsTable, COLUMNS, createColumns } from './groups-table';
 import { PermissionProvider } from '@/components/navigation/permission-gate';
 import { OWNED_CALENDARS_PAGE_SIZE } from '@/hooks/calendars/use-owned-calendar-ids';
 
@@ -130,8 +130,10 @@ function makeManyGroups(
         name: 'Slot 1',
         required_count: 1,
         calendars: i === ownedGroupIndex ? [ownedCalendar(999)] : [],
+        pools: [],
       },
     ],
+    public_booking_slug: `group-${i + 1}`,
     created: '2024-01-01T00:00:00Z',
     modified: '2024-01-01T00:00:00Z',
   }));
@@ -151,7 +153,10 @@ describe('GroupsTable', () => {
       id: 1,
       name: 'Frontend Team',
       description: 'For frontend team meetings',
-      slots: [{ id: 1, name: 'Slot 1', required_count: 1, calendars: [] }],
+      slots: [
+        { id: 1, name: 'Slot 1', required_count: 1, calendars: [], pools: [] },
+      ],
+      public_booking_slug: 'frontend-team',
       created: '2024-01-01T00:00:00Z',
       modified: '2024-01-01T00:00:00Z',
     },
@@ -160,9 +165,10 @@ describe('GroupsTable', () => {
       name: 'Backend Team',
       description: 'For backend team syncs',
       slots: [
-        { id: 2, name: 'Slot 1', required_count: 2, calendars: [] },
-        { id: 3, name: 'Slot 2', required_count: 1, calendars: [] },
+        { id: 2, name: 'Slot 1', required_count: 2, calendars: [], pools: [] },
+        { id: 3, name: 'Slot 2', required_count: 1, calendars: [], pools: [] },
       ],
+      public_booking_slug: 'backend-team',
       created: '2024-01-01T00:00:00Z',
       modified: '2024-01-01T00:00:00Z',
     },
@@ -280,5 +286,58 @@ describe('GroupsTable', () => {
       screen.queryByText('No calendar groups found.')
     ).not.toBeInTheDocument();
     expect(screen.getByText('Showing 1–1 of 1')).toBeInTheDocument();
+  });
+
+  describe('get scheduling link action', () => {
+    it('shows the action for a member who owns a calendar in the group roster', async () => {
+      const group = makeManyGroups(1, 0)[0]!;
+      vi.mocked(calendarGroupsList).mockResolvedValueOnce(
+        makePagedResponse([group], 1)
+      );
+      vi.mocked(calendarList).mockResolvedValue(
+        makeCalendarListResponse([ownedCalendar(999)])
+      );
+
+      renderGroupsTable('member');
+
+      expect(
+        await screen.findByRole('button', {
+          name: `Get scheduling link for ${group.name}`,
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('shows the action for an admin even for a group with an empty roster', async () => {
+      vi.mocked(calendarGroupsList).mockResolvedValueOnce(
+        makePagedResponse(mockGroups, 2)
+      );
+
+      renderGroupsTable('admin');
+
+      expect(
+        await screen.findByRole('button', {
+          name: 'Get scheduling link for Frontend Team',
+        })
+      ).toBeInTheDocument();
+    });
+
+    // The denied case cannot be produced by rendering <GroupsTable> itself:
+    // for a member, `groupHasOwnedCalendar` (the pre-existing Phase 2 filter)
+    // removes exactly the rows a member would be denied for before this
+    // column ever runs, and `permissions === null` holds the whole table in
+    // its loading branch. So this exercises the "actions" column's cell
+    // renderer directly, the way `createColumns` is exported for.
+    it('actions cell renders nothing for a viewer canMintBookingLinkForGroup denies (only reachable by testing the column directly)', () => {
+      const group = makeManyGroups(1, 0)[0]!;
+      const columns = createColumns([], new Set<number>(), vi.fn());
+      const actionsColumn = columns.find((column) => column.id === 'actions');
+      const cell = actionsColumn?.cell as (props: {
+        row: { original: CalendarGroup };
+      }) => ReactNode;
+
+      const { container } = render(<>{cell({ row: { original: group } })}</>);
+
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 });

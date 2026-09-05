@@ -469,7 +469,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from 'vinta-schedule-design-system/ui/alert-dialog';
-import { Download } from 'lucide-react';
+import { Download, Link2 } from 'lucide-react';
 import { ScopePromptDialog } from '@/components/bookings/scope-prompt-dialog';
 import type { RecurringScope } from '@/components/bookings/scope-prompt-dialog';
 import { useCancelBooking } from '@/hooks/bookings/use-cancel-booking';
@@ -482,6 +482,8 @@ import {
   PERMISSIONS,
 } from '@/components/navigation/permission-gate';
 import { TransferEventDialog } from '@/components/events/transfer-event-dialog';
+import { MintBookingLinkDialog } from '@/components/booking-links/mint-booking-link-dialog';
+import type { MintBookingLinkTarget } from '@/components/booking-links/mint-booking-link-dialog';
 
 import { handleMutationError } from '@/lib/utils/form-errors';
 
@@ -522,6 +524,8 @@ export function EventAttendeesSheet({
   const [rescheduleOpen, setRescheduleOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [transferOpen, setTransferOpen] = React.useState(false);
+  const [mintTarget, setMintTarget] =
+    React.useState<MintBookingLinkTarget | null>(null);
   const { cancelBooking } = useCancelBooking();
   const { downloadEventIcs, downloadEventIcsMutation } = useDownloadEventIcs();
   const isDownloading = downloadEventIcsMutation.isPending;
@@ -536,6 +540,47 @@ export function EventAttendeesSheet({
     } catch (err) {
       handleMutationError(err, { title: 'Failed to download .ics' });
     }
+  };
+
+  // `group_selections` is populated only for a calendar-GROUP event
+  // (CalendarEventGroupSelection rows); a plain single-calendar event's
+  // array is always empty. This is the only scope signal `CalendarEvent`
+  // carries — it has no `calendar` field of its own — see the doc comment
+  // on `MintBookingLinkTarget`'s `event` variant for why the group-scoped
+  // case can't also check the group's pinned duration from here.
+  const isGroupEvent = raw.group_selections.length > 0;
+
+  const eventDurationSeconds = Math.max(
+    0,
+    Math.round(
+      (new Date(raw.end_time).getTime() - new Date(raw.start_time).getTime()) /
+        1000
+    )
+  );
+
+  const handleGetRescheduleLink = () => {
+    setMintTarget({
+      kind: 'event',
+      id: raw.id,
+      name: event.title,
+      purpose: 'reschedule',
+      eventScope: isGroupEvent
+        ? { kind: 'group' }
+        : { kind: 'calendar', durationSeconds: eventDurationSeconds },
+    });
+  };
+
+  const handleGetCancelLink = () => {
+    setMintTarget({
+      kind: 'event',
+      id: raw.id,
+      name: event.title,
+      purpose: 'cancel',
+      // `eventScope` is irrelevant for `purpose: 'cancel'` (a single
+      // endpoint handles both scopes) — a bare calendar scope satisfies the
+      // type without implying anything about this event's real scope.
+      eventScope: { kind: 'calendar', durationSeconds: 0 },
+    });
   };
 
   const handleCancelClick = () => {
@@ -662,6 +707,67 @@ export function EventAttendeesSheet({
                 Transfer event
               </Button>
             </PermissionGate>
+
+            {/* Public scheduling links (Phase 4) — mint a single-use link an
+                external attendee can use, with no account, to reschedule or
+                cancel THIS appointment.
+
+                Deliberately ungated, unlike Phase 1's row actions on the
+                calendars and groups tables. This is NOT because visibility
+                here already implies eligibility: the events list is not
+                reliably scoped to what the viewer owns.
+                `CalendarEventVM.calendarId` (@/components/calendar/event-vm.ts)
+                is only populated when the view is filtered to a single
+                calendar, so in the default aggregate view it is `undefined`
+                for every event and the list can include events the viewer
+                does not own.
+
+                Minting a reschedule/cancel code is also a different risk
+                than "Edit event" / "Reschedule event" / "Cancel event"
+                above: those act on the event directly as the signed-in
+                member and are bounded by their session, while a minted
+                code is a standalone credential handed to a third party.
+
+                No gate is used anyway because: (1) the server enforces the
+                real owner-or-admin rule on mint, and
+                mint-booking-link-dialog.tsx's `onSubmit` forces EVERY mint
+                failure shape onto the form root, not just a toast — because
+                `handleMutationError` alone would not: it only attaches a
+                message to the form when the rejection is field-shaped
+                (`non_field_errors` / per-field), and falls through to
+                `toast.error` for a bare `{"detail": "..."}` body (DRF's
+                default `PermissionDenied` shape, the likely response to this
+                rejection), and this app mounts no `<Toaster />` anywhere, so
+                that toast would render nothing (see its tests asserting both
+                shapes land inline); and (2) no gate is currently available
+                that wouldn't produce false
+                negatives for a plain member who legitimately owns this
+                event's calendar — no per-event calendar-owner id is
+                reachable here (see the `isGroupEvent` comment above for why
+                `CalendarEvent` carries no `calendar` field of its own).
+
+                What would let this be gated properly: a reliable per-event
+                calendar-owner id on `CalendarEvent` / `CalendarEventVM`,
+                which would feed `canMintBookingLinkForCalendar`
+                (@/lib/booking-links/can-mint-booking-link.ts). */}
+            <Button
+              variant='outline'
+              onClick={handleGetRescheduleLink}
+              disabled={isCancelling}
+              data-testid='get-reschedule-link-btn'
+            >
+              <Link2 aria-hidden />
+              Get reschedule link
+            </Button>
+            <Button
+              variant='outline'
+              onClick={handleGetCancelLink}
+              disabled={isCancelling}
+              data-testid='get-cancel-link-btn'
+            >
+              <Link2 aria-hidden />
+              Get cancel link
+            </Button>
           </VStack>
         </SheetContent>
       </Sheet>
@@ -726,6 +832,19 @@ export function EventAttendeesSheet({
         eventTitle={event.title}
         onTransferred={() => onOpenChange(false)}
       />
+
+      {/* Mint reschedule/cancel link dialog — mounted only while a target is
+          set, mirroring calendars-table.tsx / groups-table.tsx's mount
+          pattern for the same dialog. */}
+      {mintTarget && (
+        <MintBookingLinkDialog
+          open={mintTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setMintTarget(null);
+          }}
+          target={mintTarget}
+        />
+      )}
     </>
   );
 }

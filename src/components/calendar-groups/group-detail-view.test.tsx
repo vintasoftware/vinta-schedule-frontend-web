@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import type { CalendarGroup } from '@/client';
 import { GroupDetailView } from './group-detail-view';
+import { GroupPermissionsProvider } from './group-permissions-provider';
 
 // SlotRoster reads the group-scoped list endpoints — stub them so this test
 // stays focused on GroupDetailView's own layout (header + per-slot sections).
@@ -16,6 +17,13 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     calendarGroupsSlotsQuotaRulesList: vi.fn(),
   };
 });
+
+// MintBookingLinkDialog (mounted once a viewer can mint a link) reads the
+// active org's slug through this hook — irrelevant to what the tests below
+// assert, and mocking it keeps them from making a real network call.
+vi.mock('@/hooks/organizations/use-current-organization', () => ({
+  useCurrentOrganization: () => ({ organization: null }),
+}));
 
 import {
   calendarGroupsSlotsAvailabilityWindowsList,
@@ -60,8 +68,10 @@ const GROUP: CalendarGroup = {
           calendar_type: 'personal',
         },
       ],
+      pools: [],
     },
   ],
+  public_booking_slug: 'surgery-team',
   created: '2024-01-01T00:00:00Z',
   modified: '2024-01-01T00:00:00Z',
 };
@@ -100,5 +110,76 @@ describe('GroupDetailView', () => {
     renderView({ ...GROUP, slots: [] });
 
     expect(screen.getByText('This group has no slots.')).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// "Get scheduling link" header action — BLOCKER 3, Phase 1 review: present
+// for an authorized viewer, absent for an unauthorized one.
+// ---------------------------------------------------------------------------
+
+function renderWithPermissions(
+  permissions: readonly string[] | null,
+  ownedCalendarIds: ReadonlySet<number>
+) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <GroupPermissionsProvider
+        permissions={permissions}
+        ownedCalendarIds={ownedCalendarIds}
+      >
+        {children}
+      </GroupPermissionsProvider>
+    </QueryClientProvider>
+  );
+  return render(<GroupDetailView group={GROUP} />, { wrapper });
+}
+
+describe('GroupDetailView — Get scheduling link action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(calendarGroupsSlotsAvailabilityWindowsList).mockResolvedValue(
+      makeListResponse() as Awaited<
+        ReturnType<typeof calendarGroupsSlotsAvailabilityWindowsList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsBlockedTimesList).mockResolvedValue(
+      makeListResponse() as Awaited<
+        ReturnType<typeof calendarGroupsSlotsBlockedTimesList>
+      >
+    );
+    vi.mocked(calendarGroupsSlotsQuotaRulesList).mockResolvedValue(
+      makeListResponse() as Awaited<
+        ReturnType<typeof calendarGroupsSlotsQuotaRulesList>
+      >
+    );
+  });
+
+  it('is present for a viewer who owns a calendar in the group roster', () => {
+    // GROUP.slots[0].calendars contains calendar id 100 (Dr. Smith).
+    renderWithPermissions([], new Set([100]));
+
+    expect(
+      screen.getByRole('button', { name: 'Get scheduling link' })
+    ).toBeInTheDocument();
+  });
+
+  it('is absent for a viewer who owns none of the group roster', () => {
+    renderWithPermissions([], new Set());
+
+    expect(
+      screen.queryByRole('button', { name: 'Get scheduling link' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('is absent while permissions are unresolved', () => {
+    renderWithPermissions(null, new Set([100]));
+
+    expect(
+      screen.queryByRole('button', { name: 'Get scheduling link' })
+    ).not.toBeInTheDocument();
   });
 });

@@ -104,6 +104,7 @@ function mockGroupCreate(result?: Partial<CalendarGroup>) {
     name: 'Test Group',
     description: '',
     slots: [],
+    public_booking_slug: 'test-group',
     created: '2024-01-01T00:00:00Z',
     modified: '2024-01-01T00:00:00Z',
     ...result,

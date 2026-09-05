@@ -42,6 +42,7 @@ const SLOT: CalendarGroupSlot = {
       calendar_type: 'resource',
     },
   ],
+  pools: [],
 };
 
 const EMPTY_SLOT: CalendarGroupSlot = {
@@ -49,6 +50,7 @@ const EMPTY_SLOT: CalendarGroupSlot = {
   name: 'On-call nurse',
   required_count: 2,
   calendars: [],
+  pools: [],
 };
 
 const PAGE_LIMIT = { limit: 200 };

@@ -28,7 +28,18 @@
  *
  * The selectability/satisfiability computation lives in pure helpers
  * (`buildSlotAvailability`, `isSlotSatisfiable`, `isSelectionComplete`) so the
- * component can render and the test can assert without a React context.
+ * component can render and the test can assert without a React context. As
+ * of Phase 3 of the public scheduling links plan, those helpers (plus
+ * `slotRequiredCount` and `hasUnsatisfiableSlot`) actually LIVE in
+ * `@/lib/booking-links/group-selection.ts` — re-exported below unchanged —
+ * because the public (unauthenticated) group booking flow needs
+ * `isSelectionComplete`/`hasUnsatisfiableSlot` too, and importing them from
+ * this file drags this module's authenticated-client imports
+ * (`@/hooks/events/use-calendar-events`, the `@/client/sdk.gen` group
+ * operations) into the public bundle. See that module's doc comment for how
+ * this was verified (a production build of a component importing only those
+ * two functions from here pulled `useCalendarEvents`/`toCalendarEventVMs`
+ * into the `/book/[code]` route's client chunk).
  */
 
 import { useQueryClient } from '@tanstack/react-query';
@@ -38,13 +49,22 @@ import {
   calendarGroupsEventsCreate,
 } from '@/client/sdk.gen';
 import type {
-  CalendarGroupSlot,
   CalendarGroupSlotSelectionInput,
   BookableSlotProposal,
   CalendarGroupRangeAvailability,
   CalendarEvent,
 } from '@/client';
 import { invalidateCalendarEvents } from '@/hooks/events/use-calendar-events';
+
+export {
+  slotRequiredCount,
+  buildSlotAvailability,
+  isSlotSatisfiable,
+  isSelectionComplete,
+  hasUnsatisfiableSlot,
+  type SlotAvailability,
+  type SlotViewModel,
+} from '@/lib/booking-links/group-selection';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,31 +81,6 @@ export interface BookableSlotsParams {
   searchWindowEnd: string;
 }
 
-/** Per-slot availability for a single chosen time range. */
-export interface SlotAvailability {
-  slotId: number;
-  /** Calendar ids in the pool that are free for the chosen range. */
-  availableCalendarIds: number[];
-  /** How many calendars this slot requires (>= 1). */
-  requiredCount: number;
-  /** True when at least `requiredCount` pool calendars are free. */
-  isSatisfiable: boolean;
-}
-
-/** A slot the UI can drive: pool + required count + (optional) availability. */
-export interface SlotViewModel {
-  slotId: number;
-  name: string;
-  requiredCount: number;
-  /** Candidate pool (calendar id + name) the member may pick from. */
-  pool: { id: number; name: string }[];
-  /**
-   * Free calendar ids for the chosen range. `null` before any availability
-   * check has run (everything tentatively selectable / unknown).
-   */
-  availableCalendarIds: number[] | null;
-}
-
 export interface BookGroupEventParams {
   groupId: number;
   title: string;
@@ -95,88 +90,6 @@ export interface BookGroupEventParams {
   timezone: string;
   /** Final slot → calendar assignments (one entry per slot). */
   slotSelections: CalendarGroupSlotSelectionInput[];
-}
-
-// ---------------------------------------------------------------------------
-// Pure helpers (exported for component + tests, no React context)
-// ---------------------------------------------------------------------------
-
-/** A slot requires at least 1 calendar; the API default is 1 when unset. */
-export function slotRequiredCount(slot: CalendarGroupSlot): number {
-  return slot.required_count && slot.required_count > 0
-    ? slot.required_count
-    : 1;
-}
-
-/**
- * Map a CalendarGroupRangeAvailability (per-range, per-slot) onto the group's
- * slots, producing a SlotAvailability per slot with its satisfiability flag.
- *
- * A slot the availability response does not mention is treated as having ZERO
- * free calendars (the backend omitting a slot means nothing in its pool is
- * free for that range) → unsatisfiable.
- */
-export function buildSlotAvailability(
-  slots: CalendarGroupSlot[],
-  rangeAvailability: CalendarGroupRangeAvailability | undefined
-): SlotAvailability[] {
-  const bySlotId = new Map<number, number[]>();
-  for (const sa of rangeAvailability?.slots ?? []) {
-    bySlotId.set(sa.slot_id, sa.available_calendar_ids);
-  }
-
-  return slots.map((slot) => {
-    const requiredCount = slotRequiredCount(slot);
-    const poolIds = new Set(slot.calendars.map((c) => c.id));
-    // Intersect the reported free ids with the slot's pool, defensively.
-    const availableCalendarIds = (bySlotId.get(slot.id) ?? []).filter((id) =>
-      poolIds.has(id)
-    );
-    return {
-      slotId: slot.id,
-      availableCalendarIds,
-      requiredCount,
-      isSatisfiable: availableCalendarIds.length >= requiredCount,
-    };
-  });
-}
-
-/** True when every slot has enough free calendars to meet its required count. */
-export function isSlotSatisfiable(slot: SlotAvailability): boolean {
-  return slot.isSatisfiable;
-}
-
-/**
- * Validate a draft selection against the slot view models.
- *
- * Returns whether the WHOLE selection is bookable:
- *  - every slot has been checked for availability (availableCalendarIds != null),
- *  - every slot is satisfiable (enough free candidates),
- *  - every slot's selection is exactly `requiredCount` long, and
- *  - every selected calendar is in that slot's free set.
- */
-export function isSelectionComplete(
-  slots: SlotViewModel[],
-  selectionBySlotId: Record<number, number[]>
-): boolean {
-  if (slots.length === 0) return false;
-  return slots.every((slot) => {
-    const free = slot.availableCalendarIds;
-    if (free === null) return false; // availability not yet known
-    if (free.length < slot.requiredCount) return false; // unsatisfiable slot
-    const selected = selectionBySlotId[slot.slotId] ?? [];
-    if (selected.length !== slot.requiredCount) return false; // wrong count
-    return selected.every((id) => free.includes(id)); // only free candidates
-  });
-}
-
-/** True if ANY slot is unsatisfiable for the chosen range → hard-block submit. */
-export function hasUnsatisfiableSlot(slots: SlotViewModel[]): boolean {
-  return slots.some(
-    (slot) =>
-      slot.availableCalendarIds !== null &&
-      slot.availableCalendarIds.length < slot.requiredCount
-  );
 }
 
 // ---------------------------------------------------------------------------

@@ -101,18 +101,21 @@ const SLOT_NURSES: CalendarGroupSlot = {
   name: 'Nurses',
   required_count: 2,
   calendars: [cal(10, 'Nurse A'), cal(11, 'Nurse B'), cal(12, 'Nurse C')],
+  pools: [],
 };
 const SLOT_ROOM: CalendarGroupSlot = {
   id: 2,
   name: 'Room',
   required_count: 1,
   calendars: [cal(20, 'Room 1'), cal(21, 'Room 2')],
+  pools: [],
 };
 
 const GROUP: CalendarGroup = {
   id: 7,
   name: 'Clinic',
   slots: [SLOT_NURSES, SLOT_ROOM],
+  public_booking_slug: 'clinic',
   created: '2024-01-01T00:00:00Z',
   modified: '2024-01-01T00:00:00Z',
 };
@@ -129,6 +132,7 @@ const CREATED_EVENT: CalendarEvent = {
   external_attendances: [],
   attendances: [],
   resource_allocations: [],
+  group_selections: [],
   parent_recurring_object: {
     id: 0,
     title: '',
