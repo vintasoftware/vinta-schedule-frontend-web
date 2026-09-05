@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Link2 } from 'lucide-react';
+import { Link2, Pencil } from 'lucide-react';
 import {
   Card,
   CardHeader,
@@ -22,7 +22,12 @@ import type { CalendarGroup } from '@/client';
 import { useCanMintBookingLinkForGroup } from './group-permissions-provider';
 import { MintBookingLinkDialog } from '@/components/booking-links/mint-booking-link-dialog';
 import { PublicSchedulingSettings } from './public-scheduling-settings';
+import {
+  usePermissions,
+  PERMISSIONS,
+} from '@/components/navigation/permission-gate';
 import { SlotRoster } from './slot-roster';
+import { EditGroupDialog } from './edit-group-dialog';
 
 export interface GroupDetailViewProps {
   group: CalendarGroup;
@@ -30,20 +35,23 @@ export interface GroupDetailViewProps {
 
 /**
  * GroupDetailView — the group detail page's body: a header with the group's
- * name and description, then one section per slot showing its name,
- * required count, and roster (SlotRoster).
+ * name and description, then one section per slot showing its name, required
+ * count, the calendar pools feeding it, and its roster (SlotRoster).
  *
- * Editing the group, its slots, or the slot rosters is out of scope for this
- * page — everything here is read-only (Non-goals, plan §1). Minting a
- * scheduling link is a new, additive action rather than an edit to the group
- * itself, so it lives in the header's actions slot without disturbing that
- * read-only contract. `PublicSchedulingSettings` (Phase 6) is the one
- * deliberate exception — an org-admin-gated edit of the group's two
- * public-scheduling fields — and owns its own admin/read-only split rather
- * than this view re-deriving it.
+ * The per-calendar configuration under each roster row is still read-only here.
+ * What an admin can now edit is the group's own shape — name, slots, rosters,
+ * pool attachments — through EditGroupDialog, alongside the two other writes
+ * this page already carried: minting a scheduling link (additive, not an edit
+ * of the group), and `PublicSchedulingSettings`, which owns its own
+ * admin/read-only split rather than this view re-deriving it. A member sees
+ * neither the edit affordance nor the dialog: every group-shape write is
+ * admin-only on the API.
  */
 export function GroupDetailView({ group }: GroupDetailViewProps) {
   const [mintDialogOpen, setMintDialogOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const permissions = usePermissions();
+  const isAdmin = permissions?.includes(PERMISSIONS.manageMembers) ?? false;
 
   // "Participates in" = owns at least one calendar in the group's slot
   // roster, matching `groupHasOwnedCalendar` (groups-table.tsx).
@@ -59,11 +67,26 @@ export function GroupDetailView({ group }: GroupDetailViewProps) {
         title={group.name}
         description={group.description}
         actions={
-          canMintLink ? (
-            <Button size='sm' onClick={() => setMintDialogOpen(true)}>
-              <Link2 aria-hidden />
-              Get scheduling link
-            </Button>
+          canMintLink || isAdmin ? (
+            <HStack gap={2}>
+              {canMintLink ? (
+                <Button size='sm' onClick={() => setMintDialogOpen(true)}>
+                  <Link2 aria-hidden />
+                  Get scheduling link
+                </Button>
+              ) : null}
+              {isAdmin ? (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  onClick={() => setEditOpen(true)}
+                  data-testid='edit-group-button'
+                >
+                  <Pencil aria-hidden />
+                  Edit group
+                </Button>
+              ) : null}
+            </HStack>
           ) : undefined
         }
       />
@@ -77,6 +100,13 @@ export function GroupDetailView({ group }: GroupDetailViewProps) {
             name: group.name,
             duration: group.duration,
           }}
+        />
+      )}
+      {isAdmin && (
+        <EditGroupDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          group={group}
         />
       )}
       <PublicSchedulingSettings group={group} />
@@ -97,6 +127,23 @@ export function GroupDetailView({ group }: GroupDetailViewProps) {
                 </HStack>
                 {slot.description ? (
                   <CardDescription>{slot.description}</CardDescription>
+                ) : null}
+                {slot.pools.length > 0 ? (
+                  <HStack
+                    gap={2}
+                    align='center'
+                    wrap
+                    data-testid={`slot-pools-${slot.id}`}
+                  >
+                    <Text size='sm' color='muted-foreground'>
+                      From pools:
+                    </Text>
+                    {slot.pools.map((pool) => (
+                      <Badge key={pool.id} variant='outline'>
+                        {pool.name}
+                      </Badge>
+                    ))}
+                  </HStack>
                 ) : null}
               </CardHeader>
               <CardContent>

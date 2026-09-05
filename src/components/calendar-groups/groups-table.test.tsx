@@ -113,6 +113,17 @@ function ownedCalendar(id: number): Calendar {
   };
 }
 
+function makePool(id: number, name: string) {
+  return {
+    id,
+    name,
+    description: '',
+    calendars: [],
+    created: '2024-01-01T00:00:00Z',
+    modified: '2024-01-01T00:00:00Z',
+  };
+}
+
 // `count` groups; the group at `ownedGroupIndex` contains a slot with the
 // calendar the member owns (id 999) — every other group is empty (owned by
 // no one in these tests).
@@ -201,11 +212,83 @@ describe('GroupsTable', () => {
     expect(emptyText).toBeInTheDocument();
   });
 
-  it('exports COLUMNS with name, description, and slots columns', () => {
-    expect(COLUMNS).toHaveLength(3);
+  it('exports COLUMNS with name, description, slots, and pools columns', () => {
+    expect(COLUMNS).toHaveLength(4);
     expect(COLUMNS[0]?.id).toBe('name');
     expect(COLUMNS[1]?.id).toBe('description');
     expect(COLUMNS[2]?.id).toBe('slots');
+    expect(COLUMNS[3]?.id).toBe('pools');
+  });
+
+  it('createColumns appends a single actions column to the shared set', () => {
+    const columns = createColumns([], new Set<number>(), vi.fn(), vi.fn());
+    expect(columns).toHaveLength(COLUMNS.length + 1);
+    expect(columns[columns.length - 1]?.id).toBe('actions');
+  });
+
+  it('an admin gets a per-row Edit action; a member gets none', async () => {
+    vi.mocked(calendarGroupsList).mockResolvedValue(
+      makePagedResponse(mockGroups, 2)
+    );
+
+    const { unmount } = renderGroupsTable('admin');
+    expect(
+      await screen.findByRole('button', { name: /edit group frontend team/i })
+    ).toBeInTheDocument();
+    unmount();
+
+    // The member branch filters to groups holding a calendar they own; give it
+    // one so a row actually renders and the absence of the action is meaningful.
+    vi.mocked(calendarList).mockResolvedValue(
+      makeCalendarListResponse([ownedCalendar(999)])
+    );
+    vi.mocked(calendarGroupsList).mockResolvedValue(
+      makePagedResponse(makeManyGroups(1, 0), 1)
+    );
+
+    renderGroupsTable('member');
+
+    await screen.findByRole('link', { name: 'Group 1' });
+    expect(
+      screen.queryByRole('button', { name: /edit group/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('names each attached pool once in the Pools column, even across slots', async () => {
+    const pooledGroup: CalendarGroup = {
+      id: 9,
+      name: 'Clinic',
+      description: '',
+      public_booking_slug: 'grp-9',
+      slots: [
+        {
+          id: 1,
+          name: 'Nurse',
+          required_count: 1,
+          calendars: [],
+          pools: [makePool(7, 'Nurses')],
+        },
+        {
+          id: 2,
+          name: 'Second nurse',
+          required_count: 1,
+          calendars: [],
+          // Same pool on a second slot — the column must not repeat it.
+          pools: [makePool(7, 'Nurses'), makePool(8, 'Rooms')],
+        },
+      ],
+      created: '2024-01-01T00:00:00Z',
+      modified: '2024-01-01T00:00:00Z',
+    };
+
+    vi.mocked(calendarGroupsList).mockResolvedValueOnce(
+      makePagedResponse([pooledGroup], 1)
+    );
+
+    renderGroupsTable('admin');
+
+    expect(await screen.findAllByText('Nurses')).toHaveLength(1);
+    expect(screen.getByText('Rooms')).toBeInTheDocument();
   });
 
   it('links the name cell to the group detail route', async () => {
@@ -329,7 +412,7 @@ describe('GroupsTable', () => {
     // renderer directly, the way `createColumns` is exported for.
     it('actions cell renders nothing for a viewer canMintBookingLinkForGroup denies (only reachable by testing the column directly)', () => {
       const group = makeManyGroups(1, 0)[0]!;
-      const columns = createColumns([], new Set<number>(), vi.fn());
+      const columns = createColumns([], new Set<number>(), vi.fn(), vi.fn());
       const actionsColumn = columns.find((column) => column.id === 'actions');
       const cell = actionsColumn?.cell as (props: {
         row: { original: CalendarGroup };

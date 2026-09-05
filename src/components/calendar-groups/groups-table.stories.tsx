@@ -105,7 +105,12 @@ function GroupsTableStory({
     </VStack>
   );
 
-  const columns = createColumns(permissions, ownedCalendarIds, () => {});
+  const columns = createColumns(
+    permissions,
+    ownedCalendarIds,
+    () => {},
+    () => {}
+  );
 
   return (
     <div className='p-6'>
