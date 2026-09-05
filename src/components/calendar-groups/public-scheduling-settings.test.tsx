@@ -71,18 +71,78 @@ function renderSettings(group: CalendarGroup) {
   return render(<PublicSchedulingSettings group={group} />, { wrapper });
 }
 
+/** A pool holding one calendar, so the slot below has both roster sources. */
+const POOL_SURGEONS = {
+  id: 7,
+  name: 'Surgeons',
+  description: '',
+  calendars: [
+    {
+      id: 100,
+      name: 'Dr. Smith',
+      email: 'smith@example.com',
+      external_id: 'ext-100',
+      provider: 'google',
+      calendar_type: 'personal',
+    },
+  ],
+  created: '2024-01-01T00:00:00Z',
+  modified: '2024-01-01T00:00:00Z',
+} as CalendarGroup['slots'][number]['pools'][number];
+
+/** The writable form of the fixture's slot — what every PATCH must carry. */
+const SLOT_WRITABLE = {
+  name: 'Surgeon',
+  description: '',
+  order: 0,
+  required_count: 1,
+  // Dr. Smith comes from the pool, so it stays in `pool_ids` and must NOT be
+  // promoted into `calendar_ids`.
+  calendar_ids: [101],
+  pool_ids: [7],
+};
+
 function makeGroup(overrides: Partial<CalendarGroup> = {}): CalendarGroup {
   return {
     id: 1,
     name: 'Surgery Team',
     description: 'Operating room coverage',
-    slots: [],
+    slots: [
+      {
+        id: 10,
+        name: 'Surgeon',
+        required_count: 1,
+        calendars: [
+          POOL_SURGEONS.calendars[0],
+          {
+            id: 101,
+            name: 'Dr. Lee',
+            email: 'lee@example.com',
+            external_id: 'ext-101',
+            provider: 'google',
+            calendar_type: 'personal',
+          },
+        ],
+        pools: [POOL_SURGEONS],
+      },
+    ],
     public_booking_slug: 'surgery-team',
     created: '2024-01-01T00:00:00Z',
     modified: '2024-01-01T00:00:00Z',
     ...overrides,
-  };
+  } as CalendarGroup;
 }
+
+/**
+ * The fields every group PATCH must carry regardless of what changed — a
+ * partial update that omits `slots` is refused outright, and an omitted
+ * `description` is silently cleared.
+ */
+const ALWAYS_SENT = {
+  name: 'Surgery Team',
+  description: 'Operating room coverage',
+  slots: [SLOT_WRITABLE],
+};
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -114,12 +174,79 @@ describe('PublicSchedulingSettings — admin: single PATCH with both fields', ()
       expect(updatePublicScheduling).toHaveBeenCalledTimes(1);
     });
     expect(updatePublicScheduling).toHaveBeenCalledWith({
+      ...ALWAYS_SENT,
       accepts_public_scheduling: true,
       duration: '00:30:00',
     });
     // Guard the tri-state contract directly: never an explicit null.
     const body = updatePublicScheduling.mock.calls[0][0];
     expect(Object.values(body)).not.toContain(null);
+  });
+});
+
+describe('PublicSchedulingSettings — the body is never slots-less', () => {
+  it('carries name, description and the full slot list, so the server does not refuse the write', async () => {
+    // Regression: this panel used to PATCH only the two public-scheduling
+    // fields. `CalendarGroupSerializer` refuses a partial update that omits
+    // `slots` — reading the absence as "no slots" would delete every slot and
+    // every pool attachment with it — so that body never landed at all.
+    const user = userEvent.setup();
+    mockAdmin(true);
+    const updatePublicScheduling = vi.fn().mockResolvedValue({});
+    mockUpdateHook(updatePublicScheduling);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: false, duration: '00:30:00' })
+    );
+
+    await user.click(
+      screen.getByRole('switch', { name: 'Accept public bookings' })
+    );
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    await waitFor(() => {
+      expect(updatePublicScheduling).toHaveBeenCalledTimes(1);
+    });
+
+    const body = updatePublicScheduling.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(body.name).toBe('Surgery Team');
+    expect(body.description).toBe('Operating room coverage');
+    expect(body.slots).toEqual([SLOT_WRITABLE]);
+  });
+
+  it('keeps a pool calendar in pool_ids rather than promoting it to an inline member', async () => {
+    // Round-tripping the slot must not turn pool-derived calendars into inline
+    // ones — that would survive the pool being detached later and quietly
+    // widen the roster.
+    const user = userEvent.setup();
+    mockAdmin(true);
+    const updatePublicScheduling = vi.fn().mockResolvedValue({});
+    mockUpdateHook(updatePublicScheduling);
+
+    renderSettings(
+      makeGroup({ accepts_public_scheduling: false, duration: '00:30:00' })
+    );
+
+    await user.click(
+      screen.getByRole('switch', { name: 'Accept public bookings' })
+    );
+    await user.click(screen.getByTestId('save-public-scheduling-settings'));
+
+    await waitFor(() => {
+      expect(updatePublicScheduling).toHaveBeenCalledTimes(1);
+    });
+
+    const slots = (
+      updatePublicScheduling.mock.calls[0][0] as {
+        slots: { calendar_ids: number[]; pool_ids: number[] }[];
+      }
+    ).slots;
+    // Dr. Smith (100) is the pool's; Dr. Lee (101) is the inline pick.
+    expect(slots[0].calendar_ids).toEqual([101]);
+    expect(slots[0].pool_ids).toEqual([7]);
   });
 });
 
@@ -144,6 +271,7 @@ describe('PublicSchedulingSettings — unrelated edit omits the unchanged field'
       expect(updatePublicScheduling).toHaveBeenCalledTimes(1);
     });
     expect(updatePublicScheduling).toHaveBeenCalledWith({
+      ...ALWAYS_SENT,
       accepts_public_scheduling: false,
     });
     const body = updatePublicScheduling.mock.calls[0][0] as Record<
@@ -290,6 +418,7 @@ describe('PublicSchedulingSettings — two sequential saves without an interveni
       expect(updatePublicScheduling).toHaveBeenCalledTimes(1);
     });
     expect(updatePublicScheduling).toHaveBeenNthCalledWith(1, {
+      ...ALWAYS_SENT,
       accepts_public_scheduling: true,
       duration: '00:30:00',
     });
@@ -309,7 +438,7 @@ describe('PublicSchedulingSettings — two sequential saves without an interveni
       string,
       unknown
     >;
-    expect(secondBody).toEqual({ duration: '00:45:00' });
+    expect(secondBody).toEqual({ ...ALWAYS_SENT, duration: '00:45:00' });
     expect('accepts_public_scheduling' in secondBody).toBe(false);
     expect(Object.values(secondBody)).not.toContain(null);
   });

@@ -1,14 +1,21 @@
 /**
- * useUpdateCalendarGroupPublicScheduling — PATCH the two public-scheduling
- * fields on a CalendarGroup: `accepts_public_scheduling` and `duration`.
+ * useUpdateCalendarGroupPublicScheduling — PATCH a CalendarGroup's two
+ * public-scheduling fields: `accepts_public_scheduling` and `duration`.
  *
  * Thin wrapper over `calendarGroupsPartialUpdateMutation` (PATCH
- * /calendar-groups/{id}/). The body type is deliberately restricted to just
- * these two fields — `CalendarGroupSerializer` treats an omitted field as
- * "leave unchanged" but refuses an explicit `null` as a validation error
- * (the tri-state guiding decision in the public-scheduling-links plan), so
- * the caller (`PublicSchedulingSettings`) must only ever include a key here
- * when it is actively changing that field, never to "clear" it.
+ * /calendar-groups/{id}/). Those two fields ARE genuinely tri-state — omitted
+ * means unchanged, an explicit `null` is a validation error — so the caller
+ * still includes each one only when it is actively changing.
+ *
+ * What is NOT partial is the rest of the body. `CalendarGroupSerializer`
+ * replaces `slots` wholesale and has no unchanged sentinel for it, so it
+ * refuses any partial update that omits `slots` (400) rather than reading the
+ * absence as "delete every slot"; it also reads `name` unguarded and defaults
+ * `description` to `""`, which silently clears it. A body carrying only the
+ * two public-scheduling fields therefore never lands. Build the body with
+ * `buildGroupUpdateBody(group, { … })`, which carries the rest over from the
+ * group as last read — the type below is the full patch shape for that reason,
+ * not the two-field subset it used to be.
  *
  * On success, invalidates the single-group query
  * (`calendarGroupQueryKey`) so the detail view re-renders with the server's
@@ -20,10 +27,7 @@ import { calendarGroupsPartialUpdateMutation } from '@/client/@tanstack/react-qu
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { calendarGroupQueryKey } from './use-calendar-group';
 
-export type PublicSchedulingPatch = Pick<
-  PatchedCalendarGroupWritable,
-  'accepts_public_scheduling' | 'duration'
->;
+export type PublicSchedulingPatch = PatchedCalendarGroupWritable;
 
 export function useUpdateCalendarGroupPublicScheduling(groupId: string) {
   const queryClient = useQueryClient();
