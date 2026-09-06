@@ -25,6 +25,7 @@
 import * as React from 'react';
 import { TriangleAlert } from 'lucide-react';
 import { Button } from 'vinta-schedule-design-system/ui/button';
+import { Badge } from 'vinta-schedule-design-system/ui/badge';
 import { Checkbox } from 'vinta-schedule-design-system/ui/checkbox';
 import { Label } from 'vinta-schedule-design-system/ui/label';
 import {
@@ -107,14 +108,20 @@ export function GroupSlotSelection({
               <Text size='sm' weight='medium'>
                 {slot.name}
               </Text>
-              <Text
-                size='xs'
-                color={slotSatisfiable ? 'muted-foreground' : 'destructive'}
+              <Badge
+                variant={
+                  selected.length === slot.requiredCount ? 'success' : 'info'
+                }
+                data-testid={`group-slot-${slot.slotId}-progress`}
               >
-                Pick {slot.requiredCount} of {free.length} available · selected{' '}
-                {selected.length}
-              </Text>
+                {selected.length}/{slot.requiredCount} selected
+              </Badge>
             </HStack>
+            <Text size='xs' color='muted-foreground'>
+              {slot.requiredCount === 1
+                ? 'Choose 1 option below.'
+                : `Choose ${slot.requiredCount} options below.`}
+            </Text>
 
             {!slotSatisfiable ? (
               <Text

@@ -7,7 +7,7 @@ const meta = {
   component: AttendeeForm,
   tags: ['autodocs'],
   args: {
-    defaultTimezone: 'America/New_York',
+    timezone: 'America/New_York',
     isSubmitting: false,
     onSubmit: fn(),
     onBack: fn(),

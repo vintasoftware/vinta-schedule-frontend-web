@@ -90,3 +90,33 @@ export const WithSelfServiceLinksBranded: Story = {
     slug: 'acme',
   },
 };
+
+// A realistic-length code (long enough to actually wrap at 375px, unlike the
+// short placeholders above) — still an illustrative, non-token-shaped
+// fixture per the "no token-like entropy" rule, just padded with readable
+// words instead of random characters so it exercises the same wrap a real
+// minted code's length would.
+const EVENT_WITH_MANAGEMENT_LONG_CODE: CalendarEventWithManagementCodes = {
+  ...EVENT,
+  management: {
+    reschedule_code:
+      'story-placeholder-reschedule-code-long-enough-to-wrap-on-a-375px-mobile-viewport-not-a-real-code',
+    cancel_code:
+      'story-placeholder-cancel-code-long-enough-to-wrap-on-a-375px-mobile-viewport-not-a-real-code',
+  },
+};
+
+/**
+ * Mobile viewport (375px) with a realistic-length code — regression fixture
+ * for the credential clipping behind a fixed `rows` textarea (measured
+ * `scrollHeight` > `clientHeight` before the auto-grow fix). Confirms the
+ * whole credential stays readable, not scrolled out of view, at the
+ * narrowest supported width.
+ */
+export const WithSelfServiceLinksMobile: Story = {
+  args: {
+    event: EVENT_WITH_MANAGEMENT_LONG_CODE,
+    scope: { kind: 'calendar' },
+  },
+  globals: { viewport: { value: 'mobile' } },
+};

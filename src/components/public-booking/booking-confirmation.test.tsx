@@ -142,10 +142,10 @@ describe('BookingConfirmation', () => {
 
     const rescheduleInput = screen.getByTestId(
       'reschedule-link-input'
-    ) as HTMLInputElement;
+    ) as HTMLTextAreaElement;
     const cancelInput = screen.getByTestId(
       'cancel-link-input'
-    ) as HTMLInputElement;
+    ) as HTMLTextAreaElement;
 
     expect(rescheduleInput.value).toContain('plaintext-reschedule-code');
     expect(rescheduleInput.value).toContain('/reschedule');
@@ -172,7 +172,7 @@ describe('BookingConfirmation', () => {
 
     const rescheduleInput = screen.getByTestId(
       'reschedule-link-input'
-    ) as HTMLInputElement;
+    ) as HTMLTextAreaElement;
     expect(rescheduleInput.value).toContain('target=group');
     expect(rescheduleInput.value).not.toContain('duration=');
   });
@@ -190,10 +190,10 @@ describe('BookingConfirmation', () => {
 
     const rescheduleInput = screen.getByTestId(
       'reschedule-link-input'
-    ) as HTMLInputElement;
+    ) as HTMLTextAreaElement;
     const cancelInput = screen.getByTestId(
       'cancel-link-input'
-    ) as HTMLInputElement;
+    ) as HTMLTextAreaElement;
     expect(rescheduleInput.value).toContain('/o/acme/book/');
     expect(cancelInput.value).toContain('/o/acme/book/');
   });
@@ -242,7 +242,7 @@ describe('BookingConfirmation', () => {
     // The cancel link never needs a duration, so it still renders normally.
     const cancelInput = screen.getByTestId(
       'cancel-link-input'
-    ) as HTMLInputElement;
+    ) as HTMLTextAreaElement;
     expect(cancelInput.value).toContain('plaintext-cancel-code');
   });
 
@@ -280,7 +280,7 @@ describe('BookingConfirmation', () => {
 
     const rescheduleInput = screen.getByTestId(
       'reschedule-link-input'
-    ) as HTMLInputElement;
+    ) as HTMLTextAreaElement;
     const copyButton = screen.getByTestId('copy-reschedule-link-button');
     expect(copyButton.querySelector('.lucide-copy')).toBeInTheDocument();
 

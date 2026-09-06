@@ -39,7 +39,7 @@
  *     from the mutation cache itself, only from the `event` prop it's given.
  *   - This component issues no navigation of its own (no `router.push` /
  *     `router.replace`) — the codes only ever appear inside the rendered
- *     `<Input readOnly>` value and the clipboard write a copy click
+ *     `<Textarea readOnly>` value and the clipboard write a copy click
  *     triggers.
  */
 
@@ -52,7 +52,7 @@ import {
   CardTitle,
 } from 'vinta-schedule-design-system/ui/card';
 import { Button } from 'vinta-schedule-design-system/ui/button';
-import { Input } from 'vinta-schedule-design-system/ui/input';
+import { Textarea } from 'vinta-schedule-design-system/ui/textarea';
 import { Icon } from 'vinta-schedule-design-system/ui/icon';
 import { HStack, VStack, Text } from 'vinta-schedule-design-system/layout';
 import type {
@@ -143,16 +143,38 @@ interface ManagementLinkRowProps {
 /** One copyable self-service link row — reschedule or cancel. Each instance
  * owns its own "copied" indicator so copying one never affects the other.
  *
- * The `<Input readOnly>` — rather than an `<a>` — is deliberate: an anchor
- * click would push the URL (carrying the plaintext code) into browser
- * history, a leak vector for a single-use credential. Read-only + copy is
- * the pattern that keeps the code out of history entirely. */
+ * The `<Textarea readOnly>` — rather than an `<a>` — is deliberate: an
+ * anchor click would push the URL (carrying the plaintext code) into
+ * browser history, a leak vector for a single-use credential. Read-only +
+ * copy is the pattern that keeps the code out of history entirely. A
+ * `<Textarea>` rather than a single-line `<Input>` specifically (polish
+ * pass): a credential shown exactly once, that the attendee must be able to
+ * read before copying, must not truncate — a single-line input clips a URL
+ * this long behind its own fixed width with no way to see what's being
+ * copied without scrolling inside it. Wrapping across a couple of lines
+ * keeps the whole thing legible at once.
+ *
+ * A fixed `rows` still clips a realistic-length URL once it wraps past that
+ * row count (confirmed on the 375px viewport) — the textarea would scroll
+ * internally with no affordance that more is hidden, defeating the whole
+ * "read it before copying" point. So the height auto-grows to the content:
+ * on mount and whenever `url` changes, reset to `auto` (so a shrink is
+ * measured correctly) then set the explicit pixel height to `scrollHeight`.
+ * `min-h-[60px]` on the `Textarea` atom itself is the floor for a short URL. */
 function ManagementLinkRow({ label, url, testId }: ManagementLinkRowProps) {
   const [copied, setCopied] = React.useState(false);
   const [copyFailed, setCopyFailed] = React.useState(false);
   const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  React.useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [url]);
 
   React.useEffect(
     () => () => {
@@ -183,11 +205,13 @@ function ManagementLinkRow({ label, url, testId }: ManagementLinkRowProps) {
       <Text size='sm' color='muted-foreground'>
         {label}
       </Text>
-      <HStack gap={2}>
-        <Input
+      <HStack gap={2} align='start'>
+        <Textarea
+          ref={textareaRef}
           readOnly
           value={url}
-          className='font-mono text-sm'
+          wrap='soft'
+          className='resize-none overflow-hidden font-mono text-xs break-all'
           aria-label={`${label} link`}
           data-testid={`${testId}-link-input`}
         />
@@ -195,6 +219,7 @@ function ManagementLinkRow({ label, url, testId }: ManagementLinkRowProps) {
           type='button'
           variant='outline'
           size='icon'
+          className='mt-0.5 shrink-0'
           onClick={() => void handleCopy()}
           aria-label={`Copy ${label.toLowerCase()} link to clipboard`}
           data-testid={`copy-${testId}-link-button`}
@@ -271,13 +296,13 @@ export function BookingConfirmation({
     <VStack gap={4}>
       <Card data-testid='booking-confirmation'>
         <CardHeader>
-          <HStack gap={2} align='center'>
-            <Icon icon={CheckCircle2} color='success' aria-hidden />
-            <CardTitle>Booking confirmed</CardTitle>
-          </HStack>
+          <VStack gap={2} align='center' className='text-center'>
+            <Icon icon={CheckCircle2} color='success' size='xl' aria-hidden />
+            <CardTitle className='text-2xl'>Booking confirmed</CardTitle>
+          </VStack>
         </CardHeader>
         <CardContent>
-          <VStack gap={2}>
+          <VStack gap={2} align='center' className='text-center'>
             <Text weight='medium'>{event.title}</Text>
             <Text
               size='sm'

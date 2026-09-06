@@ -83,6 +83,13 @@ import { BookingConfirmation } from './booking-confirmation';
 import { LinkInvalid } from './link-invalid';
 import { GroupSlotSelection } from './group-slot-selection';
 import { terminalErrorCopy } from './public-booking-flow';
+import { BookingProgress } from './booking-progress';
+
+/** This flow's steps, in order — one MORE than the single-calendar flow's
+ * (`public-booking-flow.tsx`'s `BOOKING_STEPS`): choosing a calendar per
+ * slot is a real, extra step a group booking has and a calendar booking
+ * doesn't. Rendered only while the attendee is still mid-flow. */
+const GROUP_BOOKING_STEPS = ['Pick a time', 'Choose calendars', 'Your details'];
 
 /** How far ahead the whole-group proposal search window looks — matches
  * the single-calendar flow's default; see that constant's comment in
@@ -237,14 +244,13 @@ export function PublicGroupBookingFlow({
           title: DEFAULT_PUBLIC_GROUP_BOOKING_TITLE,
           start_time: selectedProposal.start_time,
           end_time: selectedProposal.end_time,
-          timezone: values.timezone,
+          timezone,
           slot_selections: slotSelectionsPayload,
           external_attendee: values.name
             ? { email: values.email, name: values.name }
             : { email: values.email },
         },
       });
-      setTimezone(values.timezone);
       setConfirmedEvent(event);
       setStep('confirmed');
     } catch (err) {
@@ -346,11 +352,16 @@ export function PublicGroupBookingFlow({
     );
   }
 
+  const currentStep =
+    step === 'select-proposal' ? 0 : step === 'select-group-slots' ? 1 : 2;
+
   return (
     <VStack gap={4}>
       <Heading level={1} size='xl'>
         Book an appointment
       </Heading>
+
+      <BookingProgress steps={GROUP_BOOKING_STEPS} currentStep={currentStep} />
 
       {slotUnavailableNotice ? (
         <Alert variant='warning' data-testid='group-slot-unavailable-notice'>
@@ -366,6 +377,7 @@ export function PublicGroupBookingFlow({
           timezone={timezone}
           selectedSlot={selectedProposal}
           onSelect={handleSelectProposal}
+          onTimezoneChange={setTimezone}
           isLoading={proposalsQuery.isLoading || isLoadingAvailability}
         />
       ) : null}
@@ -427,7 +439,7 @@ export function PublicGroupBookingFlow({
 
       {step === 'attendee-details' ? (
         <AttendeeForm
-          defaultTimezone={timezone}
+          timezone={timezone}
           isSubmitting={bookGroupEventMutation.isPending}
           onSubmit={handleAttendeeSubmit}
           onBack={() => setStep('select-group-slots')}

@@ -28,10 +28,11 @@ const meta = {
   tags: ['autodocs'],
   args: {
     proposals: PROPOSALS,
-    timezone: 'UTC',
+    timezone: 'America/New_York',
     selectedSlot: null,
     onSelect: fn(),
     isLoading: false,
+    onTimezoneChange: fn(),
   },
 } satisfies Meta<typeof SlotPicker>;
 
@@ -78,4 +79,33 @@ export const MultiDayMultiProposal: Story = {
     proposals: MULTI_DAY_MULTI_PROPOSAL_PROPOSALS,
     timezone: 'Asia/Tokyo',
   },
+};
+
+/**
+ * Two proposals on the SAME day with DIFFERENT lengths — the honesty case
+ * for the "state the duration once" consolidation: the picker must keep
+ * rendering each row's own minutes rather than picking one and lying about
+ * the other.
+ */
+const MIXED_DURATION_PROPOSALS: BookableSlotProposal[] = [
+  {
+    start_time: '2026-03-02T15:00:00.000Z',
+    end_time: '2026-03-02T15:30:00.000Z',
+  },
+  {
+    start_time: '2026-03-02T16:00:00.000Z',
+    end_time: '2026-03-02T16:45:00.000Z',
+  },
+];
+
+export const MixedDurationsSameDay: Story = {
+  args: { proposals: MIXED_DURATION_PROPOSALS },
+};
+
+/**
+ * No `onTimezoneChange` — the isolated unit-test harness's shape. Falls
+ * back to a static "Times shown in …" label instead of the combobox.
+ */
+export const NoTimezoneChanger: Story = {
+  args: { onTimezoneChange: undefined },
 };

@@ -77,10 +77,16 @@ import { SlotPicker, proposalDurationMinutes } from './slot-picker';
 import { BookingConfirmation } from './booking-confirmation';
 import { LinkInvalid } from './link-invalid';
 import { terminalErrorCopy } from './public-booking-flow';
+import { BookingProgress } from './booking-progress';
 
 /** Matches the book flows' default month-grid search window — see
  * `public-booking-flow.tsx`'s `SEARCH_WINDOW_DAYS` comment. */
 const SEARCH_WINDOW_DAYS = 30;
+
+/** This flow's own, shorter step list — no "Your details" step at all (a
+ * reschedule only ever changes the time; see the module doc comment's RULE
+ * 2). Rendered only while the attendee is still mid-flow. */
+const RESCHEDULE_STEPS = ['Pick a new time', 'Confirm'];
 
 type FlowStep = 'select-slot' | 'confirm-slot' | 'confirmed' | 'terminal-error';
 
@@ -122,7 +128,7 @@ export function RescheduleFlow({ code, slug }: RescheduleFlowProps) {
     };
   });
 
-  const [timezone] = React.useState(
+  const [timezone, setTimezone] = React.useState(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone
   );
   const [step, setStep] = React.useState<FlowStep>('select-slot');
@@ -303,6 +309,11 @@ export function RescheduleFlow({ code, slug }: RescheduleFlowProps) {
         Reschedule your appointment
       </Heading>
 
+      <BookingProgress
+        steps={RESCHEDULE_STEPS}
+        currentStep={step === 'select-slot' ? 0 : 1}
+      />
+
       {slotUnavailableNotice ? (
         <Alert
           variant='warning'
@@ -320,6 +331,7 @@ export function RescheduleFlow({ code, slug }: RescheduleFlowProps) {
           timezone={timezone}
           selectedSlot={selectedSlot}
           onSelect={handleSelectSlot}
+          onTimezoneChange={setTimezone}
           isLoading={slotsQuery.isLoading}
         />
       ) : selectedSlot ? (
@@ -330,7 +342,7 @@ export function RescheduleFlow({ code, slug }: RescheduleFlowProps) {
                 {zonedFormat(
                   selectedSlot.start_time,
                   timezone,
-                  'MMM d, yyyy, h:mm a'
+                  'MMM d, yyyy, h:mm a ZZZZ'
                 )}
               </Text>
               <Text size='sm' color='muted-foreground'>
