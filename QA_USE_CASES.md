@@ -185,12 +185,21 @@ path when shipped.
 
 ---
 
+## Public Scheduling Links (Public Scheduling Links plan)
+
+| ID    | Role  | Happy-path description                                                                                                                                                                                                                                      | Spec path                                                  |
+| ----- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| PA039 | admin | Admin creates a calendar group, mints a `book` scheduling link for it, and captures the one-time URL; an anonymous attendee in a fresh session picks a time, chooses calendars, and books, and the confirmation offers self-service reschedule/cancel links | `e2e/tests/app/PA039-mint-group-booking-link.spec.ts`      |
+| PA040 | admin | Admin turns on a calendar group's reusable public scheduling link (duration + toggle), and that same codeless link books successfully through two separate anonymous sessions in a row                                                                      | `e2e/tests/app/PA040-public-group-scheduling-link.spec.ts` |
+
+---
+
 ## Counts
 
 | Category      | Count  |
 | ------------- | ------ |
 | Member (`PR`) | 29     |
-| Admin (`PA`)  | 18     |
-| **Total**     | **47** |
+| Admin (`PA`)  | 20     |
+| **Total**     | **49** |
 
-_Foundation smoke (PR000) is not counted in the 47 use-cases — it is harness scaffolding. PR039–PR043 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–7. PR044 has a spec file but is `test.skip`-ped — no identity provider in this harness can complete a real OAuth consent screen; the callback route's unit tests are the merge gate until a testable IdP exists. PR045–PR047's known-slug cases skip unless `E2E_BRANDED_LOGIN_SLUG` names a QA org with public branding (PR047 additionally needs `E2E_BRANDED_PRIMARY_COLOR`); their unknown-slug cases are always runnable._
+_Foundation smoke (PR000) is not counted in the 49 use-cases — it is harness scaffolding. PR039–PR043 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–7. PR044 has a spec file but is `test.skip`-ped — no identity provider in this harness can complete a real OAuth consent screen; the callback route's unit tests are the merge gate until a testable IdP exists. PR045–PR047's known-slug cases skip unless `E2E_BRANDED_LOGIN_SLUG` names a QA org with public branding (PR047 additionally needs `E2E_BRANDED_PRIMARY_COLOR`); their unknown-slug cases are always runnable. PA039/PA040 use the `PA` (admin) prefix — the setup half of each flow is admin-only (minting a link, or flipping a group's public-scheduling settings), and the file has no third prefix for the anonymous-attendee half; see the specs' own file-header doc comments for the full reasoning._
