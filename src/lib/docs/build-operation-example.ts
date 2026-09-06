@@ -198,8 +198,8 @@ function renderArgs(
 /**
  * Build a named example operation for a query or mutation field, e.g.
  *
- *   query CalendarGroupBookableSlots {
- *     calendarGroupBookableSlots(organizationId: "<organizationId>", …) {
+ *   query AppointmentTypeBookableSlots {
+ *     appointmentTypeBookableSlots(organizationId: "<organizationId>", …) {
  *       id
  *       start
  *     }

@@ -118,7 +118,7 @@ export function readOverLimitError(error: unknown): OverLimitErrorBody | null {
  * carried as a query param so the destination can highlight or pre-select it.
  *
  * Defined once here so every `readOverLimitError` consumer deep-links to the
- * same place instead of hard-coding a path: the calendar-groups `OverLimitAlert`
+ * same place instead of hard-coding a path: the appointment-types `OverLimitAlert`
  * uses it today, and any future consumer reuses it. Kept alongside
  * `readOverLimitError` (rather than in a component) precisely so the reader and
  * the destination it maps to travel together.
@@ -265,7 +265,7 @@ export function isCollectionNotSupportedError(error: unknown): boolean {
  * substring, so an unrelated 400/500 whose message happens to mention "not
  * found" is never misread as this case.
  *
- * `useGroupScopedWindows`'s delete path does NOT use this — it calls the
+ * `useAppointmentTypeScopedWindows`'s delete path does NOT use this — it calls the
  * generated operation with `throwOnError:false` instead, so it can read
  * `response.status` directly, which is more robust than body-shape matching
  * for that case. This predicate is for call sites that only have the thrown

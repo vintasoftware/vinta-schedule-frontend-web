@@ -57,14 +57,14 @@ path when shipped.
 
 ## Bookings (Phases 16–21)
 
-| ID    | Role   | Happy-path description                                                                                 | Spec path                                        |
-| ----- | ------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
-| PR016 | member | Member creates a single booking with co-booked calendars; event and blocked-times appear               | `e2e/tests/app/PR016-single-booking.spec.ts`     |
-| PR017 | member | Member creates a recurring booking with an RFC-5545 recurrence rule; series renders across occurrences | `e2e/tests/app/PR017-recurring-booking.spec.ts`  |
-| PR018 | member | Member books a Calendar Group time, selecting calendars per slot; event and blocked-times appear       | `e2e/tests/app/PR018-group-booking.spec.ts`      |
-| PR019 | member | Member adds and removes internal, external, and resource attendees on an event                         | `e2e/tests/app/PR019-manage-attendees.spec.ts`   |
-| PR020 | member | Member cancels a booking after confirming; the event and its co-booked blocked-times are released      | `e2e/tests/app/PR020-cancel-booking.spec.ts`     |
-| PR021 | member | Member reschedules a booking to a new time; event and co-booked blocked-times move                     | `e2e/tests/app/PR021-reschedule-booking.spec.ts` |
+| ID    | Role   | Happy-path description                                                                                 | Spec path                                              |
+| ----- | ------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| PR016 | member | Member creates a single booking with co-booked calendars; event and blocked-times appear               | `e2e/tests/app/PR016-single-booking.spec.ts`           |
+| PR017 | member | Member creates a recurring booking with an RFC-5545 recurrence rule; series renders across occurrences | `e2e/tests/app/PR017-recurring-booking.spec.ts`        |
+| PR018 | member | Member books an Appointment Type time, selecting calendars per slot; event and blocked-times appear    | `e2e/tests/app/PR018-appointment-type-booking.spec.ts` |
+| PR019 | member | Member adds and removes internal, external, and resource attendees on an event                         | `e2e/tests/app/PR019-manage-attendees.spec.ts`         |
+| PR020 | member | Member cancels a booking after confirming; the event and its co-booked blocked-times are released      | `e2e/tests/app/PR020-cancel-booking.spec.ts`           |
+| PR021 | member | Member reschedules a booking to a new time; event and co-booked blocked-times move                     | `e2e/tests/app/PR021-reschedule-booking.spec.ts`       |
 
 ---
 
@@ -88,12 +88,12 @@ path when shipped.
 
 ---
 
-## Calendar Groups (Phases 28–29)
+## Appointment Types (Phases 28–29)
 
-| ID    | Role  | Happy-path description                                                                  | Spec path                                  |
-| ----- | ----- | --------------------------------------------------------------------------------------- | ------------------------------------------ |
-| PA028 | admin | Admin views the org's Calendar Groups in a datatable                                    | `e2e/tests/app/PA028-groups-list.spec.ts`  |
-| PA029 | admin | Admin creates a Calendar Group with named slots and calendar pools; it becomes bookable | `e2e/tests/app/PA029-create-group.spec.ts` |
+| ID    | Role  | Happy-path description                                                                     | Spec path                                             |
+| ----- | ----- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| PA028 | admin | Admin views the org's Appointment Types in a datatable                                     | `e2e/tests/app/PA028-appointment-types-list.spec.ts`  |
+| PA029 | admin | Admin creates an Appointment Type with named slots and calendar pools; it becomes bookable | `e2e/tests/app/PA029-create-appointment-type.spec.ts` |
 
 ---
 
@@ -187,10 +187,10 @@ path when shipped.
 
 ## Public Scheduling Links (Public Scheduling Links plan)
 
-| ID    | Role  | Happy-path description                                                                                                                                                                                                                                      | Spec path                                                  |
-| ----- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| PA039 | admin | Admin creates a calendar group, mints a `book` scheduling link for it, and captures the one-time URL; an anonymous attendee in a fresh session picks a time, chooses calendars, and books, and the confirmation offers self-service reschedule/cancel links | `e2e/tests/app/PA039-mint-group-booking-link.spec.ts`      |
-| PA040 | admin | Admin turns on a calendar group's reusable public scheduling link (duration + toggle), and that same codeless link books successfully through two separate anonymous sessions in a row                                                                      | `e2e/tests/app/PA040-public-group-scheduling-link.spec.ts` |
+| ID    | Role  | Happy-path description                                                                                                                                                                                                                                         | Spec path                                                             |
+| ----- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| PA039 | admin | Admin creates an appointment type, mints a `book` scheduling link for it, and captures the one-time URL; an anonymous attendee in a fresh session picks a time, chooses calendars, and books, and the confirmation offers self-service reschedule/cancel links | `e2e/tests/app/PA039-mint-appointment-type-booking-link.spec.ts`      |
+| PA040 | admin | Admin turns on an appointment type's reusable public scheduling link (duration + toggle), and that same codeless link books successfully through two separate anonymous sessions in a row                                                                      | `e2e/tests/app/PA040-public-appointment-type-scheduling-link.spec.ts` |
 
 ---
 
@@ -202,4 +202,4 @@ path when shipped.
 | Admin (`PA`)  | 20     |
 | **Total**     | **49** |
 
-_Foundation smoke (PR000) is not counted in the 49 use-cases — it is harness scaffolding. PR039–PR043 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–7. PR044 has a spec file but is `test.skip`-ped — no identity provider in this harness can complete a real OAuth consent screen; the callback route's unit tests are the merge gate until a testable IdP exists. PR045–PR047's known-slug cases skip unless `E2E_BRANDED_LOGIN_SLUG` names a QA org with public branding (PR047 additionally needs `E2E_BRANDED_PRIMARY_COLOR`); their unknown-slug cases are always runnable. PA039/PA040 use the `PA` (admin) prefix — the setup half of each flow is admin-only (minting a link, or flipping a group's public-scheduling settings), and the file has no third prefix for the anonymous-attendee half; see the specs' own file-header doc comments for the full reasoning._
+_Foundation smoke (PR000) is not counted in the 49 use-cases — it is harness scaffolding. PR039–PR043 have no Playwright spec by design — see the SMS MFA Consent Frontend implementation plan, Phases 2–7. PR044 has a spec file but is `test.skip`-ped — no identity provider in this harness can complete a real OAuth consent screen; the callback route's unit tests are the merge gate until a testable IdP exists. PR045–PR047's known-slug cases skip unless `E2E_BRANDED_LOGIN_SLUG` names a QA org with public branding (PR047 additionally needs `E2E_BRANDED_PRIMARY_COLOR`); their unknown-slug cases are always runnable. PA039/PA040 use the `PA` (admin) prefix — the setup half of each flow is admin-only (minting a link, or flipping an appointment type's public-scheduling settings), and the file has no third prefix for the anonymous-attendee half; see the specs' own file-header doc comments for the full reasoning._

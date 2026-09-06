@@ -62,10 +62,10 @@ describe('RemedyRouter', () => {
   it('navigates to the plans catalog with the resource for upgrade_plan', () => {
     render(<RemedyRouter />);
 
-    emitRemedy({ remedy: 'upgrade_plan', resource: 'calendar_groups' });
+    emitRemedy({ remedy: 'upgrade_plan', resource: 'appointment_types' });
 
     expect(push).toHaveBeenCalledWith(
-      '/billing/plans?resource=calendar_groups'
+      '/billing/plans?resource=appointment_types'
     );
   });
 
@@ -96,7 +96,7 @@ describe('RemedyRouter', () => {
 
     emitRemedy({
       remedy: 'some_future_remedy' as Remedy,
-      resource: 'calendar_groups',
+      resource: 'appointment_types',
     });
 
     expect(push).toHaveBeenCalledWith('/billing');
@@ -106,7 +106,7 @@ describe('RemedyRouter', () => {
     const { unmount } = render(<RemedyRouter />);
     unmount();
 
-    emitRemedy({ remedy: 'upgrade_plan', resource: 'calendar_groups' });
+    emitRemedy({ remedy: 'upgrade_plan', resource: 'appointment_types' });
 
     expect(push).not.toHaveBeenCalled();
   });

@@ -7,12 +7,12 @@
  *   of the event already implies eligibility, matching the ungated
  *   edit/reschedule/cancel actions on this same sheet).
  * - Clicking "Get reschedule link" for a single-calendar event (no
- *   `group_selections`) opens the mint dialog with an `event` target whose
+ *   `appointment_type_selections`) opens the mint dialog with an `event` target whose
  *   `eventScope` is `{ kind: 'calendar', durationSeconds }`, computed from
  *   the event's own start/end time.
- * - Clicking "Get reschedule link" for a calendar-GROUP event
- *   (`group_selections.length > 0`) opens the mint dialog with
- *   `eventScope: { kind: 'group' }` — never a calendar scope for a group
+ * - Clicking "Get reschedule link" for a calendar-APPOINTMENT_TYPE event
+ *   (`appointment_type_selections.length > 0`) opens the mint dialog with
+ *   `eventScope: { kind: 'appointmentType' }` — never a calendar scope for an appointment type
  *   event.
  * - Clicking "Get cancel link" opens the mint dialog with `purpose: 'cancel'`
  *   and offers no duration control.
@@ -84,7 +84,7 @@ import type {
   BookingCodeCreateResult,
   CalendarEvent,
   PaginatedCalendarList,
-  CalendarEventGroupSelection,
+  CalendarEventAppointmentTypeSelection,
 } from '@/client';
 
 // ---------------------------------------------------------------------------
@@ -104,7 +104,7 @@ function makeRaw(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     external_attendances: [],
     attendances: [],
     resource_allocations: [],
-    group_selections: [],
+    appointment_type_selections: [],
     parent_recurring_object: {
       id: 0,
       title: '',
@@ -157,7 +157,7 @@ function makeMintResponse(
     code: 'plaintext-code-once',
     purpose: 'reschedule',
     calendar: null,
-    calendar_group: null,
+    appointment_type: null,
     event: null,
     expires_at: null,
     ...result,
@@ -261,15 +261,19 @@ describe('EventAttendeesSheet — booking-link actions', () => {
     expect(urlInput.value).toContain('target=calendar');
   });
 
-  it('a calendar-GROUP event (group_selections non-empty): "Get reschedule link" offers no duration control and never a calendar scope', async () => {
+  it('a calendar-APPOINTMENT_TYPE event (appointment_type_selections non-empty): "Get reschedule link" offers no duration control and never a calendar scope', async () => {
     const user = userEvent.setup();
-    const groupSelection = {
+    const appointmentTypeSelection = {
       id: 1,
       slot: { id: 1, name: 'Slot', calendars: [], pools: [] },
       calendar: { id: 1, name: 'Room A' },
       is_in_current_roster: true,
-    } as unknown as CalendarEventGroupSelection;
-    renderSheet(makeEventVM(makeRaw({ group_selections: [groupSelection] })));
+    } as unknown as CalendarEventAppointmentTypeSelection;
+    renderSheet(
+      makeEventVM(
+        makeRaw({ appointment_type_selections: [appointmentTypeSelection] })
+      )
+    );
 
     await user.click(
       screen.getByRole('button', { name: /get reschedule link/i })
@@ -280,19 +284,23 @@ describe('EventAttendeesSheet — booking-link actions', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('mints a reschedule link for a group event with ?target=group, never ?target=calendar (no probing)', async () => {
+  it('mints a reschedule link for an appointment type event with ?target=appointmentType, never ?target=calendar (no probing)', async () => {
     const user = userEvent.setup();
     vi.mocked(bookingCodesCreate).mockResolvedValueOnce(
       makeMintResponse({ purpose: 'reschedule', event: 42 })
     );
-    const groupSelection = {
+    const appointmentTypeSelection = {
       id: 1,
       slot: { id: 1, name: 'Slot', calendars: [], pools: [] },
       calendar: { id: 1, name: 'Room A' },
       is_in_current_roster: true,
-    } as unknown as CalendarEventGroupSelection;
+    } as unknown as CalendarEventAppointmentTypeSelection;
 
-    renderSheet(makeEventVM(makeRaw({ group_selections: [groupSelection] })));
+    renderSheet(
+      makeEventVM(
+        makeRaw({ appointment_type_selections: [appointmentTypeSelection] })
+      )
+    );
 
     await user.click(
       screen.getByRole('button', { name: /get reschedule link/i })
@@ -303,7 +311,7 @@ describe('EventAttendeesSheet — booking-link actions', () => {
       'booking-link-url-input'
     )) as HTMLInputElement;
     const target = new URL(urlInput.value).searchParams.get('target');
-    expect(target).toBe('group');
+    expect(target).toBe('appointmentType');
     expect(target).not.toBe('calendar');
   });
 

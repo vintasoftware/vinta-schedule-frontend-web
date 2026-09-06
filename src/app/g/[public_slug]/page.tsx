@@ -1,20 +1,20 @@
 import { VINTA_DEFAULT_BRANDING } from '@/lib/branding-shared';
 import { NO_INDEX_METADATA } from '@/lib/booking-links/no-index-metadata';
 import { PublicBookingShell } from '@/components/public-booking/public-booking-shell';
-import { CodelessGroupBookingFlow } from '@/components/public-booking/codeless-group-booking-flow';
+import { CodelessAppointmentTypeBookingFlow } from '@/components/public-booking/codeless-appointment-type-booking-flow';
 
 /**
  * `noindex` — see the plan's Open Questions row "Should the public booking
  * pages be indexable?" (resolved: no, on every `/book/*` **and `/g/*`**
  * route). This route carries no credential in the URL the way a `/book/*`
  * link does, but it is still an unauthenticated write surface for an
- * organization's calendar group and gets the same treatment. Do not remove
+ * organization's appointment type and gets the same treatment. Do not remove
  * this thinking it is dead weight.
  */
 export const metadata = NO_INDEX_METADATA;
 
 /**
- * Bare codeless public group booking route — `/g/[public_slug]`.
+ * Bare codeless public appointment type booking route — `/g/[public_slug]`.
  *
  * Renders default (vinta) branding, same reasoning as the bare
  * `/book/[code]` route: nothing in a bare `public_booking_slug` identifies
@@ -22,15 +22,15 @@ export const metadata = NO_INDEX_METADATA;
  * the branded counterpart.
  *
  * Unlike `/book/[code]`, this route reads no `?target=` or `?duration=`
- * search param at all (there is no code to route on, and the group's own
+ * search param at all (there is no code to route on, and the appointment type's own
  * pinned duration is server-resolved) — so, unlike that route, this needs
  * no `Suspense` boundary for `useSearchParams()`.
  *
- * Sits outside the `(app)` route group so the authenticated shell's
+ * Sits outside the `(app)` route appointment type so the authenticated shell's
  * org/session gating never touches it — this page must be reachable by an
- * anonymous visitor holding nothing but the group's public link.
+ * anonymous visitor holding nothing but the appointment type's public link.
  */
-export default async function CodelessGroupBookingPage({
+export default async function CodelessAppointmentTypeBookingPage({
   params,
 }: {
   params: Promise<{ public_slug: string }>;
@@ -39,7 +39,7 @@ export default async function CodelessGroupBookingPage({
 
   return (
     <PublicBookingShell branding={VINTA_DEFAULT_BRANDING}>
-      <CodelessGroupBookingFlow publicSlug={publicSlug} />
+      <CodelessAppointmentTypeBookingFlow publicSlug={publicSlug} />
     </PublicBookingShell>
   );
 }

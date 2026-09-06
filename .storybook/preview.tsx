@@ -11,13 +11,16 @@ import { DM_Sans, Geist_Mono } from 'next/font/google';
 sb.mock(import('../src/hooks/availability/use-blocked-times.ts'), {
   spy: true,
 });
-// GroupQuotaRules' duplicate-period-error story needs the create mutation to
+// AppointmentTypeQuotaRules' duplicate-period-error story needs the create mutation to
 // reject with a fixed body without any real network layer to fail against
 // (this repo's stories have no interactions addon-driven network mocking) —
 // mocking the whole hook lets that story drive the rejection directly.
-sb.mock(import('../src/hooks/calendar-groups/use-group-scoped-quota.ts'), {
-  spy: true,
-});
+sb.mock(
+  import('../src/hooks/appointment-types/use-appointment-type-scoped-quota.ts'),
+  {
+    spy: true,
+  }
+);
 // MintBookingLinkDialog resolves the active org's slug for the branded URL —
 // mocked so its story gets a deterministic slug instead of a real (failing)
 // `/organizations/current` fetch.
@@ -26,19 +29,19 @@ sb.mock(import('../src/hooks/organizations/use-current-organization.ts'), {
 });
 // PublicBookingFlow's stories drive the read states (loading / loaded /
 // opaque link-invalid / generic load error) directly through this hook's
-// return value, same rationale as `useGroupScopedQuota` above — there is no
+// return value, same rationale as `useAppointmentTypeScopedQuota` above — there is no
 // real `/public/booking/*` backend behind Storybook.
 sb.mock(import('../src/hooks/booking-codes/use-public-bookable-slots.ts'), {
   spy: true,
 });
-// PublicGroupBookingFlow's stories drive the same kind of read states, plus
+// PublicAppointmentTypeBookingFlow's stories drive the same kind of read states, plus
 // the imperative per-range availability fetch — same rationale as above.
 sb.mock(import('../src/hooks/booking-codes/use-public-group-booking.ts'), {
   spy: true,
 });
-// CodelessGroupBookingFlow's stories (unknown-slug / not-public states) drive
+// CodelessAppointmentTypeBookingFlow's stories (unknown-slug / not-public states) drive
 // the same kind of read states through this hook's return value — same
-// rationale as `usePublicGroupBookableSlots` above.
+// rationale as `usePublicAppointmentTypeBookableSlots` above.
 sb.mock(import('../src/hooks/booking-codes/use-codeless-group-booking.ts'), {
   spy: true,
 });

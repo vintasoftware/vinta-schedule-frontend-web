@@ -25,7 +25,7 @@ const greeting = "hello";
       const markdown = `
 \`\`\`graphql
 query {
-  calendarGroupBookableSlots(groupId: 42) {
+  appointmentTypeBookableSlots(appointmentTypeId: 42) {
     startTime
     endTime
   }
@@ -156,13 +156,13 @@ curl -X POST \\
     it('rewrites a concept cross-link when conceptSlugs is passed', async () => {
       const markdown = 'See [Calendar Bundles](calendar-bundles.md) for more.';
       const html = await renderDocMarkdownToSafeHtml(markdown, {
-        conceptSlugs: ['calendar-bundles', 'calendar-groups'],
+        conceptSlugs: ['calendar-bundles', 'appointment-types'],
       });
       expect(html).toContain('href="/docs/concepts/calendar-bundles"');
     });
 
     it('neutralizes a backend source link and still sanitizes/highlights the rest of the doc', async () => {
-      const markdown = `# Calendar Groups
+      const markdown = `# Appointment Types
 
 Source: [calendar_integration/models.py](../../calendar_integration/models.py).
 
@@ -171,7 +171,7 @@ const x = 1;
 \`\`\`
 `;
       const html = await renderDocMarkdownToSafeHtml(markdown, {
-        conceptSlugs: ['calendar-groups'],
+        conceptSlugs: ['appointment-types'],
       });
       expect(html).not.toContain('href="../../calendar_integration/models.py"');
       expect(html).toContain('calendar_integration/models.py');
@@ -188,7 +188,7 @@ const x = 1;
       const markdown =
         '[click me](javascript:alert("XSS")) — a dangerous link should be stripped';
       const html = await renderDocMarkdownToSafeHtml(markdown, {
-        conceptSlugs: ['calendar-groups'],
+        conceptSlugs: ['appointment-types'],
       });
       expect(html).not.toContain('javascript:');
       expect(html).toContain('click me');

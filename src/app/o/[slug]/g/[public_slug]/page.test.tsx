@@ -1,5 +1,5 @@
 /**
- * BrandedCodelessGroupBookingPage is an async Server Component — render the
+ * BrandedCodelessAppointmentTypeBookingPage is an async Server Component — render the
  * awaited element directly, same pattern as the branded
  * `/o/[slug]/book/[code]/page.test.tsx`.
  */
@@ -29,24 +29,27 @@ vi.mock('@/components/public-booking/public-booking-shell', () => ({
   ),
 }));
 
-vi.mock('@/components/public-booking/codeless-group-booking-flow', () => ({
-  CodelessGroupBookingFlow: ({
-    publicSlug,
-    slug,
-  }: {
-    publicSlug: string;
-    slug?: string;
-  }) => (
-    <div data-testid='flow'>
-      <span data-testid='flow-public-slug'>{publicSlug}</span>
-      <span data-testid='flow-slug'>{slug}</span>
-    </div>
-  ),
-}));
+vi.mock(
+  '@/components/public-booking/codeless-appointment-type-booking-flow',
+  () => ({
+    CodelessAppointmentTypeBookingFlow: ({
+      publicSlug,
+      slug,
+    }: {
+      publicSlug: string;
+      slug?: string;
+    }) => (
+      <div data-testid='flow'>
+        <span data-testid='flow-public-slug'>{publicSlug}</span>
+        <span data-testid='flow-slug'>{slug}</span>
+      </div>
+    ),
+  })
+);
 
-import BrandedCodelessGroupBookingPage, { metadata } from './page';
+import BrandedCodelessAppointmentTypeBookingPage, { metadata } from './page';
 
-describe('BrandedCodelessGroupBookingPage (/o/[slug]/g/[public_slug])', () => {
+describe('BrandedCodelessAppointmentTypeBookingPage (/o/[slug]/g/[public_slug])', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -55,7 +58,7 @@ describe('BrandedCodelessGroupBookingPage (/o/[slug]/g/[public_slug])', () => {
     expect(metadata.robots).toMatchObject({ index: false, follow: false });
   });
 
-  it('fetches branding by org slug and passes it to the shell, plus the group public_slug and org slug to the flow', async () => {
+  it('fetches branding by org slug and passes it to the shell, plus the appointment type public_slug and org slug to the flow', async () => {
     const branding: TenantBranding = {
       appName: 'Acme Scheduling',
       logoUrl: 'https://api.example.com/branding/logo/acme/',
@@ -65,7 +68,7 @@ describe('BrandedCodelessGroupBookingPage (/o/[slug]/g/[public_slug])', () => {
     fetchBrandingForSlug.mockResolvedValueOnce(branding);
 
     render(
-      await BrandedCodelessGroupBookingPage({
+      await BrandedCodelessAppointmentTypeBookingPage({
         params: Promise.resolve({
           slug: 'acme',
           public_slug: 'surgery-team',
@@ -87,7 +90,7 @@ describe('BrandedCodelessGroupBookingPage (/o/[slug]/g/[public_slug])', () => {
     fetchBrandingForSlug.mockResolvedValueOnce(VINTA_DEFAULT_BRANDING);
 
     render(
-      await BrandedCodelessGroupBookingPage({
+      await BrandedCodelessAppointmentTypeBookingPage({
         params: Promise.resolve({
           slug: 'no-such-org-xyz',
           public_slug: 'surgery-team',

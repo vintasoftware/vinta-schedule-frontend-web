@@ -5,8 +5,8 @@ import type { Page } from '@playwright/test';
  * `MintBookingLinkDialog` (`@/components/booking-links/mint-booking-link-dialog.tsx`).
  *
  * Not a `BasePage` subclass: it isn't a screen of its own, it's a dialog that
- * mounts inside whichever page opened it (`GroupsPage`'s row action, or
- * `GroupDetailPage`'s "Get scheduling link" button) — both expose a
+ * mounts inside whichever page opened it (`AppointmentTypesPage`'s row action, or
+ * `AppointmentTypeDetailPage`'s "Get scheduling link" button) — both expose a
  * `mintDialog` getter that hands back an instance of this class bound to
  * their own `page`, so the interaction is written once.
  *

@@ -7,7 +7,7 @@
  * the referenced entity id.
  *
  *   'calendar'              → calendar (single, resource, or bundle calendar)
- *   'calendar_group'        → calendar_group
+ *   'appointment_type'        → appointment_type
  *   'membership'            → membership_user_id
  *   'organization_default'  → is_organization_default = true
  */
@@ -16,7 +16,7 @@ import type { BookingPolicy, BookingPolicyWritable } from '@/client';
 
 export type BookingPolicyTargetType =
   | 'calendar'
-  | 'calendar_group'
+  | 'appointment_type'
   | 'membership'
   | 'organization_default';
 
@@ -32,9 +32,10 @@ export const TARGET_TYPE_OPTIONS: {
       'A single calendar — personal, resource, or a bundle calendar (auto-expanded to its children).',
   },
   {
-    value: 'calendar_group',
-    label: 'Calendar group',
-    description: 'A role-based group that pools several calendars into slots.',
+    value: 'appointment_type',
+    label: 'Appointment type',
+    description:
+      'A role-based appointment type that pools several calendars into slots.',
   },
   {
     value: 'membership',
@@ -58,7 +59,7 @@ export function targetTypeNeedsEntity(type: BookingPolicyTargetType): boolean {
 /** Derive the target discriminant from an existing policy record. */
 export function getTargetType(policy: BookingPolicy): BookingPolicyTargetType {
   if (policy.calendar != null) return 'calendar';
-  if (policy.calendar_group != null) return 'calendar_group';
+  if (policy.appointment_type != null) return 'appointment_type';
   if (policy.membership_user_id != null) return 'membership';
   return 'organization_default';
 }
@@ -67,7 +68,7 @@ export function getTargetType(policy: BookingPolicy): BookingPolicyTargetType {
 export function getTargetEntityId(policy: BookingPolicy): number | null {
   return (
     policy.calendar ??
-    policy.calendar_group ??
+    policy.appointment_type ??
     policy.membership_user_id ??
     null
   );
@@ -83,15 +84,15 @@ export function buildTargetFields(
 ): Pick<
   BookingPolicyWritable,
   | 'calendar'
-  | 'calendar_group'
+  | 'appointment_type'
   | 'membership_user_id'
   | 'is_organization_default'
 > {
   switch (type) {
     case 'calendar':
       return { calendar: entityId };
-    case 'calendar_group':
-      return { calendar_group: entityId };
+    case 'appointment_type':
+      return { appointment_type: entityId };
     case 'membership':
       return { membership_user_id: entityId };
     case 'organization_default':

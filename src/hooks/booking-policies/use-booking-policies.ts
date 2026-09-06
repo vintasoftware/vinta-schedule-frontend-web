@@ -10,7 +10,7 @@
  * A BookingPolicy carries the four booking guardrails (lead time, max horizon,
  * buffer-before, buffer-after — all in seconds) and targets exactly one of:
  *   - `calendar`             — a single calendar (personal, resource, or bundle).
- *   - `calendar_group`       — a calendar group.
+ *   - `appointment_type`       — an appointment type.
  *   - `membership_user_id`   — an org member (their owning-membership layer).
  *   - `is_organization_default` — the org-wide fallback (at most one).
  *

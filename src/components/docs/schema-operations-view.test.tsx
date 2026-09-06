@@ -9,8 +9,8 @@ import type { GraphQLSchemaField } from '@/lib/docs/parse-schema';
 import { SchemaOperationsView } from './schema-operations-view';
 
 const withDescription: GraphQLSchemaField = {
-  name: 'calendarGroupBookableSlots',
-  description: 'Lists bookable slots for a calendar group.',
+  name: 'appointmentTypeBookableSlots',
+  description: 'Lists bookable slots for an appointment type.',
   args: [
     {
       name: 'organizationId',
@@ -27,7 +27,7 @@ const withDescription: GraphQLSchemaField = {
 };
 
 const withoutDescription: GraphQLSchemaField = {
-  name: 'calendarGroupEvents',
+  name: 'appointmentTypeEvents',
   description: null,
   args: [],
   type: '[CalendarEvent!]!',
@@ -47,7 +47,7 @@ function renderView(fields: GraphQLSchemaField[]) {
       examples={
         new Map([
           [
-            'calendarGroupBookableSlots',
+            'appointmentTypeBookableSlots',
             '<pre><code class="hljs">query Example</code></pre>',
           ],
         ])
@@ -61,7 +61,9 @@ describe('SchemaOperationsView', () => {
   it('renders the operation name and its arguments', () => {
     renderView([withDescription]);
 
-    expect(screen.getByText('calendarGroupBookableSlots')).toBeInTheDocument();
+    expect(
+      screen.getByText('appointmentTypeBookableSlots')
+    ).toBeInTheDocument();
     expect(screen.getByText('organizationId:')).toBeInTheDocument();
   });
 
@@ -69,7 +71,7 @@ describe('SchemaOperationsView', () => {
     renderView([withDescription]);
 
     expect(
-      screen.getByText('Lists bookable slots for a calendar group.')
+      screen.getByText('Lists bookable slots for an appointment type.')
     ).toBeInTheDocument();
   });
 
@@ -77,7 +79,7 @@ describe('SchemaOperationsView', () => {
     renderView([withoutDescription]);
 
     expect(
-      screen.getByText('Returns calendar group events.')
+      screen.getByText('Returns appointment type events.')
     ).toBeInTheDocument();
   });
 

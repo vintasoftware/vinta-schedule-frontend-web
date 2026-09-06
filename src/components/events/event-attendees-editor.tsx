@@ -542,13 +542,13 @@ export function EventAttendeesSheet({
     }
   };
 
-  // `group_selections` is populated only for a calendar-GROUP event
-  // (CalendarEventGroupSelection rows); a plain single-calendar event's
+  // `appointment_type_selections` is populated only for a calendar-APPOINTMENT_TYPE event
+  // (CalendarEventAppointmentTypeSelection rows); a plain single-calendar event's
   // array is always empty. This is the only scope signal `CalendarEvent`
   // carries — it has no `calendar` field of its own — see the doc comment
-  // on `MintBookingLinkTarget`'s `event` variant for why the group-scoped
-  // case can't also check the group's pinned duration from here.
-  const isGroupEvent = raw.group_selections.length > 0;
+  // on `MintBookingLinkTarget`'s `event` variant for why the appointment-type-scoped
+  // case can't also check the appointment type's pinned duration from here.
+  const isAppointmentTypeEvent = raw.appointment_type_selections.length > 0;
 
   const eventDurationSeconds = Math.max(
     0,
@@ -564,8 +564,8 @@ export function EventAttendeesSheet({
       id: raw.id,
       name: event.title,
       purpose: 'reschedule',
-      eventScope: isGroupEvent
-        ? { kind: 'group' }
+      eventScope: isAppointmentTypeEvent
+        ? { kind: 'appointmentType' }
         : { kind: 'calendar', durationSeconds: eventDurationSeconds },
     });
   };
@@ -713,7 +713,7 @@ export function EventAttendeesSheet({
                 cancel THIS appointment.
 
                 Deliberately ungated, unlike Phase 1's row actions on the
-                calendars and groups tables. This is NOT because visibility
+                calendars and appointment types tables. This is NOT because visibility
                 here already implies eligibility: the events list is not
                 reliably scoped to what the viewer owns.
                 `CalendarEventVM.calendarId` (@/components/calendar/event-vm.ts)
@@ -743,7 +743,7 @@ export function EventAttendeesSheet({
                 that wouldn't produce false
                 negatives for a plain member who legitimately owns this
                 event's calendar — no per-event calendar-owner id is
-                reachable here (see the `isGroupEvent` comment above for why
+                reachable here (see the `isAppointmentTypeEvent` comment above for why
                 `CalendarEvent` carries no `calendar` field of its own).
 
                 What would let this be gated properly: a reliable per-event
@@ -834,7 +834,7 @@ export function EventAttendeesSheet({
       />
 
       {/* Mint reschedule/cancel link dialog — mounted only while a target is
-          set, mirroring calendars-table.tsx / groups-table.tsx's mount
+          set, mirroring calendars-table.tsx / appointment-types-table.tsx's mount
           pattern for the same dialog. */}
       {mintTarget && (
         <MintBookingLinkDialog

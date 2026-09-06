@@ -8,7 +8,7 @@ import { GraphqlExplorer } from './graphql-explorer';
 // `http://localhost:8000` would fail outright and, worse, be blocked as
 // mixed content (http:// loading from an https:// Pages origin), leaving
 // every visitor staring at a permanently broken schema panel. Stubbing
-// `fetch` here (same pattern as create-group-dialog.stories.tsx) keeps the
+// `fetch` here (same pattern as create-appointment-type-dialog.stories.tsx) keeps the
 // introspection request from ever reaching the network while the story
 // still renders the component's own UI — the credential field and
 // clear-token button — around the widget exactly as it would live.

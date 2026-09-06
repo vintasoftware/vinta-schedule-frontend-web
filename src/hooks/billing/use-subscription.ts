@@ -4,7 +4,7 @@
  *
  * Thin wrapper over the generated
  * `billingSubscriptionRetrieveSubscriptionRetrieveOptions` factory (canonical
- * hook pattern — see use-group-scoped-quota.ts). Read-only in Phase 0.
+ * hook pattern — see use-appointment-type-scoped-quota.ts). Read-only in Phase 0.
  *
  * The endpoint answers `404` when the org has no subscription; the generated
  * factory throws on non-2xx (throwOnError:true), so that surfaces here as

@@ -7,8 +7,8 @@
  * - RescheduleFlow: slots render for a calendar-scoped link; selecting one
  *   and confirming calls `publicBookingEventsRescheduleCreate` with times
  *   only and renders the confirmation.
- * - RescheduleFlow: a group-scoped link (`?target=group`) reads via the
- *   group endpoint and reschedules via `publicBookingGroupEventsRescheduleCreate`
+ * - RescheduleFlow: an appointment-type-scoped link (`?target=appointmentType`) reads via the
+ *   appointment type endpoint and reschedules via `publicBookingAppointmentTypeEventsRescheduleCreate`
  *   — the single-calendar endpoints are NEVER called for it (no probing).
  * - RescheduleFlow: an opaque 403 on the slot read renders `link-invalid`.
  * - RescheduleFlow: `SLOT_UNAVAILABLE` on confirm returns to slot selection
@@ -58,18 +58,18 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     publicBookingCalendarBookableSlotsList: vi.fn(),
-    publicBookingCalendarGroupBookableSlotsList: vi.fn(),
+    publicBookingAppointmentTypeBookableSlotsList: vi.fn(),
     publicBookingEventsRescheduleCreate: vi.fn(),
-    publicBookingGroupEventsRescheduleCreate: vi.fn(),
+    publicBookingAppointmentTypeEventsRescheduleCreate: vi.fn(),
     publicBookingEventsCancelCreate: vi.fn(),
   };
 });
 
 import {
   publicBookingCalendarBookableSlotsList,
-  publicBookingCalendarGroupBookableSlotsList,
+  publicBookingAppointmentTypeBookableSlotsList,
   publicBookingEventsRescheduleCreate,
-  publicBookingGroupEventsRescheduleCreate,
+  publicBookingAppointmentTypeEventsRescheduleCreate,
   publicBookingEventsCancelCreate,
 } from '@/client/sdk.gen';
 import type { BookableSlotProposal, CalendarEvent } from '@/client';
@@ -117,7 +117,7 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     external_attendances: [],
     attendances: [],
     resource_allocations: [],
-    group_selections: [],
+    appointment_type_selections: [],
     parent_recurring_object: {
       id: 0,
       title: '',
@@ -209,14 +209,16 @@ describe('RescheduleFlow', () => {
         },
       })
     );
-    expect(publicBookingGroupEventsRescheduleCreate).not.toHaveBeenCalled();
+    expect(
+      publicBookingAppointmentTypeEventsRescheduleCreate
+    ).not.toHaveBeenCalled();
   });
 
-  it('a group-scoped link (?target=group) reads and writes via the GROUP endpoints only — the single-calendar endpoints are never called (no probing)', async () => {
-    currentSearch = new URLSearchParams({ target: 'group' });
+  it('an appointment-type-scoped link (?target=appointmentType) reads and writes via the APPOINTMENT_TYPE endpoints only — the single-calendar endpoints are never called (no probing)', async () => {
+    currentSearch = new URLSearchParams({ target: 'appointmentType' });
     const user = userEvent.setup();
     vi.mocked(
-      publicBookingCalendarGroupBookableSlotsList
+      publicBookingAppointmentTypeBookableSlotsList
     ).mockResolvedValueOnce({
       data: [
         {
@@ -226,19 +228,21 @@ describe('RescheduleFlow', () => {
       ],
       response: new Response('{}', { status: 200 }),
     } as unknown as Awaited<
-      ReturnType<typeof publicBookingCalendarGroupBookableSlotsList>
+      ReturnType<typeof publicBookingAppointmentTypeBookableSlotsList>
     >);
-    vi.mocked(publicBookingGroupEventsRescheduleCreate).mockResolvedValueOnce({
+    vi.mocked(
+      publicBookingAppointmentTypeEventsRescheduleCreate
+    ).mockResolvedValueOnce({
       data: makeEvent({
         start_time: '2026-03-05T09:00:00.000Z',
         end_time: '2026-03-05T09:45:00.000Z',
       }),
       response: new Response('{}', { status: 201 }),
     } as unknown as Awaited<
-      ReturnType<typeof publicBookingGroupEventsRescheduleCreate>
+      ReturnType<typeof publicBookingAppointmentTypeEventsRescheduleCreate>
     >);
 
-    renderReschedule('group-secret');
+    renderReschedule('appointment-type-secret');
 
     await selectFirstSlot(user);
     await user.click(screen.getByTestId('reschedule-confirm'));
@@ -247,8 +251,12 @@ describe('RescheduleFlow', () => {
       expect(screen.getByTestId('booking-confirmation')).toBeInTheDocument()
     );
 
-    expect(publicBookingGroupEventsRescheduleCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ headers: { 'X-Booking-Code': 'group-secret' } })
+    expect(
+      publicBookingAppointmentTypeEventsRescheduleCreate
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: { 'X-Booking-Code': 'appointment-type-secret' },
+      })
     );
     expect(publicBookingCalendarBookableSlotsList).not.toHaveBeenCalled();
     expect(publicBookingEventsRescheduleCreate).not.toHaveBeenCalled();
@@ -435,11 +443,11 @@ describe('RescheduleFlow', () => {
     expect(cancelInput.value).toContain('second-hop-cancel-code');
   });
 
-  it('renders a FRESH pair of links with ?target=group (no duration) for a group-scoped reschedule', async () => {
-    currentSearch = new URLSearchParams({ target: 'group' });
+  it('renders a FRESH pair of links with ?target=appointmentType (no duration) for an appointment-type-scoped reschedule', async () => {
+    currentSearch = new URLSearchParams({ target: 'appointmentType' });
     const user = userEvent.setup();
     vi.mocked(
-      publicBookingCalendarGroupBookableSlotsList
+      publicBookingAppointmentTypeBookableSlotsList
     ).mockResolvedValueOnce({
       data: [
         {
@@ -449,7 +457,7 @@ describe('RescheduleFlow', () => {
       ],
       response: new Response('{}', { status: 200 }),
     } as unknown as Awaited<
-      ReturnType<typeof publicBookingCalendarGroupBookableSlotsList>
+      ReturnType<typeof publicBookingAppointmentTypeBookableSlotsList>
     >);
     const rescheduledEvent = {
       ...makeEvent({
@@ -457,20 +465,22 @@ describe('RescheduleFlow', () => {
         end_time: '2026-03-05T09:45:00.000Z',
       }),
       management: {
-        reschedule_code: 'group-second-hop-reschedule-code',
-        cancel_code: 'group-second-hop-cancel-code',
+        reschedule_code: 'appointment-type-second-hop-reschedule-code',
+        cancel_code: 'appointment-type-second-hop-cancel-code',
       },
     };
-    vi.mocked(publicBookingGroupEventsRescheduleCreate).mockResolvedValueOnce({
+    vi.mocked(
+      publicBookingAppointmentTypeEventsRescheduleCreate
+    ).mockResolvedValueOnce({
       data: rescheduledEvent,
       response: new Response(JSON.stringify(rescheduledEvent), {
         status: 201,
       }),
     } as unknown as Awaited<
-      ReturnType<typeof publicBookingGroupEventsRescheduleCreate>
+      ReturnType<typeof publicBookingAppointmentTypeEventsRescheduleCreate>
     >);
 
-    renderReschedule('group-secret');
+    renderReschedule('appointment-type-secret');
 
     await selectFirstSlot(user);
     await user.click(screen.getByTestId('reschedule-confirm'));
@@ -478,8 +488,10 @@ describe('RescheduleFlow', () => {
     const rescheduleInput = (await screen.findByTestId(
       'reschedule-link-input'
     )) as HTMLInputElement;
-    expect(rescheduleInput.value).toContain('group-second-hop-reschedule-code');
-    expect(rescheduleInput.value).toContain('target=group');
+    expect(rescheduleInput.value).toContain(
+      'appointment-type-second-hop-reschedule-code'
+    );
+    expect(rescheduleInput.value).toContain('target=appointmentType');
     expect(rescheduleInput.value).not.toContain('duration=');
   });
 

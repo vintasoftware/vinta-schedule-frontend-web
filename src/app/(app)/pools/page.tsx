@@ -41,7 +41,7 @@ export default function PoolsPage() {
     <Stack gap={6}>
       <PageHeader
         title='Calendar pools'
-        description='Reusable rosters of calendars. Attach a pool to the slots of any calendar group, and one roster edit reaches every group using it.'
+        description='Reusable rosters of calendars. Attach a pool to the slots of any appointment type, and one roster edit reaches every appointment type using it.'
       />
       <DataTableQueryBoundary>
         <PoolsTable toolbarActions={toolbarActions} />

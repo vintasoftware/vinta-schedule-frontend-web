@@ -80,7 +80,9 @@ describe('fetch-concepts', () => {
   });
 
   it('falls back to the snapshot when a doc response has a mismatched slug', async () => {
-    const manifest = [{ slug: 'calendar-groups', title: 'Calendar Groups' }];
+    const manifest = [
+      { slug: 'appointment-types', title: 'Appointment Types' },
+    ];
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (String(url).endsWith('/public-api-docs/')) {
         return Promise.resolve(jsonResponse(manifest));
@@ -100,16 +102,18 @@ describe('fetch-concepts', () => {
 
     expect(result.source).toBe('snapshot');
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('had slug "events", expected "calendar-groups"')
+      expect.stringContaining('had slug "events", expected "appointment-types"')
     );
   });
 
   it('uses the live docs when every fetch succeeds', async () => {
-    const manifest = [{ slug: 'calendar-groups', title: 'Calendar Groups' }];
+    const manifest = [
+      { slug: 'appointment-types', title: 'Appointment Types' },
+    ];
     const doc = {
-      slug: 'calendar-groups',
-      title: 'Calendar Groups',
-      markdown: '# Calendar Groups',
+      slug: 'appointment-types',
+      title: 'Appointment Types',
+      markdown: '# Appointment Types',
     };
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (String(url).endsWith('/public-api-docs/')) {
@@ -165,9 +169,9 @@ describe('fetch-concepts', () => {
     ).toBe(true);
     // Sanity-check against the real backend manifest documented in the phase.
     expect(docs.map((doc) => doc.slug).sort()).toEqual([
+      'appointment-types',
       'availability',
       'calendar-bundles',
-      'calendar-groups',
       'calendars',
       'events',
       'recurrence',

@@ -3,7 +3,7 @@
 //
 // Framework-free (no 'use client', no React) so it stays importable from a
 // Server Component and from pure predicate modules like
-// `components/calendar-groups/group-permissions.ts`. The React context and
+// `components/appointment-types/appointment-type-permissions.ts`. The React context and
 // gating hooks that consume these live in
 // `components/navigation/permission-gate.tsx`, which re-exports everything
 // here so existing call sites keep a single import.

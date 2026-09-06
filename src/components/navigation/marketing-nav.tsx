@@ -20,8 +20,8 @@ export function MarketingNav() {
       link: '/product',
     },
     {
-      label: 'Calendar Groups',
-      link: '/product/calendar-groups',
+      label: 'Appointment Types',
+      link: '/product/appointment-types',
     },
     {
       label: 'Developers',

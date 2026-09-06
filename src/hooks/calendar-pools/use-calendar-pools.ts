@@ -2,11 +2,11 @@
  * Calendar pool data hooks.
  *
  * A CalendarPool is a named, reusable roster of calendars ("Nurses", "Consult
- * Rooms") that can be attached to the slots of any number of calendar groups,
+ * Rooms") that can be attached to the slots of any number of appointment types,
  * so one roster edit propagates everywhere it is used. Wraps the generated
  * TanStack Query operations for /calendar-pools/:
  *   - useCalendarPools — paginated list (name search), for the admin table.
- *   - useAllCalendarPools — one large page, for the group form's pool picker.
+ *   - useAllCalendarPools — one large page, for the appointment type form's pool picker.
  *   - useCreateCalendarPool / useUpdateCalendarPool — writes.
  *   - useDeleteCalendarPool — delete, refused with 409 while attached.
  *
@@ -40,8 +40,9 @@ export const CALENDAR_POOLS_QUERY_KEY = calendarPoolsListQueryKey();
 
 /**
  * One page big enough to hold every pool an organization realistically has, so
- * the group form's pool picker can offer all of them without paging. Mirrors
- * the 200-calendar page the group form already fetches for its calendar picker.
+ * the appointment type form's pool picker can offer all of them without paging.
+ * Mirrors the 200-calendar page the appointment type form already fetches for its
+ * calendar picker.
  */
 export const ALL_POOLS_PAGE_SIZE = 200;
 
@@ -59,16 +60,17 @@ function invalidateCalendarPools(
 }
 
 // A pool's roster is projected into the slots it is attached to, so a roster
-// edit changes what those groups offer. Bust the group queries too, or a group
-// page open in another tab keeps showing the pre-edit roster.
-function invalidateCalendarGroups(
+// edit changes what those appointment types offer. Bust the appointment type
+// queries too, or an appointment type page open in another tab keeps showing
+// the pre-edit roster.
+function invalidateAppointmentTypes(
   queryClient: ReturnType<typeof useQueryClient>
 ) {
   return queryClient.invalidateQueries({
     predicate: (q) =>
       Array.isArray(q.queryKey) &&
-      ((q.queryKey[0] as { _id?: string })?._id === 'calendarGroupsList' ||
-        q.queryKey[0] === 'calendar-groups'),
+      ((q.queryKey[0] as { _id?: string })?._id === 'appointmentTypesList' ||
+        q.queryKey[0] === 'appointment-types'),
   });
 }
 
@@ -162,7 +164,7 @@ export function useUpdateCalendarPool() {
   const updatePoolMutation = useMutation({
     ...calendarPoolsPartialUpdateMutation(),
     onSuccess: () => {
-      void invalidateCalendarGroups(queryClient);
+      void invalidateAppointmentTypes(queryClient);
       return invalidateCalendarPools(queryClient);
     },
   });
@@ -179,10 +181,10 @@ export function useUpdateCalendarPool() {
 /**
  * useDeleteCalendarPool — delete a pool.
  *
- * Refused with a 409 while the pool is attached to any group slot; the
- * rejection names the referencing groups. Read it with `readPoolInUseError`
+ * Refused with a 409 while the pool is attached to any appointment type slot;
+ * the rejection names the referencing appointment types. Read it with `readPoolInUseError`
  * rather than the generic message helper, which would show only the `detail`
- * string and drop the group names.
+ * string and drop the appointment type names.
  */
 export function useDeleteCalendarPool() {
   const queryClient = useQueryClient();
@@ -199,11 +201,11 @@ export function useDeleteCalendarPool() {
   return { deleteCalendarPool, deletePoolMutation };
 }
 
-/** The 409 body returned when a pool is still attached to a group slot. */
+/** The 409 body returned when a pool is still attached to an appointment type slot. */
 export interface PoolInUseErrorBody {
   detail: string;
-  /** Names of the calendar groups whose slots still reference the pool. */
-  groups: string[];
+  /** Names of the appointment types whose slots still reference the pool. */
+  appointment_types: string[];
 }
 
 /**
@@ -211,19 +213,24 @@ export interface PoolInUseErrorBody {
  *
  * The generated client throws the parsed response body with no status attached
  * (see `api-errors.ts`), so this discriminates on shape: a `detail` string plus
- * a `groups` array of names.
+ * an `appointment_types` array of names.
  */
 export function readPoolInUseError(error: unknown): PoolInUseErrorBody | null {
   if (error === null || typeof error !== 'object') {
     return null;
   }
   const body = error as Record<string, unknown>;
-  if (typeof body.detail !== 'string' || !Array.isArray(body.groups)) {
+  if (
+    typeof body.detail !== 'string' ||
+    !Array.isArray(body.appointment_types)
+  ) {
     return null;
   }
-  const groups = body.groups.filter((g): g is string => typeof g === 'string');
-  if (groups.length !== body.groups.length) {
+  const appointmentTypes = body.appointment_types.filter(
+    (name): name is string => typeof name === 'string'
+  );
+  if (appointmentTypes.length !== body.appointment_types.length) {
     return null;
   }
-  return { detail: body.detail, groups };
+  return { detail: body.detail, appointment_types: appointmentTypes };
 }

@@ -49,7 +49,7 @@ const RAW_EVENTS: CalendarEvent[] = [
     external_attendances: [],
     attendances: [],
     resource_allocations: [],
-    group_selections: [],
+    appointment_type_selections: [],
     parent_recurring_object: STUB_PARENT,
     is_recurring: false,
     is_recurring_instance: false,
@@ -67,7 +67,7 @@ const RAW_EVENTS: CalendarEvent[] = [
     external_attendances: [],
     attendances: [],
     resource_allocations: [],
-    group_selections: [],
+    appointment_type_selections: [],
     parent_recurring_object: STUB_PARENT,
     is_recurring: false,
     is_recurring_instance: false,
@@ -85,7 +85,7 @@ const RAW_EVENTS: CalendarEvent[] = [
     external_attendances: [],
     attendances: [],
     resource_allocations: [],
-    group_selections: [],
+    appointment_type_selections: [],
     parent_recurring_object: STUB_PARENT,
     is_recurring: true,
     is_recurring_instance: false,
@@ -102,7 +102,7 @@ const RAW_EVENTS: CalendarEvent[] = [
     external_attendances: [],
     attendances: [],
     resource_allocations: [],
-    group_selections: [],
+    appointment_type_selections: [],
     parent_recurring_object: STUB_PARENT,
     is_recurring: false,
     is_recurring_instance: false,
@@ -270,7 +270,7 @@ export const ListView: Story = {
 
 /**
  * Custom renderer hook point — demonstrates how Phase 18 will inject
- * group-booking / availability overlays without forking CalendarView.
+ * appointment-type-booking / availability overlays without forking CalendarView.
  */
 export const CustomEventRenderer: Story = {
   render: () => <CalendarWithCustomRenderer />,

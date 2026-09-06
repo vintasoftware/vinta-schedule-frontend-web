@@ -32,7 +32,7 @@ function makeResult(
     code: 'plaintext-code-once-only',
     purpose: 'book',
     calendar: 5,
-    calendar_group: null,
+    appointment_type: null,
     event: null,
     expires_at: null,
     ...overrides,

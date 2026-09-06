@@ -75,7 +75,7 @@ export const DOCS_NAV: DocsNavSection[] = [
     slug: 'concepts',
     href: '/docs/concepts',
     description:
-      'How Calendar Groups, Events, Availability, and Bundles fit together.',
+      'How Appointment Types, Events, Availability, and Bundles fit together.',
     // Generated from the committed concept-docs manifest snapshot (`{ slug,
     // title }` only — no markdown), refreshed by
     // `pnpm run docs:refresh-concepts-snapshot`. Deliberately not the full

@@ -6,12 +6,12 @@ import { SchemaReferenceIndex } from './schema-reference-index';
 const model: GraphQLSchemaModel = {
   queries: [
     {
-      name: 'calendarGroupBookableSlots',
-      description: 'Lists bookable slots for a calendar group.',
+      name: 'appointmentTypeBookableSlots',
+      description: 'Lists bookable slots for an appointment type.',
       args: [
         {
-          name: 'calendarGroupId',
-          description: 'The calendar group to check.',
+          name: 'appointmentTypeId',
+          description: 'The appointment type to check.',
           type: 'ID!',
           typeName: 'ID',
           defaultValue: null,
@@ -25,14 +25,15 @@ const model: GraphQLSchemaModel = {
   ],
   mutations: [
     {
-      name: 'createCalendarGroupEvent',
-      description: 'Creates an event across every calendar in a group.',
+      name: 'createAppointmentTypeEvent',
+      description:
+        'Creates an event across every calendar in an appointment type.',
       args: [
         {
           name: 'input',
           description: 'The event to create.',
-          type: 'CreateCalendarGroupEventInput!',
-          typeName: 'CreateCalendarGroupEventInput',
+          type: 'CreateAppointmentTypeEventInput!',
+          typeName: 'CreateAppointmentTypeEventInput',
           defaultValue: null,
         },
       ],
@@ -54,9 +55,9 @@ const model: GraphQLSchemaModel = {
     },
     {
       kind: 'INPUT_OBJECT',
-      name: 'CreateCalendarGroupEventInput',
-      slug: 'CreateCalendarGroupEventInput',
-      description: 'Input for creating a calendar-group event.',
+      name: 'CreateAppointmentTypeEventInput',
+      slug: 'CreateAppointmentTypeEventInput',
+      description: 'Input for creating an appointment-type event.',
       fields: [],
       inputFields: [],
       enumValues: [],

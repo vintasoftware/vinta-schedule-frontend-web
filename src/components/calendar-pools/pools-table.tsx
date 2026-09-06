@@ -3,10 +3,10 @@
 /**
  * PoolsTable — the organization's calendar pools, with edit and delete actions.
  *
- * Delete is refused with a 409 while the pool is still attached to a group
- * slot. That rejection names the groups holding it, and the confirmation dialog
+ * Delete is refused with a 409 while the pool is still attached to an appointment type
+ * slot. That rejection names the appointment types holding it, and the confirmation dialog
  * keeps them on screen rather than toasting them away, because detaching the
- * pool from those groups is the exact next step the user has to take.
+ * pool from those appointment types is the exact next step the user has to take.
  *
  * Must be rendered inside a DataTableQueryBoundary (the page provides it)
  * because it calls useDataTableQuery → useSearchParams.
@@ -178,7 +178,7 @@ function PoolsTableEmpty() {
     <VStack align='center' gap={2} py={4}>
       <Text color='muted-foreground' size='sm'>
         No calendar pools yet. Create one to share a roster across the slots of
-        several calendar groups.
+        several appointment types.
       </Text>
     </VStack>
   );
@@ -200,12 +200,11 @@ export function PoolsTable({ toolbarActions }: PoolsTableProps) {
   const [editing, setEditing] = React.useState<CalendarPool | null>(null);
   const [confirmingDelete, setConfirmingDelete] =
     React.useState<CalendarPool | null>(null);
-  // Set once the API refuses the delete, and holds the groups still attached to
+  // Set once the API refuses the delete, and holds the appointment types still attached to
   // the pool. Kept on screen inside the dialog rather than toasted, because
-  // detaching the pool from those groups is the user's next step.
-  const [blockingGroups, setBlockingGroups] = React.useState<string[] | null>(
-    null
-  );
+  // detaching the pool from those appointment types is the user's next step.
+  const [blockingAppointmentTypes, setBlockingAppointmentTypes] =
+    React.useState<string[] | null>(null);
   const { query, setPage, setSearch } = useDataTableQuery();
 
   const handleQueryChange = React.useCallback(
@@ -222,7 +221,7 @@ export function PoolsTable({ toolbarActions }: PoolsTableProps) {
   const { deleteCalendarPool } = useDeleteCalendarPool();
 
   const handleRequestDelete = React.useCallback((pool: CalendarPool) => {
-    setBlockingGroups(null);
+    setBlockingAppointmentTypes(null);
     setConfirmingDelete(pool);
   }, []);
 
@@ -238,7 +237,7 @@ export function PoolsTable({ toolbarActions }: PoolsTableProps) {
     } catch (err) {
       const inUse = readPoolInUseError(err);
       if (inUse) {
-        setBlockingGroups(inUse.groups);
+        setBlockingAppointmentTypes(inUse.appointment_types);
       } else {
         handleMutationError(err, { title: 'Failed to delete calendar pool' });
         setConfirmingDelete(null);
@@ -291,7 +290,7 @@ export function PoolsTable({ toolbarActions }: PoolsTableProps) {
         onOpenChange={(open) => {
           if (!open) {
             setConfirmingDelete(null);
-            setBlockingGroups(null);
+            setBlockingAppointmentTypes(null);
           }
         }}
       >
@@ -300,19 +299,22 @@ export function PoolsTable({ toolbarActions }: PoolsTableProps) {
             <AlertDialogTitle>Delete calendar pool</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete{' '}
-              <Text weight='medium'>{confirmingDelete?.name}</Text>? Groups
-              using it must have it detached first.
+              <Text weight='medium'>{confirmingDelete?.name}</Text>? Appointment
+              types using it must have it detached first.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          {blockingGroups !== null ? (
+          {blockingAppointmentTypes !== null ? (
             <VStack gap={1} data-testid='pool-delete-blocked'>
               <Text size='sm' color='destructive' weight='medium'>
                 Still attached to{' '}
-                {blockingGroups.length === 1 ? 'a group' : 'groups'}
+                {blockingAppointmentTypes.length === 1
+                  ? 'an appointment type'
+                  : 'appointment types'}
               </Text>
               <Text size='sm' color='muted-foreground'>
-                Detach it from {blockingGroups.join(', ')} before deleting.
+                Detach it from {blockingAppointmentTypes.join(', ')} before
+                deleting.
               </Text>
             </VStack>
           ) : null}
@@ -321,13 +323,13 @@ export function PoolsTable({ toolbarActions }: PoolsTableProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             {/* A plain Button, not AlertDialogAction: Radix's action always
                 closes the dialog, and a refused delete has to keep it open to
-                show which groups are still holding the pool. */}
+                show which appointment types are still holding the pool. */}
             <Button
               onClick={handleConfirmDelete}
               disabled={
                 (confirmingDelete !== null &&
                   pendingRowIds.has(confirmingDelete.id)) ||
-                blockingGroups !== null
+                blockingAppointmentTypes !== null
               }
               variant='destructive'
             >

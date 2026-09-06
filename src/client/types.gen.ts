@@ -38,6 +38,299 @@ export type AddOnPurchaseRequest = {
     payment_token?: string;
 };
 
+export type AppointmentType = {
+    readonly id: number;
+    name: string;
+    description?: string;
+    duration?: string;
+    accepts_public_scheduling?: boolean;
+    slots: Array<AppointmentTypeSlot>;
+    /**
+     * Opaque, unguessable identifier used to address this appointment type on the unauthenticated codeless booking route, instead of the integer primary key. Uniqueness is GLOBAL (not scoped to organization) because that route carries no organization in its path -- the slug alone must identify exactly one appointment type system-wide. Authorizes nothing by itself: accepts_public_scheduling still gates codeless booking, and an appointment type later flipped to public already has its identifier.
+     */
+    readonly public_booking_slug: string;
+    readonly created: string;
+    readonly modified: string;
+};
+
+/**
+ * Input for the availability action: list of [start, end] windows.
+ */
+export type AppointmentTypeAvailabilityQuery = {
+    ranges: Array<RangeInput>;
+};
+
+/**
+ * Input for booking an event through an AppointmentType.
+ *
+ * On `save()` this delegates to `AppointmentTypeService.create_appointment_type_event`
+ * and returns the created `CalendarEvent`. The view is responsible for
+ * serializing the result (typically with `CalendarEventSerializer`).
+ */
+export type AppointmentTypeEventCreate = {
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    timezone: string;
+    slot_selections: Array<AppointmentTypeSlotSelectionInput>;
+    attendances?: Array<{
+        [key: string]: unknown;
+    }>;
+    external_attendances?: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type AppointmentTypeRangeAvailability = {
+    start_time: string;
+    end_time: string;
+    slots: Array<AppointmentTypeSlotAvailability>;
+};
+
+/**
+ * Minimal identification of a booking a narrowing write orphaned (spec UC-6)
+ * -- enough for an admin to act on. Nothing about the booking itself is
+ * modified by the write that produced this entry.
+ */
+export type AppointmentTypeScopedAvailabilityOrphanedBooking = {
+    readonly id: number;
+    readonly calendar_id: number;
+    readonly title: string;
+    readonly start_time: string;
+    readonly end_time: string;
+};
+
+/**
+ * Read representation of an appointment-type-scoped availability window.
+ *
+ * Deliberately narrower than ``AvailableTimeSerializer``: there is no nested
+ * ``recurrence_rule`` write path here, only ``rrule_string`` -- matching
+ * exactly what ``AppointmentTypeService``'s window-write methods accept, so the
+ * REST shape and the service signature cannot drift apart.
+ */
+export type AppointmentTypeScopedAvailabilityWindow = {
+    readonly id: number;
+    readonly calendar_id: number;
+    readonly appointment_type_slot_id: number;
+    readonly start_time: string;
+    readonly end_time: string;
+    readonly timezone: string;
+    /**
+     * RRULE string for the window's recurrence, or ``None`` when it doesn't recur.
+     */
+    readonly rrule_string: string | null;
+    readonly is_recurring: boolean;
+    readonly created: string;
+    readonly modified: string;
+};
+
+/**
+ * Input for creating an appointment-type-scoped availability window.
+ *
+ * Field names map 1:1 onto
+ * ``AppointmentTypeService.create_appointment_type_scoped_availability_window``'s keyword
+ * arguments (``calendar_id``, ``start_time``, ``end_time``, ``tz``,
+ * ``rrule_string``) so the REST shape can never silently drift from the
+ * service signature it delegates to.
+ */
+export type AppointmentTypeScopedAvailabilityWindowCreate = {
+    /**
+     * Calendar this window applies to. Must be a member of the target slot.
+     */
+    calendar: number;
+    start_time: string;
+    end_time: string;
+    timezone: string;
+    /**
+     * RRULE string for a recurring window. Omit for a one-off window.
+     */
+    rrule_string?: string | null;
+};
+
+/**
+ * Wraps an ``AppointmentTypeScopedAvailabilityWriteResult``: the saved window plus any
+ * confirmed future bookings the write orphaned. Returned by the create and
+ * update actions of ``AppointmentTypeScopedAvailabilityWindowViewSet``.
+ */
+export type AppointmentTypeScopedAvailabilityWriteResult = {
+    window: AppointmentTypeScopedAvailabilityWindow;
+    /**
+     * Confirmed future bookings in this slot for this window's calendar that no longer fall inside the calendar's appointment-type-scoped availability after this write. Nothing about them is modified or cancelled -- act on them manually if needed.
+     */
+    readonly orphaned_bookings: Array<AppointmentTypeScopedAvailabilityOrphanedBooking>;
+};
+
+/**
+ * Minimal identification of a booking a block write orphaned (spec
+ * UC-6's rule applied to blocks) -- enough for an admin to act on. Nothing
+ * about the booking itself is modified by the write that produced this
+ * entry.
+ */
+export type AppointmentTypeScopedBlockOrphanedBooking = {
+    readonly id: number;
+    readonly calendar_id: number;
+    readonly title: string;
+    readonly start_time: string;
+    readonly end_time: string;
+};
+
+/**
+ * Wraps an ``AppointmentTypeScopedBlockWriteResult``: the saved block plus any
+ * confirmed future bookings the write orphaned. Returned by the create and
+ * update actions of ``AppointmentTypeScopedBlockedTimeViewSet``.
+ */
+export type AppointmentTypeScopedBlockWriteResult = {
+    block: AppointmentTypeScopedBlockedTime;
+    /**
+     * Confirmed future bookings in this slot for this block's calendar that now fall inside the calendar's appointment-type-scoped blocked time after this write. Nothing about them is modified or cancelled -- act on them manually if needed.
+     */
+    readonly orphaned_bookings: Array<AppointmentTypeScopedBlockOrphanedBooking>;
+};
+
+/**
+ * Read representation of an appointment-type-scoped blocked time.
+ *
+ * Mirrors ``AppointmentTypeScopedAvailabilityWindowSerializer`` exactly, plus
+ * ``reason`` -- there is no nested ``recurrence_rule`` write path here,
+ * only ``rrule_string``, matching exactly what ``AppointmentTypeService``'s
+ * block-write methods accept, so the REST shape and the service signature
+ * cannot drift apart.
+ */
+export type AppointmentTypeScopedBlockedTime = {
+    readonly id: number;
+    readonly calendar_id: number;
+    readonly appointment_type_slot_id: number;
+    readonly start_time: string;
+    readonly end_time: string;
+    readonly timezone: string;
+    readonly reason: string;
+    /**
+     * RRULE string for the block's recurrence, or ``None`` when it doesn't recur.
+     */
+    readonly rrule_string: string | null;
+    readonly is_recurring: boolean;
+    readonly created: string;
+    readonly modified: string;
+};
+
+/**
+ * Input for creating an appointment-type-scoped blocked time.
+ *
+ * Field names map 1:1 onto
+ * ``AppointmentTypeService.create_appointment_type_scoped_blocked_time``'s keyword
+ * arguments (``calendar_id``, ``start_time``, ``end_time``, ``tz``,
+ * ``reason``, ``rrule_string``) so the REST shape can never silently drift
+ * from the service signature it delegates to.
+ */
+export type AppointmentTypeScopedBlockedTimeCreate = {
+    /**
+     * Calendar this block applies to. Must be a member of the target slot.
+     */
+    calendar: number;
+    start_time: string;
+    end_time: string;
+    timezone: string;
+    reason?: string;
+    /**
+     * RRULE string for a recurring block. Omit for a one-off block.
+     */
+    rrule_string?: string | null;
+};
+
+/**
+ * Read representation of an appointment-type-scoped quota rule.
+ *
+ * Simpler than ``AppointmentTypeScopedAvailabilityWindowSerializer``/
+ * ``AppointmentTypeScopedBlockedTimeSerializer``: quota rules are non-recurring (no
+ * ``rrule_string``, no ``timezone``, no time range) -- just the period and
+ * the cap, matching exactly what ``AppointmentTypeService``'s quota-write
+ * methods accept, so the REST shape and the service signature cannot drift
+ * apart.
+ */
+export type AppointmentTypeScopedQuotaRule = {
+    readonly id: number;
+    readonly calendar_id: number;
+    readonly appointment_type_slot_id: number;
+    /**
+     * Fixed calendar period the cap applies to (day, week, or month).
+     *
+     * * `day` - Day
+     * * `week` - Week
+     * * `month` - Month
+     */
+    period: PeriodEnum;
+    /**
+     * Maximum number of live bookings made through this appointment type slot a calendar may hold within one period. Must be at least 1.
+     */
+    readonly cap: number;
+    readonly created: string;
+    readonly modified: string;
+};
+
+/**
+ * Input for creating an appointment-type-scoped quota rule.
+ *
+ * Field names map 1:1 onto
+ * ``AppointmentTypeService.create_appointment_type_scoped_quota_rule``'s keyword
+ * arguments (``calendar_id``, ``period``, ``cap``) so the REST shape can
+ * never silently drift from the service signature it delegates to.
+ */
+export type AppointmentTypeScopedQuotaRuleCreate = {
+    /**
+     * Calendar this quota rule applies to. Must be a member of the target slot.
+     */
+    calendar: number;
+    /**
+     * Fixed calendar period the cap applies to (day, week, or month).
+     *
+     * * `day` - Day
+     * * `week` - Week
+     * * `month` - Month
+     */
+    period: PeriodEnum;
+    /**
+     * Maximum number of live bookings made through this appointment type slot the calendar may hold within one period.
+     */
+    cap: number;
+};
+
+/**
+ * Nested slot representation used inside AppointmentTypeSerializer.
+ *
+ * On write, accepts `calendar_ids: list[int]`; on read exposes the calendar
+ * pool via `calendars` (the M2M). We deliberately keep slot writes to
+ * payload-time data only — persistence happens through
+ * `AppointmentTypeSerializer` which delegates to `AppointmentTypeService`.
+ *
+ * `pool_ids` (write-only) attaches/detaches `CalendarPool`s -- **omitting**
+ * it leaves the slot's current attachments unchanged; an explicit `[]`
+ * detaches every pool. This mirrors `AppointmentTypeSlotInputData.pool_ids`
+ * exactly, and the distinction is resolved in
+ * `AppointmentTypeSerializer._to_input_data` by checking key presence in the
+ * validated per-slot dict, not by inspecting the value. `pools` (read-only)
+ * exposes the attached pools themselves.
+ */
+export type AppointmentTypeSlot = {
+    readonly id: number;
+    name: string;
+    description?: string;
+    order?: number;
+    /**
+     * How many calendars from the pool must be selected when booking. Default 1; use larger values when a slot needs multiple calendars (e.g. two nurses).
+     */
+    required_count?: number;
+    readonly calendars: Array<Calendar>;
+    readonly pools: Array<CalendarPool>;
+};
+
+export type AppointmentTypeSlotAvailability = {
+    slot_id: number;
+    available_calendar_ids: Array<number>;
+    required_count: number;
+    readonly is_bookable: boolean;
+};
+
 /**
  * Request serializer for ``POST /organization-members/{user_id}/groups/``.
  *
@@ -77,7 +370,7 @@ export type AssignMembershipGroups = {
  * * `availability_windows` - Availability Windows
  * * `unavailable_windows` - Unavailable Windows
  * * `organization` - Organization
- * * `calendar_group` - Calendar Group
+ * * `appointment_type` - Appointment Type
  * * `calendar_pool` - Calendar Pool
  * * `system_user` - System User
  * * `membership` - Membership
@@ -106,14 +399,14 @@ export type AssignMembershipGroups = {
  * * `external_event_change_request` - External Event Change Request
  * * `booking_policy` - Booking Policy
  * * `bookable_slots` - Bookable Slots
- * * `group_scoped_availability_windows` - Group-Scoped Availability Windows
- * * `batch_upsert_group_scoped_availability_windows` - Batch Upsert Group-Scoped Availability Windows
- * * `group_scoped_blocked_times` - Group-Scoped Blocked Times
- * * `batch_upsert_group_scoped_blocked_times` - Batch Upsert Group-Scoped Blocked Times
- * * `group_scoped_quota_rules` - Group-Scoped Quota Rules
- * * `batch_upsert_group_scoped_quota_rules` - Batch Upsert Group-Scoped Quota Rules
+ * * `appointment_type_scoped_availability_windows` - Appointment-Type-Scoped Availability Windows
+ * * `batch_upsert_appointment_type_scoped_availability_windows` - Batch Upsert Appointment-Type-Scoped Availability Windows
+ * * `appointment_type_scoped_blocked_times` - Appointment-Type-Scoped Blocked Times
+ * * `batch_upsert_appointment_type_scoped_blocked_times` - Batch Upsert Appointment-Type-Scoped Blocked Times
+ * * `appointment_type_scoped_quota_rules` - Appointment-Type-Scoped Quota Rules
+ * * `batch_upsert_appointment_type_scoped_quota_rules` - Batch Upsert Appointment-Type-Scoped Quota Rules
  */
-export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'calendar_group' | 'calendar_pool' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics' | 'calendar_booking_code' | 'create_resource_calendar' | 'disable_resource_calendar' | 'update_resource_calendar' | 'import_resource_calendars' | 'create_availability_window' | 'update_availability_window' | 'delete_availability_window' | 'batch_update_availability_windows' | 'create_blocked_time' | 'update_blocked_time' | 'delete_blocked_time' | 'calendar_bundle' | 'create_calendar' | 'update_calendar' | 'create_calendar_bundle' | 'update_calendar_bundle' | 'disable_calendar_bundle' | 'webhook_configuration' | 'external_event_change_request' | 'booking_policy' | 'bookable_slots' | 'group_scoped_availability_windows' | 'batch_upsert_group_scoped_availability_windows' | 'group_scoped_blocked_times' | 'batch_upsert_group_scoped_blocked_times' | 'group_scoped_quota_rules' | 'batch_upsert_group_scoped_quota_rules';
+export type AvailableResourcesEnum = 'calendar_event' | 'calendar' | 'recurrence_rule' | 'external_attendee' | 'external_attendance' | 'attendance' | 'user' | 'resource_allocation' | 'event_recurring_exception' | 'blocked_time' | 'blocked_time_recurring_exception' | 'available_time' | 'available_time_recurring_exception' | 'availability_windows' | 'unavailable_windows' | 'organization' | 'appointment_type' | 'calendar_pool' | 'system_user' | 'membership' | 'invitation' | 'branding' | 'child_org_analytics' | 'calendar_booking_code' | 'create_resource_calendar' | 'disable_resource_calendar' | 'update_resource_calendar' | 'import_resource_calendars' | 'create_availability_window' | 'update_availability_window' | 'delete_availability_window' | 'batch_update_availability_windows' | 'create_blocked_time' | 'update_blocked_time' | 'delete_blocked_time' | 'calendar_bundle' | 'create_calendar' | 'update_calendar' | 'create_calendar_bundle' | 'update_calendar_bundle' | 'disable_calendar_bundle' | 'webhook_configuration' | 'external_event_change_request' | 'booking_policy' | 'bookable_slots' | 'appointment_type_scoped_availability_windows' | 'batch_upsert_appointment_type_scoped_availability_windows' | 'appointment_type_scoped_blocked_times' | 'batch_upsert_appointment_type_scoped_blocked_times' | 'appointment_type_scoped_quota_rules' | 'batch_upsert_appointment_type_scoped_quota_rules';
 
 /**
  * Serializer for AvailableTime model with recurring support.
@@ -564,10 +857,35 @@ export type BookableSlotProposal = {
 };
 
 /**
+ * Input for ``POST /public/booking/appointment-types/<public_slug>/events/``.
+ *
+ * Mirrors ``CreateAppointmentTypeEventWithCodeInput`` (GraphQL) minus its ``code`` field --
+ * the booking code travels as the ``X-Booking-Code`` header instead (see
+ * ``calendar_integration.booking_auth``). The appointment type is never accepted here: on
+ * the coded branch it comes strictly from the resolved token's
+ * ``appointment_type``, never from client input or the path (Phase 3b: the path
+ * carries only ``AppointmentType.public_booking_slug``, an opaque identifier, and
+ * even that is only a routing convenience -- see
+ * ``BookingCodeAppointmentTypeEventViewSet.create``). Reuses
+ * ``_AppointmentTypeSlotSelectionInputSerializer``, the same slot-selection shape
+ * ``AppointmentTypeEventCreateSerializer`` already uses for the authenticated
+ * appointment-type-booking endpoint.
+ */
+export type BookingCodeAppointmentTypeEventCreate = {
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    timezone: string;
+    slot_selections: Array<AppointmentTypeSlotSelectionInput>;
+    external_attendee: BookingCodeExternalAttendee;
+};
+
+/**
  * Input for ``POST /booking-codes/`` -- the authenticated minting endpoint.
  *
  * Collapses GraphQL's six ``create*BookingCode`` mutations into one resource:
- * ``purpose`` x {``calendar``, ``calendar_group``} is the same cross product those
+ * ``purpose`` x {``calendar``, ``appointment_type``} is the same cross product those
  * six mutations cover, no more and no less. ``purpose`` maps onto the permission(s)
  * the minted token carries:
  *
@@ -575,22 +893,22 @@ export type BookableSlotProposal = {
  * - ``reschedule`` -> ``[EventManagementPermissions.RESCHEDULE]``
  * - ``cancel`` -> ``[EventManagementPermissions.CANCEL]``
  *
- * ``calendar`` / ``calendar_group`` / ``event`` are plain integer ids, not
+ * ``calendar`` / ``appointment_type`` / ``event`` are plain integer ids, not
  * ``PrimaryKeyRelatedField`` -- object existence and org/authorization checks
  * happen in ``BookingCodeViewSet.create`` so a cross-organization target can be
  * answered ``404`` there rather than a serializer-level ``400``, keeping "target
  * exists but you can't see it" indistinguishable from "target does not exist".
  *
  * No ``duration_seconds`` field: duration pinning lives on
- * ``CalendarGroup.duration``, not on the minted token -- there is no
+ * ``AppointmentType.duration``, not on the minted token -- there is no
  * per-code duration to set at mint time. A calendar-scoped code carries no
- * duration constraint at all; a calendar-group-scoped code inherits
- * whatever duration (if any) is already set on that group.
+ * duration constraint at all; an appointment-type-scoped code inherits
+ * whatever duration (if any) is already set on that appointment type.
  */
 export type BookingCodeCreate = {
     purpose: PurposeEnum;
     calendar?: number | null;
-    calendar_group?: number | null;
+    appointment_type?: number | null;
     event?: number | null;
     expires_at?: string | null;
 };
@@ -609,7 +927,7 @@ export type BookingCodeCreateResult = {
     readonly code: string;
     purpose: PurposeEnum;
     readonly calendar: number | null;
-    readonly calendar_group: number | null;
+    readonly appointment_type: number | null;
     readonly event: number | null;
     readonly expires_at: string | null;
 };
@@ -632,35 +950,10 @@ export type BookingCodeEventCreate = {
 };
 
 /**
- * Input for ``POST /public/booking/calendar-groups/<public_slug>/events/``.
- *
- * Mirrors ``CreateGroupEventWithCodeInput`` (GraphQL) minus its ``code`` field --
- * the booking code travels as the ``X-Booking-Code`` header instead (see
- * ``calendar_integration.booking_auth``). The group is never accepted here: on
- * the coded branch it comes strictly from the resolved token's
- * ``calendar_group``, never from client input or the path (Phase 3b: the path
- * carries only ``CalendarGroup.public_booking_slug``, an opaque identifier, and
- * even that is only a routing convenience -- see
- * ``BookingCodeGroupEventViewSet.create``). Reuses
- * ``_CalendarGroupSlotSelectionInputSerializer``, the same slot-selection shape
- * ``CalendarGroupEventCreateSerializer`` already uses for the authenticated
- * group-booking endpoint.
- */
-export type BookingCodeGroupEventCreate = {
-    title: string;
-    description?: string;
-    start_time: string;
-    end_time: string;
-    timezone: string;
-    slot_selections: Array<CalendarGroupSlotSelectionInput>;
-    external_attendee: BookingCodeExternalAttendee;
-};
-
-/**
  * Input for ``POST /public/booking/events/reschedule/`` and
- * ``POST /public/booking/group-events/reschedule/``.
+ * ``POST /public/booking/appointment-type-events/reschedule/``.
  *
- * Mirrors ``RescheduleWithCodeInput`` / ``RescheduleGroupWithCodeInput`` (GraphQL)
+ * Mirrors ``RescheduleWithCodeInput`` / ``RescheduleAppointmentTypeWithCodeInput`` (GraphQL)
  * minus their ``code`` field -- the booking code travels as the ``X-Booking-Code``
  * header instead. Only the new start/end/timezone are accepted: title, description,
  * attendees, and resource allocations are never client-settable here -- the view
@@ -696,7 +989,7 @@ export type BookingManagementCodes = {
 /**
  * Serializer for ``BookingPolicy`` CRUD.
  *
- * Exactly one of ``calendar``, ``membership_user_id``, ``calendar_group``, or
+ * Exactly one of ``calendar``, ``membership_user_id``, ``appointment_type``, or
  * ``is_organization_default`` must be set on create.  Targets are immutable
  * after creation — only the four rule-field seconds are writable on update.
  *
@@ -716,7 +1009,7 @@ export type BookingManagementCodes = {
 export type BookingPolicy = {
     readonly id: number;
     calendar?: number | null;
-    calendar_group?: number | null;
+    appointment_type?: number | null;
     membership_user_id?: number | null;
     is_organization_default?: boolean;
     lead_time_seconds?: number;
@@ -805,7 +1098,7 @@ export type CalendarEvent = {
      * Client-owned (system, identifier) pairs for this event. Omitted on a partial update leaves the stored set untouched; an explicit list (including []) replaces it.
      */
     external_client_identifiers?: Array<ExternalClientIdentifier>;
-    readonly group_selections: Array<CalendarEventGroupSelection>;
+    readonly appointment_type_selections: Array<CalendarEventAppointmentTypeSelection>;
     /**
      * Recurrence rule data for creating recurring events
      */
@@ -829,24 +1122,24 @@ export type CalendarEvent = {
     recurrence_id?: string | null;
 };
 
-export type CalendarEventGroupSelection = {
+export type CalendarEventAppointmentTypeSelection = {
     readonly id: number;
-    slot: CalendarGroupSlot;
+    slot: AppointmentTypeSlot;
     calendar: Calendar;
     /**
      * Whether ``obj``'s calendar is still a member of its slot's roster.
      *
      * Staleness definition (see the plan's Guiding Decisions): stale when no
-     * ``CalendarGroupSlotMembership`` row exists for the ``(slot, calendar)``
+     * ``AppointmentTypeSlotMembership`` row exists for the ``(slot, calendar)``
      * pair. ``slot.memberships`` is prefetched by
-     * ``CalendarEventGroupSelectionVirtualModel`` (via the ``hints.Virtual``
+     * ``CalendarEventAppointmentTypeSelectionVirtualModel`` (via the ``hints.Virtual``
      * hint above), so this reads from that prefetch cache instead of issuing
      * a query per selection.
      *
      * The hint names the concrete ``calendar_fk_id`` column explicitly
      * rather than just ``slot__memberships``: an empty per-field lookup list
      * tells ``django-virtual-models`` to prefetch *every* declared field
-     * under that branch, including ``CalendarGroupSlotMembershipVirtualModel
+     * under that branch, including ``AppointmentTypeSlotMembershipVirtualModel
      * .calendar`` -- which cascades into ``CalendarVirtualModel
      * .calendar_ownerships``, a field name that does not match ``Calendar``'s
      * actual related accessor (``ownerships``) and raises. Naming the one
@@ -865,8 +1158,8 @@ export type CalendarEventTransfer = {
  *
  * Used ONLY to render the ``201`` response of a booking-code create or
  * reschedule viewset (``BookingCodeCalendarEventViewSet``,
- * ``BookingCodeGroupEventViewSet``, ``BookingCodeRescheduleEventViewSet``,
- * ``BookingCodeRescheduleGroupEventViewSet``) -- never for a read, and
+ * ``BookingCodeAppointmentTypeEventViewSet``, ``BookingCodeRescheduleEventViewSet``,
+ * ``BookingCodeRescheduleAppointmentTypeEventViewSet``) -- never for a read, and
  * never for ``get_optimized_queryset``: ``management`` is not a model field
  * or relation, it does not exist on ``CalendarEventVirtualModel``, and
  * django-virtual-models' ``LookupFinder`` would raise
@@ -901,7 +1194,7 @@ export type CalendarEventWithManagementCodes = {
      * Client-owned (system, identifier) pairs for this event. Omitted on a partial update leaves the stored set untouched; an explicit list (including []) replaces it.
      */
     external_client_identifiers?: Array<ExternalClientIdentifier>;
-    readonly group_selections: Array<CalendarEventGroupSelection>;
+    readonly appointment_type_selections: Array<CalendarEventAppointmentTypeSelection>;
     /**
      * Recurrence rule data for creating recurring events
      */
@@ -926,99 +1219,13 @@ export type CalendarEventWithManagementCodes = {
     management: BookingManagementCodes;
 };
 
-export type CalendarGroup = {
-    readonly id: number;
-    name: string;
-    description?: string;
-    duration?: string;
-    accepts_public_scheduling?: boolean;
-    slots: Array<CalendarGroupSlot>;
-    /**
-     * Opaque, unguessable identifier used to address this group on the unauthenticated codeless booking route, instead of the integer primary key. Uniqueness is GLOBAL (not scoped to organization) because that route carries no organization in its path -- the slug alone must identify exactly one group system-wide. Authorizes nothing by itself: accepts_public_scheduling still gates codeless booking, and a group later flipped to public already has its identifier.
-     */
-    readonly public_booking_slug: string;
-    readonly created: string;
-    readonly modified: string;
-};
-
-/**
- * Input for the availability action: list of [start, end] windows.
- */
-export type CalendarGroupAvailabilityQuery = {
-    ranges: Array<RangeInput>;
-};
-
-/**
- * Input for booking an event through a CalendarGroup.
- *
- * On `save()` this delegates to `CalendarGroupService.create_grouped_event`
- * and returns the created `CalendarEvent`. The view is responsible for
- * serializing the result (typically with `CalendarEventSerializer`).
- */
-export type CalendarGroupEventCreate = {
-    title: string;
-    description?: string;
-    start_time: string;
-    end_time: string;
-    timezone: string;
-    slot_selections: Array<CalendarGroupSlotSelectionInput>;
-    attendances?: Array<{
-        [key: string]: unknown;
-    }>;
-    external_attendances?: Array<{
-        [key: string]: unknown;
-    }>;
-};
-
-export type CalendarGroupRangeAvailability = {
-    start_time: string;
-    end_time: string;
-    slots: Array<CalendarGroupSlotAvailability>;
-};
-
-/**
- * Nested slot representation used inside CalendarGroupSerializer.
- *
- * On write, accepts `calendar_ids: list[int]`; on read exposes the calendar
- * pool via `calendars` (the M2M). We deliberately keep slot writes to
- * payload-time data only — persistence happens through
- * `CalendarGroupSerializer` which delegates to `CalendarGroupService`.
- *
- * `pool_ids` (write-only) attaches/detaches `CalendarPool`s -- **omitting**
- * it leaves the slot's current attachments unchanged; an explicit `[]`
- * detaches every pool. This mirrors `CalendarGroupSlotInputData.pool_ids`
- * exactly, and the distinction is resolved in
- * `CalendarGroupSerializer._to_input_data` by checking key presence in the
- * validated per-slot dict, not by inspecting the value. `pools` (read-only)
- * exposes the attached pools themselves.
- */
-export type CalendarGroupSlot = {
-    readonly id: number;
-    name: string;
-    description?: string;
-    order?: number;
-    /**
-     * How many calendars from the pool must be selected when booking. Default 1; use larger values when a slot needs multiple calendars (e.g. two nurses).
-     */
-    required_count?: number;
-    readonly calendars: Array<Calendar>;
-    readonly pools: Array<CalendarPool>;
-};
-
-export type CalendarGroupSlotAvailability = {
-    slot_id: number;
-    available_calendar_ids: Array<number>;
-    required_count: number;
-    readonly is_bookable: boolean;
-};
-
 /**
  * CalendarPool CRUD representation.
  *
  * On write, accepts `calendar_ids: list[int]` and replaces the roster
  * wholesale; on read exposes the roster via `calendars` -- mirrors
- * `CalendarGroupSlotSerializer`. Persistence delegates to
- * `CalendarGroupService.create_pool` / `update_pool`; this serializer never
+ * `AppointmentTypeSlotSerializer`. Persistence delegates to
+ * `AppointmentTypeService.create_pool` / `update_pool`; this serializer never
  * writes `CalendarPool`/`CalendarPoolMembership` rows directly.
  */
 export type CalendarPool = {
@@ -1367,213 +1574,6 @@ export type ExternalEventUpdatePolicyEnum = 'allow' | 'change_request' | 'forbid
  * * `YEARLY` - Yearly
  */
 export type FrequencyEnum = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
-
-/**
- * Minimal identification of a booking a narrowing write orphaned (spec UC-6)
- * -- enough for an admin to act on. Nothing about the booking itself is
- * modified by the write that produced this entry.
- */
-export type GroupScopedAvailabilityOrphanedBooking = {
-    readonly id: number;
-    readonly calendar_id: number;
-    readonly title: string;
-    readonly start_time: string;
-    readonly end_time: string;
-};
-
-/**
- * Read representation of a group-scoped availability window.
- *
- * Deliberately narrower than ``AvailableTimeSerializer``: there is no nested
- * ``recurrence_rule`` write path here, only ``rrule_string`` -- matching
- * exactly what ``CalendarGroupService``'s window-write methods accept, so the
- * REST shape and the service signature cannot drift apart.
- */
-export type GroupScopedAvailabilityWindow = {
-    readonly id: number;
-    readonly calendar_id: number;
-    readonly group_slot_id: number;
-    readonly start_time: string;
-    readonly end_time: string;
-    readonly timezone: string;
-    /**
-     * RRULE string for the window's recurrence, or ``None`` when it doesn't recur.
-     */
-    readonly rrule_string: string | null;
-    readonly is_recurring: boolean;
-    readonly created: string;
-    readonly modified: string;
-};
-
-/**
- * Input for creating a group-scoped availability window.
- *
- * Field names map 1:1 onto
- * ``CalendarGroupService.create_group_scoped_availability_window``'s keyword
- * arguments (``calendar_id``, ``start_time``, ``end_time``, ``tz``,
- * ``rrule_string``) so the REST shape can never silently drift from the
- * service signature it delegates to.
- */
-export type GroupScopedAvailabilityWindowCreate = {
-    /**
-     * Calendar this window applies to. Must be a member of the target slot.
-     */
-    calendar: number;
-    start_time: string;
-    end_time: string;
-    timezone: string;
-    /**
-     * RRULE string for a recurring window. Omit for a one-off window.
-     */
-    rrule_string?: string | null;
-};
-
-/**
- * Wraps a ``GroupScopedAvailabilityWriteResult``: the saved window plus any
- * confirmed future bookings the write orphaned. Returned by the create and
- * update actions of ``GroupScopedAvailabilityWindowViewSet``.
- */
-export type GroupScopedAvailabilityWriteResult = {
-    window: GroupScopedAvailabilityWindow;
-    /**
-     * Confirmed future bookings in this slot for this window's calendar that no longer fall inside the calendar's group-scoped availability after this write. Nothing about them is modified or cancelled -- act on them manually if needed.
-     */
-    readonly orphaned_bookings: Array<GroupScopedAvailabilityOrphanedBooking>;
-};
-
-/**
- * Minimal identification of a booking a block write orphaned (spec
- * UC-6's rule applied to blocks) -- enough for an admin to act on. Nothing
- * about the booking itself is modified by the write that produced this
- * entry.
- */
-export type GroupScopedBlockOrphanedBooking = {
-    readonly id: number;
-    readonly calendar_id: number;
-    readonly title: string;
-    readonly start_time: string;
-    readonly end_time: string;
-};
-
-/**
- * Wraps a ``GroupScopedBlockWriteResult``: the saved block plus any
- * confirmed future bookings the write orphaned. Returned by the create and
- * update actions of ``GroupScopedBlockedTimeViewSet``.
- */
-export type GroupScopedBlockWriteResult = {
-    block: GroupScopedBlockedTime;
-    /**
-     * Confirmed future bookings in this slot for this block's calendar that now fall inside the calendar's group-scoped blocked time after this write. Nothing about them is modified or cancelled -- act on them manually if needed.
-     */
-    readonly orphaned_bookings: Array<GroupScopedBlockOrphanedBooking>;
-};
-
-/**
- * Read representation of a group-scoped blocked time.
- *
- * Mirrors ``GroupScopedAvailabilityWindowSerializer`` exactly, plus
- * ``reason`` -- there is no nested ``recurrence_rule`` write path here,
- * only ``rrule_string``, matching exactly what ``CalendarGroupService``'s
- * block-write methods accept, so the REST shape and the service signature
- * cannot drift apart.
- */
-export type GroupScopedBlockedTime = {
-    readonly id: number;
-    readonly calendar_id: number;
-    readonly group_slot_id: number;
-    readonly start_time: string;
-    readonly end_time: string;
-    readonly timezone: string;
-    readonly reason: string;
-    /**
-     * RRULE string for the block's recurrence, or ``None`` when it doesn't recur.
-     */
-    readonly rrule_string: string | null;
-    readonly is_recurring: boolean;
-    readonly created: string;
-    readonly modified: string;
-};
-
-/**
- * Input for creating a group-scoped blocked time.
- *
- * Field names map 1:1 onto
- * ``CalendarGroupService.create_group_scoped_blocked_time``'s keyword
- * arguments (``calendar_id``, ``start_time``, ``end_time``, ``tz``,
- * ``reason``, ``rrule_string``) so the REST shape can never silently drift
- * from the service signature it delegates to.
- */
-export type GroupScopedBlockedTimeCreate = {
-    /**
-     * Calendar this block applies to. Must be a member of the target slot.
-     */
-    calendar: number;
-    start_time: string;
-    end_time: string;
-    timezone: string;
-    reason?: string;
-    /**
-     * RRULE string for a recurring block. Omit for a one-off block.
-     */
-    rrule_string?: string | null;
-};
-
-/**
- * Read representation of a group-scoped quota rule.
- *
- * Simpler than ``GroupScopedAvailabilityWindowSerializer``/
- * ``GroupScopedBlockedTimeSerializer``: quota rules are non-recurring (no
- * ``rrule_string``, no ``timezone``, no time range) -- just the period and
- * the cap, matching exactly what ``CalendarGroupService``'s quota-write
- * methods accept, so the REST shape and the service signature cannot drift
- * apart.
- */
-export type GroupScopedQuotaRule = {
-    readonly id: number;
-    readonly calendar_id: number;
-    readonly group_slot_id: number;
-    /**
-     * Fixed calendar period the cap applies to (day, week, or month).
-     *
-     * * `day` - Day
-     * * `week` - Week
-     * * `month` - Month
-     */
-    period: PeriodEnum;
-    /**
-     * Maximum number of live bookings made through this group slot a calendar may hold within one period. Must be at least 1.
-     */
-    readonly cap: number;
-    readonly created: string;
-    readonly modified: string;
-};
-
-/**
- * Input for creating a group-scoped quota rule.
- *
- * Field names map 1:1 onto
- * ``CalendarGroupService.create_group_scoped_quota_rule``'s keyword
- * arguments (``calendar_id``, ``period``, ``cap``) so the REST shape can
- * never silently drift from the service signature it delegates to.
- */
-export type GroupScopedQuotaRuleCreate = {
-    /**
-     * Calendar this quota rule applies to. Must be a member of the target slot.
-     */
-    calendar: number;
-    /**
-     * Fixed calendar period the cap applies to (day, week, or month).
-     *
-     * * `day` - Day
-     * * `week` - Week
-     * * `month` - Month
-     */
-    period: PeriodEnum;
-    /**
-     * Maximum number of live bookings made through this group slot the calendar may hold within one period.
-     */
-    cap: number;
-};
 
 /**
  * * `organization_admin` - organization_admin
@@ -1929,6 +1929,41 @@ export type OwnershipMembership = {
     readonly organization_id: number;
 };
 
+export type PaginatedAppointmentTypeList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<AppointmentType>;
+};
+
+export type PaginatedAppointmentTypeRangeAvailabilityList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<AppointmentTypeRangeAvailability>;
+};
+
+export type PaginatedAppointmentTypeScopedAvailabilityWindowList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<AppointmentTypeScopedAvailabilityWindow>;
+};
+
+export type PaginatedAppointmentTypeScopedBlockedTimeList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<AppointmentTypeScopedBlockedTime>;
+};
+
+export type PaginatedAppointmentTypeScopedQuotaRuleList = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<AppointmentTypeScopedQuotaRule>;
+};
+
 export type PaginatedAvailableTimeList = {
     count: number;
     next?: string | null;
@@ -1978,20 +2013,6 @@ export type PaginatedCalendarEventList = {
     results: Array<CalendarEvent>;
 };
 
-export type PaginatedCalendarGroupList = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<CalendarGroup>;
-};
-
-export type PaginatedCalendarGroupRangeAvailabilityList = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<CalendarGroupRangeAvailability>;
-};
-
 export type PaginatedCalendarList = {
     count: number;
     next?: string | null;
@@ -2011,27 +2032,6 @@ export type PaginatedExternalEventChangeRequestList = {
     next?: string | null;
     previous?: string | null;
     results: Array<ExternalEventChangeRequest>;
-};
-
-export type PaginatedGroupScopedAvailabilityWindowList = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<GroupScopedAvailabilityWindow>;
-};
-
-export type PaginatedGroupScopedBlockedTimeList = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<GroupScopedBlockedTime>;
-};
-
-export type PaginatedGroupScopedQuotaRuleList = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<GroupScopedQuotaRule>;
 };
 
 export type PaginatedMeteredOccurrenceList = {
@@ -2098,6 +2098,65 @@ export type ParentEvent = {
     readonly end_time: string;
     readonly created: string;
     readonly modified: string;
+};
+
+export type PatchedAppointmentType = {
+    readonly id?: number;
+    name?: string;
+    description?: string;
+    duration?: string;
+    accepts_public_scheduling?: boolean;
+    slots?: Array<AppointmentTypeSlot>;
+    /**
+     * Opaque, unguessable identifier used to address this appointment type on the unauthenticated codeless booking route, instead of the integer primary key. Uniqueness is GLOBAL (not scoped to organization) because that route carries no organization in its path -- the slug alone must identify exactly one appointment type system-wide. Authorizes nothing by itself: accepts_public_scheduling still gates codeless booking, and an appointment type later flipped to public already has its identifier.
+     */
+    readonly public_booking_slug?: string;
+    readonly created?: string;
+    readonly modified?: string;
+};
+
+/**
+ * Input for partially updating an appointment-type-scoped availability window.
+ *
+ * Every field is optional -- only provided fields change, mirroring
+ * ``AppointmentTypeService.update_appointment_type_scoped_availability_window``.
+ */
+export type PatchedAppointmentTypeScopedAvailabilityWindowUpdate = {
+    start_time?: string;
+    end_time?: string;
+    timezone?: string;
+    /**
+     * RRULE string for a recurring window. Set to null to make it non-recurring.
+     */
+    rrule_string?: string | null;
+};
+
+/**
+ * Input for partially updating an appointment-type-scoped blocked time.
+ *
+ * Every field is optional -- only provided fields change, mirroring
+ * ``AppointmentTypeService.update_appointment_type_scoped_blocked_time``.
+ */
+export type PatchedAppointmentTypeScopedBlockedTimeUpdate = {
+    start_time?: string;
+    end_time?: string;
+    timezone?: string;
+    reason?: string;
+    /**
+     * RRULE string for a recurring block. Set to null to make it non-recurring.
+     */
+    rrule_string?: string | null;
+};
+
+/**
+ * Input for partially updating an appointment-type-scoped quota rule.
+ *
+ * Every field is optional -- only provided fields change, mirroring
+ * ``AppointmentTypeService.update_appointment_type_scoped_quota_rule``.
+ */
+export type PatchedAppointmentTypeScopedQuotaRuleUpdate = {
+    period?: PeriodEnum;
+    cap?: number;
 };
 
 /**
@@ -2188,7 +2247,7 @@ export type PatchedBlockedTime = {
 /**
  * Serializer for ``BookingPolicy`` CRUD.
  *
- * Exactly one of ``calendar``, ``membership_user_id``, ``calendar_group``, or
+ * Exactly one of ``calendar``, ``membership_user_id``, ``appointment_type``, or
  * ``is_organization_default`` must be set on create.  Targets are immutable
  * after creation — only the four rule-field seconds are writable on update.
  *
@@ -2208,7 +2267,7 @@ export type PatchedBlockedTime = {
 export type PatchedBookingPolicy = {
     readonly id?: number;
     calendar?: number | null;
-    calendar_group?: number | null;
+    appointment_type?: number | null;
     membership_user_id?: number | null;
     is_organization_default?: boolean;
     lead_time_seconds?: number;
@@ -2282,7 +2341,7 @@ export type PatchedCalendarEvent = {
      * Client-owned (system, identifier) pairs for this event. Omitted on a partial update leaves the stored set untouched; an explicit list (including []) replaces it.
      */
     external_client_identifiers?: Array<ExternalClientIdentifier>;
-    readonly group_selections?: Array<CalendarEventGroupSelection>;
+    readonly appointment_type_selections?: Array<CalendarEventAppointmentTypeSelection>;
     /**
      * Recurrence rule data for creating recurring events
      */
@@ -2306,28 +2365,13 @@ export type PatchedCalendarEvent = {
     recurrence_id?: string | null;
 };
 
-export type PatchedCalendarGroup = {
-    readonly id?: number;
-    name?: string;
-    description?: string;
-    duration?: string;
-    accepts_public_scheduling?: boolean;
-    slots?: Array<CalendarGroupSlot>;
-    /**
-     * Opaque, unguessable identifier used to address this group on the unauthenticated codeless booking route, instead of the integer primary key. Uniqueness is GLOBAL (not scoped to organization) because that route carries no organization in its path -- the slug alone must identify exactly one group system-wide. Authorizes nothing by itself: accepts_public_scheduling still gates codeless booking, and a group later flipped to public already has its identifier.
-     */
-    readonly public_booking_slug?: string;
-    readonly created?: string;
-    readonly modified?: string;
-};
-
 /**
  * CalendarPool CRUD representation.
  *
  * On write, accepts `calendar_ids: list[int]` and replaces the roster
  * wholesale; on read exposes the roster via `calendars` -- mirrors
- * `CalendarGroupSlotSerializer`. Persistence delegates to
- * `CalendarGroupService.create_pool` / `update_pool`; this serializer never
+ * `AppointmentTypeSlotSerializer`. Persistence delegates to
+ * `AppointmentTypeService.create_pool` / `update_pool`; this serializer never
  * writes `CalendarPool`/`CalendarPoolMembership` rows directly.
  */
 export type PatchedCalendarPool = {
@@ -2337,50 +2381,6 @@ export type PatchedCalendarPool = {
     readonly calendars?: Array<Calendar>;
     readonly created?: string;
     readonly modified?: string;
-};
-
-/**
- * Input for partially updating a group-scoped availability window.
- *
- * Every field is optional -- only provided fields change, mirroring
- * ``CalendarGroupService.update_group_scoped_availability_window``.
- */
-export type PatchedGroupScopedAvailabilityWindowUpdate = {
-    start_time?: string;
-    end_time?: string;
-    timezone?: string;
-    /**
-     * RRULE string for a recurring window. Set to null to make it non-recurring.
-     */
-    rrule_string?: string | null;
-};
-
-/**
- * Input for partially updating a group-scoped blocked time.
- *
- * Every field is optional -- only provided fields change, mirroring
- * ``CalendarGroupService.update_group_scoped_blocked_time``.
- */
-export type PatchedGroupScopedBlockedTimeUpdate = {
-    start_time?: string;
-    end_time?: string;
-    timezone?: string;
-    reason?: string;
-    /**
-     * RRULE string for a recurring block. Set to null to make it non-recurring.
-     */
-    rrule_string?: string | null;
-};
-
-/**
- * Input for partially updating a group-scoped quota rule.
- *
- * Every field is optional -- only provided fields change, mirroring
- * ``CalendarGroupService.update_group_scoped_quota_rule``.
- */
-export type PatchedGroupScopedQuotaRuleUpdate = {
-    period?: PeriodEnum;
-    cap?: number;
 };
 
 /**
@@ -2746,14 +2746,14 @@ export type ResourceCalendarCreate = {
 /**
  * * `organization_members` - Organization members
  * * `resource_calendars` - Resource calendars
- * * `calendar_groups` - Calendar groups
+ * * `appointment_types` - Appointment types
  * * `bundle_calendars` - Bundle calendars
  * * `availability_windows` - Availability windows
  * * `webhook_subscriptions` - Webhook subscriptions
  * * `public_api_system_users` - Public API system users
  * * `event_occurrences` - Event occurrences
  */
-export type ResourceKeyEnum = 'organization_members' | 'resource_calendars' | 'calendar_groups' | 'bundle_calendars' | 'availability_windows' | 'webhook_subscriptions' | 'public_api_system_users' | 'event_occurrences';
+export type ResourceKeyEnum = 'organization_members' | 'resource_calendars' | 'appointment_types' | 'bundle_calendars' | 'availability_windows' | 'webhook_subscriptions' | 'public_api_system_users' | 'event_occurrences';
 
 /**
  * Body of ``POST /billing/subscription/retry-payment/``.
@@ -2813,7 +2813,7 @@ export type SourceEnum = 'signup_form' | 'oauth_step' | 'api';
 
 /**
  * A `(event, slot, calendar)` triple whose calendar has left its slot's
- * roster -- see ``CalendarGroupService.find_stale_selections`` and the
+ * roster -- see ``AppointmentTypeService.find_stale_selections`` and the
  * Calendar Pools plan's Staleness definition. Scalar ids only, matching the
  * ``StaleSelection`` dataclass this wraps.
  */
@@ -3110,6 +3110,11 @@ export type WebhookEventDoc = {
  */
 export type WebhookEventStatusEnum = 'pending' | 'success' | 'failed';
 
+export type AppointmentTypeSlotSelectionInput = {
+    slot_id: number;
+    calendar_ids: Array<number>;
+};
+
 /**
  * External attendee for the unauthenticated booking-code write endpoints.
  *
@@ -3123,14 +3128,57 @@ export type BookingCodeExternalAttendee = {
     name?: string;
 };
 
-export type CalendarGroupSlotSelectionInput = {
-    slot_id: number;
-    calendar_ids: Array<number>;
-};
-
 export type RangeInput = {
     start_time: string;
     end_time: string;
+};
+
+export type AppointmentTypeWritable = {
+    name: string;
+    description?: string;
+    duration?: string;
+    accepts_public_scheduling?: boolean;
+    slots: Array<AppointmentTypeSlotWritable>;
+};
+
+export type AppointmentTypeRangeAvailabilityWritable = {
+    start_time: string;
+    end_time: string;
+    slots: Array<AppointmentTypeSlotAvailabilityWritable>;
+};
+
+/**
+ * Nested slot representation used inside AppointmentTypeSerializer.
+ *
+ * On write, accepts `calendar_ids: list[int]`; on read exposes the calendar
+ * pool via `calendars` (the M2M). We deliberately keep slot writes to
+ * payload-time data only — persistence happens through
+ * `AppointmentTypeSerializer` which delegates to `AppointmentTypeService`.
+ *
+ * `pool_ids` (write-only) attaches/detaches `CalendarPool`s -- **omitting**
+ * it leaves the slot's current attachments unchanged; an explicit `[]`
+ * detaches every pool. This mirrors `AppointmentTypeSlotInputData.pool_ids`
+ * exactly, and the distinction is resolved in
+ * `AppointmentTypeSerializer._to_input_data` by checking key presence in the
+ * validated per-slot dict, not by inspecting the value. `pools` (read-only)
+ * exposes the attached pools themselves.
+ */
+export type AppointmentTypeSlotWritable = {
+    name: string;
+    description?: string;
+    order?: number;
+    /**
+     * How many calendars from the pool must be selected when booking. Default 1; use larger values when a slot needs multiple calendars (e.g. two nurses).
+     */
+    required_count?: number;
+    calendar_ids: Array<number>;
+    pool_ids?: Array<number>;
+};
+
+export type AppointmentTypeSlotAvailabilityWritable = {
+    slot_id: number;
+    available_calendar_ids: Array<number>;
+    required_count: number;
 };
 
 /**
@@ -3296,7 +3344,7 @@ export type BookingCodeCreateResultWritable = {
 /**
  * Serializer for ``BookingPolicy`` CRUD.
  *
- * Exactly one of ``calendar``, ``membership_user_id``, ``calendar_group``, or
+ * Exactly one of ``calendar``, ``membership_user_id``, ``appointment_type``, or
  * ``is_organization_default`` must be set on create.  Targets are immutable
  * after creation — only the four rule-field seconds are writable on update.
  *
@@ -3315,7 +3363,7 @@ export type BookingCodeCreateResultWritable = {
  */
 export type BookingPolicyWritable = {
     calendar?: number | null;
-    calendar_group?: number | null;
+    appointment_type?: number | null;
     membership_user_id?: number | null;
     is_organization_default?: boolean;
     lead_time_seconds?: number;
@@ -3394,7 +3442,7 @@ export type CalendarEventWritable = {
     calendar?: number;
 };
 
-export type CalendarEventGroupSelectionWritable = {
+export type CalendarEventAppointmentTypeSelectionWritable = {
     [key: string]: unknown;
 };
 
@@ -3403,8 +3451,8 @@ export type CalendarEventGroupSelectionWritable = {
  *
  * Used ONLY to render the ``201`` response of a booking-code create or
  * reschedule viewset (``BookingCodeCalendarEventViewSet``,
- * ``BookingCodeGroupEventViewSet``, ``BookingCodeRescheduleEventViewSet``,
- * ``BookingCodeRescheduleGroupEventViewSet``) -- never for a read, and
+ * ``BookingCodeAppointmentTypeEventViewSet``, ``BookingCodeRescheduleEventViewSet``,
+ * ``BookingCodeRescheduleAppointmentTypeEventViewSet``) -- never for a read, and
  * never for ``get_optimized_queryset``: ``management`` is not a model field
  * or relation, it does not exist on ``CalendarEventVirtualModel``, and
  * django-virtual-models' ``LookupFinder`` would raise
@@ -3460,61 +3508,13 @@ export type CalendarEventWithManagementCodesWritable = {
     calendar?: number;
 };
 
-export type CalendarGroupWritable = {
-    name: string;
-    description?: string;
-    duration?: string;
-    accepts_public_scheduling?: boolean;
-    slots: Array<CalendarGroupSlotWritable>;
-};
-
-export type CalendarGroupRangeAvailabilityWritable = {
-    start_time: string;
-    end_time: string;
-    slots: Array<CalendarGroupSlotAvailabilityWritable>;
-};
-
-/**
- * Nested slot representation used inside CalendarGroupSerializer.
- *
- * On write, accepts `calendar_ids: list[int]`; on read exposes the calendar
- * pool via `calendars` (the M2M). We deliberately keep slot writes to
- * payload-time data only — persistence happens through
- * `CalendarGroupSerializer` which delegates to `CalendarGroupService`.
- *
- * `pool_ids` (write-only) attaches/detaches `CalendarPool`s -- **omitting**
- * it leaves the slot's current attachments unchanged; an explicit `[]`
- * detaches every pool. This mirrors `CalendarGroupSlotInputData.pool_ids`
- * exactly, and the distinction is resolved in
- * `CalendarGroupSerializer._to_input_data` by checking key presence in the
- * validated per-slot dict, not by inspecting the value. `pools` (read-only)
- * exposes the attached pools themselves.
- */
-export type CalendarGroupSlotWritable = {
-    name: string;
-    description?: string;
-    order?: number;
-    /**
-     * How many calendars from the pool must be selected when booking. Default 1; use larger values when a slot needs multiple calendars (e.g. two nurses).
-     */
-    required_count?: number;
-    calendar_ids: Array<number>;
-    pool_ids?: Array<number>;
-};
-
-export type CalendarGroupSlotAvailabilityWritable = {
-    slot_id: number;
-    available_calendar_ids: Array<number>;
-    required_count: number;
-};
-
 /**
  * CalendarPool CRUD representation.
  *
  * On write, accepts `calendar_ids: list[int]` and replaces the roster
  * wholesale; on read exposes the roster via `calendars` -- mirrors
- * `CalendarGroupSlotSerializer`. Persistence delegates to
- * `CalendarGroupService.create_pool` / `update_pool`; this serializer never
+ * `AppointmentTypeSlotSerializer`. Persistence delegates to
+ * `AppointmentTypeService.create_pool` / `update_pool`; this serializer never
  * writes `CalendarPool`/`CalendarPoolMembership` rows directly.
  */
 export type CalendarPoolWritable = {
@@ -3646,6 +3646,41 @@ export type OrganizationInvitationWritable = {
     last_name?: string;
 };
 
+export type PaginatedAppointmentTypeListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<AppointmentTypeWritable>;
+};
+
+export type PaginatedAppointmentTypeRangeAvailabilityListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<AppointmentTypeRangeAvailabilityWritable>;
+};
+
+export type PaginatedAppointmentTypeScopedAvailabilityWindowListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<unknown>;
+};
+
+export type PaginatedAppointmentTypeScopedBlockedTimeListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<unknown>;
+};
+
+export type PaginatedAppointmentTypeScopedQuotaRuleListWritable = {
+    count: number;
+    next?: string | null;
+    previous?: string | null;
+    results: Array<unknown>;
+};
+
 export type PaginatedAvailableTimeListWritable = {
     count: number;
     next?: string | null;
@@ -3681,20 +3716,6 @@ export type PaginatedCalendarEventListWritable = {
     results: Array<CalendarEventWritable>;
 };
 
-export type PaginatedCalendarGroupListWritable = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<CalendarGroupWritable>;
-};
-
-export type PaginatedCalendarGroupRangeAvailabilityListWritable = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<CalendarGroupRangeAvailabilityWritable>;
-};
-
 export type PaginatedCalendarListWritable = {
     count: number;
     next?: string | null;
@@ -3710,27 +3731,6 @@ export type PaginatedCalendarPoolListWritable = {
 };
 
 export type PaginatedExternalEventChangeRequestListWritable = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<unknown>;
-};
-
-export type PaginatedGroupScopedAvailabilityWindowListWritable = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<unknown>;
-};
-
-export type PaginatedGroupScopedBlockedTimeListWritable = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<unknown>;
-};
-
-export type PaginatedGroupScopedQuotaRuleListWritable = {
     count: number;
     next?: string | null;
     previous?: string | null;
@@ -3797,6 +3797,14 @@ export type ParentEventWritable = {
     title: string;
 };
 
+export type PatchedAppointmentTypeWritable = {
+    name?: string;
+    description?: string;
+    duration?: string;
+    accepts_public_scheduling?: boolean;
+    slots?: Array<AppointmentTypeSlotWritable>;
+};
+
 /**
  * Serializer for AvailableTime model with recurring support.
  */
@@ -3850,7 +3858,7 @@ export type PatchedBlockedTimeWritable = {
 /**
  * Serializer for ``BookingPolicy`` CRUD.
  *
- * Exactly one of ``calendar``, ``membership_user_id``, ``calendar_group``, or
+ * Exactly one of ``calendar``, ``membership_user_id``, ``appointment_type``, or
  * ``is_organization_default`` must be set on create.  Targets are immutable
  * after creation — only the four rule-field seconds are writable on update.
  *
@@ -3869,7 +3877,7 @@ export type PatchedBlockedTimeWritable = {
  */
 export type PatchedBookingPolicyWritable = {
     calendar?: number | null;
-    calendar_group?: number | null;
+    appointment_type?: number | null;
     membership_user_id?: number | null;
     is_organization_default?: boolean;
     lead_time_seconds?: number;
@@ -3941,21 +3949,13 @@ export type PatchedCalendarEventWritable = {
     calendar?: number;
 };
 
-export type PatchedCalendarGroupWritable = {
-    name?: string;
-    description?: string;
-    duration?: string;
-    accepts_public_scheduling?: boolean;
-    slots?: Array<CalendarGroupSlotWritable>;
-};
-
 /**
  * CalendarPool CRUD representation.
  *
  * On write, accepts `calendar_ids: list[int]` and replaces the roster
  * wholesale; on read exposes the roster via `calendars` -- mirrors
- * `CalendarGroupSlotSerializer`. Persistence delegates to
- * `CalendarGroupService.create_pool` / `update_pool`; this serializer never
+ * `AppointmentTypeSlotSerializer`. Persistence delegates to
+ * `AppointmentTypeService.create_pool` / `update_pool`; this serializer never
  * writes `CalendarPool`/`CalendarPoolMembership` rows directly.
  */
 export type PatchedCalendarPoolWritable = {
@@ -4146,6 +4146,1430 @@ export type WebhookEventWritable = {
     headers?: unknown;
     payload: unknown;
 };
+
+export type AppointmentTypesListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * Filter by partial name match
+         */
+        name?: string;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/appointment-types/';
+};
+
+export type AppointmentTypesListResponses = {
+    200: PaginatedAppointmentTypeList;
+};
+
+export type AppointmentTypesListResponse = AppointmentTypesListResponses[keyof AppointmentTypesListResponses];
+
+export type AppointmentTypesCreateData = {
+    body: AppointmentTypeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/appointment-types/';
+};
+
+export type AppointmentTypesCreateResponses = {
+    201: AppointmentType;
+};
+
+export type AppointmentTypesCreateResponse = AppointmentTypesCreateResponses[keyof AppointmentTypesCreateResponses];
+
+export type AppointmentTypesFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * Filter by partial name match
+         */
+        name?: string;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/appointment-types{format}';
+};
+
+export type AppointmentTypesFormattedListResponses = {
+    200: PaginatedAppointmentTypeList;
+};
+
+export type AppointmentTypesFormattedListResponse = AppointmentTypesFormattedListResponses[keyof AppointmentTypesFormattedListResponses];
+
+export type AppointmentTypesFormattedCreateData = {
+    body: AppointmentTypeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+    };
+    query?: never;
+    url: '/appointment-types{format}';
+};
+
+export type AppointmentTypesFormattedCreateResponses = {
+    201: AppointmentType;
+};
+
+export type AppointmentTypesFormattedCreateResponse = AppointmentTypesFormattedCreateResponses[keyof AppointmentTypesFormattedCreateResponses];
+
+export type AppointmentTypesSlotsAvailabilityWindowsListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        slot_id: number;
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/availability-windows/';
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsListResponses = {
+    200: PaginatedAppointmentTypeScopedAvailabilityWindowList;
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsListResponse = AppointmentTypesSlotsAvailabilityWindowsListResponses[keyof AppointmentTypesSlotsAvailabilityWindowsListResponses];
+
+export type AppointmentTypesSlotsAvailabilityWindowsCreateData = {
+    body: AppointmentTypeScopedAvailabilityWindowCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/availability-windows/';
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsCreateResponses = {
+    201: AppointmentTypeScopedAvailabilityWriteResult;
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsCreateResponse = AppointmentTypesSlotsAvailabilityWindowsCreateResponses[keyof AppointmentTypesSlotsAvailabilityWindowsCreateResponses];
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        slot_id: number;
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/availability-windows{format}';
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedListResponses = {
+    200: PaginatedAppointmentTypeScopedAvailabilityWindowList;
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedListResponse = AppointmentTypesSlotsAvailabilityWindowsFormattedListResponses[keyof AppointmentTypesSlotsAvailabilityWindowsFormattedListResponses];
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedCreateData = {
+    body: AppointmentTypeScopedAvailabilityWindowCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/availability-windows{format}';
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedCreateResponses = {
+    201: AppointmentTypeScopedAvailabilityWriteResult;
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedCreateResponse = AppointmentTypesSlotsAvailabilityWindowsFormattedCreateResponses[keyof AppointmentTypesSlotsAvailabilityWindowsFormattedCreateResponses];
+
+export type AppointmentTypesSlotsAvailabilityWindowsDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/availability-windows/{id}/';
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsDestroyResponse = AppointmentTypesSlotsAvailabilityWindowsDestroyResponses[keyof AppointmentTypesSlotsAvailabilityWindowsDestroyResponses];
+
+export type AppointmentTypesSlotsAvailabilityWindowsRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/availability-windows/{id}/';
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsRetrieveResponses = {
+    200: AppointmentTypeScopedAvailabilityWindow;
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsRetrieveResponse = AppointmentTypesSlotsAvailabilityWindowsRetrieveResponses[keyof AppointmentTypesSlotsAvailabilityWindowsRetrieveResponses];
+
+export type AppointmentTypesSlotsAvailabilityWindowsPartialUpdateData = {
+    body?: PatchedAppointmentTypeScopedAvailabilityWindowUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/availability-windows/{id}/';
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsPartialUpdateResponses = {
+    200: AppointmentTypeScopedAvailabilityWriteResult;
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsPartialUpdateResponse = AppointmentTypesSlotsAvailabilityWindowsPartialUpdateResponses[keyof AppointmentTypesSlotsAvailabilityWindowsPartialUpdateResponses];
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/availability-windows/{id}{format}';
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedDestroyResponse = AppointmentTypesSlotsAvailabilityWindowsFormattedDestroyResponses[keyof AppointmentTypesSlotsAvailabilityWindowsFormattedDestroyResponses];
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/availability-windows/{id}{format}';
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedRetrieveResponses = {
+    200: AppointmentTypeScopedAvailabilityWindow;
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedRetrieveResponse = AppointmentTypesSlotsAvailabilityWindowsFormattedRetrieveResponses[keyof AppointmentTypesSlotsAvailabilityWindowsFormattedRetrieveResponses];
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedPartialUpdateData = {
+    body?: PatchedAppointmentTypeScopedAvailabilityWindowUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/availability-windows/{id}{format}';
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedPartialUpdateResponses = {
+    200: AppointmentTypeScopedAvailabilityWriteResult;
+};
+
+export type AppointmentTypesSlotsAvailabilityWindowsFormattedPartialUpdateResponse = AppointmentTypesSlotsAvailabilityWindowsFormattedPartialUpdateResponses[keyof AppointmentTypesSlotsAvailabilityWindowsFormattedPartialUpdateResponses];
+
+export type AppointmentTypesSlotsBlockedTimesListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        slot_id: number;
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/blocked-times/';
+};
+
+export type AppointmentTypesSlotsBlockedTimesListResponses = {
+    200: PaginatedAppointmentTypeScopedBlockedTimeList;
+};
+
+export type AppointmentTypesSlotsBlockedTimesListResponse = AppointmentTypesSlotsBlockedTimesListResponses[keyof AppointmentTypesSlotsBlockedTimesListResponses];
+
+export type AppointmentTypesSlotsBlockedTimesCreateData = {
+    body: AppointmentTypeScopedBlockedTimeCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/blocked-times/';
+};
+
+export type AppointmentTypesSlotsBlockedTimesCreateResponses = {
+    201: AppointmentTypeScopedBlockWriteResult;
+};
+
+export type AppointmentTypesSlotsBlockedTimesCreateResponse = AppointmentTypesSlotsBlockedTimesCreateResponses[keyof AppointmentTypesSlotsBlockedTimesCreateResponses];
+
+export type AppointmentTypesSlotsBlockedTimesFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        slot_id: number;
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/blocked-times{format}';
+};
+
+export type AppointmentTypesSlotsBlockedTimesFormattedListResponses = {
+    200: PaginatedAppointmentTypeScopedBlockedTimeList;
+};
+
+export type AppointmentTypesSlotsBlockedTimesFormattedListResponse = AppointmentTypesSlotsBlockedTimesFormattedListResponses[keyof AppointmentTypesSlotsBlockedTimesFormattedListResponses];
+
+export type AppointmentTypesSlotsBlockedTimesFormattedCreateData = {
+    body: AppointmentTypeScopedBlockedTimeCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/blocked-times{format}';
+};
+
+export type AppointmentTypesSlotsBlockedTimesFormattedCreateResponses = {
+    201: AppointmentTypeScopedBlockWriteResult;
+};
+
+export type AppointmentTypesSlotsBlockedTimesFormattedCreateResponse = AppointmentTypesSlotsBlockedTimesFormattedCreateResponses[keyof AppointmentTypesSlotsBlockedTimesFormattedCreateResponses];
+
+export type AppointmentTypesSlotsBlockedTimesDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/blocked-times/{id}/';
+};
+
+export type AppointmentTypesSlotsBlockedTimesDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type AppointmentTypesSlotsBlockedTimesDestroyResponse = AppointmentTypesSlotsBlockedTimesDestroyResponses[keyof AppointmentTypesSlotsBlockedTimesDestroyResponses];
+
+export type AppointmentTypesSlotsBlockedTimesRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/blocked-times/{id}/';
+};
+
+export type AppointmentTypesSlotsBlockedTimesRetrieveResponses = {
+    200: AppointmentTypeScopedBlockedTime;
+};
+
+export type AppointmentTypesSlotsBlockedTimesRetrieveResponse = AppointmentTypesSlotsBlockedTimesRetrieveResponses[keyof AppointmentTypesSlotsBlockedTimesRetrieveResponses];
+
+export type AppointmentTypesSlotsBlockedTimesPartialUpdateData = {
+    body?: PatchedAppointmentTypeScopedBlockedTimeUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/blocked-times/{id}/';
+};
+
+export type AppointmentTypesSlotsBlockedTimesPartialUpdateResponses = {
+    200: AppointmentTypeScopedBlockWriteResult;
+};
+
+export type AppointmentTypesSlotsBlockedTimesPartialUpdateResponse = AppointmentTypesSlotsBlockedTimesPartialUpdateResponses[keyof AppointmentTypesSlotsBlockedTimesPartialUpdateResponses];
+
+export type AppointmentTypesSlotsBlockedTimesFormattedDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/blocked-times/{id}{format}';
+};
+
+export type AppointmentTypesSlotsBlockedTimesFormattedDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type AppointmentTypesSlotsBlockedTimesFormattedDestroyResponse = AppointmentTypesSlotsBlockedTimesFormattedDestroyResponses[keyof AppointmentTypesSlotsBlockedTimesFormattedDestroyResponses];
+
+export type AppointmentTypesSlotsBlockedTimesFormattedRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/blocked-times/{id}{format}';
+};
+
+export type AppointmentTypesSlotsBlockedTimesFormattedRetrieveResponses = {
+    200: AppointmentTypeScopedBlockedTime;
+};
+
+export type AppointmentTypesSlotsBlockedTimesFormattedRetrieveResponse = AppointmentTypesSlotsBlockedTimesFormattedRetrieveResponses[keyof AppointmentTypesSlotsBlockedTimesFormattedRetrieveResponses];
+
+export type AppointmentTypesSlotsBlockedTimesFormattedPartialUpdateData = {
+    body?: PatchedAppointmentTypeScopedBlockedTimeUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/blocked-times/{id}{format}';
+};
+
+export type AppointmentTypesSlotsBlockedTimesFormattedPartialUpdateResponses = {
+    200: AppointmentTypeScopedBlockWriteResult;
+};
+
+export type AppointmentTypesSlotsBlockedTimesFormattedPartialUpdateResponse = AppointmentTypesSlotsBlockedTimesFormattedPartialUpdateResponses[keyof AppointmentTypesSlotsBlockedTimesFormattedPartialUpdateResponses];
+
+export type AppointmentTypesSlotsQuotaRulesListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        slot_id: number;
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/quota-rules/';
+};
+
+export type AppointmentTypesSlotsQuotaRulesListResponses = {
+    200: PaginatedAppointmentTypeScopedQuotaRuleList;
+};
+
+export type AppointmentTypesSlotsQuotaRulesListResponse = AppointmentTypesSlotsQuotaRulesListResponses[keyof AppointmentTypesSlotsQuotaRulesListResponses];
+
+export type AppointmentTypesSlotsQuotaRulesCreateData = {
+    body: AppointmentTypeScopedQuotaRuleCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/quota-rules/';
+};
+
+export type AppointmentTypesSlotsQuotaRulesCreateResponses = {
+    201: AppointmentTypeScopedQuotaRule;
+};
+
+export type AppointmentTypesSlotsQuotaRulesCreateResponse = AppointmentTypesSlotsQuotaRulesCreateResponses[keyof AppointmentTypesSlotsQuotaRulesCreateResponses];
+
+export type AppointmentTypesSlotsQuotaRulesFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        slot_id: number;
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/quota-rules{format}';
+};
+
+export type AppointmentTypesSlotsQuotaRulesFormattedListResponses = {
+    200: PaginatedAppointmentTypeScopedQuotaRuleList;
+};
+
+export type AppointmentTypesSlotsQuotaRulesFormattedListResponse = AppointmentTypesSlotsQuotaRulesFormattedListResponses[keyof AppointmentTypesSlotsQuotaRulesFormattedListResponses];
+
+export type AppointmentTypesSlotsQuotaRulesFormattedCreateData = {
+    body: AppointmentTypeScopedQuotaRuleCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/quota-rules{format}';
+};
+
+export type AppointmentTypesSlotsQuotaRulesFormattedCreateResponses = {
+    201: AppointmentTypeScopedQuotaRule;
+};
+
+export type AppointmentTypesSlotsQuotaRulesFormattedCreateResponse = AppointmentTypesSlotsQuotaRulesFormattedCreateResponses[keyof AppointmentTypesSlotsQuotaRulesFormattedCreateResponses];
+
+export type AppointmentTypesSlotsQuotaRulesDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/quota-rules/{id}/';
+};
+
+export type AppointmentTypesSlotsQuotaRulesDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type AppointmentTypesSlotsQuotaRulesDestroyResponse = AppointmentTypesSlotsQuotaRulesDestroyResponses[keyof AppointmentTypesSlotsQuotaRulesDestroyResponses];
+
+export type AppointmentTypesSlotsQuotaRulesRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/quota-rules/{id}/';
+};
+
+export type AppointmentTypesSlotsQuotaRulesRetrieveResponses = {
+    200: AppointmentTypeScopedQuotaRule;
+};
+
+export type AppointmentTypesSlotsQuotaRulesRetrieveResponse = AppointmentTypesSlotsQuotaRulesRetrieveResponses[keyof AppointmentTypesSlotsQuotaRulesRetrieveResponses];
+
+export type AppointmentTypesSlotsQuotaRulesPartialUpdateData = {
+    body?: PatchedAppointmentTypeScopedQuotaRuleUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/quota-rules/{id}/';
+};
+
+export type AppointmentTypesSlotsQuotaRulesPartialUpdateResponses = {
+    200: AppointmentTypeScopedQuotaRule;
+};
+
+export type AppointmentTypesSlotsQuotaRulesPartialUpdateResponse = AppointmentTypesSlotsQuotaRulesPartialUpdateResponses[keyof AppointmentTypesSlotsQuotaRulesPartialUpdateResponses];
+
+export type AppointmentTypesSlotsQuotaRulesFormattedDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/quota-rules/{id}{format}';
+};
+
+export type AppointmentTypesSlotsQuotaRulesFormattedDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type AppointmentTypesSlotsQuotaRulesFormattedDestroyResponse = AppointmentTypesSlotsQuotaRulesFormattedDestroyResponses[keyof AppointmentTypesSlotsQuotaRulesFormattedDestroyResponses];
+
+export type AppointmentTypesSlotsQuotaRulesFormattedRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/quota-rules/{id}{format}';
+};
+
+export type AppointmentTypesSlotsQuotaRulesFormattedRetrieveResponses = {
+    200: AppointmentTypeScopedQuotaRule;
+};
+
+export type AppointmentTypesSlotsQuotaRulesFormattedRetrieveResponse = AppointmentTypesSlotsQuotaRulesFormattedRetrieveResponses[keyof AppointmentTypesSlotsQuotaRulesFormattedRetrieveResponses];
+
+export type AppointmentTypesSlotsQuotaRulesFormattedPartialUpdateData = {
+    body?: PatchedAppointmentTypeScopedQuotaRuleUpdate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        appointment_type_id: number;
+        format: '.json';
+        id: string;
+        slot_id: number;
+    };
+    query?: never;
+    url: '/appointment-types/{appointment_type_id}/slots/{slot_id}/quota-rules/{id}{format}';
+};
+
+export type AppointmentTypesSlotsQuotaRulesFormattedPartialUpdateResponses = {
+    200: AppointmentTypeScopedQuotaRule;
+};
+
+export type AppointmentTypesSlotsQuotaRulesFormattedPartialUpdateResponse = AppointmentTypesSlotsQuotaRulesFormattedPartialUpdateResponses[keyof AppointmentTypesSlotsQuotaRulesFormattedPartialUpdateResponses];
+
+export type AppointmentTypesDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/appointment-types/{id}/';
+};
+
+export type AppointmentTypesDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type AppointmentTypesDestroyResponse = AppointmentTypesDestroyResponses[keyof AppointmentTypesDestroyResponses];
+
+export type AppointmentTypesRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/appointment-types/{id}/';
+};
+
+export type AppointmentTypesRetrieveResponses = {
+    200: AppointmentType;
+};
+
+export type AppointmentTypesRetrieveResponse = AppointmentTypesRetrieveResponses[keyof AppointmentTypesRetrieveResponses];
+
+export type AppointmentTypesPartialUpdateData = {
+    body?: PatchedAppointmentTypeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/appointment-types/{id}/';
+};
+
+export type AppointmentTypesPartialUpdateResponses = {
+    200: AppointmentType;
+};
+
+export type AppointmentTypesPartialUpdateResponse = AppointmentTypesPartialUpdateResponses[keyof AppointmentTypesPartialUpdateResponses];
+
+export type AppointmentTypesUpdateData = {
+    body: AppointmentTypeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/appointment-types/{id}/';
+};
+
+export type AppointmentTypesUpdateResponses = {
+    200: AppointmentType;
+};
+
+export type AppointmentTypesUpdateResponse = AppointmentTypesUpdateResponses[keyof AppointmentTypesUpdateResponses];
+
+export type AppointmentTypesFormattedDestroyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/appointment-types/{id}{format}';
+};
+
+export type AppointmentTypesFormattedDestroyResponses = {
+    /**
+     * No response body
+     */
+    204: void;
+};
+
+export type AppointmentTypesFormattedDestroyResponse = AppointmentTypesFormattedDestroyResponses[keyof AppointmentTypesFormattedDestroyResponses];
+
+export type AppointmentTypesFormattedRetrieveData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/appointment-types/{id}{format}';
+};
+
+export type AppointmentTypesFormattedRetrieveResponses = {
+    200: AppointmentType;
+};
+
+export type AppointmentTypesFormattedRetrieveResponse = AppointmentTypesFormattedRetrieveResponses[keyof AppointmentTypesFormattedRetrieveResponses];
+
+export type AppointmentTypesFormattedPartialUpdateData = {
+    body?: PatchedAppointmentTypeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/appointment-types/{id}{format}';
+};
+
+export type AppointmentTypesFormattedPartialUpdateResponses = {
+    200: AppointmentType;
+};
+
+export type AppointmentTypesFormattedPartialUpdateResponse = AppointmentTypesFormattedPartialUpdateResponses[keyof AppointmentTypesFormattedPartialUpdateResponses];
+
+export type AppointmentTypesFormattedUpdateData = {
+    body: AppointmentTypeWritable;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/appointment-types/{id}{format}';
+};
+
+export type AppointmentTypesFormattedUpdateResponses = {
+    200: AppointmentType;
+};
+
+export type AppointmentTypesFormattedUpdateResponse = AppointmentTypesFormattedUpdateResponses[keyof AppointmentTypesFormattedUpdateResponses];
+
+export type AppointmentTypesAvailabilityCreateData = {
+    body: AppointmentTypeAvailabilityQuery;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * Filter by partial name match
+         */
+        name?: string;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/appointment-types/{id}/availability/';
+};
+
+export type AppointmentTypesAvailabilityCreateResponses = {
+    200: PaginatedAppointmentTypeRangeAvailabilityList;
+};
+
+export type AppointmentTypesAvailabilityCreateResponse = AppointmentTypesAvailabilityCreateResponses[keyof AppointmentTypesAvailabilityCreateResponses];
+
+export type AppointmentTypesAvailabilityFormattedCreateData = {
+    body: AppointmentTypeAvailabilityQuery;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * Filter by partial name match
+         */
+        name?: string;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/appointment-types/{id}/availability{format}';
+};
+
+export type AppointmentTypesAvailabilityFormattedCreateResponses = {
+    200: PaginatedAppointmentTypeRangeAvailabilityList;
+};
+
+export type AppointmentTypesAvailabilityFormattedCreateResponse = AppointmentTypesAvailabilityFormattedCreateResponses[keyof AppointmentTypesAvailabilityFormattedCreateResponses];
+
+export type AppointmentTypesBookableSlotsListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query: {
+        /**
+         * Desired event duration, in seconds
+         */
+        duration_seconds: number;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * Filter by partial name match
+         */
+        name?: string;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * End of the search window (ISO 8601)
+         */
+        search_window_end: string;
+        /**
+         * Start of the search window (ISO 8601)
+         */
+        search_window_start: string;
+        /**
+         * Search step, in seconds (default 900 = 15min)
+         */
+        slot_step_seconds?: number;
+    };
+    url: '/appointment-types/{id}/bookable-slots/';
+};
+
+export type AppointmentTypesBookableSlotsListResponses = {
+    200: PaginatedBookableSlotProposalList;
+};
+
+export type AppointmentTypesBookableSlotsListResponse = AppointmentTypesBookableSlotsListResponses[keyof AppointmentTypesBookableSlotsListResponses];
+
+export type AppointmentTypesBookableSlotsFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query: {
+        /**
+         * Desired event duration, in seconds
+         */
+        duration_seconds: number;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * Filter by partial name match
+         */
+        name?: string;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * End of the search window (ISO 8601)
+         */
+        search_window_end: string;
+        /**
+         * Start of the search window (ISO 8601)
+         */
+        search_window_start: string;
+        /**
+         * Search step, in seconds (default 900 = 15min)
+         */
+        slot_step_seconds?: number;
+    };
+    url: '/appointment-types/{id}/bookable-slots{format}';
+};
+
+export type AppointmentTypesBookableSlotsFormattedListResponses = {
+    200: PaginatedBookableSlotProposalList;
+};
+
+export type AppointmentTypesBookableSlotsFormattedListResponse = AppointmentTypesBookableSlotsFormattedListResponses[keyof AppointmentTypesBookableSlotsFormattedListResponses];
+
+export type AppointmentTypesBookedEventsListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query: {
+        /**
+         * End datetime in ISO format
+         */
+        end_datetime: string;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * Filter by partial name match
+         */
+        name?: string;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * Start datetime in ISO format
+         */
+        start_datetime: string;
+    };
+    url: '/appointment-types/{id}/booked-events/';
+};
+
+export type AppointmentTypesBookedEventsListResponses = {
+    200: PaginatedCalendarEventList;
+};
+
+export type AppointmentTypesBookedEventsListResponse = AppointmentTypesBookedEventsListResponses[keyof AppointmentTypesBookedEventsListResponses];
+
+export type AppointmentTypesBookedEventsFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query: {
+        /**
+         * End datetime in ISO format
+         */
+        end_datetime: string;
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * Filter by partial name match
+         */
+        name?: string;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+        /**
+         * Start datetime in ISO format
+         */
+        start_datetime: string;
+    };
+    url: '/appointment-types/{id}/booked-events{format}';
+};
+
+export type AppointmentTypesBookedEventsFormattedListResponses = {
+    200: PaginatedCalendarEventList;
+};
+
+export type AppointmentTypesBookedEventsFormattedListResponse = AppointmentTypesBookedEventsFormattedListResponses[keyof AppointmentTypesBookedEventsFormattedListResponses];
+
+export type AppointmentTypesEventsCreateData = {
+    body: AppointmentTypeEventCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/appointment-types/{id}/events/';
+};
+
+export type AppointmentTypesEventsCreateResponses = {
+    201: CalendarEvent;
+};
+
+export type AppointmentTypesEventsCreateResponse = AppointmentTypesEventsCreateResponses[keyof AppointmentTypesEventsCreateResponses];
+
+export type AppointmentTypesEventsFormattedCreateData = {
+    body: AppointmentTypeEventCreate;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: never;
+    url: '/appointment-types/{id}/events{format}';
+};
+
+export type AppointmentTypesEventsFormattedCreateResponses = {
+    201: CalendarEvent;
+};
+
+export type AppointmentTypesEventsFormattedCreateResponse = AppointmentTypesEventsFormattedCreateResponses[keyof AppointmentTypesEventsFormattedCreateResponses];
+
+export type AppointmentTypesStaleSelectionsListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: {
+        /**
+         * Max rows to return, 1-100. Defaults to 100.
+         */
+        limit?: number;
+        /**
+         * Number of rows to skip. Defaults to 0.
+         */
+        offset?: number;
+        /**
+         * Only events starting before this instant (ISO 8601). Optional.
+         */
+        window_end?: string;
+        /**
+         * Only events ending after this instant (ISO 8601). Optional.
+         */
+        window_start?: string;
+    };
+    url: '/appointment-types/{id}/stale-selections/';
+};
+
+export type AppointmentTypesStaleSelectionsListResponses = {
+    200: Array<StaleSelection>;
+};
+
+export type AppointmentTypesStaleSelectionsListResponse = AppointmentTypesStaleSelectionsListResponses[keyof AppointmentTypesStaleSelectionsListResponses];
+
+export type AppointmentTypesStaleSelectionsFormattedListData = {
+    body?: never;
+    headers?: {
+        /**
+         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
+         */
+        'X-Organization-Id'?: string;
+    };
+    path: {
+        format: '.json';
+        id: string;
+    };
+    query?: {
+        /**
+         * Max rows to return, 1-100. Defaults to 100.
+         */
+        limit?: number;
+        /**
+         * Number of rows to skip. Defaults to 0.
+         */
+        offset?: number;
+        /**
+         * Only events starting before this instant (ISO 8601). Optional.
+         */
+        window_end?: string;
+        /**
+         * Only events ending after this instant (ISO 8601). Optional.
+         */
+        window_start?: string;
+    };
+    url: '/appointment-types/{id}/stale-selections{format}';
+};
+
+export type AppointmentTypesStaleSelectionsFormattedListResponses = {
+    200: Array<StaleSelection>;
+};
+
+export type AppointmentTypesStaleSelectionsFormattedListResponse = AppointmentTypesStaleSelectionsFormattedListResponses[keyof AppointmentTypesStaleSelectionsFormattedListResponses];
 
 export type AvailableTimesListData = {
     body?: never;
@@ -7658,1430 +9082,6 @@ export type CalendarEventsExpandedFormattedListResponses = {
 
 export type CalendarEventsExpandedFormattedListResponse = CalendarEventsExpandedFormattedListResponses[keyof CalendarEventsExpandedFormattedListResponses];
 
-export type CalendarGroupsListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path?: never;
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * Filter by partial name match
-         */
-        name?: string;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/calendar-groups/';
-};
-
-export type CalendarGroupsListResponses = {
-    200: PaginatedCalendarGroupList;
-};
-
-export type CalendarGroupsListResponse = CalendarGroupsListResponses[keyof CalendarGroupsListResponses];
-
-export type CalendarGroupsCreateData = {
-    body: CalendarGroupWritable;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/calendar-groups/';
-};
-
-export type CalendarGroupsCreateResponses = {
-    201: CalendarGroup;
-};
-
-export type CalendarGroupsCreateResponse = CalendarGroupsCreateResponses[keyof CalendarGroupsCreateResponses];
-
-export type CalendarGroupsFormattedListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-    };
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * Filter by partial name match
-         */
-        name?: string;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/calendar-groups{format}';
-};
-
-export type CalendarGroupsFormattedListResponses = {
-    200: PaginatedCalendarGroupList;
-};
-
-export type CalendarGroupsFormattedListResponse = CalendarGroupsFormattedListResponses[keyof CalendarGroupsFormattedListResponses];
-
-export type CalendarGroupsFormattedCreateData = {
-    body: CalendarGroupWritable;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-    };
-    query?: never;
-    url: '/calendar-groups{format}';
-};
-
-export type CalendarGroupsFormattedCreateResponses = {
-    201: CalendarGroup;
-};
-
-export type CalendarGroupsFormattedCreateResponse = CalendarGroupsFormattedCreateResponses[keyof CalendarGroupsFormattedCreateResponses];
-
-export type CalendarGroupsSlotsAvailabilityWindowsListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        slot_id: number;
-    };
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/availability-windows/';
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsListResponses = {
-    200: PaginatedGroupScopedAvailabilityWindowList;
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsListResponse = CalendarGroupsSlotsAvailabilityWindowsListResponses[keyof CalendarGroupsSlotsAvailabilityWindowsListResponses];
-
-export type CalendarGroupsSlotsAvailabilityWindowsCreateData = {
-    body: GroupScopedAvailabilityWindowCreate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/availability-windows/';
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsCreateResponses = {
-    201: GroupScopedAvailabilityWriteResult;
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsCreateResponse = CalendarGroupsSlotsAvailabilityWindowsCreateResponses[keyof CalendarGroupsSlotsAvailabilityWindowsCreateResponses];
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        slot_id: number;
-    };
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/availability-windows{format}';
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedListResponses = {
-    200: PaginatedGroupScopedAvailabilityWindowList;
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedListResponse = CalendarGroupsSlotsAvailabilityWindowsFormattedListResponses[keyof CalendarGroupsSlotsAvailabilityWindowsFormattedListResponses];
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedCreateData = {
-    body: GroupScopedAvailabilityWindowCreate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/availability-windows{format}';
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedCreateResponses = {
-    201: GroupScopedAvailabilityWriteResult;
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedCreateResponse = CalendarGroupsSlotsAvailabilityWindowsFormattedCreateResponses[keyof CalendarGroupsSlotsAvailabilityWindowsFormattedCreateResponses];
-
-export type CalendarGroupsSlotsAvailabilityWindowsDestroyData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/availability-windows/{id}/';
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsDestroyResponses = {
-    /**
-     * No response body
-     */
-    204: void;
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsDestroyResponse = CalendarGroupsSlotsAvailabilityWindowsDestroyResponses[keyof CalendarGroupsSlotsAvailabilityWindowsDestroyResponses];
-
-export type CalendarGroupsSlotsAvailabilityWindowsRetrieveData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/availability-windows/{id}/';
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsRetrieveResponses = {
-    200: GroupScopedAvailabilityWindow;
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsRetrieveResponse = CalendarGroupsSlotsAvailabilityWindowsRetrieveResponses[keyof CalendarGroupsSlotsAvailabilityWindowsRetrieveResponses];
-
-export type CalendarGroupsSlotsAvailabilityWindowsPartialUpdateData = {
-    body?: PatchedGroupScopedAvailabilityWindowUpdate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/availability-windows/{id}/';
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsPartialUpdateResponses = {
-    200: GroupScopedAvailabilityWriteResult;
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsPartialUpdateResponse = CalendarGroupsSlotsAvailabilityWindowsPartialUpdateResponses[keyof CalendarGroupsSlotsAvailabilityWindowsPartialUpdateResponses];
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedDestroyData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/availability-windows/{id}{format}';
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedDestroyResponses = {
-    /**
-     * No response body
-     */
-    204: void;
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedDestroyResponse = CalendarGroupsSlotsAvailabilityWindowsFormattedDestroyResponses[keyof CalendarGroupsSlotsAvailabilityWindowsFormattedDestroyResponses];
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedRetrieveData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/availability-windows/{id}{format}';
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedRetrieveResponses = {
-    200: GroupScopedAvailabilityWindow;
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedRetrieveResponse = CalendarGroupsSlotsAvailabilityWindowsFormattedRetrieveResponses[keyof CalendarGroupsSlotsAvailabilityWindowsFormattedRetrieveResponses];
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedPartialUpdateData = {
-    body?: PatchedGroupScopedAvailabilityWindowUpdate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/availability-windows/{id}{format}';
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedPartialUpdateResponses = {
-    200: GroupScopedAvailabilityWriteResult;
-};
-
-export type CalendarGroupsSlotsAvailabilityWindowsFormattedPartialUpdateResponse = CalendarGroupsSlotsAvailabilityWindowsFormattedPartialUpdateResponses[keyof CalendarGroupsSlotsAvailabilityWindowsFormattedPartialUpdateResponses];
-
-export type CalendarGroupsSlotsBlockedTimesListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        slot_id: number;
-    };
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/blocked-times/';
-};
-
-export type CalendarGroupsSlotsBlockedTimesListResponses = {
-    200: PaginatedGroupScopedBlockedTimeList;
-};
-
-export type CalendarGroupsSlotsBlockedTimesListResponse = CalendarGroupsSlotsBlockedTimesListResponses[keyof CalendarGroupsSlotsBlockedTimesListResponses];
-
-export type CalendarGroupsSlotsBlockedTimesCreateData = {
-    body: GroupScopedBlockedTimeCreate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/blocked-times/';
-};
-
-export type CalendarGroupsSlotsBlockedTimesCreateResponses = {
-    201: GroupScopedBlockWriteResult;
-};
-
-export type CalendarGroupsSlotsBlockedTimesCreateResponse = CalendarGroupsSlotsBlockedTimesCreateResponses[keyof CalendarGroupsSlotsBlockedTimesCreateResponses];
-
-export type CalendarGroupsSlotsBlockedTimesFormattedListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        slot_id: number;
-    };
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/blocked-times{format}';
-};
-
-export type CalendarGroupsSlotsBlockedTimesFormattedListResponses = {
-    200: PaginatedGroupScopedBlockedTimeList;
-};
-
-export type CalendarGroupsSlotsBlockedTimesFormattedListResponse = CalendarGroupsSlotsBlockedTimesFormattedListResponses[keyof CalendarGroupsSlotsBlockedTimesFormattedListResponses];
-
-export type CalendarGroupsSlotsBlockedTimesFormattedCreateData = {
-    body: GroupScopedBlockedTimeCreate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/blocked-times{format}';
-};
-
-export type CalendarGroupsSlotsBlockedTimesFormattedCreateResponses = {
-    201: GroupScopedBlockWriteResult;
-};
-
-export type CalendarGroupsSlotsBlockedTimesFormattedCreateResponse = CalendarGroupsSlotsBlockedTimesFormattedCreateResponses[keyof CalendarGroupsSlotsBlockedTimesFormattedCreateResponses];
-
-export type CalendarGroupsSlotsBlockedTimesDestroyData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/blocked-times/{id}/';
-};
-
-export type CalendarGroupsSlotsBlockedTimesDestroyResponses = {
-    /**
-     * No response body
-     */
-    204: void;
-};
-
-export type CalendarGroupsSlotsBlockedTimesDestroyResponse = CalendarGroupsSlotsBlockedTimesDestroyResponses[keyof CalendarGroupsSlotsBlockedTimesDestroyResponses];
-
-export type CalendarGroupsSlotsBlockedTimesRetrieveData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/blocked-times/{id}/';
-};
-
-export type CalendarGroupsSlotsBlockedTimesRetrieveResponses = {
-    200: GroupScopedBlockedTime;
-};
-
-export type CalendarGroupsSlotsBlockedTimesRetrieveResponse = CalendarGroupsSlotsBlockedTimesRetrieveResponses[keyof CalendarGroupsSlotsBlockedTimesRetrieveResponses];
-
-export type CalendarGroupsSlotsBlockedTimesPartialUpdateData = {
-    body?: PatchedGroupScopedBlockedTimeUpdate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/blocked-times/{id}/';
-};
-
-export type CalendarGroupsSlotsBlockedTimesPartialUpdateResponses = {
-    200: GroupScopedBlockWriteResult;
-};
-
-export type CalendarGroupsSlotsBlockedTimesPartialUpdateResponse = CalendarGroupsSlotsBlockedTimesPartialUpdateResponses[keyof CalendarGroupsSlotsBlockedTimesPartialUpdateResponses];
-
-export type CalendarGroupsSlotsBlockedTimesFormattedDestroyData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/blocked-times/{id}{format}';
-};
-
-export type CalendarGroupsSlotsBlockedTimesFormattedDestroyResponses = {
-    /**
-     * No response body
-     */
-    204: void;
-};
-
-export type CalendarGroupsSlotsBlockedTimesFormattedDestroyResponse = CalendarGroupsSlotsBlockedTimesFormattedDestroyResponses[keyof CalendarGroupsSlotsBlockedTimesFormattedDestroyResponses];
-
-export type CalendarGroupsSlotsBlockedTimesFormattedRetrieveData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/blocked-times/{id}{format}';
-};
-
-export type CalendarGroupsSlotsBlockedTimesFormattedRetrieveResponses = {
-    200: GroupScopedBlockedTime;
-};
-
-export type CalendarGroupsSlotsBlockedTimesFormattedRetrieveResponse = CalendarGroupsSlotsBlockedTimesFormattedRetrieveResponses[keyof CalendarGroupsSlotsBlockedTimesFormattedRetrieveResponses];
-
-export type CalendarGroupsSlotsBlockedTimesFormattedPartialUpdateData = {
-    body?: PatchedGroupScopedBlockedTimeUpdate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/blocked-times/{id}{format}';
-};
-
-export type CalendarGroupsSlotsBlockedTimesFormattedPartialUpdateResponses = {
-    200: GroupScopedBlockWriteResult;
-};
-
-export type CalendarGroupsSlotsBlockedTimesFormattedPartialUpdateResponse = CalendarGroupsSlotsBlockedTimesFormattedPartialUpdateResponses[keyof CalendarGroupsSlotsBlockedTimesFormattedPartialUpdateResponses];
-
-export type CalendarGroupsSlotsQuotaRulesListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        slot_id: number;
-    };
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/quota-rules/';
-};
-
-export type CalendarGroupsSlotsQuotaRulesListResponses = {
-    200: PaginatedGroupScopedQuotaRuleList;
-};
-
-export type CalendarGroupsSlotsQuotaRulesListResponse = CalendarGroupsSlotsQuotaRulesListResponses[keyof CalendarGroupsSlotsQuotaRulesListResponses];
-
-export type CalendarGroupsSlotsQuotaRulesCreateData = {
-    body: GroupScopedQuotaRuleCreate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/quota-rules/';
-};
-
-export type CalendarGroupsSlotsQuotaRulesCreateResponses = {
-    201: GroupScopedQuotaRule;
-};
-
-export type CalendarGroupsSlotsQuotaRulesCreateResponse = CalendarGroupsSlotsQuotaRulesCreateResponses[keyof CalendarGroupsSlotsQuotaRulesCreateResponses];
-
-export type CalendarGroupsSlotsQuotaRulesFormattedListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        slot_id: number;
-    };
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/quota-rules{format}';
-};
-
-export type CalendarGroupsSlotsQuotaRulesFormattedListResponses = {
-    200: PaginatedGroupScopedQuotaRuleList;
-};
-
-export type CalendarGroupsSlotsQuotaRulesFormattedListResponse = CalendarGroupsSlotsQuotaRulesFormattedListResponses[keyof CalendarGroupsSlotsQuotaRulesFormattedListResponses];
-
-export type CalendarGroupsSlotsQuotaRulesFormattedCreateData = {
-    body: GroupScopedQuotaRuleCreate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/quota-rules{format}';
-};
-
-export type CalendarGroupsSlotsQuotaRulesFormattedCreateResponses = {
-    201: GroupScopedQuotaRule;
-};
-
-export type CalendarGroupsSlotsQuotaRulesFormattedCreateResponse = CalendarGroupsSlotsQuotaRulesFormattedCreateResponses[keyof CalendarGroupsSlotsQuotaRulesFormattedCreateResponses];
-
-export type CalendarGroupsSlotsQuotaRulesDestroyData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/quota-rules/{id}/';
-};
-
-export type CalendarGroupsSlotsQuotaRulesDestroyResponses = {
-    /**
-     * No response body
-     */
-    204: void;
-};
-
-export type CalendarGroupsSlotsQuotaRulesDestroyResponse = CalendarGroupsSlotsQuotaRulesDestroyResponses[keyof CalendarGroupsSlotsQuotaRulesDestroyResponses];
-
-export type CalendarGroupsSlotsQuotaRulesRetrieveData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/quota-rules/{id}/';
-};
-
-export type CalendarGroupsSlotsQuotaRulesRetrieveResponses = {
-    200: GroupScopedQuotaRule;
-};
-
-export type CalendarGroupsSlotsQuotaRulesRetrieveResponse = CalendarGroupsSlotsQuotaRulesRetrieveResponses[keyof CalendarGroupsSlotsQuotaRulesRetrieveResponses];
-
-export type CalendarGroupsSlotsQuotaRulesPartialUpdateData = {
-    body?: PatchedGroupScopedQuotaRuleUpdate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/quota-rules/{id}/';
-};
-
-export type CalendarGroupsSlotsQuotaRulesPartialUpdateResponses = {
-    200: GroupScopedQuotaRule;
-};
-
-export type CalendarGroupsSlotsQuotaRulesPartialUpdateResponse = CalendarGroupsSlotsQuotaRulesPartialUpdateResponses[keyof CalendarGroupsSlotsQuotaRulesPartialUpdateResponses];
-
-export type CalendarGroupsSlotsQuotaRulesFormattedDestroyData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/quota-rules/{id}{format}';
-};
-
-export type CalendarGroupsSlotsQuotaRulesFormattedDestroyResponses = {
-    /**
-     * No response body
-     */
-    204: void;
-};
-
-export type CalendarGroupsSlotsQuotaRulesFormattedDestroyResponse = CalendarGroupsSlotsQuotaRulesFormattedDestroyResponses[keyof CalendarGroupsSlotsQuotaRulesFormattedDestroyResponses];
-
-export type CalendarGroupsSlotsQuotaRulesFormattedRetrieveData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/quota-rules/{id}{format}';
-};
-
-export type CalendarGroupsSlotsQuotaRulesFormattedRetrieveResponses = {
-    200: GroupScopedQuotaRule;
-};
-
-export type CalendarGroupsSlotsQuotaRulesFormattedRetrieveResponse = CalendarGroupsSlotsQuotaRulesFormattedRetrieveResponses[keyof CalendarGroupsSlotsQuotaRulesFormattedRetrieveResponses];
-
-export type CalendarGroupsSlotsQuotaRulesFormattedPartialUpdateData = {
-    body?: PatchedGroupScopedQuotaRuleUpdate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        group_id: number;
-        id: string;
-        slot_id: number;
-    };
-    query?: never;
-    url: '/calendar-groups/{group_id}/slots/{slot_id}/quota-rules/{id}{format}';
-};
-
-export type CalendarGroupsSlotsQuotaRulesFormattedPartialUpdateResponses = {
-    200: GroupScopedQuotaRule;
-};
-
-export type CalendarGroupsSlotsQuotaRulesFormattedPartialUpdateResponse = CalendarGroupsSlotsQuotaRulesFormattedPartialUpdateResponses[keyof CalendarGroupsSlotsQuotaRulesFormattedPartialUpdateResponses];
-
-export type CalendarGroupsDestroyData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/calendar-groups/{id}/';
-};
-
-export type CalendarGroupsDestroyResponses = {
-    /**
-     * No response body
-     */
-    204: void;
-};
-
-export type CalendarGroupsDestroyResponse = CalendarGroupsDestroyResponses[keyof CalendarGroupsDestroyResponses];
-
-export type CalendarGroupsRetrieveData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/calendar-groups/{id}/';
-};
-
-export type CalendarGroupsRetrieveResponses = {
-    200: CalendarGroup;
-};
-
-export type CalendarGroupsRetrieveResponse = CalendarGroupsRetrieveResponses[keyof CalendarGroupsRetrieveResponses];
-
-export type CalendarGroupsPartialUpdateData = {
-    body?: PatchedCalendarGroupWritable;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/calendar-groups/{id}/';
-};
-
-export type CalendarGroupsPartialUpdateResponses = {
-    200: CalendarGroup;
-};
-
-export type CalendarGroupsPartialUpdateResponse = CalendarGroupsPartialUpdateResponses[keyof CalendarGroupsPartialUpdateResponses];
-
-export type CalendarGroupsUpdateData = {
-    body: CalendarGroupWritable;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/calendar-groups/{id}/';
-};
-
-export type CalendarGroupsUpdateResponses = {
-    200: CalendarGroup;
-};
-
-export type CalendarGroupsUpdateResponse = CalendarGroupsUpdateResponses[keyof CalendarGroupsUpdateResponses];
-
-export type CalendarGroupsFormattedDestroyData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        id: string;
-    };
-    query?: never;
-    url: '/calendar-groups/{id}{format}';
-};
-
-export type CalendarGroupsFormattedDestroyResponses = {
-    /**
-     * No response body
-     */
-    204: void;
-};
-
-export type CalendarGroupsFormattedDestroyResponse = CalendarGroupsFormattedDestroyResponses[keyof CalendarGroupsFormattedDestroyResponses];
-
-export type CalendarGroupsFormattedRetrieveData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        id: string;
-    };
-    query?: never;
-    url: '/calendar-groups/{id}{format}';
-};
-
-export type CalendarGroupsFormattedRetrieveResponses = {
-    200: CalendarGroup;
-};
-
-export type CalendarGroupsFormattedRetrieveResponse = CalendarGroupsFormattedRetrieveResponses[keyof CalendarGroupsFormattedRetrieveResponses];
-
-export type CalendarGroupsFormattedPartialUpdateData = {
-    body?: PatchedCalendarGroupWritable;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        id: string;
-    };
-    query?: never;
-    url: '/calendar-groups/{id}{format}';
-};
-
-export type CalendarGroupsFormattedPartialUpdateResponses = {
-    200: CalendarGroup;
-};
-
-export type CalendarGroupsFormattedPartialUpdateResponse = CalendarGroupsFormattedPartialUpdateResponses[keyof CalendarGroupsFormattedPartialUpdateResponses];
-
-export type CalendarGroupsFormattedUpdateData = {
-    body: CalendarGroupWritable;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        id: string;
-    };
-    query?: never;
-    url: '/calendar-groups/{id}{format}';
-};
-
-export type CalendarGroupsFormattedUpdateResponses = {
-    200: CalendarGroup;
-};
-
-export type CalendarGroupsFormattedUpdateResponse = CalendarGroupsFormattedUpdateResponses[keyof CalendarGroupsFormattedUpdateResponses];
-
-export type CalendarGroupsAvailabilityCreateData = {
-    body: CalendarGroupAvailabilityQuery;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        id: string;
-    };
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * Filter by partial name match
-         */
-        name?: string;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/calendar-groups/{id}/availability/';
-};
-
-export type CalendarGroupsAvailabilityCreateResponses = {
-    200: PaginatedCalendarGroupRangeAvailabilityList;
-};
-
-export type CalendarGroupsAvailabilityCreateResponse = CalendarGroupsAvailabilityCreateResponses[keyof CalendarGroupsAvailabilityCreateResponses];
-
-export type CalendarGroupsAvailabilityFormattedCreateData = {
-    body: CalendarGroupAvailabilityQuery;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        id: string;
-    };
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * Filter by partial name match
-         */
-        name?: string;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/calendar-groups/{id}/availability{format}';
-};
-
-export type CalendarGroupsAvailabilityFormattedCreateResponses = {
-    200: PaginatedCalendarGroupRangeAvailabilityList;
-};
-
-export type CalendarGroupsAvailabilityFormattedCreateResponse = CalendarGroupsAvailabilityFormattedCreateResponses[keyof CalendarGroupsAvailabilityFormattedCreateResponses];
-
-export type CalendarGroupsBookableSlotsListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        id: string;
-    };
-    query: {
-        /**
-         * Desired event duration, in seconds
-         */
-        duration_seconds: number;
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * Filter by partial name match
-         */
-        name?: string;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
-         * End of the search window (ISO 8601)
-         */
-        search_window_end: string;
-        /**
-         * Start of the search window (ISO 8601)
-         */
-        search_window_start: string;
-        /**
-         * Search step, in seconds (default 900 = 15min)
-         */
-        slot_step_seconds?: number;
-    };
-    url: '/calendar-groups/{id}/bookable-slots/';
-};
-
-export type CalendarGroupsBookableSlotsListResponses = {
-    200: PaginatedBookableSlotProposalList;
-};
-
-export type CalendarGroupsBookableSlotsListResponse = CalendarGroupsBookableSlotsListResponses[keyof CalendarGroupsBookableSlotsListResponses];
-
-export type CalendarGroupsBookableSlotsFormattedListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        id: string;
-    };
-    query: {
-        /**
-         * Desired event duration, in seconds
-         */
-        duration_seconds: number;
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * Filter by partial name match
-         */
-        name?: string;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
-         * End of the search window (ISO 8601)
-         */
-        search_window_end: string;
-        /**
-         * Start of the search window (ISO 8601)
-         */
-        search_window_start: string;
-        /**
-         * Search step, in seconds (default 900 = 15min)
-         */
-        slot_step_seconds?: number;
-    };
-    url: '/calendar-groups/{id}/bookable-slots{format}';
-};
-
-export type CalendarGroupsBookableSlotsFormattedListResponses = {
-    200: PaginatedBookableSlotProposalList;
-};
-
-export type CalendarGroupsBookableSlotsFormattedListResponse = CalendarGroupsBookableSlotsFormattedListResponses[keyof CalendarGroupsBookableSlotsFormattedListResponses];
-
-export type CalendarGroupsBookedEventsListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        id: string;
-    };
-    query: {
-        /**
-         * End datetime in ISO format
-         */
-        end_datetime: string;
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * Filter by partial name match
-         */
-        name?: string;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
-         * Start datetime in ISO format
-         */
-        start_datetime: string;
-    };
-    url: '/calendar-groups/{id}/booked-events/';
-};
-
-export type CalendarGroupsBookedEventsListResponses = {
-    200: PaginatedCalendarEventList;
-};
-
-export type CalendarGroupsBookedEventsListResponse = CalendarGroupsBookedEventsListResponses[keyof CalendarGroupsBookedEventsListResponses];
-
-export type CalendarGroupsBookedEventsFormattedListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        id: string;
-    };
-    query: {
-        /**
-         * End datetime in ISO format
-         */
-        end_datetime: string;
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * Filter by partial name match
-         */
-        name?: string;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-        /**
-         * Start datetime in ISO format
-         */
-        start_datetime: string;
-    };
-    url: '/calendar-groups/{id}/booked-events{format}';
-};
-
-export type CalendarGroupsBookedEventsFormattedListResponses = {
-    200: PaginatedCalendarEventList;
-};
-
-export type CalendarGroupsBookedEventsFormattedListResponse = CalendarGroupsBookedEventsFormattedListResponses[keyof CalendarGroupsBookedEventsFormattedListResponses];
-
-export type CalendarGroupsEventsCreateData = {
-    body: CalendarGroupEventCreate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/calendar-groups/{id}/events/';
-};
-
-export type CalendarGroupsEventsCreateResponses = {
-    201: CalendarEvent;
-};
-
-export type CalendarGroupsEventsCreateResponse = CalendarGroupsEventsCreateResponses[keyof CalendarGroupsEventsCreateResponses];
-
-export type CalendarGroupsEventsFormattedCreateData = {
-    body: CalendarGroupEventCreate;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        id: string;
-    };
-    query?: never;
-    url: '/calendar-groups/{id}/events{format}';
-};
-
-export type CalendarGroupsEventsFormattedCreateResponses = {
-    201: CalendarEvent;
-};
-
-export type CalendarGroupsEventsFormattedCreateResponse = CalendarGroupsEventsFormattedCreateResponses[keyof CalendarGroupsEventsFormattedCreateResponses];
-
-export type CalendarGroupsStaleSelectionsListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        id: string;
-    };
-    query?: {
-        /**
-         * Max rows to return, 1-100. Defaults to 100.
-         */
-        limit?: number;
-        /**
-         * Number of rows to skip. Defaults to 0.
-         */
-        offset?: number;
-        /**
-         * Only events starting before this instant (ISO 8601). Optional.
-         */
-        window_end?: string;
-        /**
-         * Only events ending after this instant (ISO 8601). Optional.
-         */
-        window_start?: string;
-    };
-    url: '/calendar-groups/{id}/stale-selections/';
-};
-
-export type CalendarGroupsStaleSelectionsListResponses = {
-    200: Array<StaleSelection>;
-};
-
-export type CalendarGroupsStaleSelectionsListResponse = CalendarGroupsStaleSelectionsListResponses[keyof CalendarGroupsStaleSelectionsListResponses];
-
-export type CalendarGroupsStaleSelectionsFormattedListData = {
-    body?: never;
-    headers?: {
-        /**
-         * Selects the active organization for this request. Optional for callers that belong to exactly one active organization — the single membership is resolved implicitly. **Required** when the caller has two or more active memberships; omitting it in that case returns **400**. If the header names an organization the caller is not an active member of, the server returns **403**.
-         */
-        'X-Organization-Id'?: string;
-    };
-    path: {
-        format: '.json';
-        id: string;
-    };
-    query?: {
-        /**
-         * Max rows to return, 1-100. Defaults to 100.
-         */
-        limit?: number;
-        /**
-         * Number of rows to skip. Defaults to 0.
-         */
-        offset?: number;
-        /**
-         * Only events starting before this instant (ISO 8601). Optional.
-         */
-        window_end?: string;
-        /**
-         * Only events ending after this instant (ISO 8601). Optional.
-         */
-        window_start?: string;
-    };
-    url: '/calendar-groups/{id}/stale-selections{format}';
-};
-
-export type CalendarGroupsStaleSelectionsFormattedListResponses = {
-    200: Array<StaleSelection>;
-};
-
-export type CalendarGroupsStaleSelectionsFormattedListResponse = CalendarGroupsStaleSelectionsFormattedListResponses[keyof CalendarGroupsStaleSelectionsFormattedListResponses];
-
 export type CalendarPoolsListData = {
     body?: never;
     headers?: {
@@ -9205,7 +9205,7 @@ export type CalendarPoolsDestroyData = {
 
 export type CalendarPoolsDestroyErrors = {
     /**
-     * Pool is still attached to a group slot.
+     * Pool is still attached to an appointment type slot.
      */
     409: unknown;
 };
@@ -9300,7 +9300,7 @@ export type CalendarPoolsFormattedDestroyData = {
 
 export type CalendarPoolsFormattedDestroyErrors = {
     /**
-     * Pool is still attached to a group slot.
+     * Pool is still attached to an appointment type slot.
      */
     409: unknown;
 };
@@ -12544,6 +12544,162 @@ export type PublicApiTokensRevokeFormattedCreateResponses = {
 
 export type PublicApiTokensRevokeFormattedCreateResponse = PublicApiTokensRevokeFormattedCreateResponses[keyof PublicApiTokensRevokeFormattedCreateResponses];
 
+export type PublicBookingAppointmentTypeAvailabilityCreateData = {
+    body: AppointmentTypeAvailabilityQuery;
+    headers: {
+        /**
+         * Single-use booking code. Every failure -- invalid, expired, used, revoked, or wrong-scope -- returns the same 403 {"detail": "Invalid or expired code."}; this endpoint never discloses which one occurred. Repeatable: never consumed by a read.
+         */
+        'X-Booking-Code': string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/public/booking/appointment-type-availability/';
+};
+
+export type PublicBookingAppointmentTypeAvailabilityCreateResponses = {
+    200: PaginatedAppointmentTypeRangeAvailabilityList;
+};
+
+export type PublicBookingAppointmentTypeAvailabilityCreateResponse = PublicBookingAppointmentTypeAvailabilityCreateResponses[keyof PublicBookingAppointmentTypeAvailabilityCreateResponses];
+
+export type PublicBookingAppointmentTypeBookableSlotsListData = {
+    body?: never;
+    headers: {
+        /**
+         * Single-use booking code. Every failure -- invalid, expired, used, revoked, or wrong-scope -- returns the same 403 {"detail": "Invalid or expired code."}; this endpoint never discloses which one occurred. Repeatable: never consumed by a read.
+         */
+        'X-Booking-Code': string;
+    };
+    path?: never;
+    query: {
+        /**
+         * Desired event duration, in seconds. ALWAYS REQUIRED to be present (a request omitting it is a 400 whether or not the resolved code's appointment type pins a duration -- presence alone must never disclose pin state). Duration pinning lives on the AppointmentType, not on the code: on the calendar-scoped endpoint this value always stands as given -- a calendar-scoped code carries no duration constraint at all. On the appointment-type-scoped endpoint, when the resolved code's appointment type pins a duration, the pin silently overrides this parameter's VALUE: a mismatched or malformed value produces the exact same response as the pinned value, so this endpoint cannot be used to probe whether an appointment type is pinned or what the pin is. When the appointment type pins no duration, the value must also be a valid positive integer.
+         */
+        duration_seconds: number;
+        /**
+         * End of the search window (ISO 8601).
+         */
+        search_window_end: string;
+        /**
+         * Start of the search window (ISO 8601).
+         */
+        search_window_start: string;
+        /**
+         * Search step, in seconds (default 900 = 15min).
+         */
+        slot_step_seconds?: number;
+    };
+    url: '/public/booking/appointment-type-bookable-slots/';
+};
+
+export type PublicBookingAppointmentTypeBookableSlotsListResponses = {
+    200: Array<BookableSlotProposal>;
+};
+
+export type PublicBookingAppointmentTypeBookableSlotsListResponse = PublicBookingAppointmentTypeBookableSlotsListResponses[keyof PublicBookingAppointmentTypeBookableSlotsListResponses];
+
+export type PublicBookingAppointmentTypeEventsRescheduleCreateData = {
+    body: BookingCodeReschedule;
+    headers: {
+        /**
+         * Single-use booking code, minted with the RESCHEDULE permission and bound to a specific event on an appointment type (not a single calendar).
+         */
+        'X-Booking-Code': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/public/booking/appointment-type-events/reschedule/';
+};
+
+export type PublicBookingAppointmentTypeEventsRescheduleCreateResponses = {
+    201: CalendarEventWithManagementCodes;
+};
+
+export type PublicBookingAppointmentTypeEventsRescheduleCreateResponse = PublicBookingAppointmentTypeEventsRescheduleCreateResponses[keyof PublicBookingAppointmentTypeEventsRescheduleCreateResponses];
+
+export type PublicBookingAppointmentTypesAvailabilityCreateData = {
+    body: AppointmentTypeAvailabilityQuery;
+    path: {
+        public_slug: string;
+    };
+    query?: {
+        /**
+         * Number of results to return per page.
+         */
+        limit?: number;
+        /**
+         * The initial index from which to return the results.
+         */
+        offset?: number;
+    };
+    url: '/public/booking/appointment-types/{public_slug}/availability/';
+};
+
+export type PublicBookingAppointmentTypesAvailabilityCreateResponses = {
+    200: PaginatedAppointmentTypeRangeAvailabilityList;
+};
+
+export type PublicBookingAppointmentTypesAvailabilityCreateResponse = PublicBookingAppointmentTypesAvailabilityCreateResponses[keyof PublicBookingAppointmentTypesAvailabilityCreateResponses];
+
+export type PublicBookingAppointmentTypesBookableSlotsListData = {
+    body?: never;
+    path: {
+        public_slug: string;
+    };
+    query: {
+        /**
+         * End of the search window (ISO 8601).
+         */
+        search_window_end: string;
+        /**
+         * Start of the search window (ISO 8601).
+         */
+        search_window_start: string;
+        /**
+         * Search step, in seconds (default 900 = 15min).
+         */
+        slot_step_seconds?: number;
+    };
+    url: '/public/booking/appointment-types/{public_slug}/bookable-slots/';
+};
+
+export type PublicBookingAppointmentTypesBookableSlotsListResponses = {
+    200: Array<BookableSlotProposal>;
+};
+
+export type PublicBookingAppointmentTypesBookableSlotsListResponse = PublicBookingAppointmentTypesBookableSlotsListResponses[keyof PublicBookingAppointmentTypesBookableSlotsListResponses];
+
+export type PublicBookingAppointmentTypesEventsCreateData = {
+    body: BookingCodeAppointmentTypeEventCreate;
+    headers?: {
+        /**
+         * Single-use booking code, minted with the CREATE permission and scoped to an appointment type (not a single calendar). OPTIONAL on this endpoint only: when omitted, the booking is authorized instead by the path appointment type's own accepts_public_scheduling flag (codeless public appointment type booking, GraphQL parity with createAppointmentTypeEvent). When present, the coded path always wins -- a public appointment type handed a valid appointment type code still books through it and consumes it.
+         */
+        'X-Booking-Code'?: string;
+    };
+    path: {
+        public_slug: string;
+    };
+    query?: never;
+    url: '/public/booking/appointment-types/{public_slug}/events/';
+};
+
+export type PublicBookingAppointmentTypesEventsCreateResponses = {
+    201: CalendarEventWithManagementCodes;
+};
+
+export type PublicBookingAppointmentTypesEventsCreateResponse = PublicBookingAppointmentTypesEventsCreateResponses[keyof PublicBookingAppointmentTypesEventsCreateResponses];
+
 export type PublicBookingAvailabilityWindowsListData = {
     body?: never;
     headers: {
@@ -12611,7 +12767,7 @@ export type PublicBookingCalendarBookableSlotsListData = {
     path?: never;
     query: {
         /**
-         * Desired event duration, in seconds. ALWAYS REQUIRED to be present (a request omitting it is a 400 whether or not the resolved code's group pins a duration -- presence alone must never disclose pin state). Duration pinning lives on the CalendarGroup, not on the code: on the calendar-scoped endpoint this value always stands as given -- a calendar-scoped code carries no duration constraint at all. On the group-scoped endpoint, when the resolved code's group pins a duration, the pin silently overrides this parameter's VALUE: a mismatched or malformed value produces the exact same response as the pinned value, so this endpoint cannot be used to probe whether a group is pinned or what the pin is. When the group pins no duration, the value must also be a valid positive integer.
+         * Desired event duration, in seconds. ALWAYS REQUIRED to be present (a request omitting it is a 400 whether or not the resolved code's appointment type pins a duration -- presence alone must never disclose pin state). Duration pinning lives on the AppointmentType, not on the code: on the calendar-scoped endpoint this value always stands as given -- a calendar-scoped code carries no duration constraint at all. On the appointment-type-scoped endpoint, when the resolved code's appointment type pins a duration, the pin silently overrides this parameter's VALUE: a mismatched or malformed value produces the exact same response as the pinned value, so this endpoint cannot be used to probe whether an appointment type is pinned or what the pin is. When the appointment type pins no duration, the value must also be a valid positive integer.
          */
         duration_seconds: number;
         /**
@@ -12640,7 +12796,7 @@ export type PublicBookingCalendarEventsCreateData = {
     body: BookingCodeEventCreate;
     headers: {
         /**
-         * Single-use booking code, minted with the CREATE permission and scoped to a single calendar (not a group).
+         * Single-use booking code, minted with the CREATE permission and scoped to a single calendar (not an appointment type).
          */
         'X-Booking-Code': string;
     };
@@ -12654,143 +12810,6 @@ export type PublicBookingCalendarEventsCreateResponses = {
 };
 
 export type PublicBookingCalendarEventsCreateResponse = PublicBookingCalendarEventsCreateResponses[keyof PublicBookingCalendarEventsCreateResponses];
-
-export type PublicBookingCalendarGroupAvailabilityCreateData = {
-    body: CalendarGroupAvailabilityQuery;
-    headers: {
-        /**
-         * Single-use booking code. Every failure -- invalid, expired, used, revoked, or wrong-scope -- returns the same 403 {"detail": "Invalid or expired code."}; this endpoint never discloses which one occurred. Repeatable: never consumed by a read.
-         */
-        'X-Booking-Code': string;
-    };
-    path?: never;
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/public/booking/calendar-group-availability/';
-};
-
-export type PublicBookingCalendarGroupAvailabilityCreateResponses = {
-    200: PaginatedCalendarGroupRangeAvailabilityList;
-};
-
-export type PublicBookingCalendarGroupAvailabilityCreateResponse = PublicBookingCalendarGroupAvailabilityCreateResponses[keyof PublicBookingCalendarGroupAvailabilityCreateResponses];
-
-export type PublicBookingCalendarGroupBookableSlotsListData = {
-    body?: never;
-    headers: {
-        /**
-         * Single-use booking code. Every failure -- invalid, expired, used, revoked, or wrong-scope -- returns the same 403 {"detail": "Invalid or expired code."}; this endpoint never discloses which one occurred. Repeatable: never consumed by a read.
-         */
-        'X-Booking-Code': string;
-    };
-    path?: never;
-    query: {
-        /**
-         * Desired event duration, in seconds. ALWAYS REQUIRED to be present (a request omitting it is a 400 whether or not the resolved code's group pins a duration -- presence alone must never disclose pin state). Duration pinning lives on the CalendarGroup, not on the code: on the calendar-scoped endpoint this value always stands as given -- a calendar-scoped code carries no duration constraint at all. On the group-scoped endpoint, when the resolved code's group pins a duration, the pin silently overrides this parameter's VALUE: a mismatched or malformed value produces the exact same response as the pinned value, so this endpoint cannot be used to probe whether a group is pinned or what the pin is. When the group pins no duration, the value must also be a valid positive integer.
-         */
-        duration_seconds: number;
-        /**
-         * End of the search window (ISO 8601).
-         */
-        search_window_end: string;
-        /**
-         * Start of the search window (ISO 8601).
-         */
-        search_window_start: string;
-        /**
-         * Search step, in seconds (default 900 = 15min).
-         */
-        slot_step_seconds?: number;
-    };
-    url: '/public/booking/calendar-group-bookable-slots/';
-};
-
-export type PublicBookingCalendarGroupBookableSlotsListResponses = {
-    200: Array<BookableSlotProposal>;
-};
-
-export type PublicBookingCalendarGroupBookableSlotsListResponse = PublicBookingCalendarGroupBookableSlotsListResponses[keyof PublicBookingCalendarGroupBookableSlotsListResponses];
-
-export type PublicBookingCalendarGroupsAvailabilityCreateData = {
-    body: CalendarGroupAvailabilityQuery;
-    path: {
-        public_slug: string;
-    };
-    query?: {
-        /**
-         * Number of results to return per page.
-         */
-        limit?: number;
-        /**
-         * The initial index from which to return the results.
-         */
-        offset?: number;
-    };
-    url: '/public/booking/calendar-groups/{public_slug}/availability/';
-};
-
-export type PublicBookingCalendarGroupsAvailabilityCreateResponses = {
-    200: PaginatedCalendarGroupRangeAvailabilityList;
-};
-
-export type PublicBookingCalendarGroupsAvailabilityCreateResponse = PublicBookingCalendarGroupsAvailabilityCreateResponses[keyof PublicBookingCalendarGroupsAvailabilityCreateResponses];
-
-export type PublicBookingCalendarGroupsBookableSlotsListData = {
-    body?: never;
-    path: {
-        public_slug: string;
-    };
-    query: {
-        /**
-         * End of the search window (ISO 8601).
-         */
-        search_window_end: string;
-        /**
-         * Start of the search window (ISO 8601).
-         */
-        search_window_start: string;
-        /**
-         * Search step, in seconds (default 900 = 15min).
-         */
-        slot_step_seconds?: number;
-    };
-    url: '/public/booking/calendar-groups/{public_slug}/bookable-slots/';
-};
-
-export type PublicBookingCalendarGroupsBookableSlotsListResponses = {
-    200: Array<BookableSlotProposal>;
-};
-
-export type PublicBookingCalendarGroupsBookableSlotsListResponse = PublicBookingCalendarGroupsBookableSlotsListResponses[keyof PublicBookingCalendarGroupsBookableSlotsListResponses];
-
-export type PublicBookingCalendarGroupsEventsCreateData = {
-    body: BookingCodeGroupEventCreate;
-    headers?: {
-        /**
-         * Single-use booking code, minted with the CREATE permission and scoped to a calendar group (not a single calendar). OPTIONAL on this endpoint only: when omitted, the booking is authorized instead by the path group's own accepts_public_scheduling flag (codeless public group booking, GraphQL parity with createCalendarGroupEvent). When present, the coded path always wins -- a public group handed a valid group code still books through it and consumes it.
-         */
-        'X-Booking-Code'?: string;
-    };
-    path: {
-        public_slug: string;
-    };
-    query?: never;
-    url: '/public/booking/calendar-groups/{public_slug}/events/';
-};
-
-export type PublicBookingCalendarGroupsEventsCreateResponses = {
-    201: CalendarEventWithManagementCodes;
-};
-
-export type PublicBookingCalendarGroupsEventsCreateResponse = PublicBookingCalendarGroupsEventsCreateResponses[keyof PublicBookingCalendarGroupsEventsCreateResponses];
 
 export type PublicBookingEventsCancelCreateData = {
     body?: never;
@@ -12818,7 +12837,7 @@ export type PublicBookingEventsRescheduleCreateData = {
     body: BookingCodeReschedule;
     headers: {
         /**
-         * Single-use booking code, minted with the RESCHEDULE permission and bound to a specific event on a single calendar (not a group).
+         * Single-use booking code, minted with the RESCHEDULE permission and bound to a specific event on a single calendar (not an appointment type).
          */
         'X-Booking-Code': string;
     };
@@ -12832,25 +12851,6 @@ export type PublicBookingEventsRescheduleCreateResponses = {
 };
 
 export type PublicBookingEventsRescheduleCreateResponse = PublicBookingEventsRescheduleCreateResponses[keyof PublicBookingEventsRescheduleCreateResponses];
-
-export type PublicBookingGroupEventsRescheduleCreateData = {
-    body: BookingCodeReschedule;
-    headers: {
-        /**
-         * Single-use booking code, minted with the RESCHEDULE permission and bound to a specific event on a calendar group (not a single calendar).
-         */
-        'X-Booking-Code': string;
-    };
-    path?: never;
-    query?: never;
-    url: '/public/booking/group-events/reschedule/';
-};
-
-export type PublicBookingGroupEventsRescheduleCreateResponses = {
-    201: CalendarEventWithManagementCodes;
-};
-
-export type PublicBookingGroupEventsRescheduleCreateResponse = PublicBookingGroupEventsRescheduleCreateResponses[keyof PublicBookingGroupEventsRescheduleCreateResponses];
 
 export type PublicBookingUnavailableWindowsListData = {
     body?: never;

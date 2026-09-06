@@ -1,10 +1,10 @@
 /**
- * duration-format.ts — the one place `CalendarGroup.duration`'s two wire
+ * duration-format.ts — the one place `AppointmentType.duration`'s two wire
  * representations meet.
  *
  * Every other duration in this domain (slot reads, the mint dialog's
  * advisory calendar duration, the GraphQL mutations) speaks whole seconds.
- * `CalendarGroup.duration` does not: it is a DRF `DurationField`, serialized
+ * `AppointmentType.duration` does not: it is a DRF `DurationField`, serialized
  * with Django's `duration_string()`, which folds any day component into
  * hours rather than emitting a separate `D ` prefix — so a 25-hour value
  * comes back as `"25:00:00"`, never `"1 01:00:00"`. The public-scheduling
@@ -37,7 +37,7 @@ const DURATION_STRING_PATTERN =
  * absent field — this form never needs to distinguish "unset" from
  * "malformed", both are treated the same way as "nothing to show". The
  * return value stays `0` rather than surfacing the distinction (e.g. via
- * `NaN` or a thrown error) because `groupDurationIsUnset` relies on this
+ * `NaN` or a thrown error) because `appointmentTypeDurationIsUnset` relies on this
  * same conversion to decide whether to show the grandfathered-duration
  * warning — a corrupted value from the API must still read as "unset"
  * there, not as a false "healthy" state. A `console.warn` below keeps a
@@ -77,7 +77,7 @@ export function djangoDurationToMinutes(
 }
 
 /**
- * Formats whole minutes as the `"HH:MM:SS"` string `CalendarGroupSerializer`
+ * Formats whole minutes as the `"HH:MM:SS"` string `AppointmentTypeSerializer`
  * expects on write — zero-padded to at least two digits per field, matching
  * Django's own `duration_string()` output exactly (so a value this function
  * writes and a value the server later returns compare equal as strings, not
@@ -92,13 +92,13 @@ export function minutesToDjangoDuration(minutes: number): string {
 }
 
 /**
- * True when a group's `duration` cannot back a public booking: absent,
+ * True when an appointment type's `duration` cannot back a public booking: absent,
  * empty, or every numeric component is zero (e.g. `"0:00:00"`). Consolidates
  * the minimal predicate `mint-booking-link-dialog.tsx` carried since Phase 3
- * (`groupDurationIsUnset`) — that stub deliberately did not grow into a full
+ * (`appointmentTypeDurationIsUnset`) — that stub deliberately did not grow into a full
  * parser and named this module as its eventual replacement.
  */
-export function groupDurationIsUnset(
+export function appointmentTypeDurationIsUnset(
   duration: string | null | undefined
 ): boolean {
   return djangoDurationToMinutes(duration) <= 0;

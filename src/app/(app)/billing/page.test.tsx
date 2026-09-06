@@ -93,7 +93,7 @@ const FREE_USAGE: UsageResponse = {
       by_organization: [],
     },
     {
-      resource_key: 'calendar_groups',
+      resource_key: 'appointment_types',
       kind: null,
       limit_value: null,
       current_usage: 1,

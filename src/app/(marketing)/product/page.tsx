@@ -51,7 +51,7 @@ const capabilities = [
   },
   {
     icon: UsersRound,
-    title: 'Calendar Groups',
+    title: 'Appointment Types',
     body: 'Bundle the providers and rooms that fulfill an appointment type, so patients always reach the right availability.',
   },
   {
@@ -79,9 +79,9 @@ const capabilities = [
 const explore = [
   {
     icon: UsersRound,
-    title: 'Calendar Groups',
+    title: 'Appointment Types',
     body: 'Route one appointment type across many providers and rooms behind a single bookable link.',
-    href: '/product/calendar-groups',
+    href: '/product/appointment-types',
   },
   {
     icon: Plug,
@@ -237,13 +237,13 @@ export default function ProductPage() {
             <SectionIntro
               eyebrow='For developers'
               title='Book a slot in one call.'
-              lead='Query a Calendar Group for live availability, then confirm — Vinta resolves the right provider or room and writes back to every connected calendar.'
+              lead='Query an Appointment Type for live availability, then confirm — Vinta resolves the right provider or room and writes back to every connected calendar.'
             />
             <Box pt={2}>
               <List variant='plain' gap={3}>
                 {[
                   'One GraphQL endpoint + webhooks for every booking event',
-                  'Calendar Groups resolve the right provider or room for you',
+                  'Appointment Types resolve the right provider or room for you',
                   'Booking codes for single-use, tokenless public scheduling',
                 ].map((t) => (
                   <ListItem key={t}>
@@ -289,7 +289,7 @@ export default function ProductPage() {
                 color='slate-100'
               >
                 <Text as='span' color='slate-500'>
-                  # find bookable slots in a Calendar Group
+                  # find bookable slots in an Appointment Type
                 </Text>
                 {'\n'}
                 <Text as='span' color='vinta-300'>
@@ -298,9 +298,9 @@ export default function ProductPage() {
                 {'{\n'}
                 {'  '}
                 <Text as='span' color='teal-300'>
-                  calendarGroupBookableSlots
+                  appointmentTypeBookableSlots
                 </Text>
-                (groupId: 42,{'\n'}
+                (appointmentTypeId: 42,{'\n'}
                 {'    '}searchWindowStart:{' '}
                 <Text as='span' color='teal-300'>
                   &quot;2026-06-17T09:00:00-07:00&quot;

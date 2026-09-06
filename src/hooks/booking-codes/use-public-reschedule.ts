@@ -1,11 +1,11 @@
 /**
  * usePublicReschedule — reschedule the event bound to a public booking code,
- * on a single calendar OR a calendar group.
+ * on a single calendar OR an appointment type.
  *
  * RULE — NO PROBING (see the plan's "Two reschedule endpoints, not
  * collapsed" note, and `build-url.ts`'s doc comment): the backend
  * deliberately keeps `publicBookingEventsRescheduleCreate` (single-calendar)
- * and `publicBookingGroupEventsRescheduleCreate` (group) as two distinct
+ * and `publicBookingAppointmentTypeEventsRescheduleCreate` (appointment type) as two distinct
  * endpoints, and calling the wrong one for a given code answers
  * `403 NOT_PERMITTED` rather than routing through. This hook NEVER tries one
  * and falls back to the other on that failure — `target` is a
@@ -30,7 +30,7 @@
 import { useMutation } from '@tanstack/react-query';
 import {
   publicBookingEventsRescheduleCreate,
-  publicBookingGroupEventsRescheduleCreate,
+  publicBookingAppointmentTypeEventsRescheduleCreate,
 } from '@/client/sdk.gen';
 import type {
   BookingCodeReschedule,
@@ -70,8 +70,8 @@ export function usePublicReschedule() {
     gcTime: 0,
     mutationFn: async ({ code, target, body }) => {
       const { data, error, response } =
-        target === 'group'
-          ? await publicBookingGroupEventsRescheduleCreate({
+        target === 'appointmentType'
+          ? await publicBookingAppointmentTypeEventsRescheduleCreate({
               client: publicBookingClient,
               headers: { 'X-Booking-Code': code },
               body,

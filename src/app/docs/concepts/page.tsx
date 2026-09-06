@@ -10,7 +10,7 @@ import { getConcepts } from '@/lib/docs/fetch-concepts';
 export const metadata: Metadata = {
   title: 'Concepts',
   description:
-    'How Calendar Groups, Events, Availability, and Bundles fit together.',
+    'How Appointment Types, Events, Availability, and Bundles fit together.',
 };
 
 /**
@@ -30,8 +30,9 @@ export default async function ConceptsIndexPage() {
         <Stack gap={2}>
           <Heading level={1}>Concepts</Heading>
           <Text color='muted-foreground'>
-            Domain guides ported from the backend — how Calendar Groups, Events,
-            Availability, Recurrence, Bundles, and Calendars fit together.
+            Domain guides ported from the backend — how Appointment Types,
+            Events, Availability, Recurrence, Bundles, and Calendars fit
+            together.
           </Text>
         </Stack>
 

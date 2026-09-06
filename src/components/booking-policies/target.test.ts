@@ -11,7 +11,7 @@ function policy(overrides: Partial<BookingPolicy>): BookingPolicy {
   return {
     id: 1,
     calendar: null,
-    calendar_group: null,
+    appointment_type: null,
     membership_user_id: null,
     is_organization_default: false,
     lead_time_seconds: 0,
@@ -27,7 +27,9 @@ function policy(overrides: Partial<BookingPolicy>): BookingPolicy {
 describe('getTargetType', () => {
   it('derives the discriminant from the set field', () => {
     expect(getTargetType(policy({ calendar: 5 }))).toBe('calendar');
-    expect(getTargetType(policy({ calendar_group: 5 }))).toBe('calendar_group');
+    expect(getTargetType(policy({ appointment_type: 5 }))).toBe(
+      'appointment_type'
+    );
     expect(getTargetType(policy({ membership_user_id: 5 }))).toBe('membership');
     expect(getTargetType(policy({ is_organization_default: true }))).toBe(
       'organization_default'
@@ -48,7 +50,7 @@ describe('getTargetEntityId', () => {
 describe('targetTypeNeedsEntity', () => {
   it('is true for entity-scoped types, false for org default', () => {
     expect(targetTypeNeedsEntity('calendar')).toBe(true);
-    expect(targetTypeNeedsEntity('calendar_group')).toBe(true);
+    expect(targetTypeNeedsEntity('appointment_type')).toBe(true);
     expect(targetTypeNeedsEntity('membership')).toBe(true);
     expect(targetTypeNeedsEntity('organization_default')).toBe(false);
   });
@@ -57,8 +59,8 @@ describe('targetTypeNeedsEntity', () => {
 describe('buildTargetFields', () => {
   it('sets exactly one field for entity-scoped types', () => {
     expect(buildTargetFields('calendar', 3)).toEqual({ calendar: 3 });
-    expect(buildTargetFields('calendar_group', 3)).toEqual({
-      calendar_group: 3,
+    expect(buildTargetFields('appointment_type', 3)).toEqual({
+      appointment_type: 3,
     });
     expect(buildTargetFields('membership', 3)).toEqual({
       membership_user_id: 3,

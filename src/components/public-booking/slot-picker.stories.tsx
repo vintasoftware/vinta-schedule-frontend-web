@@ -54,7 +54,7 @@ export const Empty: Story = {
 };
 
 // A non-UTC zone exercises the exact conversion `proposalDayKey` introduces:
-// times that read as one UTC calendar day group under a DIFFERENT day once
+// times that read as one UTC calendar day appointment type under a DIFFERENT day once
 // converted to `timezone`, so the day grid and the per-day time list must
 // agree on the SAME (converted) day, not the raw UTC date.
 const MULTI_DAY_MULTI_PROPOSAL_PROPOSALS: BookableSlotProposal[] = [

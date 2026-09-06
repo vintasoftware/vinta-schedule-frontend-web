@@ -23,12 +23,12 @@
  *
  * LOAD-BEARING: `proposalDurationMinutes` derives the displayed length from
  * the proposal's OWN `start_time`/`end_time`, never from a duration the
- * caller requested. A group-scoped code's pinned duration silently overrides
+ * caller requested. An appointment-type-scoped code's pinned duration silently overrides
  * the request with no error (see the plan's "Read the duration off the
  * proposals, never off local state" guiding decision) — a picker that
  * echoed the requested duration back would misreport every pinned proposal.
  * This is the one function the flow-level regression tests
- * (`public-booking-flow.test.tsx`, `public-group-booking-flow.test.tsx`)
+ * (`public-booking-flow.test.tsx`, `public-appointment-type-booking-flow.test.tsx`)
  * exercise directly. `uniformDurationMinutes` may CONSOLIDATE the per-row
  * "30 min" into one line when every proposal on the visible day shares a
  * length, but it is computed off that same per-proposal span — never off a

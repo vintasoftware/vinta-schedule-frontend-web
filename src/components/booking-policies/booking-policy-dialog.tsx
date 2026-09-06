@@ -5,7 +5,7 @@
  *
  * A policy carries four guardrails (lead time, max horizon, buffer-before,
  * buffer-after) and attaches to exactly one target: a calendar, a calendar
- * group, a member, or the organization default.
+ * appointment type, a member, or the organization default.
  *
  * Create mode: the admin picks a target type, then (for entity-scoped types)
  * the entity, then the four durations. Exactly one target field is sent.
@@ -146,7 +146,7 @@ export function BookingPolicyDialog({
 
   const { createBookingPolicy, createMutation } = useCreateBookingPolicy();
   const { updateBookingPolicy, updateMutation } = useUpdateBookingPolicy();
-  const { calendarOptions, groupOptions, memberOptions, isLoading } =
+  const { calendarOptions, appointmentTypeOptions, memberOptions, isLoading } =
     useTargetOptions();
 
   const form = useForm<BookingPolicySchema>({
@@ -168,8 +168,8 @@ export function BookingPolicyDialog({
   const entityOptions =
     targetType === 'calendar'
       ? calendarOptions
-      : targetType === 'calendar_group'
-        ? groupOptions
+      : targetType === 'appointment_type'
+        ? appointmentTypeOptions
         : memberOptions;
 
   const onSubmit = async (values: BookingPolicySchema) => {

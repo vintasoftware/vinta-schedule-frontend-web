@@ -69,7 +69,7 @@ import { BookingConfirmation } from './booking-confirmation';
 import { LinkInvalid } from './link-invalid';
 import { BookingProgress } from './booking-progress';
 
-/** This flow's steps, in order — one fewer than the group flows (no
+/** This flow's steps, in order — one fewer than the appointment type flows (no
  * "choose calendars" step), and rendered only while the attendee is still
  * mid-flow (never on the confirmed/terminal screens, which return early). */
 const BOOKING_STEPS = ['Pick a time', 'Your details'];

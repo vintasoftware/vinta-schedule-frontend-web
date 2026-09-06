@@ -41,7 +41,7 @@ const DETAIL: BillingPeriodSummaryDetail = {
       by_organization: [],
     },
     {
-      resource_key: 'calendar_groups',
+      resource_key: 'appointment_types',
       kind: 'prepaid',
       total: null,
       limit_value: null,
@@ -72,7 +72,7 @@ describe('PeriodStatementDetail', () => {
     expect(screen.getAllByTestId('period-resource-row')).toHaveLength(3);
     expect(screen.getByText('Event occurrences')).toBeInTheDocument();
     expect(screen.getByText('Organization members')).toBeInTheDocument();
-    expect(screen.getByText('Calendar groups')).toBeInTheDocument();
+    expect(screen.getByText('Appointment types')).toBeInTheDocument();
   });
 
   it('preserves the two distinct nulls through the composition', () => {

@@ -4,7 +4,7 @@
  *
  * Thin wrapper over the generated
  * `billingProfileRetrieveBillingProfileRetrieveOptions` factory (canonical
- * hook pattern — see use-group-scoped-quota.ts). Read-only in Phase 0; the
+ * hook pattern — see use-appointment-type-scoped-quota.ts). Read-only in Phase 0; the
  * create/update mutations (Phase 6) invalidate this key.
  */
 

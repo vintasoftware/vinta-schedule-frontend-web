@@ -3,7 +3,7 @@
  * (`GET /billing/usage/periods/`, paginated, newest first).
  *
  * Thin wrapper over the generated `billingUsagePeriodsListOptions` factory
- * (canonical hook pattern — see use-group-scoped-quota.ts). Read-only; the
+ * (canonical hook pattern — see use-appointment-type-scoped-quota.ts). Read-only; the
  * statement-history route (Phase 7) consumes it with date/charged filters.
  *
  * An org with no closed periods is an empty `200` list, not an error —

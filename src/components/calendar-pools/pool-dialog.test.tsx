@@ -207,7 +207,7 @@ describe('PoolDialog', () => {
     });
   });
 
-  it('warns in edit mode that the roster is shared across groups', () => {
+  it('warns in edit mode that the roster is shared across appointment types', () => {
     renderDialog(POOL_NURSES);
 
     expect(screen.getByText('This roster is shared')).toBeInTheDocument();

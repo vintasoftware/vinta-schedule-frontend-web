@@ -53,7 +53,7 @@ const DETAIL: BillingPeriodSummaryDetail = {
       by_organization: [],
     },
     {
-      resource_key: 'calendar_groups',
+      resource_key: 'appointment_types',
       kind: 'prepaid',
       total: null,
       limit_value: null,
@@ -101,7 +101,7 @@ describe('BillingPeriodDetailPage (Phase 7)', () => {
     expect(screen.getAllByTestId('period-resource-row')).toHaveLength(3);
     expect(screen.getByText('Event occurrences')).toBeInTheDocument();
     expect(screen.getByText('Organization members')).toBeInTheDocument();
-    expect(screen.getByText('Calendar groups')).toBeInTheDocument();
+    expect(screen.getByText('Appointment types')).toBeInTheDocument();
   });
 
   it('renders the not-found state for an out-of-pool / 404 id', async () => {

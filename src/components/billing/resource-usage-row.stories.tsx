@@ -30,7 +30,7 @@ export const Unlimited: Story = {
   args: {
     limit: {
       ...BASE,
-      resource_key: 'calendar_groups',
+      resource_key: 'appointment_types',
       limit_value: null,
       current_usage: null,
       included_in_plan: null,

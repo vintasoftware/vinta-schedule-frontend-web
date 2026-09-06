@@ -4,7 +4,7 @@
  * Covers:
  * - Minting a calendar link surfaces the URL with `?duration=` when a
  *   nonzero duration was chosen, and without it when left at 0.
- * - Minting a group link surfaces a URL with no `?duration=` and no duration
+ * - Minting an appointment type link surfaces a URL with no `?duration=` and no duration
  *   control is offered.
  * - The one-time reveal: the link is shown exactly once and is gone (DOM +
  *   mutation cache) after the dialog closes.
@@ -107,7 +107,7 @@ function makeMintResult(
     code: ONE_TIME_CODE,
     purpose: 'book',
     calendar: null,
-    calendar_group: null,
+    appointment_type: null,
     event: null,
     expires_at: null,
     ...overrides,
@@ -141,29 +141,29 @@ const CALENDAR_TARGET: MintBookingLinkTarget = {
   name: 'Dr. Smith',
 };
 
-const GROUP_TARGET: MintBookingLinkTarget = {
-  kind: 'group',
+const APPOINTMENT_TYPE_TARGET: MintBookingLinkTarget = {
+  kind: 'appointmentType',
   id: 9,
   name: 'Surgery Team',
   duration: '0:30:00',
 };
 
-const GROUP_TARGET_NO_DURATION: MintBookingLinkTarget = {
-  kind: 'group',
+const APPOINTMENT_TYPE_TARGET_NO_DURATION: MintBookingLinkTarget = {
+  kind: 'appointmentType',
   id: 10,
   name: 'Unconfigured Team',
   duration: undefined,
 };
 
-const GROUP_TARGET_ZERO_DURATION: MintBookingLinkTarget = {
-  kind: 'group',
+const APPOINTMENT_TYPE_TARGET_ZERO_DURATION: MintBookingLinkTarget = {
+  kind: 'appointmentType',
   id: 11,
   name: 'Zeroed Team',
   duration: '00:00:00',
 };
 
-const GROUP_TARGET_EMPTY_DURATION: MintBookingLinkTarget = {
-  kind: 'group',
+const APPOINTMENT_TYPE_TARGET_EMPTY_DURATION: MintBookingLinkTarget = {
+  kind: 'appointmentType',
   id: 12,
   name: 'Blank Team',
   duration: '',
@@ -177,12 +177,12 @@ const EVENT_RESCHEDULE_CALENDAR_TARGET: MintBookingLinkTarget = {
   eventScope: { kind: 'calendar', durationSeconds: 2700 },
 };
 
-const EVENT_RESCHEDULE_GROUP_TARGET: MintBookingLinkTarget = {
+const EVENT_RESCHEDULE_APPOINTMENT_TYPE_TARGET: MintBookingLinkTarget = {
   kind: 'event',
   id: 101,
   name: 'Surgery consult',
   purpose: 'reschedule',
-  eventScope: { kind: 'group' },
+  eventScope: { kind: 'appointmentType' },
 };
 
 const EVENT_CANCEL_TARGET: MintBookingLinkTarget = {
@@ -231,14 +231,14 @@ describe('MintBookingLinkDialog', () => {
     expect(screen.getByLabelText('Booking duration value')).toBeInTheDocument();
   });
 
-  it('offers no duration control for a group target, and explains why', () => {
-    renderDialog(GROUP_TARGET);
+  it('offers no duration control for an appointment type target, and explains why', () => {
+    renderDialog(APPOINTMENT_TYPE_TARGET);
 
     expect(
       screen.queryByLabelText('Booking duration value')
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/group's own duration applies/i)
+      screen.getByText(/appointment type's own duration applies/i)
     ).toBeInTheDocument();
   });
 
@@ -306,11 +306,11 @@ describe('MintBookingLinkDialog', () => {
   });
 
   it.each([
-    ['unset', GROUP_TARGET_NO_DURATION],
-    ['zero-valued', GROUP_TARGET_ZERO_DURATION],
-    ['empty', GROUP_TARGET_EMPTY_DURATION],
+    ['unset', APPOINTMENT_TYPE_TARGET_NO_DURATION],
+    ['zero-valued', APPOINTMENT_TYPE_TARGET_ZERO_DURATION],
+    ['empty', APPOINTMENT_TYPE_TARGET_EMPTY_DURATION],
   ] as const)(
-    'blocks minting for a group with %s duration, explains why, and issues no mutation',
+    'blocks minting for an appointment type with %s duration, explains why, and issues no mutation',
     (_label, target) => {
       renderDialog(target);
 
@@ -318,7 +318,7 @@ describe('MintBookingLinkDialog', () => {
         screen.getByText(/can't take public bookings yet/i)
       ).toBeInTheDocument();
       expect(
-        screen.getByTestId('group-duration-required-notice')
+        screen.getByTestId('appointment-type-duration-required-notice')
       ).toHaveTextContent(/needs a duration/i);
       expect(
         screen.queryByTestId('create-booking-link-submit')
@@ -327,8 +327,8 @@ describe('MintBookingLinkDialog', () => {
     }
   );
 
-  it('does not block minting for a group with a real duration', () => {
-    renderDialog(GROUP_TARGET);
+  it('does not block minting for an appointment type with a real duration', () => {
+    renderDialog(APPOINTMENT_TYPE_TARGET);
 
     expect(
       screen.queryByText(/can't take public bookings yet/i)
@@ -349,13 +349,13 @@ describe('MintBookingLinkDialog', () => {
     ).toBeInTheDocument();
   });
 
-  it('mints a group link and surfaces a URL with no ?duration=, regardless of anything a caller might supply', async () => {
+  it('mints an appointment type link and surfaces a URL with no ?duration=, regardless of anything a caller might supply', async () => {
     const user = userEvent.setup();
     vi.mocked(bookingCodesCreate).mockResolvedValueOnce(
-      makeMintResponse(makeMintResult({ calendar_group: 9 }))
+      makeMintResponse(makeMintResult({ appointment_type: 9 }))
     );
 
-    renderDialog(GROUP_TARGET);
+    renderDialog(APPOINTMENT_TYPE_TARGET);
     await user.click(screen.getByTestId('create-booking-link-submit'));
 
     const urlInput = (await screen.findByTestId(
@@ -366,7 +366,7 @@ describe('MintBookingLinkDialog', () => {
       expect.objectContaining({
         body: expect.objectContaining({
           purpose: 'book',
-          calendar_group: 9,
+          appointment_type: 9,
         }),
       })
     );
@@ -672,17 +672,17 @@ describe('MintBookingLinkDialog', () => {
     });
   });
 
-  describe('event target — reschedule (group-scoped)', () => {
+  describe('event target — reschedule (appointment-type-scoped)', () => {
     it('offers no duration control', () => {
-      renderDialog(EVENT_RESCHEDULE_GROUP_TARGET);
+      renderDialog(EVENT_RESCHEDULE_APPOINTMENT_TYPE_TARGET);
 
       expect(
         screen.queryByLabelText('Booking duration value')
       ).not.toBeInTheDocument();
     });
 
-    it('is never blocked by an unset group duration — the events surface has no way to check it', () => {
-      renderDialog(EVENT_RESCHEDULE_GROUP_TARGET);
+    it('is never blocked by an unset appointment type duration — the events surface has no way to check it', () => {
+      renderDialog(EVENT_RESCHEDULE_APPOINTMENT_TYPE_TARGET);
 
       expect(
         screen.queryByText(/can't take public bookings yet/i)
@@ -692,13 +692,13 @@ describe('MintBookingLinkDialog', () => {
       ).toBeInTheDocument();
     });
 
-    it('a group-scoped reschedule code is minted with ?target=group and NEVER a calendar-shaped URL — the two reschedule endpoints must never be confused at mint time', async () => {
+    it('an appointment-type-scoped reschedule code is minted with ?target=appointmentType and NEVER a calendar-shaped URL — the two reschedule endpoints must never be confused at mint time', async () => {
       const user = userEvent.setup();
       vi.mocked(bookingCodesCreate).mockResolvedValueOnce(
         makeMintResponse(makeMintResult({ purpose: 'reschedule', event: 101 }))
       );
 
-      renderDialog(EVENT_RESCHEDULE_GROUP_TARGET);
+      renderDialog(EVENT_RESCHEDULE_APPOINTMENT_TYPE_TARGET);
       await user.click(screen.getByTestId('create-booking-link-submit'));
 
       const urlInput = (await screen.findByTestId(
@@ -712,9 +712,9 @@ describe('MintBookingLinkDialog', () => {
       );
       // The load-bearing assertion for "no probing": the URL built at MINT
       // time is the only thing that decides which reschedule endpoint the
-      // page will call. It must say `target=group`, never `target=calendar`.
+      // page will call. It must say `target=appointmentType`, never `target=calendar`.
       const target = new URL(urlInput.value).searchParams.get('target');
-      expect(target).toBe('group');
+      expect(target).toBe('appointmentType');
       expect(target).not.toBe('calendar');
       expect(urlInput.value).not.toContain('duration=');
     });

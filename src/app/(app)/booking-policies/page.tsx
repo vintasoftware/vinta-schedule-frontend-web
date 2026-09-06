@@ -19,7 +19,7 @@ import {
  * redirected to '/'.
  *
  * Shows a paginated table of the org's booking policies (targeting calendars,
- * calendar groups, members, or the org default) with a "New policy" button that
+ * appointment types, members, or the org default) with a "New policy" button that
  * opens the BookingPolicyDialog for creation. Each row has edit and delete
  * actions.
  */
@@ -44,7 +44,7 @@ export default function BookingPoliciesPage() {
     <Stack gap={6}>
       <PageHeader
         title='Booking policies'
-        description='Add lead time, booking horizon, and buffer guardrails to slot discovery and booking. Policies apply to a calendar, a calendar group, a member, or the whole organization.'
+        description='Add lead time, booking horizon, and buffer guardrails to slot discovery and booking. Policies apply to a calendar, an appointment type, a member, or the whole organization.'
       />
       <DataTableQueryBoundary>
         <BookingPoliciesTable toolbarActions={toolbarActions} />

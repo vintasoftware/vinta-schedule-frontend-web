@@ -104,7 +104,7 @@ export function parseWriteFailure(
 
 /**
  * Thrown by the public read hooks (`use-public-bookable-slots.ts` and
- * later Phase 3's group equivalent) so a failed `useQuery` carries the
+ * later Phase 3's appointment type equivalent) so a failed `useQuery` carries the
  * already-collapsed `PublicReadState` in `.state` rather than the raw
  * generated-client error shape. Components branch on `.state`, never on the
  * underlying response body — see `parseReadFailure`'s doc comment for why.

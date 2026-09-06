@@ -2,7 +2,7 @@
  * usePublicCancel — cancel the event bound to a public booking code.
  *
  * `POST /public/booking/events/cancel/` is a single endpoint for both
- * single-calendar and calendar-group events (unlike reschedule, which is
+ * single-calendar and appointment-type events (unlike reschedule, which is
  * deliberately split across two endpoints — see `use-public-reschedule.ts`),
  * so this hook needs no `target` param and never routes on one.
  *

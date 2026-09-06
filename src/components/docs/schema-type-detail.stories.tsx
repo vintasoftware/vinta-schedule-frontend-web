@@ -50,14 +50,14 @@ export const InputObjectType: Story = {
     documentedTypeNames: new Set(),
     type: {
       kind: 'INPUT_OBJECT',
-      name: 'CreateCalendarGroupEventInput',
-      slug: 'CreateCalendarGroupEventInput',
-      description: 'Input for creating a calendar-group event.',
+      name: 'CreateAppointmentTypeEventInput',
+      slug: 'CreateAppointmentTypeEventInput',
+      description: 'Input for creating an appointment-type event.',
       fields: [],
       inputFields: [
         {
-          name: 'calendarGroupId',
-          description: 'The target calendar group.',
+          name: 'appointmentTypeId',
+          description: 'The target appointment type.',
           args: [],
           type: 'ID!',
           typeName: 'ID',

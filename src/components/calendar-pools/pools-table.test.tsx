@@ -5,7 +5,7 @@
  * - Rendering a pool's name, description, and roster size + preview.
  * - Deleting a pool that nothing references: confirm → API call → success toast.
  * - Deleting a pool that IS referenced: the 409 keeps the dialog open and names
- *   the blocking groups on screen (rather than toasting them away), and the
+ *   the blocking appointment types on screen (rather than toasting them away), and the
  *   confirm button stops offering a retry that would only fail again.
  * - A non-409 delete failure falls through to the generic error toast.
  */
@@ -183,11 +183,11 @@ describe('PoolsTable', () => {
     expect(toast.success).toHaveBeenCalledWith('Calendar pool deleted');
   });
 
-  it('keeps the confirmation open and names the blocking groups when the delete is refused', async () => {
+  it('keeps the confirmation open and names the blocking appointment types when the delete is refused', async () => {
     const user = userEvent.setup();
     vi.mocked(calendarPoolsDestroy).mockRejectedValue({
-      detail: 'Pool is still attached to a group slot.',
-      groups: ['Clinic Appointments', 'Follow-ups'],
+      detail: 'Pool is still attached to an appointment type slot.',
+      appointment_types: ['Clinic Appointments', 'Follow-ups'],
     });
 
     renderTable();
@@ -198,7 +198,7 @@ describe('PoolsTable', () => {
     const blocked = await screen.findByTestId('pool-delete-blocked');
     expect(blocked).toHaveTextContent('Clinic Appointments, Follow-ups');
 
-    // The group names stay on screen instead of being toasted away, and the
+    // The appointment type names stay on screen instead of being toasted away, and the
     // confirm button no longer offers a retry that can only fail again.
     expect(toast.error).not.toHaveBeenCalled();
     expect(screen.getByRole('alertdialog')).toBeInTheDocument();

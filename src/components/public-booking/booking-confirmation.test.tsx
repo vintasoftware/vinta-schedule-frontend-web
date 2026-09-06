@@ -4,7 +4,7 @@
  * Covers:
  * - `management` present renders working reschedule/cancel links, built
  *   through `buildBookingLinkUrl`, scoped correctly (`?target=calendar`
- *   with the CONFIRMED event's own duration, or `?target=group` with none),
+ *   with the CONFIRMED event's own duration, or `?target=appointmentType` with none),
  *   and branded when a slug is supplied.
  * - A plain statement of when the links expire (the event's own end time).
  * - `management` absent (an older backend's `201`) degrades to the base
@@ -50,7 +50,7 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     external_attendances: [],
     attendances: [],
     resource_allocations: [],
-    group_selections: [],
+    appointment_type_selections: [],
     parent_recurring_object: {
       id: 0,
       title: '',
@@ -160,20 +160,20 @@ describe('BookingConfirmation', () => {
     expect(cancelInput.value).not.toContain('duration=');
   });
 
-  it('a group-scoped confirmation carries ?target=group and no duration on the reschedule link', () => {
+  it('an appointment-type-scoped confirmation carries ?target=appointmentType and no duration on the reschedule link', () => {
     const event = makeEventWithManagement();
     render(
       <BookingConfirmation
         event={event}
         timezone='America/New_York'
-        scope={{ kind: 'group' }}
+        scope={{ kind: 'appointmentType' }}
       />
     );
 
     const rescheduleInput = screen.getByTestId(
       'reschedule-link-input'
     ) as HTMLTextAreaElement;
-    expect(rescheduleInput.value).toContain('target=group');
+    expect(rescheduleInput.value).toContain('target=appointmentType');
     expect(rescheduleInput.value).not.toContain('duration=');
   });
 

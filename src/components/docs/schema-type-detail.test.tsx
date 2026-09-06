@@ -29,14 +29,14 @@ const objectType: GraphQLSchemaType = {
 
 const inputType: GraphQLSchemaType = {
   kind: 'INPUT_OBJECT',
-  name: 'CreateCalendarGroupEventInput',
-  slug: 'CreateCalendarGroupEventInput',
+  name: 'CreateAppointmentTypeEventInput',
+  slug: 'CreateAppointmentTypeEventInput',
   description: null,
   fields: [],
   inputFields: [
     {
-      name: 'calendarGroupId',
-      description: 'The target calendar group.',
+      name: 'appointmentTypeId',
+      description: 'The target appointment type.',
       args: [],
       type: 'ID!',
       typeName: 'ID',
@@ -83,7 +83,7 @@ describe('SchemaTypeDetail', () => {
     );
 
     expect(screen.getByText('Input Fields')).toBeInTheDocument();
-    expect(screen.getByText('calendarGroupId')).toBeInTheDocument();
+    expect(screen.getByText('appointmentTypeId')).toBeInTheDocument();
   });
 
   it('renders an ENUM type values', () => {

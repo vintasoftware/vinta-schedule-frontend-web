@@ -4,7 +4,7 @@
  * first).
  *
  * Thin wrapper over the generated `billingUsageOccurrencesListOptions` factory
- * (canonical hook pattern — see use-group-scoped-quota.ts). Read-only; the
+ * (canonical hook pattern — see use-appointment-type-scoped-quota.ts). Read-only; the
  * ledger route (Phase 8) consumes it. Billing-owner/admin only server-side —
  * a member hits `403`, surfaced here as `isError` (the friendly access-denied
  * state is Phase 8's concern).

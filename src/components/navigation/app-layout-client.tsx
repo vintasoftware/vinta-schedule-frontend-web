@@ -74,10 +74,10 @@ const MEMBER_NAV_ITEMS: SidebarNavItem[] = [
     href: '/availability',
   },
   {
-    id: 'groups',
-    label: 'Calendar groups',
+    id: 'appointment-types',
+    label: 'Appointment types',
     icon: UsersRound,
-    href: '/groups',
+    href: '/appointment-types',
   },
 ];
 

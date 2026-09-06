@@ -28,7 +28,7 @@ export function MarketingFooter() {
       h: 'Product',
       links: [
         { label: 'Overview', href: '/product' },
-        { label: 'Calendar Groups', href: '/product/calendar-groups' },
+        { label: 'Appointment Types', href: '/product/appointment-types' },
         { label: 'Booking API', href: '/docs/reference' },
         { label: 'Integrations', href: '/product/integrations' },
         { label: 'Pricing', href: '/pricing' },

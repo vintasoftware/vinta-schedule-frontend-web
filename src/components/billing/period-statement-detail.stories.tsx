@@ -36,7 +36,7 @@ const DETAIL: BillingPeriodSummaryDetail = {
       by_organization: [],
     },
     {
-      resource_key: 'calendar_groups',
+      resource_key: 'appointment_types',
       kind: 'prepaid',
       total: null,
       limit_value: null,

@@ -3,7 +3,7 @@
  * browser-safe public credentials (`GET /billing/payment-provider/`).
  *
  * Thin wrapper over the generated `billingPaymentProviderRetrieveOptions`
- * factory (canonical hook pattern — see use-group-scoped-quota.ts). Read-only
+ * factory (canonical hook pattern — see use-appointment-type-scoped-quota.ts). Read-only
  * in Phase 0; Phase 1's PaymentInstrumentField consumes it to load the right
  * provider SDK.
  *

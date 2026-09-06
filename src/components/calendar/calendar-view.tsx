@@ -8,7 +8,7 @@
  * passed via props so higher-level components own fetching logic.
  *
  * Custom event rendering is exposed via the `eventRenderer` render-prop so
- * later phases (group-booking overlay, availability chips) can inject their
+ * later phases (appointment-type-booking overlay, availability chips) can inject their
  * own content without forking this wrapper.
  *
  * Timezone: the luxonLocalizer uses Luxon's DateTime under the hood. Events
@@ -741,7 +741,7 @@ export interface CalendarViewProps {
    */
   onDateChange: (date: Date) => void;
   /**
-   * Custom event renderer — the hook-point for group-booking / availability
+   * Custom event renderer — the hook-point for appointment-type-booking / availability
    * overlays in later phases.  Receives the CalendarEventVM; should return the
    * content to render inside the event block.  When omitted, the default
    * renderer shows the title + timezone label.
@@ -750,7 +750,7 @@ export interface CalendarViewProps {
    * ```tsx
    * <CalendarView
    *   eventRenderer={({ event }) => (
-   *     <GroupBookingEventContent event={event} />
+   *     <AppointmentTypeBookingEventContent event={event} />
    *   )}
    * />
    * ```

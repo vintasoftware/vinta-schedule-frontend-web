@@ -38,13 +38,13 @@ const bookableSlot: GraphQLSchemaType = {
 
 const createEventInput: GraphQLSchemaType = {
   kind: 'INPUT_OBJECT',
-  name: 'CreateCalendarGroupEventInput',
-  slug: 'CreateCalendarGroupEventInput',
+  name: 'CreateAppointmentTypeEventInput',
+  slug: 'CreateAppointmentTypeEventInput',
   description: null,
   fields: [],
   inputFields: [
     {
-      name: 'groupId',
+      name: 'appointmentTypeId',
       description: null,
       args: [],
       type: 'ID!',
@@ -71,8 +71,8 @@ const typesByName = new Map<string, GraphQLSchemaType>([
 ]);
 
 const bookableSlotsQuery: GraphQLSchemaField = {
-  name: 'calendarGroupBookableSlots',
-  description: 'Lists bookable slots for a calendar group.',
+  name: 'appointmentTypeBookableSlots',
+  description: 'Lists bookable slots for an appointment type.',
   args: [
     {
       name: 'organizationId',
@@ -96,14 +96,14 @@ const bookableSlotsQuery: GraphQLSchemaField = {
 };
 
 const createEventMutation: GraphQLSchemaField = {
-  name: 'createCalendarGroupEvent',
+  name: 'createAppointmentTypeEvent',
   description: null,
   args: [
     {
       name: 'input',
       description: null,
-      type: 'CreateCalendarGroupEventInput!',
-      typeName: 'CreateCalendarGroupEventInput',
+      type: 'CreateAppointmentTypeEventInput!',
+      typeName: 'CreateAppointmentTypeEventInput',
       defaultValue: null,
     },
   ],
@@ -115,14 +115,14 @@ const createEventMutation: GraphQLSchemaField = {
 
 describe('humanizeFieldName', () => {
   it('splits camelCase into a sentence', () => {
-    expect(humanizeFieldName('calendarGroupBookableSlots')).toBe(
-      'Calendar group bookable slots'
+    expect(humanizeFieldName('appointmentTypeBookableSlots')).toBe(
+      'Appointment type bookable slots'
     );
   });
 
   it('handles a leading verb', () => {
-    expect(humanizeFieldName('createCalendarGroupEvent')).toBe(
-      'Create calendar group event'
+    expect(humanizeFieldName('createAppointmentTypeEvent')).toBe(
+      'Create appointment type event'
     );
   });
 });
@@ -130,19 +130,19 @@ describe('humanizeFieldName', () => {
 describe('describeOperation', () => {
   it('uses the schema description when present', () => {
     expect(describeOperation(bookableSlotsQuery, 'query')).toBe(
-      'Lists bookable slots for a calendar group.'
+      'Lists bookable slots for an appointment type.'
     );
   });
 
   it('falls back to a humanized query sentence', () => {
     expect(
       describeOperation({ ...bookableSlotsQuery, description: null }, 'query')
-    ).toBe('Returns calendar group bookable slots.');
+    ).toBe('Returns appointment type bookable slots.');
   });
 
   it('falls back to a humanized mutation sentence', () => {
     expect(describeOperation(createEventMutation, 'mutation')).toBe(
-      'Create calendar group event.'
+      'Create appointment type event.'
     );
   });
 });
@@ -155,8 +155,8 @@ describe('buildOperationExample', () => {
       typesByName
     );
 
-    expect(example).toContain('query CalendarGroupBookableSlots {');
-    expect(example).toContain('calendarGroupBookableSlots(');
+    expect(example).toContain('query AppointmentTypeBookableSlots {');
+    expect(example).toContain('appointmentTypeBookableSlots(');
     // required ID arg is filled with a placeholder…
     expect(example).toContain('organizationId: "<organizationId>"');
     // …and the optional String arg is omitted.
@@ -173,7 +173,9 @@ describe('buildOperationExample', () => {
       typesByName
     );
 
-    expect(example).toContain('mutation CreateCalendarGroupEvent {');
-    expect(example).toContain('input: { groupId: "<groupId>" }');
+    expect(example).toContain('mutation CreateAppointmentTypeEvent {');
+    expect(example).toContain(
+      'input: { appointmentTypeId: "<appointmentTypeId>" }'
+    );
   });
 });

@@ -202,8 +202,8 @@ describe('calendar pool mutations', () => {
 
   it('deleteCalendarPool deletes by id and lets a 409 rejection through to the caller', async () => {
     const conflict = {
-      detail: 'Pool is still attached to a group slot.',
-      groups: ['Clinic Appointments'],
+      detail: 'Pool is still attached to an appointment type slot.',
+      appointment_types: ['Clinic Appointments'],
     };
     vi.mocked(calendarPoolsDestroy).mockRejectedValue(conflict);
 
@@ -217,28 +217,30 @@ describe('calendar pool mutations', () => {
 });
 
 describe('readPoolInUseError', () => {
-  it('reads the detail and the referencing group names', () => {
+  it('reads the detail and the referencing appointment type names', () => {
     expect(
       readPoolInUseError({
-        detail: 'Pool is still attached to a group slot.',
-        groups: ['Clinic Appointments', 'Follow-ups'],
+        detail: 'Pool is still attached to an appointment type slot.',
+        appointment_types: ['Clinic Appointments', 'Follow-ups'],
       })
     ).toEqual({
-      detail: 'Pool is still attached to a group slot.',
-      groups: ['Clinic Appointments', 'Follow-ups'],
+      detail: 'Pool is still attached to an appointment type slot.',
+      appointment_types: ['Clinic Appointments', 'Follow-ups'],
     });
   });
 
   it('returns null for error shapes that are not the in-use refusal', () => {
-    // A plain DRF validation error, a bare detail, a non-object, and a `groups`
-    // array holding something other than names must all fall through — reading
-    // any of them as "in use" would tell the user to detach groups that the
-    // rejection never named.
+    // A plain DRF validation error, a bare detail, a non-object, and an
+    // `appointment_types` array holding something other than names must all
+    // fall through — reading any of them as "in use" would tell the user to
+    // detach appointment types that the rejection never named.
     expect(
       readPoolInUseError({ name: ['This field is required.'] })
     ).toBeNull();
     expect(readPoolInUseError({ detail: 'Not found.' })).toBeNull();
-    expect(readPoolInUseError({ detail: 'x', groups: [1, 2] })).toBeNull();
+    expect(
+      readPoolInUseError({ detail: 'x', appointment_types: [1, 2] })
+    ).toBeNull();
     expect(readPoolInUseError('boom')).toBeNull();
     expect(readPoolInUseError(null)).toBeNull();
   });

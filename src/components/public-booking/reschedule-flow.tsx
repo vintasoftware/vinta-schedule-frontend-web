@@ -4,7 +4,7 @@
  * RescheduleFlow — the attendee-facing flow for `/book/[code]/reschedule`
  * (and its branded `/o/[slug]/…` twin).
  *
- * Reuses `usePublicBookableSlots` / `usePublicGroupBookableSlots`,
+ * Reuses `usePublicBookableSlots` / `usePublicAppointmentTypeBookableSlots`,
  * `SlotPicker`, `BookingConfirmation`, and `LinkInvalid` UNCHANGED — this
  * phase does not fork any of them (see the plan's Phase 4 body). The only
  * new pieces are the write (`usePublicReschedule`) and this flow's own,
@@ -16,7 +16,7 @@
  * written by `buildBookingLinkUrl` at MINT time, see that file's doc
  * comment), and passed straight through to `usePublicReschedule`. This
  * component never calls one endpoint, reads a `403 NOT_PERMITTED`, and
- * retries the other — a group-scoped code's request never even reaches the
+ * retries the other — an appointment-type-scoped code's request never even reaches the
  * single-calendar endpoint, and vice versa.
  *
  * RULE 2 — TIMES ONLY: `BookingCodeReschedule` accepts only
@@ -64,14 +64,14 @@ import type {
 } from '@/client';
 import { DateTime, zonedFormat } from '@/lib/datetime/index';
 import { usePublicBookableSlots } from '@/hooks/booking-codes/use-public-bookable-slots';
-import { usePublicGroupBookableSlots } from '@/hooks/booking-codes/use-public-group-booking';
+import { usePublicAppointmentTypeBookableSlots } from '@/hooks/booking-codes/use-public-appointment-type-booking';
 import { usePublicReschedule } from '@/hooks/booking-codes/use-public-reschedule';
 import {
   PublicReadFailureError,
   PublicWriteFailureError,
   type PublicWriteFailure,
 } from '@/lib/booking-links/errors';
-import { GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS } from '@/lib/booking-links/group-slots-duration-placeholder';
+import { APPOINTMENT_TYPE_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS } from '@/lib/booking-links/appointment-type-slots-duration-placeholder';
 import { resolveBookingLinkTarget } from './public-booking-entry';
 import { SlotPicker, proposalDurationMinutes } from './slot-picker';
 import { BookingConfirmation } from './booking-confirmation';
@@ -110,12 +110,12 @@ export function RescheduleFlow({ code, slug }: RescheduleFlowProps) {
   const durationSeconds = durationParam !== null ? Number(durationParam) : NaN;
   // A calendar-scoped reschedule link always carries `?duration=` (advisory,
   // chosen by the minting member from the event's own current length — see
-  // `mint-booking-link-dialog.tsx`); a group-scoped link never does, and
+  // `mint-booking-link-dialog.tsx`); an appointment-type-scoped link never does, and
   // never needs one. A missing/malformed value on a calendar-scoped link is
   // a broken link, not a code-validity question, so it never routes through
   // `LinkInvalid`.
   const hasValidDuration =
-    target === 'group' ||
+    target === 'appointmentType' ||
     (Number.isFinite(durationSeconds) && durationSeconds > 0);
 
   // Computed once per mount — a sliding search window mid-flow would be a
@@ -143,7 +143,7 @@ export function RescheduleFlow({ code, slug }: RescheduleFlowProps) {
 
   // Both read hooks are always called (React hooks rules), but only the one
   // matching `target` is `enabled` — the other never issues a request. This
-  // is the read-side half of "no probing": a group-scoped code's slot read
+  // is the read-side half of "no probing": an appointment-type-scoped code's slot read
   // never reaches the single-calendar endpoint, and vice versa.
   const calendarSlotsQuery = usePublicBookableSlots({
     code,
@@ -154,15 +154,18 @@ export function RescheduleFlow({ code, slug }: RescheduleFlowProps) {
     enabled: target === 'calendar' && hasValidDuration,
   });
 
-  const groupSlotsQuery = usePublicGroupBookableSlots({
+  const appointmentTypeSlotsQuery = usePublicAppointmentTypeBookableSlots({
     code,
-    durationSeconds: GROUP_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS,
+    durationSeconds: APPOINTMENT_TYPE_SLOTS_READ_DURATION_PLACEHOLDER_SECONDS,
     searchWindowStart: searchWindow.start,
     searchWindowEnd: searchWindow.end,
-    enabled: target === 'group',
+    enabled: target === 'appointmentType',
   });
 
-  const slotsQuery = target === 'group' ? groupSlotsQuery : calendarSlotsQuery;
+  const slotsQuery =
+    target === 'appointmentType'
+      ? appointmentTypeSlotsQuery
+      : calendarSlotsQuery;
 
   const { reschedule, rescheduleMutation } = usePublicReschedule();
 
@@ -297,7 +300,11 @@ export function RescheduleFlow({ code, slug }: RescheduleFlowProps) {
       <BookingConfirmation
         event={confirmedEvent}
         timezone={timezone}
-        scope={target === 'group' ? { kind: 'group' } : { kind: 'calendar' }}
+        scope={
+          target === 'appointmentType'
+            ? { kind: 'appointmentType' }
+            : { kind: 'calendar' }
+        }
         slug={slug}
       />
     );

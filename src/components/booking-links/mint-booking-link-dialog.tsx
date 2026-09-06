@@ -2,25 +2,25 @@
 
 /**
  * MintBookingLinkDialog — mint a shareable scheduling link for a calendar or
- * calendar group, show it exactly once, and offer to revoke it.
+ * appointment type, show it exactly once, and offer to revoke it.
  *
  * Two-phase dialog, mirroring `NewTokenDialog`
  * (@/components/api-tokens/new-token-dialog.tsx), the repo's other one-time
  * plaintext-credential mint flow:
  *   Phase 1 (form view): optional expiry, and — for a calendar target only —
- *     an advisory duration. A group target shows no duration control; the
- *     group's own server-pinned duration applies instead (see the plan's
- *     "Group duration comes from the server" guiding decision).
+ *     an advisory duration. An appointment type target shows no duration control; the
+ *     appointment type's own server-pinned duration applies instead (see the plan's
+ *     "Appointment Type duration comes from the server" guiding decision).
  *   Phase 2 (reveal view): the built URL, a copy button, an explicit
  *     "cannot be shown again" notice, and a revoke action — all while the
  *     dialog still holds the minted id. A third state (revoked) replaces the
  *     URL with a plain "this link no longer works" notice once revoke
  *     succeeds.
  *
- * A group target with no pinned `duration` never reaches the form at all —
- * `groupDurationIsUnset` (`@/lib/booking-links/duration-format`, the shared
- * two-way duration<->minutes converter Phase 6 built for the group settings
- * form) blocks it with an explanation instead, since the group-scoped
+ * An appointment type target with no pinned `duration` never reaches the form at all —
+ * `appointmentTypeDurationIsUnset` (`@/lib/booking-links/duration-format`, the shared
+ * two-way duration<->minutes converter Phase 6 built for the appointment type settings
+ * form) blocks it with an explanation instead, since the appointment-type-scoped
  * bookable-slots read would otherwise silently hand every attendee a
  * frontend-chosen placeholder length nobody with authority picked
  * (SHOULD-FIX 1, Phase 3 review).
@@ -42,7 +42,7 @@
  *     clears local `isPending`/`isError`/`data` state on `open === false`
  *     re-renders — exactly as `NewTokenDialog` does for its credential.
  *   - Minting is a UI affordance gated by `canMintBookingLinkForCalendar` /
- *     `canMintBookingLinkForGroup` at the call site (the row action), never
+ *     `canMintBookingLinkForAppointmentType` at the call site (the row action), never
  *     re-derived here — this component trusts its caller decided it should
  *     be reachable, and the server re-checks the real rule regardless.
  */
@@ -90,7 +90,7 @@ import {
   type BookingLinkUrlScope,
 } from '@/lib/booking-links/build-url';
 import type { MintedBookingLink } from '@/lib/booking-links/types';
-import { groupDurationIsUnset } from '@/lib/booking-links/duration-format';
+import { appointmentTypeDurationIsUnset } from '@/lib/booking-links/duration-format';
 import { handleMutationError } from '@/lib/utils/form-errors';
 // Reused rather than re-implemented: the {value, unit} number+select field and
 // its "0 means unconstrained" convention already exist for booking-policy rule
@@ -111,15 +111,15 @@ import {
 export type MintBookingLinkTarget =
   | { kind: 'calendar'; id: number; name: string }
   | {
-      kind: 'group';
+      kind: 'appointmentType';
       id: number;
       name: string;
       /**
-       * `CalendarGroup.duration` verbatim off the wire — a Django
+       * `AppointmentType.duration` verbatim off the wire — a Django
        * `DurationField` string (`[DD] [HH:[MM:]]ss[.uuuuuu]`), NOT seconds
-       * (see the plan's "`CalendarGroup.duration` is a string on the wire"
-       * guiding decision). Absent/empty/all-zero means the group has no
-       * pinned length yet, which `groupDurationIsUnset`
+       * (see the plan's "`AppointmentType.duration` is a string on the wire"
+       * guiding decision). Absent/empty/all-zero means the appointment type has no
+       * pinned length yet, which `appointmentTypeDurationIsUnset`
        * (`@/lib/booking-links/duration-format`) checks for below. This
        * field is read-only here and never round-tripped — the editor lives
        * in `public-scheduling-settings.tsx`.
@@ -135,7 +135,7 @@ export type MintBookingLinkTarget =
       purpose: 'reschedule' | 'cancel';
       /**
        * Which reschedule endpoint a reschedule link must route to — the
-       * EVENT's own scope (single-calendar vs. calendar-group), not
+       * EVENT's own scope (single-calendar vs. appointment-type), not
        * something the member picks. Irrelevant for `purpose: 'cancel'`
        * (`publicBookingEventsCancelCreate` is a single endpoint for both —
        * see the plan's Phase 4 body, point 4), but always supplied so
@@ -148,21 +148,21 @@ export type MintBookingLinkTarget =
        * (`end_time - start_time`), not an arbitrary default; it remains
        * editable here, same as a `book` link's advisory duration.
        *
-       * A group-scoped reschedule carries no per-link duration at all,
-       * mirroring "Group duration comes from the server" for `book` links.
-       * UNLIKE the plain `group` target above, this dialog does NOT block
-       * minting on an unset group duration for this case: the events
-       * surface has no reliable way to read the parent group's CURRENT
+       * An appointment-type-scoped reschedule carries no per-link duration at all,
+       * mirroring "Appointment Type duration comes from the server" for `book` links.
+       * UNLIKE the plain `appointment type` target above, this dialog does NOT block
+       * minting on an unset appointment type duration for this case: the events
+       * surface has no reliable way to read the parent appointment type's CURRENT
        * `duration` off an already-created event
-       * (`CalendarEventGroupSelection` carries a slot and a calendar, never
-       * the group entity itself), so there is nothing here to check. This
+       * (`CalendarEventAppointmentTypeSelection` carries a slot and a calendar, never
+       * the appointment type entity itself), so there is nothing here to check. This
        * is an accepted, documented gap — see the phase report, not an
        * oversight — and the reschedule page behaves exactly like an
-       * unset-duration group `book` link already does (Phase 3).
+       * unset-duration appointment type `book` link already does (Phase 3).
        */
       eventScope:
         | { kind: 'calendar'; durationSeconds: number }
-        | { kind: 'group' };
+        | { kind: 'appointmentType' };
     };
 
 export interface MintBookingLinkDialogProps {
@@ -195,8 +195,8 @@ type MintFormValues = z.infer<typeof mintFormBaseSchema>;
  * duration control: a `calendar` `book` target always does; a
  * calendar-scoped `event` `reschedule` target does for the same reason
  * (the calendar-bookable-slots read's `duration_seconds` param is always
- * required); every other target (`group`, or an `event` `cancel` /
- * group-scoped `reschedule`) does not.
+ * required); every other target (`appointment type`, or an `event` `cancel` /
+ * appointment-type-scoped `reschedule`) does not.
  */
 function needsDurationControl(target: MintBookingLinkTarget): boolean {
   if (target.kind === 'calendar') return true;
@@ -215,7 +215,7 @@ function needsDurationControl(target: MintBookingLinkTarget): boolean {
 // (used for booking-policy guardrails) does not apply here: a calendar-scoped
 // link minted with a zero duration builds a URL with no `?duration=`, and
 // the public flow correctly refuses to invent one, so every recipient sees a
-// permanently broken "missing a valid duration" link. Group targets (and
+// permanently broken "missing a valid duration" link. Appointment Type targets (and
 // `cancel` links) are unaffected — they have no duration control.
 function buildMintFormSchema(target: MintBookingLinkTarget) {
   return mintFormBaseSchema.refine(
@@ -335,7 +335,7 @@ export function MintBookingLinkDialog({
     }
   }, [open, form, defaultValues, resetCreateMutation, resetRevokeMutation]);
 
-  // Unmount cleanup: `calendars-table.tsx` and `groups-table.tsx` mount this
+  // Unmount cleanup: `calendars-table.tsx` and `appointment-types-table.tsx` mount this
   // dialog conditionally (`{mintTarget && <MintBookingLinkDialog .../>}`), so
   // `onOpenChange(false)` unmounts the component before it ever re-renders
   // with `open === false` — the effect above never runs at those call sites.
@@ -356,17 +356,19 @@ export function MintBookingLinkDialog({
   const isRevokePending = revokeBookingCodeMutation.isPending;
   const isRevealView = mintedLink !== null;
 
-  const targetLabel = target.kind === 'calendar' ? 'calendar' : 'group';
+  const targetLabel =
+    target.kind === 'calendar' ? 'calendar' : 'appointmentType';
   const needsDuration = needsDurationControl(target);
 
-  // Refuse to mint at the source (SHOULD-FIX 1, Phase 3 review): a group
+  // Refuse to mint at the source (SHOULD-FIX 1, Phase 3 review): an appointment type
   // with no pinned duration would otherwise silently hand every attendee
-  // the group-slots read's placeholder length. Blocked before the form even
+  // the appointment-type-slots read's placeholder length. Blocked before the form even
   // renders, not surfaced as a validation error on submit — there is no
-  // valid input the member could supply here to fix it; the group itself
+  // valid input the member could supply here to fix it; the appointment type itself
   // needs a duration first.
-  const isBlockedGroup =
-    target.kind === 'group' && groupDurationIsUnset(target.duration);
+  const isBlockedAppointmentType =
+    target.kind === 'appointmentType' &&
+    appointmentTypeDurationIsUnset(target.duration);
 
   const onSubmit = async (values: MintFormValues) => {
     const expiresAt =
@@ -389,16 +391,16 @@ export function MintBookingLinkDialog({
         durationSeconds: durationSeconds > 0 ? durationSeconds : undefined,
       };
       mintedDurationSeconds = durationSeconds > 0 ? durationSeconds : null;
-    } else if (target.kind === 'group') {
+    } else if (target.kind === 'appointmentType') {
       body = {
         purpose: 'book',
-        calendar_group: target.id,
+        appointment_type: target.id,
         expires_at: expiresAt,
       };
-      scope = { kind: 'group' };
+      scope = { kind: 'appointmentType' };
     } else {
       // Event-scoped reschedule/cancel: `event` is the only association the
-      // mint body needs — calendar/group is inferred server-side from the
+      // mint body needs — calendar/appointment type is inferred server-side from the
       // event itself (`BookingCodeCreate` has no separate field for it).
       body = {
         purpose: target.purpose,
@@ -417,7 +419,7 @@ export function MintBookingLinkDialog({
         };
         mintedDurationSeconds = durationSeconds > 0 ? durationSeconds : null;
       } else if (target.purpose === 'reschedule') {
-        scope = { kind: 'group' };
+        scope = { kind: 'appointmentType' };
       } else {
         // `cancel` writes no `?target=`/`?duration=` at all —
         // `buildBookingLinkUrl` ignores `scope` for this purpose. A bare
@@ -508,11 +510,11 @@ export function MintBookingLinkDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        {isBlockedGroup ? (
+        {isBlockedAppointmentType ? (
           <>
             <DialogHeader>
               <DialogTitle>
-                This group can&apos;t take public bookings yet
+                This appointmentType can&apos;t take public bookings yet
               </DialogTitle>
               <DialogDescription>
                 <Text as='span' weight='medium'>
@@ -523,12 +525,13 @@ export function MintBookingLinkDialog({
             </DialogHeader>
             <Alert
               variant='warning'
-              data-testid='group-duration-required-notice'
+              data-testid='appointment-type-duration-required-notice'
             >
               <Icon icon={TriangleAlert} size='sm' />
               <AlertDescription>
-                The group needs a duration before it can take public bookings —
-                set one on the group&apos;s settings, then generate the link.
+                The appointmentType needs a duration before it can take public
+                bookings — set one on the appointment type&apos;s settings, then
+                generate the link.
               </AlertDescription>
             </Alert>
             <DialogFooter>
@@ -704,22 +707,22 @@ export function MintBookingLinkDialog({
                       <DurationFormField
                         field={field}
                         label='Booking duration'
-                        description='Advisory only — anyone holding the link can change it in the URL, but a value is required so the public booking page has a length to request. To enforce a duration server-side, wrap this calendar in a one-slot group and set the group duration instead.'
+                        description='Advisory only — anyone holding the link can change it in the URL, but a value is required so the public booking page has a length to request. To enforce a duration server-side, wrap this calendar in a one-slot appointment type and set the appointment type duration instead.'
                       />
                     )}
                   />
-                ) : target.kind === 'group' ? (
+                ) : target.kind === 'appointmentType' ? (
                   <Text size='sm' color='muted-foreground'>
-                    This group&apos;s own duration applies to every booking made
-                    through this link — there is no per-link duration for a
-                    group target.
+                    This appointment type&apos;s own duration applies to every
+                    booking made through this link — there is no per-link
+                    duration for an appointmentType target.
                   </Text>
                 ) : target.kind === 'event' &&
                   target.purpose === 'reschedule' ? (
                   <Text size='sm' color='muted-foreground'>
-                    This appointment&apos;s group has its own server-pinned
-                    duration — there is no per-link duration for a group-scoped
-                    reschedule.
+                    This appointment&apos;s appointment type has its own
+                    server-pinned duration — there is no per-link duration for
+                    an appointment-type-scoped reschedule.
                   </Text>
                 ) : null}
 

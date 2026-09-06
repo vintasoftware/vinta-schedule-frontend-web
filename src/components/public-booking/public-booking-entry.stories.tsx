@@ -5,9 +5,9 @@ import { useSearchParams } from 'next/navigation';
 // Mocked in .storybook/preview.tsx via `sb.mock(...)` — stubbed here so
 // these stories never attempt a real `/public/booking/*` fetch, same
 // rationale as `public-booking-flow.stories.tsx` /
-// `public-group-booking-flow.stories.tsx`.
+// `public-appointment-type-booking-flow.stories.tsx`.
 import { usePublicBookableSlots } from '@/hooks/booking-codes/use-public-bookable-slots';
-import { usePublicGroupBookableSlots } from '@/hooks/booking-codes/use-public-group-booking';
+import { usePublicAppointmentTypeBookableSlots } from '@/hooks/booking-codes/use-public-appointment-type-booking';
 import { PublicBookingEntry } from './public-booking-entry';
 
 // Proves the routing decision visually: the same component, only the
@@ -73,20 +73,20 @@ export const CalendarTarget: Story = {
   ],
 };
 
-/** `?target=group` mounts the calendar-group flow. */
-export const GroupTarget: Story = {
+/** `?target=appointmentType` mounts the appointment-type flow. */
+export const AppointmentTypeTarget: Story = {
   decorators: [
     (Story) => {
       mocked(useSearchParams).mockReturnValue(
-        fakeSearchParams({ target: 'group' })
+        fakeSearchParams({ target: 'appointmentType' })
       );
-      mocked(usePublicGroupBookableSlots).mockReturnValue({
+      mocked(usePublicAppointmentTypeBookableSlots).mockReturnValue({
         data: [],
         isLoading: false,
         isError: false,
         error: null,
         refetch: fn(),
-      } as unknown as ReturnType<typeof usePublicGroupBookableSlots>);
+      } as unknown as ReturnType<typeof usePublicAppointmentTypeBookableSlots>);
       return <Story />;
     },
   ],

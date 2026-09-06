@@ -4,7 +4,7 @@
  * PublicBookingShell — branding chrome shared by every public booking page.
  *
  * Target-agnostic on purpose: Phase 2 mounts it for the single-calendar book
- * flow, but Phases 3–5 (group booking, reschedule/cancel) all sit on the same
+ * flow, but Phases 3–5 (appointment type booking, reschedule/cancel) all sit on the same
  * two routes (`/book/[code]`, `/o/[slug]/book/[code]`) and reuse this exact
  * chrome — it must not carry anything specific to "booking a single
  * calendar".

@@ -11,7 +11,11 @@ import { NewTokenDialog } from './new-token-dialog';
 const SCOPE_CATALOG: SystemUserScope[] = [
   { value: 'calendar', label: 'Calendar', provider_scoped: true },
   { value: 'calendar_event', label: 'Calendar Event', provider_scoped: true },
-  { value: 'calendar_group', label: 'Calendar Group', provider_scoped: false },
+  {
+    value: 'appointment_type',
+    label: 'Appointment Type',
+    provider_scoped: false,
+  },
   { value: 'available_time', label: 'Available Time', provider_scoped: true },
   { value: 'blocked_time', label: 'Blocked Time', provider_scoped: true },
   { value: 'user', label: 'User', provider_scoped: false },

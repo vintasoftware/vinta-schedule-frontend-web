@@ -7,7 +7,7 @@ import type { MetadataRoute } from 'next';
  * resolved "No — `noindex` on every `/book/*` and `/g/*` route"). The `/g/*`
  * routes (Phase 7) carry no code — they're addressed by a stable, reusable
  * `public_booking_slug` — but they're still an unauthenticated write surface
- * for an organization's calendar group, so the same resolution covers them
+ * for an organization's appointment type, so the same resolution covers them
  * unconditionally, not just the credential-bearing ones. Per-page
  * `metadata.robots` (see `@/lib/booking-links/no-index-metadata`) is the
  * belt; this crawler-level disallow is the suspenders.

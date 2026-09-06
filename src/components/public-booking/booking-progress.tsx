@@ -4,8 +4,8 @@
  *
  * Each flow supplies EXACTLY the steps it actually has:
  * `public-booking-flow.tsx` (single calendar) has one fewer step than
- * `public-group-booking-flow.tsx` / `codeless-group-booking-flow.tsx`
- * (group, which adds a "choose calendars" step), and `reschedule-flow.tsx`
+ * `public-appointment-type-booking-flow.tsx` / `codeless-appointment-type-booking-flow.tsx`
+ * (appointment type, which adds a "choose calendars" step), and `reschedule-flow.tsx`
  * has its own, shorter list. `cancel-flow.tsx` renders none at all — a
  * single confirm action has no "remaining steps" to show, and faking a
  * multi-step indicator for it would lie.

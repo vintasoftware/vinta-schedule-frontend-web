@@ -32,15 +32,15 @@ const CALENDAR_TARGET: MintBookingLinkTarget = {
   name: 'Dr. Smith',
 };
 
-const GROUP_TARGET: MintBookingLinkTarget = {
-  kind: 'group',
+const APPOINTMENT_TYPE_TARGET: MintBookingLinkTarget = {
+  kind: 'appointmentType',
   id: 9,
   name: 'Surgery Team',
   duration: '0:30:00',
 };
 
-const GROUP_TARGET_NO_DURATION: MintBookingLinkTarget = {
-  kind: 'group',
+const APPOINTMENT_TYPE_TARGET_NO_DURATION: MintBookingLinkTarget = {
+  kind: 'appointmentType',
   id: 10,
   name: 'Unconfigured Team',
   duration: undefined,
@@ -54,12 +54,12 @@ const EVENT_RESCHEDULE_CALENDAR_TARGET: MintBookingLinkTarget = {
   eventScope: { kind: 'calendar', durationSeconds: 2700 },
 };
 
-const EVENT_RESCHEDULE_GROUP_TARGET: MintBookingLinkTarget = {
+const EVENT_RESCHEDULE_APPOINTMENT_TYPE_TARGET: MintBookingLinkTarget = {
   kind: 'event',
   id: 101,
   name: 'Surgery consult',
   purpose: 'reschedule',
-  eventScope: { kind: 'group' },
+  eventScope: { kind: 'appointmentType' },
 };
 
 const EVENT_CANCEL_TARGET: MintBookingLinkTarget = {
@@ -109,20 +109,20 @@ type Story = StoryObj<typeof meta>;
 export const CalendarTarget: Story = {};
 
 /**
- * A group target shows no duration control — the group's own server-pinned
- * duration applies (see the plan's "Group duration comes from the server"
+ * An appointment type target shows no duration control — the appointment type's own server-pinned
+ * duration applies (see the plan's "Appointment Type duration comes from the server"
  * guiding decision).
  */
-export const GroupTarget: Story = {
-  args: { target: GROUP_TARGET },
+export const AppointmentTypeTarget: Story = {
+  args: { target: APPOINTMENT_TYPE_TARGET },
 };
 
 /**
- * A group with no pinned duration is refused before the form even renders —
- * see `groupDurationIsUnset` in `mint-booking-link-dialog.tsx`.
+ * An appointment type with no pinned duration is refused before the form even renders —
+ * see `appointmentTypeDurationIsUnset` in `mint-booking-link-dialog.tsx`.
  */
-export const GroupTargetBlockedNoDuration: Story = {
-  args: { target: GROUP_TARGET_NO_DURATION },
+export const AppointmentTypeTargetBlockedNoDuration: Story = {
+  args: { target: APPOINTMENT_TYPE_TARGET_NO_DURATION },
 };
 
 /**
@@ -135,13 +135,13 @@ export const EventRescheduleCalendarTarget: Story = {
 };
 
 /**
- * A group-scoped `event` reschedule target shows no duration control — the
- * group's own server-pinned duration applies, mirroring a plain `group`
- * `book` target. Never blocked on an unset group duration here (see the
+ * An appointment-type-scoped `event` reschedule target shows no duration control — the
+ * appointment type's own server-pinned duration applies, mirroring a plain
+ * `appointmentType` `book` target. Never blocked on an unset appointment type duration here (see the
  * type's doc comment for why).
  */
-export const EventRescheduleGroupTarget: Story = {
-  args: { target: EVENT_RESCHEDULE_GROUP_TARGET },
+export const EventRescheduleAppointmentTypeTarget: Story = {
+  args: { target: EVENT_RESCHEDULE_APPOINTMENT_TYPE_TARGET },
 };
 
 /** An `event` cancel target offers no duration control at all. */
