@@ -1,10 +1,10 @@
 /**
  * useOwnedCalendarIds — the calling member's own calendar ids, as a Set.
  *
- * Feeds `canEditCalendar` (@/components/calendar-groups/group-permissions):
+ * Feeds `canEditCalendar` (@/components/appointment-types/appointment-type-permissions):
  * "does this member own this calendar" is answered by listing the caller's
  * own calendars and comparing ids, because `Calendar` carries no owner field
- * (Guiding Decisions, calendar-group-scoped-availability plan).
+ * (Guiding Decisions, appointment-type-scoped-availability plan).
  *
  * Named distinctly from `useMyCalendars` (use-my-calendars.ts) — that hook
  * already exists for the paginated "My calendars" table page and always
@@ -21,7 +21,7 @@
  * their own." Both forms should scope a non-admin caller to their own
  * calendars, but 'me' does so unconditionally (independent of the caller's
  * role), which is the stronger guarantee and the one this hook's caller
- * (the ownership predicate) actually needs — see group-permissions.ts for
+ * (the ownership predicate) actually needs — see appointment-type-permissions.ts for
  * why that distinction matters here.
  *
  * Fetches a single generous page rather than following pagination — an
@@ -45,8 +45,8 @@ import {
 import { useQuery } from '@tanstack/react-query';
 
 // Generous enough to cover any realistic individual's calendar count in one
-// page — see the file-level comment on use-group-scoped-config-summary.ts
-// for the same tradeoff applied to a slot's group-scoped rows.
+// page — see the file-level comment on use-appointment-type-scoped-config-summary.ts
+// for the same tradeoff applied to a slot's appointment-type-scoped rows.
 export const OWNED_CALENDARS_PAGE_SIZE = 200;
 
 const OWNED_CALENDARS_QUERY_PARAMS = {
@@ -85,7 +85,7 @@ export function useOwnedCalendarIds({
 
   // Stable Set identity across renders with the same data — a brand-new Set
   // every render defeats React.useMemo([role, ownedCalendarIds]) downstream
-  // in GroupPermissionsProvider, which exists precisely to avoid re-rendering
+  // in AppointmentTypePermissionsProvider, which exists precisely to avoid re-rendering
   // every SlotRosterRow on every unrelated parent render.
   const ownedCalendarIds = React.useMemo(
     () => new Set<number>((query.data?.results ?? []).map((c) => c.id)),

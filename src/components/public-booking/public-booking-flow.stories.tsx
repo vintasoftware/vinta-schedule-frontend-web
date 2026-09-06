@@ -35,7 +35,7 @@ function fakeSearchParams(
 // submit). The confirmed / terminal-write-error states depend on a write
 // response and are exercised end to end in the colocated
 // `public-booking-flow.test.tsx` instead, following the same split as
-// `group-booking-flow.stories.tsx` (stories stop where a real interaction
+// `appointment-type-booking-flow.stories.tsx` (stories stop where a real interaction
 // would otherwise be needed to drive a network call).
 
 const PROPOSALS: BookableSlotProposal[] = [

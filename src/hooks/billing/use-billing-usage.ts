@@ -3,7 +3,7 @@
  * limits (`GET /billing/usage/`).
  *
  * A thin wrapper over the generated `billingUsageRetrieveUsageRetrieveOptions`
- * factory (canonical hook pattern — see use-group-scoped-quota.ts). Read-only;
+ * factory (canonical hook pattern — see use-appointment-type-scoped-quota.ts). Read-only;
  * the write flows that invalidate this key land with their own phases.
  *
  * The endpoint fails open: a subscription-less org returns `billing_state:

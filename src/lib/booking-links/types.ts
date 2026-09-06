@@ -19,6 +19,6 @@ export interface MintedBookingLink {
   /** Absolute URL handed to the member, already branded when a slug was known. */
   url: string;
   expiresAt: string | null;
-  /** Seconds, calendar-scoped links only; null for group links (server-pinned). */
+  /** Seconds, calendar-scoped links only; null for appointment type links (server-pinned). */
   durationSeconds: number | null;
 }

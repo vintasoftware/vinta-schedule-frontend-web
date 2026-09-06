@@ -10,12 +10,12 @@ import {
 } from './rewrite-links';
 
 // Matches the real backend manifest (`GET /public-api-docs/`) at the time of
-// writing: availability, calendar-bundles, calendar-groups, calendars,
+// writing: availability, calendar-bundles, appointment-types, calendars,
 // events, recurrence.
 const CONCEPT_SLUGS = [
   'availability',
   'calendar-bundles',
-  'calendar-groups',
+  'appointment-types',
   'calendars',
   'events',
   'recurrence',
@@ -34,7 +34,7 @@ async function renderWithLinkRewrite(markdown: string) {
 
 describe('rehypeRewriteConceptLinks', () => {
   it('neutralizes a link to a backend source file (no href, not a link)', async () => {
-    // Real shape from calendar-groups.md's "Source:" line.
+    // Real shape from appointment-types.md's "Source:" line.
     const html = await renderWithLinkRewrite(
       'Source: [calendar_integration/models.py](../../calendar_integration/models.py).'
     );

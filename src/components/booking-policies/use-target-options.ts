@@ -1,22 +1,22 @@
 /**
  * useTargetOptions — data sources for booking-policy targets.
  *
- * A booking policy can attach to a calendar, a calendar group, or a member, so
+ * A booking policy can attach to a calendar, an appointment type, or a member, so
  * both the create dialog (picker options) and the table (id → label resolution)
- * need the org's calendars, groups, and members. This hook fetches all three
+ * need the org's calendars, appointment types, and members. This hook fetches all three
  * and exposes:
- *   - `calendarOptions` / `groupOptions` / `memberOptions` for the Combobox.
+ *   - `calendarOptions` / `appointmentTypeOptions` / `memberOptions` for the Combobox.
  *   - `resolveTargetLabel(type, id)` for rendering an existing policy's target.
  *
  * Lists are fetched with a generous page size; an org with more than a few
- * hundred calendars/groups/members would need server-side search here, but the
+ * hundred calendars/appointment types/members would need server-side search here, but the
  * picker is admin-only and the counts are small in practice.
  */
 
 import * as React from 'react';
 import type { ComboboxOption } from 'vinta-schedule-design-system/ui/combobox';
 import { useAllCalendars } from '@/hooks/calendars/use-all-calendars';
-import { useCalendarGroups } from '@/hooks/calendar-groups/use-calendar-groups';
+import { useAppointmentTypes } from '@/hooks/appointment-types/use-appointment-types';
 import { useTeamMembers } from '@/hooks/team/use-team-members';
 import type { DataTableQuery } from '@/components/data-table/types';
 import { CALENDAR_TYPE_LABELS } from './calendar-type-labels';
@@ -32,9 +32,10 @@ const FETCH_ALL_QUERY: DataTableQuery = {
 export function useTargetOptions() {
   const { calendars, isLoading: calendarsLoading } =
     useAllCalendars(FETCH_ALL_QUERY);
-  const { groups, isLoading: groupsLoading } = useCalendarGroups({
-    query: FETCH_ALL_QUERY,
-  });
+  const { appointmentTypes, isLoading: appointmentTypesLoading } =
+    useAppointmentTypes({
+      query: FETCH_ALL_QUERY,
+    });
   const { members, isLoading: membersLoading } =
     useTeamMembers(FETCH_ALL_QUERY);
 
@@ -48,9 +49,9 @@ export function useTargetOptions() {
     [calendars]
   );
 
-  const groupOptions = React.useMemo<ComboboxOption[]>(
-    () => groups.map((g) => ({ value: String(g.id), label: g.name })),
-    [groups]
+  const appointmentTypeOptions = React.useMemo<ComboboxOption[]>(
+    () => appointmentTypes.map((g) => ({ value: String(g.id), label: g.name })),
+    [appointmentTypes]
   );
 
   const memberOptions = React.useMemo<ComboboxOption[]>(
@@ -69,7 +70,7 @@ export function useTargetOptions() {
       const lookup: Partial<Record<BookingPolicyTargetType, ComboboxOption[]>> =
         {
           calendar: calendarOptions,
-          calendar_group: groupOptions,
+          appointment_type: appointmentTypeOptions,
           membership: memberOptions,
         };
       const options = lookup[type];
@@ -79,19 +80,19 @@ export function useTargetOptions() {
       // page (or was deleted) so the row still renders meaningfully.
       const fallbackPrefix: Partial<Record<BookingPolicyTargetType, string>> = {
         calendar: 'Calendar',
-        calendar_group: 'Group',
+        appointment_type: 'AppointmentType',
         membership: 'Member',
       };
       return `${fallbackPrefix[type] ?? 'Target'} #${id}`;
     },
-    [calendarOptions, groupOptions, memberOptions]
+    [calendarOptions, appointmentTypeOptions, memberOptions]
   );
 
   return {
     calendarOptions,
-    groupOptions,
+    appointmentTypeOptions,
     memberOptions,
     resolveTargetLabel,
-    isLoading: calendarsLoading || groupsLoading || membersLoading,
+    isLoading: calendarsLoading || appointmentTypesLoading || membersLoading,
   };
 }

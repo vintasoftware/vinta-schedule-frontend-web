@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 
 const included = [
   'Every feature — no seat, calendar, or API limits',
-  'Unlimited Calendar Groups & booking codes',
+  'Unlimited Appointment Types & booking codes',
   'Full GraphQL booking API + webhooks',
   'Two-way sync for every connected calendar',
   'Audit logs and per-resource access control',

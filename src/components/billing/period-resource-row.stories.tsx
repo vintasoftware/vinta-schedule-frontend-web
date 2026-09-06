@@ -67,7 +67,7 @@ export const UnlimitedLimit: Story = {
   args: {
     resource: {
       ...BASE,
-      resource_key: 'calendar_groups',
+      resource_key: 'appointment_types',
       kind: 'prepaid',
       total: 12,
       limit_value: null,

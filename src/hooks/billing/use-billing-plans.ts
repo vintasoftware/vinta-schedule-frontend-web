@@ -2,7 +2,7 @@
  * useBillingPlans — the plan catalog (`GET /billing/plans/`, paginated).
  *
  * Thin wrapper over the generated `billingPlansListOptions` factory (canonical
- * hook pattern — see use-group-scoped-quota.ts). Read-only in Phase 0; the
+ * hook pattern — see use-appointment-type-scoped-quota.ts). Read-only in Phase 0; the
  * plan picker (Phase 3) consumes it.
  */
 

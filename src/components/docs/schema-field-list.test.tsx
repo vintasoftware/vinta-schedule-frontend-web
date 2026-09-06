@@ -10,8 +10,8 @@ import type { GraphQLSchemaField } from '@/lib/docs/parse-schema';
 import { SchemaFieldList } from './schema-field-list';
 
 const activeField: GraphQLSchemaField = {
-  name: 'calendarGroupBookableSlots',
-  description: 'Lists bookable slots for a calendar group.',
+  name: 'appointmentTypeBookableSlots',
+  description: 'Lists bookable slots for an appointment type.',
   args: [
     {
       name: 'limit',
@@ -34,7 +34,7 @@ const deprecatedField: GraphQLSchemaField = {
   type: 'String',
   typeName: 'String',
   isDeprecated: true,
-  deprecationReason: 'Use calendarGroupBookableSlots instead.',
+  deprecationReason: 'Use appointmentTypeBookableSlots instead.',
 };
 
 describe('SchemaFieldList', () => {
@@ -105,7 +105,9 @@ describe('SchemaFieldList', () => {
     );
 
     expect(
-      screen.getByText(/^Deprecated: Use calendarGroupBookableSlots instead\.$/)
+      screen.getByText(
+        /^Deprecated: Use appointmentTypeBookableSlots instead\.$/
+      )
     ).toBeInTheDocument();
   });
 

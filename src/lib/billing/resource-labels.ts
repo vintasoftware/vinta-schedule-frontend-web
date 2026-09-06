@@ -14,7 +14,7 @@ import type { ResourceKeyEnum } from '@/client';
 export const RESOURCE_LABELS: Record<ResourceKeyEnum, string> = {
   organization_members: 'Organization members',
   resource_calendars: 'Resource calendars',
-  calendar_groups: 'Calendar groups',
+  appointment_types: 'Appointment types',
   bundle_calendars: 'Bundle calendars',
   availability_windows: 'Availability windows',
   webhook_subscriptions: 'Webhook subscriptions',

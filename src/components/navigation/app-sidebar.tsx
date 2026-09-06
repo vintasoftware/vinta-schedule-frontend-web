@@ -119,7 +119,7 @@ const DEFAULT_GROUPS: SidebarNavGroup[] = [
     items: [
       { id: 'calendar', label: 'Calendar', icon: Calendar },
       { id: 'calendars', label: 'Connected calendars', icon: CalendarSync },
-      { id: 'groups', label: 'Calendar groups', icon: UsersRound },
+      { id: 'appointment-types', label: 'Appointment types', icon: UsersRound },
       { id: 'bookings', label: 'Bookings', icon: Ticket, badge: 8 },
     ],
   },

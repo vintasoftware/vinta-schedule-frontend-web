@@ -1,6 +1,6 @@
 /**
  * buildNavGroups tests — pins the nav shape per role so a revert of the
- * Phase 2 "Calendar groups" nav move (member section) or an accidental
+ * Phase 2 "Appointment types" nav move (member section) or an accidental
  * widening of the admin-only group would be caught here rather than only
  * visually.
  *
@@ -27,14 +27,19 @@ function idsOf(items: { id: string }[]): string[] {
 }
 
 describe('buildNavGroups', () => {
-  it('a member gets a single group containing /groups, no Admin group', () => {
+  it('a member gets a single nav group containing /appointment-types, no Admin group', () => {
     const groups = buildNavGroups(MEMBER_PERMISSIONS, false);
 
     expect(groups).toHaveLength(1);
     expect(groups[0]?.label).toBeUndefined();
 
-    const memberItem = groups[0]?.items.find((item) => item.id === 'groups');
-    expect(memberItem).toMatchObject({ id: 'groups', href: '/groups' });
+    const memberItem = groups[0]?.items.find(
+      (item) => item.id === 'appointment-types'
+    );
+    expect(memberItem).toMatchObject({
+      id: 'appointment-types',
+      href: '/appointment-types',
+    });
 
     expect(groups.some((group) => group.label === 'Admin')).toBe(false);
   });
@@ -44,7 +49,7 @@ describe('buildNavGroups', () => {
 
     expect(groups).toHaveLength(2);
     expect(groups[0]?.label).toBeUndefined();
-    expect(idsOf(groups[0]?.items ?? [])).toContain('groups');
+    expect(idsOf(groups[0]?.items ?? [])).toContain('appointment-types');
 
     const adminGroup = groups.find((group) => group.label === 'Admin');
     expect(adminGroup).toBeDefined();

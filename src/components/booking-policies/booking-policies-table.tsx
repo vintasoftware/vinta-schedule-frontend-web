@@ -4,7 +4,7 @@
  * BookingPoliciesTable — paginated list of the org's booking policies with edit
  * and delete row actions.
  *
- * Each row shows the resolved target (calendar / group / member name, or
+ * Each row shows the resolved target (calendar / appointment type / member name, or
  * "Organization default"), the target kind, and the four guardrail values
  * formatted for humans. Deletes go through an AlertDialog confirmation; the
  * backend destroy is idempotent so a stale row deletes cleanly.

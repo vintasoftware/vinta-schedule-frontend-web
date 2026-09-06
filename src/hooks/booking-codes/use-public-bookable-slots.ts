@@ -15,12 +15,12 @@
  * `throwOnError: true`, which throws only the parsed error BODY and drops
  * the `Response` — and `parseReadFailure` (the opaque-403 mapper this whole
  * read path depends on) needs the `Response`, not the body. See
- * `use-group-availability-preview.ts` for the same "call the raw sdk
+ * `use-appointment-type-availability-preview.ts` for the same "call the raw sdk
  * function from a custom queryFn" precedent, for an unrelated reason
  * (no generated `*Options` factory exists for a POST-shaped operation).
  *
  * LOAD-BEARING: never read `duration_seconds` back off this hook's result to
- * decide what to render — a pinned group duration silently overrides the
+ * decide what to render — a pinned appointment type duration silently overrides the
  * requested value with no error (see the plan's "Read the duration off the
  * proposals, never off local state" guiding decision). Callers must render
  * the length of each returned `BookableSlotProposal` (`end_time - start_time`),

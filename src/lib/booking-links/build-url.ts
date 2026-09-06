@@ -2,15 +2,15 @@ import type { PurposeEnum } from '@/client';
 
 /**
  * The link's scope. A calendar-scoped `book`/`reschedule` link may carry an
- * advisory `durationSeconds` (appended as `?duration=`); a group-scoped link
- * has no field to populate one — a group's duration is server-pinned on
- * `CalendarGroup` and must never be echoed in the URL (see "Group duration
- * comes from the server"). This makes a group link with a client-chosen
+ * advisory `durationSeconds` (appended as `?duration=`); an appointment-type-scoped link
+ * has no field to populate one — an appointment type's duration is server-pinned on
+ * `AppointmentType` and must never be echoed in the URL (see "Appointment Type duration
+ * comes from the server"). This makes an appointment type link with a client-chosen
  * duration unrepresentable rather than merely discouraged.
  */
 export type BookingLinkUrlScope =
   | { kind: 'calendar'; durationSeconds?: number }
-  | { kind: 'group' };
+  | { kind: 'appointmentType' };
 
 export interface BuildBookingLinkUrlParams {
   /** The plaintext booking code, minted exactly once by `bookingCodesCreate`. */
@@ -26,7 +26,7 @@ export interface BuildBookingLinkUrlParams {
   slug?: string;
   /**
    * Ignored entirely for `purpose: 'cancel'` — `publicBookingEventsCancelCreate`
-   * is a single endpoint for both single-calendar and calendar-group events,
+   * is a single endpoint for both single-calendar and appointment-type events,
    * so a cancel link needs no `?target=` marker and no duration. Required by
    * the type regardless, so callers don't need a second, cancel-only shape.
    */
@@ -42,10 +42,10 @@ export interface BuildBookingLinkUrlParams {
  * `/book/[code]` path with no extra segment.
  *
  * A `book` OR `reschedule` link also carries an explicit
- * `?target=calendar|group` marker (Phase 3 added it for `book`; Phase 4
+ * `?target=calendar|appointmentType` marker (Phase 3 added it for `book`; Phase 4
  * extends it to `reschedule` for the same reason). `/book/[code]` and
  * `/o/[slug]/book/[code]` (and their `/reschedule` suffix) serve BOTH a
- * single-calendar and a calendar-group flow, and the page holding only a
+ * single-calendar and an appointment-type flow, and the page holding only a
  * code has no way to introspect which one it is — the code resolves
  * server-side, and probing (try one endpoint, fall back to the other on the
  * opaque/`NOT_PERMITTED` failure) would turn that failure into exactly the
@@ -62,9 +62,9 @@ export interface BuildBookingLinkUrlParams {
  *
  * BACK-COMPAT: a calendar `book` link minted before this marker existed
  * (Phase 2) has `?duration=` but no `?target=`. `resolveBookingLinkTarget`
- * treats anything other than the literal `target=group` as calendar, so
- * those links keep working unchanged. A group `book` link minted before
- * this marker (Phase 1 shipped group minting before Phase 3 shipped a page
+ * treats anything other than an appointment-type marker as calendar, so
+ * those links keep working unchanged. An appointment type `book` link minted before
+ * this marker (Phase 1 shipped appointment type minting before Phase 3 shipped a page
  * that could render one) had no query param at all and was already
  * unusable — it degrades to the same "missing a valid duration" state it
  * always has, rather than being guessed at. That's an accepted, documented
@@ -96,9 +96,9 @@ export function buildBookingLinkUrl(params: BuildBookingLinkUrlParams): string {
   return url.toString();
 }
 
-export interface BuildGroupPublicBookingUrlParams {
+export interface BuildAppointmentTypePublicBookingUrlParams {
   /**
-   * The group's opaque, globally-unique `CalendarGroup.public_booking_slug`
+   * The appointment type's opaque, globally-unique `AppointmentType.public_booking_slug`
    * — never a minted `code`. This is a DIFFERENT kind of link from
    * everything else in this module: it is not minted, does not expire, and
    * is never consumed, so there is nothing here to reveal once and never
@@ -114,23 +114,23 @@ export interface BuildGroupPublicBookingUrlParams {
 }
 
 /**
- * Build the absolute, shareable URL for a calendar group's REUSABLE,
+ * Build the absolute, shareable URL for an appointment type's REUSABLE,
  * codeless public scheduling link (Phase 7).
  *
  * Deliberately its own function, not a `purpose` on `buildBookingLinkUrl`:
  * that function's whole shape (a `code`, a one-time-reveal purpose, an
  * optional `?target=`/`?duration=`) describes a MINTED, single-use booking
- * code. A group's `public_booking_slug` is neither minted nor single-use —
- * it is a stable identifier the group already carries, safe to display
+ * code. An appointment type's `public_booking_slug` is neither minted nor single-use —
+ * it is a stable identifier the appointment type already carries, safe to display
  * repeatedly (see `public-scheduling-settings.tsx`, which is the only
  * caller). Never route it through `buildBookingLinkUrl` just to avoid a
  * second small function; that would misrepresent a reusable identifier as a
  * one-time credential.
  */
-export function buildGroupPublicBookingUrl({
+export function buildAppointmentTypePublicBookingUrl({
   publicSlug,
   slug,
-}: BuildGroupPublicBookingUrlParams): string {
+}: BuildAppointmentTypePublicBookingUrlParams): string {
   const encodedPublicSlug = encodeURIComponent(publicSlug);
   const path = slug
     ? `/o/${encodeURIComponent(slug)}/g/${encodedPublicSlug}`

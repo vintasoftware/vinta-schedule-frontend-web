@@ -1,7 +1,7 @@
 import { fetchBrandingForSlug } from '@/lib/branding-server';
 import { NO_INDEX_METADATA } from '@/lib/booking-links/no-index-metadata';
 import { PublicBookingShell } from '@/components/public-booking/public-booking-shell';
-import { CodelessGroupBookingFlow } from '@/components/public-booking/codeless-group-booking-flow';
+import { CodelessAppointmentTypeBookingFlow } from '@/components/public-booking/codeless-appointment-type-booking-flow';
 
 /**
  * `noindex` — see the plan's Open Questions row "Should the public booking
@@ -11,23 +11,23 @@ import { CodelessGroupBookingFlow } from '@/components/public-booking/codeless-g
 export const metadata = NO_INDEX_METADATA;
 
 /**
- * Branded codeless public group booking route —
+ * Branded codeless public appointment type booking route —
  * `/o/[slug]/g/[public_slug]`.
  *
  * Resolves branding through `fetchBrandingForSlug`, following the branded
  * `/o/[slug]/book/[code]` route. An unknown/removed org slug resolves to
  * `VINTA_DEFAULT_BRANDING` rather than erroring.
  *
- * `slug` is ALSO passed straight through to `CodelessGroupBookingFlow`: once
+ * `slug` is ALSO passed straight through to `CodelessAppointmentTypeBookingFlow`: once
  * a booking succeeds, its confirmation renders self-service
  * reschedule/cancel links (Phase 5), and this route — unlike
  * `/g/[public_slug]` — already has the org slug in its own params, so those
  * links can use the branded `/o/[slug]/...` form.
  *
- * Sits outside the `(app)` route group so the authenticated shell's
+ * Sits outside the `(app)` route appointment type so the authenticated shell's
  * org/session gating never touches it.
  */
-export default async function BrandedCodelessGroupBookingPage({
+export default async function BrandedCodelessAppointmentTypeBookingPage({
   params,
 }: {
   params: Promise<{ slug: string; public_slug: string }>;
@@ -37,7 +37,7 @@ export default async function BrandedCodelessGroupBookingPage({
 
   return (
     <PublicBookingShell branding={branding}>
-      <CodelessGroupBookingFlow publicSlug={publicSlug} slug={slug} />
+      <CodelessAppointmentTypeBookingFlow publicSlug={publicSlug} slug={slug} />
     </PublicBookingShell>
   );
 }

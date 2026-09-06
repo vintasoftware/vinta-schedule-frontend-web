@@ -6,7 +6,7 @@
  *
  * Unlike `RescheduleFlow`, there is no slot picker and no `?target=`
  * routing: `publicBookingEventsCancelCreate` is a single endpoint for both
- * single-calendar and calendar-group events — the deliberately-not-collapsed
+ * single-calendar and appointment-type events — the deliberately-not-collapsed
  * pair only exists for reschedule (see the plan's Phase 4 body, point 4).
  * There is also no code-gated READ at all on this page — the plan's
  * consumed-operations table lists only the cancel WRITE for this flow — so

@@ -16,12 +16,12 @@ export const Queries: Story = {
     documentedTypeNames: new Set(['BookableSlot']),
     fields: [
       {
-        name: 'calendarGroupBookableSlots',
-        description: 'Lists bookable slots for a calendar group.',
+        name: 'appointmentTypeBookableSlots',
+        description: 'Lists bookable slots for an appointment type.',
         args: [
           {
-            name: 'calendarGroupId',
-            description: 'The calendar group to check.',
+            name: 'appointmentTypeId',
+            description: 'The appointment type to check.',
             type: 'ID!',
             typeName: 'ID',
             defaultValue: null,
@@ -46,7 +46,7 @@ export const Queries: Story = {
         type: 'String',
         typeName: 'String',
         isDeprecated: true,
-        deprecationReason: 'Use calendarGroupBookableSlots instead.',
+        deprecationReason: 'Use appointmentTypeBookableSlots instead.',
       },
     ],
   },

@@ -19,8 +19,8 @@ export const CalendarBookSecondStep: Story = {
   args: { steps: ['Pick a time', 'Your details'], currentStep: 1 },
 };
 
-/** The group book flow — one extra step to choose a calendar per slot. */
-export const GroupBookStep: Story = {
+/** The appointment type book flow — one extra step to choose a calendar per slot. */
+export const AppointmentTypeBookStep: Story = {
   args: {
     steps: ['Pick a time', 'Choose calendars', 'Your details'],
     currentStep: 1,

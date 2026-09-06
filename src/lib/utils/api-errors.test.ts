@@ -181,10 +181,12 @@ describe('readNonFieldError', () => {
     expect(
       readNonFieldError({
         non_field_errors: [
-          'The fields calendar, group_slot, period must make a unique set.',
+          'The fields calendar, appointment_type_slot, period must make a unique set.',
         ],
       })
-    ).toBe('The fields calendar, group_slot, period must make a unique set.');
+    ).toBe(
+      'The fields calendar, appointment_type_slot, period must make a unique set.'
+    );
   });
 
   it('returns null for an empty non_field_errors array', () => {

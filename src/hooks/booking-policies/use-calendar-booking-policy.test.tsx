@@ -8,7 +8,7 @@ function policy(overrides: Partial<BookingPolicy>): BookingPolicy {
   return {
     id: 1,
     calendar: null,
-    calendar_group: null,
+    appointment_type: null,
     membership_user_id: null,
     is_organization_default: false,
     lead_time_seconds: 0,
@@ -63,7 +63,7 @@ describe('useCalendarBookingPolicy', () => {
     expect(result.current.policy).toBeNull();
   });
 
-  it('does not match membership- or group-scoped policies by id collision', () => {
+  it('does not match membership- or appointment-type-scoped policies by id collision', () => {
     // A membership policy with membership_user_id 10 must not match calendar 10.
     mockList([policy({ id: 1, membership_user_id: 10, calendar: null })]);
 

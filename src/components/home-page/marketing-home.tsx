@@ -221,7 +221,7 @@ function Features() {
     },
     {
       icon: UsersRound,
-      title: 'Calendar Groups',
+      title: 'Appointment Types',
       body: 'Bundle the providers and rooms that fulfill an appointment type, so patients always reach the right availability.',
     },
     {
@@ -306,7 +306,7 @@ function ApiShowcase() {
             </Heading>
             <Box maxWidth='32rem'>
               <Text as='p' color='muted-foreground' leading='relaxed'>
-                Query a Calendar Group for live availability, then confirm —
+                Query an Appointment Type for live availability, then confirm —
                 Vinta resolves the right provider or resource and writes back to
                 every connected calendar.
               </Text>
@@ -315,7 +315,7 @@ function ApiShowcase() {
               <List variant='plain' gap={3}>
                 {[
                   'One GraphQL endpoint + webhooks for every booking event',
-                  'Calendar Groups resolve the right provider or room for you',
+                  'Appointment Types resolve the right provider or room for you',
                   'Booking codes for single-use, tokenless public scheduling',
                 ].map((t) => (
                   <ListItem key={t}>
@@ -361,7 +361,7 @@ function ApiShowcase() {
                 color='slate-100'
               >
                 <Text as='span' color='slate-500'>
-                  # POST /graphql/ — find bookable slots in a Calendar Group
+                  # POST /graphql/ — find bookable slots in an Appointment Type
                 </Text>
                 {'\n'}
                 <Text as='span' color='vinta-300'>
@@ -370,9 +370,9 @@ function ApiShowcase() {
                 {'{\n'}
                 {'  '}
                 <Text as='span' color='teal-300'>
-                  calendarGroupBookableSlots
+                  appointmentTypeBookableSlots
                 </Text>
-                (groupId: 42,{'\n'}
+                (appointmentTypeId: 42,{'\n'}
                 {'    '}searchWindowStart:{' '}
                 <Text as='span' color='teal-300'>
                   &quot;2026-06-17T09:00:00-07:00&quot;
@@ -391,7 +391,7 @@ function ApiShowcase() {
                 {'\n\n'}
                 <Text as='span' color='slate-500'>
                   # → confirm — books the slot across every calendar in the
-                  group
+                  appointment type
                 </Text>
                 {'\n'}
                 <Text as='span' color='vinta-300'>
@@ -400,10 +400,10 @@ function ApiShowcase() {
                 {'{\n'}
                 {'  '}
                 <Text as='span' color='teal-300'>
-                  createCalendarGroupEvent
+                  createAppointmentTypeEvent
                 </Text>
                 (input: {'{\n'}
-                {'    '}organizationId: 7, groupId: 42, timezone:{' '}
+                {'    '}organizationId: 7, appointmentTypeId: 42, timezone:{' '}
                 <Text as='span' color='teal-300'>
                   &quot;America/Los_Angeles&quot;
                 </Text>
@@ -455,8 +455,8 @@ function HowItWorks() {
     {
       n: '02',
       icon: UsersRound,
-      title: 'Build a Calendar Group',
-      body: 'Group the people and rooms that handle an appointment type behind one link.',
+      title: 'Build an Appointment Type',
+      body: 'AppointmentType the people and rooms that handle an appointment type behind one link.',
     },
     {
       n: '03',
@@ -535,7 +535,7 @@ function HowItWorks() {
 function Pricing() {
   const feats = [
     'Every feature — no seat, calendar, or API limits',
-    'Unlimited Calendar Groups & booking codes',
+    'Unlimited Appointment Types & booking codes',
     'Full GraphQL booking API + webhooks',
     'Your data stays on your own infrastructure',
   ];
@@ -552,7 +552,7 @@ function Pricing() {
       desc: 'For a single practice getting started.',
       feats: [
         'Up to 5 calendars',
-        '1 Calendar Group',
+        '1 Appointment Type',
         'Hosted booking page',
         'Community support',
       ],
@@ -566,7 +566,7 @@ function Pricing() {
       desc: 'For growing care teams and clinics.',
       feats: [
         'Up to 50 calendars',
-        'Unlimited Calendar Groups',
+        'Unlimited Appointment Types',
         'Full booking API + webhooks',
         'Priority support',
       ],

@@ -1,16 +1,16 @@
 /**
- * canMintBookingLinkForCalendar / canMintBookingLinkForGroup tests.
+ * canMintBookingLinkForCalendar / canMintBookingLinkForAppointmentType tests.
  *
  * Covers the full matrix called out in the phase spec: org admin with no
  * owned calendars, plain member with an owned calendar, plain member
- * without, group participant, empty `permissions` array (a valid, normal
+ * without, appointment type participant, empty `permissions` array (a valid, normal
  * value), and `null` permissions (unresolved — must not grant).
  */
 
 import { describe, it, expect } from 'vitest';
 import {
   canMintBookingLinkForCalendar,
-  canMintBookingLinkForGroup,
+  canMintBookingLinkForAppointmentType,
 } from './can-mint-booking-link';
 
 describe('canMintBookingLinkForCalendar', () => {
@@ -65,53 +65,53 @@ describe('canMintBookingLinkForCalendar', () => {
   });
 });
 
-describe('canMintBookingLinkForGroup', () => {
-  it('an org admin (manage-members) can mint for any group, including one they participate in nothing of', () => {
+describe('canMintBookingLinkForAppointmentType', () => {
+  it('an org admin (manage-members) can mint for any appointment type, including one they participate in nothing of', () => {
     expect(
-      canMintBookingLinkForGroup({
+      canMintBookingLinkForAppointmentType({
         permissions: ['organizations.manage_members'],
         ownedCalendarIds: new Set(),
-        groupCalendarIds: [100, 101],
+        appointmentTypeCalendarIds: [100, 101],
       })
     ).toBe(true);
   });
 
-  it('a group participant (owns a calendar in the group roster) can mint', () => {
+  it('an appointment type participant (owns a calendar in the appointment type roster) can mint', () => {
     expect(
-      canMintBookingLinkForGroup({
+      canMintBookingLinkForAppointmentType({
         permissions: [],
         ownedCalendarIds: new Set([101]),
-        groupCalendarIds: [100, 101],
+        appointmentTypeCalendarIds: [100, 101],
       })
     ).toBe(true);
   });
 
-  it('a member who owns nothing in the group roster cannot mint', () => {
+  it('a member who owns nothing in the appointment type roster cannot mint', () => {
     expect(
-      canMintBookingLinkForGroup({
+      canMintBookingLinkForAppointmentType({
         permissions: [],
         ownedCalendarIds: new Set([999]),
-        groupCalendarIds: [100, 101],
+        appointmentTypeCalendarIds: [100, 101],
       })
     ).toBe(false);
   });
 
   it('an empty permissions array is a valid, normal value — not a grant by itself', () => {
     expect(
-      canMintBookingLinkForGroup({
+      canMintBookingLinkForAppointmentType({
         permissions: [],
         ownedCalendarIds: new Set(),
-        groupCalendarIds: [],
+        appointmentTypeCalendarIds: [],
       })
     ).toBe(false);
   });
 
-  it('null (unresolved) permissions must not grant, even for a participated-in group', () => {
+  it('null (unresolved) permissions must not grant, even for a participated-in appointment type', () => {
     expect(
-      canMintBookingLinkForGroup({
+      canMintBookingLinkForAppointmentType({
         permissions: null,
         ownedCalendarIds: new Set([100]),
-        groupCalendarIds: [100],
+        appointmentTypeCalendarIds: [100],
       })
     ).toBe(false);
   });

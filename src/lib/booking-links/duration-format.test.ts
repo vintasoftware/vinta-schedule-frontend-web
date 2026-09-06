@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   djangoDurationToMinutes,
   minutesToDjangoDuration,
-  groupDurationIsUnset,
+  appointmentTypeDurationIsUnset,
 } from './duration-format';
 
 describe('minutesToDjangoDuration / djangoDurationToMinutes — round-trip', () => {
@@ -56,15 +56,15 @@ describe('djangoDurationToMinutes — parsing beyond our own output', () => {
   });
 });
 
-describe('groupDurationIsUnset', () => {
+describe('appointmentTypeDurationIsUnset', () => {
   it('is true for undefined, empty, and all-zero durations', () => {
-    expect(groupDurationIsUnset(undefined)).toBe(true);
-    expect(groupDurationIsUnset('')).toBe(true);
-    expect(groupDurationIsUnset('0:00:00')).toBe(true);
+    expect(appointmentTypeDurationIsUnset(undefined)).toBe(true);
+    expect(appointmentTypeDurationIsUnset('')).toBe(true);
+    expect(appointmentTypeDurationIsUnset('0:00:00')).toBe(true);
   });
 
   it('is false once any component is non-zero', () => {
-    expect(groupDurationIsUnset('00:30:00')).toBe(false);
-    expect(groupDurationIsUnset('01:00:00')).toBe(false);
+    expect(appointmentTypeDurationIsUnset('00:30:00')).toBe(false);
+    expect(appointmentTypeDurationIsUnset('01:00:00')).toBe(false);
   });
 });

@@ -3,7 +3,7 @@
  * per-resource `resources[]` breakdown (`GET /billing/usage/periods/{id}/`).
  *
  * Thin wrapper over the generated `billingUsagePeriodsRetrieveOptions` factory
- * (canonical hook pattern — see use-group-scoped-quota.ts). Read-only; the
+ * (canonical hook pattern — see use-appointment-type-scoped-quota.ts). Read-only; the
  * statement-detail route (Phase 7) consumes it.
  *
  * Gated with `enabled: id != null` so the fetch never fires without an id (a

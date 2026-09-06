@@ -3,7 +3,7 @@
  * directly, same pattern as the branded login page test. `PublicBookingShell`
  * and `PublicBookingEntry` are mocked to thin stubs; this suite only checks
  * the bare route's wiring: default branding, and the code reaching the
- * calendar/group routing entry point (Phase 3 — the route no longer mounts
+ * calendar/appointment-type routing entry point (Phase 3 — the route no longer mounts
  * `PublicBookingFlow` directly, since it now serves both flows).
  */
 import { describe, it, expect, vi } from 'vitest';

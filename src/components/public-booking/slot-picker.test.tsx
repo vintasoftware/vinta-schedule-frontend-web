@@ -72,7 +72,7 @@ function enabledDayButtons(calendar: HTMLElement) {
 }
 
 describe('SlotPicker', () => {
-  it('groups proposals by day, auto-selects the first day, and only that day has an enabled cell alongside the other day with proposals', async () => {
+  it('appointment types proposals by day, auto-selects the first day, and only that day has an enabled cell alongside the other day with proposals', async () => {
     const proposals: BookableSlotProposal[] = [
       {
         start_time: '2026-03-10T09:00:00.000Z',
@@ -192,7 +192,7 @@ describe('SlotPicker', () => {
     ).toBeInTheDocument();
   });
 
-  it('groups a proposal into the NEXT day when the zone is far enough ahead of UTC', () => {
+  it('appointment types a proposal into the NEXT day when the zone is far enough ahead of UTC', () => {
     // 23:30 UTC on the 2nd is 13:30 on the 3rd in Pacific/Kiritimati (UTC+14).
     const proposals: BookableSlotProposal[] = [
       {
@@ -210,7 +210,7 @@ describe('SlotPicker', () => {
     ).toBeInTheDocument();
   });
 
-  it('groups a proposal into the PREVIOUS day when the zone is far enough behind UTC', () => {
+  it('appointment types a proposal into the PREVIOUS day when the zone is far enough behind UTC', () => {
     // 02:00 UTC on the 2nd is 18:00 on the 1st in America/Los_Angeles (UTC-8).
     const proposals: BookableSlotProposal[] = [
       {

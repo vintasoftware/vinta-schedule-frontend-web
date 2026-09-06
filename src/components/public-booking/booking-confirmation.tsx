@@ -32,7 +32,7 @@
  *     `cancelUrl`), never assigned to any other variable, logged, or
  *     persisted to `localStorage` / `sessionStorage`. The plaintext codes
  *     never leave this component except inside the built URLs.
- *   - Every caller (`public-booking-flow.tsx`, `public-group-booking-flow.tsx`,
+ *   - Every caller (`public-booking-flow.tsx`, `public-appointment-type-booking-flow.tsx`,
  *     `reschedule-flow.tsx`) holds the `201` in local component state only
  *     and applies `gcTime: 0` on the mutation that produced it (see
  *     `use-public-book-event.ts`'s doc comment) — this component never reads
@@ -115,7 +115,7 @@ export interface BookingConfirmationProps {
   timezone: string;
   /**
    * The scope of the flow that produced THIS confirmation — `'calendar'` or
-   * `'group'`. Both self-service links this component may render share it:
+   * `'appointment type'`. Both self-service links this component may render share it:
    * the reschedule link needs it to route to the right of the two
    * un-collapsed reschedule endpoints (`?target=`), and a calendar scope's
    * advisory duration is always recomputed from `event`'s own span (never
@@ -249,7 +249,7 @@ export function BookingConfirmation({
   const management = extractManagementCodes(event);
 
   // The reschedule link always needs the SAME scope as this flow — a
-  // group-scoped code must never be routed to the single-calendar
+  // appointment-type-scoped code must never be routed to the single-calendar
   // reschedule endpoint (see build-url.ts's "no probing" note). A
   // calendar-scoped link's advisory duration is recomputed from the
   // CONFIRMED event's own span, never from `scope.durationSeconds`.
@@ -268,7 +268,7 @@ export function BookingConfirmation({
   // a data anomaly worth hiding the reschedule offer for, not surfacing a
   // link known to be broken.
   const canBuildRescheduleLink =
-    scope.kind === 'group' || calendarDurationSeconds !== undefined;
+    scope.kind === 'appointmentType' || calendarDurationSeconds !== undefined;
 
   const rescheduleUrl =
     management && canBuildRescheduleLink

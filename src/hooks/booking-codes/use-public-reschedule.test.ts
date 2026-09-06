@@ -3,8 +3,8 @@
  *
  * Covers:
  * - `target: 'calendar'` calls `publicBookingEventsRescheduleCreate` only,
- *   never the group endpoint.
- * - `target: 'group'` calls `publicBookingGroupEventsRescheduleCreate` only,
+ *   never the appointment type endpoint.
+ * - `target: 'appointment type'` calls `publicBookingAppointmentTypeEventsRescheduleCreate` only,
  *   never the single-calendar endpoint — the "no probing" rule from the
  *   module doc comment, exercised end to end.
  * - Write failures map to `PublicWriteFailureError`; `SLOT_UNAVAILABLE` is
@@ -21,13 +21,13 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
   return {
     ...original,
     publicBookingEventsRescheduleCreate: vi.fn(),
-    publicBookingGroupEventsRescheduleCreate: vi.fn(),
+    publicBookingAppointmentTypeEventsRescheduleCreate: vi.fn(),
   };
 });
 
 import {
   publicBookingEventsRescheduleCreate,
-  publicBookingGroupEventsRescheduleCreate,
+  publicBookingAppointmentTypeEventsRescheduleCreate,
 } from '@/client/sdk.gen';
 import type { BookingCodeReschedule, CalendarEvent } from '@/client';
 import { PublicWriteFailureError } from '@/lib/booking-links/errors';
@@ -46,7 +46,7 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     external_attendances: [],
     attendances: [],
     resource_allocations: [],
-    group_selections: [],
+    appointment_type_selections: [],
     parent_recurring_object: {
       id: 0,
       title: '',
@@ -112,16 +112,20 @@ describe('usePublicReschedule', () => {
         body,
       })
     );
-    expect(publicBookingGroupEventsRescheduleCreate).not.toHaveBeenCalled();
+    expect(
+      publicBookingAppointmentTypeEventsRescheduleCreate
+    ).not.toHaveBeenCalled();
   });
 
-  it("target: 'group' calls ONLY the group reschedule endpoint — never the single-calendar one, even for a wrong-scope code (no probing)", async () => {
+  it("target: 'appointmentType' calls ONLY the appointment type reschedule endpoint — never the single-calendar one, even for a wrong-scope code (no probing)", async () => {
     const event = makeEvent();
-    vi.mocked(publicBookingGroupEventsRescheduleCreate).mockResolvedValueOnce({
+    vi.mocked(
+      publicBookingAppointmentTypeEventsRescheduleCreate
+    ).mockResolvedValueOnce({
       data: event,
       response: new Response(JSON.stringify(event), { status: 201 }),
     } as unknown as Awaited<
-      ReturnType<typeof publicBookingGroupEventsRescheduleCreate>
+      ReturnType<typeof publicBookingAppointmentTypeEventsRescheduleCreate>
     >);
 
     const Wrapper = createWrapper();
@@ -132,16 +136,18 @@ describe('usePublicReschedule', () => {
     let resolved: CalendarEvent | undefined;
     await act(async () => {
       resolved = await result.current.reschedule({
-        code: 'group-secret-code',
-        target: 'group',
+        code: 'appointment-type-secret-code',
+        target: 'appointmentType',
         body,
       });
     });
 
     expect(resolved).toEqual(event);
-    expect(publicBookingGroupEventsRescheduleCreate).toHaveBeenCalledWith(
+    expect(
+      publicBookingAppointmentTypeEventsRescheduleCreate
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
-        headers: { 'X-Booking-Code': 'group-secret-code' },
+        headers: { 'X-Booking-Code': 'appointment-type-secret-code' },
         body,
       })
     );

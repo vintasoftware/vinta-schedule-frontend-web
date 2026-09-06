@@ -14,7 +14,7 @@ const EVENT: CalendarEvent = {
   external_attendances: [],
   attendances: [],
   resource_allocations: [],
-  group_selections: [],
+  appointment_type_selections: [],
   parent_recurring_object: {
     id: 0,
     title: '',
@@ -73,12 +73,12 @@ export const WithSelfServiceLinks: Story = {
   },
 };
 
-/** A group-scoped confirmation's reschedule link carries `?target=group`
- * and no duration — the group's own server-pinned duration applies. */
-export const WithSelfServiceLinksGroupScope: Story = {
+/** An appointment-type-scoped confirmation's reschedule link carries `?target=appointmentType`
+ * and no duration — the appointment type's own server-pinned duration applies. */
+export const WithSelfServiceLinksAppointmentTypeScope: Story = {
   args: {
     event: EVENT_WITH_MANAGEMENT,
-    scope: { kind: 'group' },
+    scope: { kind: 'appointmentType' },
   },
 };
 

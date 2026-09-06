@@ -114,14 +114,14 @@ export default function IntegrationsPage() {
             <SectionIntro
               eyebrow='Two-way sync'
               title='No double bookings, no stale slots.'
-              lead='When anything changes on a connected calendar, Vinta reflects it in seconds. When a booking lands in Vinta, it writes back to every calendar in the group.'
+              lead='When anything changes on a connected calendar, Vinta reflects it in seconds. When a booking lands in Vinta, it writes back to every calendar in the appointment type.'
             />
             <Box pt={2}>
               <List variant='plain' gap={3}>
                 {[
                   'Changes propagate in seconds, in both directions',
                   'External busy events block availability automatically',
-                  'Bookings write back to every calendar in the group',
+                  'Bookings write back to every calendar in the appointment type',
                   'Conflicts are resolved before a slot is ever offered',
                 ].map((t) => (
                   <ListItem key={t}>

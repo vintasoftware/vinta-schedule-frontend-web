@@ -11,8 +11,8 @@ import { SchemaReferenceIndex } from './schema-reference-index';
 const model: GraphQLSchemaModel = {
   queries: [
     {
-      name: 'calendarGroupBookableSlots',
-      description: 'Lists bookable slots for a calendar group.',
+      name: 'appointmentTypeBookableSlots',
+      description: 'Lists bookable slots for an appointment type.',
       args: [],
       type: '[BookableSlot!]!',
       typeName: 'BookableSlot',
@@ -22,8 +22,9 @@ const model: GraphQLSchemaModel = {
   ],
   mutations: [
     {
-      name: 'createCalendarGroupEvent',
-      description: 'Creates an event across every calendar in a group.',
+      name: 'createAppointmentTypeEvent',
+      description:
+        'Creates an event across every calendar in an appointment type.',
       args: [],
       type: 'CalendarEvent!',
       typeName: 'CalendarEvent',

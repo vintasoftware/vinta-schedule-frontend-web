@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { buildBookingLinkUrl, buildGroupPublicBookingUrl } from './build-url';
+import {
+  buildBookingLinkUrl,
+  buildAppointmentTypePublicBookingUrl,
+} from './build-url';
 
 describe('buildBookingLinkUrl', () => {
   it('builds a bare book link with an explicit calendar target when no slug is given', () => {
@@ -44,13 +47,15 @@ describe('buildBookingLinkUrl', () => {
     expect(url).toContain('target=calendar');
   });
 
-  it('marks a group-scoped book link with ?target=group and never a duration, since the field does not exist', () => {
+  it('marks an appointment-type-scoped book link with ?target=appointmentType and never a duration, since the field does not exist', () => {
     const url = buildBookingLinkUrl({
       code: 'abc123',
       purpose: 'book',
-      scope: { kind: 'group' },
+      scope: { kind: 'appointmentType' },
     });
-    expect(url).toBe('http://localhost:3000/book/abc123?target=group');
+    expect(url).toBe(
+      'http://localhost:3000/book/abc123?target=appointmentType'
+    );
     expect(url).not.toContain('duration');
   });
 
@@ -65,33 +70,33 @@ describe('buildBookingLinkUrl', () => {
     );
   });
 
-  it('marks a group-scoped reschedule link with ?target=group and never a duration, mirroring the book link rule', () => {
+  it('marks an appointment-type-scoped reschedule link with ?target=appointmentType and never a duration, mirroring the book link rule', () => {
     const url = buildBookingLinkUrl({
       code: 'abc123',
       purpose: 'reschedule',
-      scope: { kind: 'group' },
+      scope: { kind: 'appointmentType' },
     });
     expect(url).toBe(
-      'http://localhost:3000/book/abc123/reschedule?target=group'
+      'http://localhost:3000/book/abc123/reschedule?target=appointmentType'
     );
     expect(url).not.toContain('duration');
   });
 
-  it('a group-scoped reschedule code is never routed to the single-calendar endpoint: the minted URL always says target=group, not target=calendar', () => {
+  it('an appointment-type-scoped reschedule code is never routed to the single-calendar endpoint: the minted URL always says target=appointmentType, not target=calendar', () => {
     // This is the load-bearing assertion for "no probing" — the reschedule
     // page (`resolveBookingLinkTarget`) reads ONLY this marker to decide
     // which of `publicBookingEventsRescheduleCreate` /
-    // `publicBookingGroupEventsRescheduleCreate` to call. If a group-scoped
+    // `publicBookingAppointmentTypeEventsRescheduleCreate` to call. If an appointment-type-scoped
     // code's minted URL ever said `target=calendar`, the page would call the
     // wrong endpoint and get an opaque `403 NOT_PERMITTED` it must never try
     // to recover from by falling back to the other endpoint.
     const url = buildBookingLinkUrl({
-      code: 'group-secret',
+      code: 'appointment-type-secret',
       purpose: 'reschedule',
-      scope: { kind: 'group' },
+      scope: { kind: 'appointmentType' },
     });
     const target = new URL(url).searchParams.get('target');
-    expect(target).toBe('group');
+    expect(target).toBe('appointmentType');
     expect(target).not.toBe('calendar');
   });
 
@@ -152,14 +157,16 @@ describe('buildBookingLinkUrl', () => {
   });
 });
 
-describe('buildGroupPublicBookingUrl', () => {
-  it('builds a bare codeless group link when no org slug is given', () => {
-    const url = buildGroupPublicBookingUrl({ publicSlug: 'surgery-team' });
+describe('buildAppointmentTypePublicBookingUrl', () => {
+  it('builds a bare codeless appointment type link when no org slug is given', () => {
+    const url = buildAppointmentTypePublicBookingUrl({
+      publicSlug: 'surgery-team',
+    });
     expect(url).toBe('http://localhost:3000/g/surgery-team');
   });
 
-  it('builds a branded codeless group link when an org slug is given', () => {
-    const url = buildGroupPublicBookingUrl({
+  it('builds a branded codeless appointment type link when an org slug is given', () => {
+    const url = buildAppointmentTypePublicBookingUrl({
       publicSlug: 'surgery-team',
       slug: 'acme',
     });
@@ -167,20 +174,22 @@ describe('buildGroupPublicBookingUrl', () => {
   });
 
   it('never appends a target or duration query — unlike a minted book link, this URL has neither concept', () => {
-    const url = buildGroupPublicBookingUrl({ publicSlug: 'surgery-team' });
+    const url = buildAppointmentTypePublicBookingUrl({
+      publicSlug: 'surgery-team',
+    });
     expect(url).not.toContain('target');
     expect(url).not.toContain('duration');
   });
 
   it('encodes a public_slug containing reserved characters instead of producing a broken path', () => {
-    const url = buildGroupPublicBookingUrl({
+    const url = buildAppointmentTypePublicBookingUrl({
       publicSlug: 'team/a?b#c',
     });
     expect(url).toBe('http://localhost:3000/g/team%2Fa%3Fb%23c');
   });
 
   it('encodes an org slug containing reserved characters instead of producing a broken path', () => {
-    const url = buildGroupPublicBookingUrl({
+    const url = buildAppointmentTypePublicBookingUrl({
       publicSlug: 'surgery-team',
       slug: 'acme/co?x#y',
     });

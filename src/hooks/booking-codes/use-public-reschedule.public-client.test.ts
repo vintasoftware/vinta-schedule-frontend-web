@@ -4,7 +4,7 @@
  * `use-public-reschedule.test.ts` mocks `@/client/sdk.gen` at module scope,
  * so its assertions prove the call site passes `client: publicBookingClient`
  * by identity, but never actually exercise the client's fetch pipeline — see
- * `use-public-group-booking.public-client.test.ts` for the same concern and
+ * `use-public-appointment-type-booking.public-client.test.ts` for the same concern and
  * fix, applied here. This file, kept separate so it does NOT mock
  * `@/client/sdk.gen`, seeds `localStorage` with a token and an active
  * organization (as if a logged-in member were browsing a public link),

@@ -1,8 +1,8 @@
 /**
  * A trimmed introspection fixture for `parse-schema.test.ts`. Shaped like a
  * real (but small) slice of the live `/graphql/` schema: a `Query` field
- * (`calendarGroupBookableSlots`), a `Mutation` field
- * (`createCalendarGroupEvent`) with args, an OBJECT type with nested
+ * (`appointmentTypeBookableSlots`), a `Mutation` field
+ * (`createAppointmentTypeEvent`) with args, an OBJECT type with nested
  * fields/args, an INPUT_OBJECT type, an ENUM type, a custom scalar, a
  * built-in scalar, and one `__`-prefixed introspection meta-type — enough to
  * exercise every filter/normalization rule in `parseSchema`.
@@ -42,12 +42,12 @@ export const fixtureIntrospectionSchema: IntrospectionSchema = {
       description: 'The root query type.',
       fields: [
         {
-          name: 'calendarGroupBookableSlots',
-          description: 'Lists bookable slots for a calendar group.',
+          name: 'appointmentTypeBookableSlots',
+          description: 'Lists bookable slots for an appointment type.',
           args: [
             {
-              name: 'calendarGroupId',
-              description: 'The calendar group to check.',
+              name: 'appointmentTypeId',
+              description: 'The appointment type to check.',
               type: nonNull('ID'),
               defaultValue: null,
             },
@@ -83,13 +83,14 @@ export const fixtureIntrospectionSchema: IntrospectionSchema = {
       description: 'The root mutation type.',
       fields: [
         {
-          name: 'createCalendarGroupEvent',
-          description: 'Creates an event across every calendar in a group.',
+          name: 'createAppointmentTypeEvent',
+          description:
+            'Creates an event across every calendar in an appointment type.',
           args: [
             {
               name: 'input',
               description: 'The event to create.',
-              type: nonNull('CreateCalendarGroupEventInput'),
+              type: nonNull('CreateAppointmentTypeEventInput'),
               defaultValue: null,
             },
           ],
@@ -132,13 +133,13 @@ export const fixtureIntrospectionSchema: IntrospectionSchema = {
     },
     {
       kind: 'INPUT_OBJECT',
-      name: 'CreateCalendarGroupEventInput',
-      description: 'Input for creating a calendar-group event.',
+      name: 'CreateAppointmentTypeEventInput',
+      description: 'Input for creating an appointment-type event.',
       fields: null,
       inputFields: [
         {
-          name: 'calendarGroupId',
-          description: 'The target calendar group.',
+          name: 'appointmentTypeId',
+          description: 'The target appointment type.',
           type: nonNull('ID'),
           defaultValue: null,
         },

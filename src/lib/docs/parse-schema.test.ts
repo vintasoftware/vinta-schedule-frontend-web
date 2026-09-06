@@ -4,21 +4,21 @@ import { fixtureIntrospectionSchema } from './parse-schema.fixtures';
 import { parseSchema } from './parse-schema';
 
 describe('parseSchema', () => {
-  it('extracts the query field (calendarGroupBookableSlots) with its args', () => {
+  it('extracts the query field (appointmentTypeBookableSlots) with its args', () => {
     const model = parseSchema(fixtureIntrospectionSchema);
 
     const query = model.queries.find(
-      (q) => q.name === 'calendarGroupBookableSlots'
+      (q) => q.name === 'appointmentTypeBookableSlots'
     );
     expect(query).toBeDefined();
     expect(query?.description).toBe(
-      'Lists bookable slots for a calendar group.'
+      'Lists bookable slots for an appointment type.'
     );
     expect(query?.type).toBe('[BookableSlot!]!');
     expect(query?.typeName).toBe('BookableSlot');
     expect(query?.args).toEqual([
       expect.objectContaining({
-        name: 'calendarGroupId',
+        name: 'appointmentTypeId',
         type: 'ID!',
         typeName: 'ID',
       }),
@@ -34,11 +34,11 @@ describe('parseSchema', () => {
     ]);
   });
 
-  it('extracts the mutation field (createCalendarGroupEvent) with its args', () => {
+  it('extracts the mutation field (createAppointmentTypeEvent) with its args', () => {
     const model = parseSchema(fixtureIntrospectionSchema);
 
     const mutation = model.mutations.find(
-      (m) => m.name === 'createCalendarGroupEvent'
+      (m) => m.name === 'createAppointmentTypeEvent'
     );
     expect(mutation).toBeDefined();
     expect(mutation?.type).toBe('CalendarEvent!');
@@ -46,8 +46,8 @@ describe('parseSchema', () => {
     expect(mutation?.args).toEqual([
       expect.objectContaining({
         name: 'input',
-        type: 'CreateCalendarGroupEventInput!',
-        typeName: 'CreateCalendarGroupEventInput',
+        type: 'CreateAppointmentTypeEventInput!',
+        typeName: 'CreateAppointmentTypeEventInput',
       }),
     ]);
   });
@@ -68,12 +68,12 @@ describe('parseSchema', () => {
     const model = parseSchema(fixtureIntrospectionSchema);
 
     const input = model.types.find(
-      (t) => t.name === 'CreateCalendarGroupEventInput'
+      (t) => t.name === 'CreateAppointmentTypeEventInput'
     );
     expect(input).toBeDefined();
     expect(input?.kind).toBe('INPUT_OBJECT');
     expect(input?.inputFields.map((f) => f.name)).toEqual([
-      'calendarGroupId',
+      'appointmentTypeId',
       'title',
     ]);
   });

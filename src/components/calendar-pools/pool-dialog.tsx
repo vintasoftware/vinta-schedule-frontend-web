@@ -8,7 +8,7 @@
  * wholesale rather than applying a delta.
  *
  * Edit mode carries a warning the create mode does not: the roster is projected
- * into every group slot the pool is attached to, so adding a calendar here
+ * into every appointment type slot the pool is attached to, so adding a calendar here
  * makes it bookable in all of them and removing one takes it out of all of
  * them. Removals never fail and never touch existing bookings — those keep the
  * calendars they already hold (see the API's lenient-removal contract).
@@ -138,7 +138,7 @@ export function PoolDialog({
       } else {
         await createCalendarPool(body);
         toast.success('Calendar pool created', {
-          description: `"${values.name}" can now be attached to group slots.`,
+          description: `"${values.name}" can now be attached to appointment type slots.`,
         });
       }
       onOpenChange(false);
@@ -162,8 +162,8 @@ export function PoolDialog({
           </DialogTitle>
           <DialogDescription>
             A pool is a reusable roster of calendars you can attach to the slots
-            of any calendar group. Editing the roster here changes every group
-            using it.
+            of any appointment type. Editing the roster here changes every
+            appointment type using it.
           </DialogDescription>
         </DialogHeader>
 
@@ -236,8 +236,8 @@ export function PoolDialog({
                     />
                   </FormControl>
                   <FormDescription>
-                    Every group slot this pool is attached to offers these
-                    calendars.
+                    Every appointment type slot this pool is attached to offers
+                    these calendars.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -250,9 +250,10 @@ export function PoolDialog({
                   This roster is shared
                 </Text>
                 <Text size='xs' color='muted-foreground'>
-                  Adding a calendar makes it bookable in every group slot using
-                  this pool; removing one takes it out of all of them.
-                  Appointments already booked keep the calendars they hold.
+                  Adding a calendar makes it bookable in every appointment type
+                  slot using this pool; removing one takes it out of all of
+                  them. Appointments already booked keep the calendars they
+                  hold.
                 </Text>
               </VStack>
             ) : null}

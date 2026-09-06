@@ -1,7 +1,7 @@
 import type { Calendar, CalendarPool } from '@/client';
 
 /**
- * Story fixtures shared by the calendar-pool stories, and by the group form
+ * Story fixtures shared by the calendar-pool stories, and by the appointment type form
  * story that needs pools to attach. Not used by tests — those build their own
  * narrower fixtures next to the behavior they assert.
  */

@@ -10,7 +10,7 @@ import {
 // Mocked in .storybook/preview.tsx via `sb.mock(...)`; `mocked()` just types
 // it — same rationale as `public-booking-flow.stories.tsx`.
 import { usePublicBookableSlots } from '@/hooks/booking-codes/use-public-bookable-slots';
-import { usePublicGroupBookableSlots } from '@/hooks/booking-codes/use-public-group-booking';
+import { usePublicAppointmentTypeBookableSlots } from '@/hooks/booking-codes/use-public-appointment-type-booking';
 import { usePublicReschedule } from '@/hooks/booking-codes/use-public-reschedule';
 import { RescheduleFlow } from './reschedule-flow';
 
@@ -67,7 +67,7 @@ const meta = {
     (Story) => {
       // A calendar-scoped reschedule link always carries `?target=calendar`
       // and `?duration=` — most stories want a valid pair; the
-      // MissingDuration story and the Group stories override this.
+      // MissingDuration story and the Appointment Type stories override this.
       mocked(useSearchParams).mockReturnValue(
         fakeSearchParams({ target: 'calendar', duration: '1800' })
       );
@@ -115,23 +115,23 @@ export const Loading: Story = {
 };
 
 /**
- * A group-scoped reschedule link (`?target=group`) reads via
- * `usePublicGroupBookableSlots` instead — the single-calendar hook is never
+ * An appointment-type-scoped reschedule link (`?target=appointmentType`) reads via
+ * `usePublicAppointmentTypeBookableSlots` instead — the single-calendar hook is never
  * even called for it (see `reschedule-flow.tsx`'s "no probing" doc comment).
  */
-export const GroupBookableSlots: Story = {
+export const AppointmentTypeBookableSlots: Story = {
   decorators: [
     (Story) => {
       mocked(useSearchParams).mockReturnValue(
-        fakeSearchParams({ target: 'group' })
+        fakeSearchParams({ target: 'appointmentType' })
       );
-      mocked(usePublicGroupBookableSlots).mockReturnValue({
+      mocked(usePublicAppointmentTypeBookableSlots).mockReturnValue({
         data: PROPOSALS,
         isLoading: false,
         isError: false,
         error: null,
         refetch: fn(),
-      } as unknown as ReturnType<typeof usePublicGroupBookableSlots>);
+      } as unknown as ReturnType<typeof usePublicAppointmentTypeBookableSlots>);
       return <Story />;
     },
   ],

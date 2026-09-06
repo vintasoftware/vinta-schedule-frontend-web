@@ -3,7 +3,7 @@ import { Stack } from 'vinta-schedule-design-system/layout/stack';
 import { PageHeader } from 'vinta-schedule-design-system/layout/page-header';
 import { EventsView } from '@/components/events/events-view';
 import { NewBookingButton } from '@/components/bookings/new-booking-button';
-import { BookGroupButton } from '@/components/calendar-groups/book-group-button';
+import { BookAppointmentTypeButton } from '@/components/appointment-types/book-appointment-type-button';
 import { HStack } from 'vinta-schedule-design-system/layout';
 
 /**
@@ -32,7 +32,7 @@ export default function EventsPage() {
         description='View your upcoming events.'
         actions={
           <HStack gap={2}>
-            <BookGroupButton />
+            <BookAppointmentTypeButton />
             <NewBookingButton />
           </HStack>
         }

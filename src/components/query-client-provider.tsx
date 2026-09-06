@@ -54,7 +54,7 @@ export function makeQueryClient(): QueryClient {
   // Global over-limit handler (Phase 8, billing-hardening-gap-closure plan)
   //
   // ONE MutationCache.onError, wired once here, covers every guarded write
-  // in the app (invitations, calendars, groups, webhooks, bookings, system
+  // in the app (invitations, calendars, appointment types, webhooks, bookings, system
   // users, …) without touching each call site. It is a NO-OP for every
   // error that is not the 402 `limit_exceeded` shape — that check is the
   // very first thing this handler does, and it returns immediately when it
@@ -64,7 +64,7 @@ export function makeQueryClient(): QueryClient {
   // generic mutation error AND for a differently-coded billing error (e.g.
   // `charge_declined`), both of which must NOT route anywhere.
   //
-  // The calendar-groups group-scoped writes (windows/blocks/quota rules)
+  // The appointment-types appointment-type-scoped writes (windows/blocks/quota rules)
   // already render an inline, batch-aware `OverLimitAlert` in place — see
   // over-limit-alert.tsx. Those mutations set `meta.overLimitHandledInline`
   // so this handler skips them; otherwise the same rejection would BOTH show

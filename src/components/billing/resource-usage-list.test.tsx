@@ -30,7 +30,7 @@ describe('ResourceUsageList', () => {
       <ResourceUsageList
         limits={[
           makeLimit('organization_members', 10),
-          makeLimit('calendar_groups', null),
+          makeLimit('appointment_types', null),
         ]}
         currency='USD'
       />
@@ -38,7 +38,7 @@ describe('ResourceUsageList', () => {
 
     expect(screen.getAllByTestId('resource-usage-row')).toHaveLength(2);
     expect(screen.getByText('Organization members')).toBeInTheDocument();
-    expect(screen.getByText('Calendar groups')).toBeInTheDocument();
+    expect(screen.getByText('Appointment types')).toBeInTheDocument();
   });
 
   it('renders an empty note when there are no limits', () => {

@@ -4,7 +4,7 @@ Welcome to the Vinta Schedule GraphQL API. This guide will get you from zero to 
 
 ## What is the Vinta Schedule API?
 
-The Vinta Schedule API is a GraphQL interface for managing calendar groups, availability, bookings, and events. It powers scheduling workflows across healthcare organizations — allowing your patients and staff to find and book appointments across all your connected calendars (Google Calendar, Microsoft Exchange, resource calendars, and more), all in sync within seconds.
+The Vinta Schedule API is a GraphQL interface for managing appointment types, availability, bookings, and events. It powers scheduling workflows across healthcare organizations — allowing your patients and staff to find and book appointments across all your connected calendars (Google Calendar, Microsoft Exchange, resource calendars, and more), all in sync within seconds.
 
 This guide covers public-API access, which is designed for integrations and automation. All calls are authenticated with a bearer token.
 
@@ -40,7 +40,7 @@ The `Bearer` prefix and the colon separating `system_user_id` and `token` are re
 
 ## Step 3: Make Your First Request
 
-Let's query the API for available booking slots in a calendar group. Here's a curl example:
+Let's query the API for available booking slots in an appointment type. Here's a curl example:
 
 ```bash
 curl -X POST \
@@ -48,7 +48,7 @@ curl -X POST \
   -H "Content-Type: application/json" \
   https://api.example.com/graphql/ \
   -d '{
-    "query": "query { calendarGroupBookableSlots(groupId: 42, searchWindowStart: \"2026-06-17T09:00:00-07:00\", searchWindowEnd: \"2026-06-24T09:00:00-07:00\", durationSeconds: 1800) { startTime endTime } }"
+    "query": "query { appointmentTypeBookableSlots(appointmentTypeId: 42, searchWindowStart: \"2026-06-17T09:00:00-07:00\", searchWindowEnd: \"2026-06-24T09:00:00-07:00\", durationSeconds: 1800) { startTime endTime } }"
   }'
 ```
 
@@ -58,8 +58,8 @@ Replace `<system_user_id>:<token>` with your actual credential and `api.example.
 
 ```graphql
 query {
-  calendarGroupBookableSlots(
-    groupId: 42
+  appointmentTypeBookableSlots(
+    appointmentTypeId: 42
     searchWindowStart: "2026-06-17T09:00:00-07:00"
     searchWindowEnd: "2026-06-24T09:00:00-07:00"
     durationSeconds: 1800
@@ -70,7 +70,7 @@ query {
 }
 ```
 
-This query searches a calendar group (groupId: 42) for slots of 30 minutes (1800 seconds) within the given search window (`searchWindowStart` through `searchWindowEnd`).
+This query searches an appointment type (appointmentTypeId: 42) for slots of 30 minutes (1800 seconds) within the given search window (`searchWindowStart` through `searchWindowEnd`).
 
 ### GraphQL Example: Create a Booking
 
@@ -78,10 +78,10 @@ Once you've identified an available slot, confirm the booking:
 
 ```graphql
 mutation {
-  createCalendarGroupEvent(
+  createAppointmentTypeEvent(
     input: {
       organizationId: 7
-      groupId: 42
+      appointmentTypeId: 42
       timezone: "America/Los_Angeles"
       title: "Prenatal Intake"
       description: ""
@@ -101,12 +101,12 @@ mutation {
 }
 ```
 
-This mutation books the selected slot across every calendar in the group, writes it to all connected providers (Google Calendar, Exchange, etc.), and returns `success` plus the created event details under `event`. If the booking could not be made, `success` is `false` and `event` is `null` — check `success` before reading `event`.
+This mutation books the selected slot across every calendar in the appointment type, writes it to all connected providers (Google Calendar, Exchange, etc.), and returns `success` plus the created event details under `event`. If the booking could not be made, `success` is `false` and `event` is `null` — check `success` before reading `event`.
 
 ## What's Next?
 
 - **Schema Reference**: Browse every query, mutation, and type in the [schema reference](/docs/reference)
-- **Concepts**: Understand [Calendar Groups](/docs/concepts), availability, events, and more
+- **Concepts**: Understand [Appointment Types](/docs/concepts), availability, events, and more
 - **Explorer**: Try live queries in the [GraphiQL explorer](/docs/explorer)
 - **Webhooks**: Set up [outbound event notifications](/docs/webhooks) for your bookings
 

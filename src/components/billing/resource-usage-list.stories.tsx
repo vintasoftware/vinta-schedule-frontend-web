@@ -28,7 +28,7 @@ const LIMITS: EffectiveLimitUsage[] = [
     ],
   },
   {
-    resource_key: 'calendar_groups',
+    resource_key: 'appointment_types',
     kind: null,
     limit_value: null,
     current_usage: 3,

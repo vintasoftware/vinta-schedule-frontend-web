@@ -36,16 +36,16 @@ describe('deriveRemedy', () => {
   });
 
   it('routes to upgrade_plan for an active org on a resource that cannot be bought as an add-on', () => {
-    expect(deriveRemedy('calendar_groups', 'active', neverPurchasable)).toBe(
+    expect(deriveRemedy('appointment_types', 'active', neverPurchasable)).toBe(
       'upgrade_plan'
     );
   });
 
   it('routes to upgrade_plan for a free org (no billing_state) that cannot buy an add-on', () => {
-    expect(deriveRemedy('calendar_groups', null, neverPurchasable)).toBe(
+    expect(deriveRemedy('appointment_types', null, neverPurchasable)).toBe(
       'upgrade_plan'
     );
-    expect(deriveRemedy('calendar_groups', undefined, neverPurchasable)).toBe(
+    expect(deriveRemedy('appointment_types', undefined, neverPurchasable)).toBe(
       'upgrade_plan'
     );
   });
@@ -68,10 +68,10 @@ describe('deriveRemedy', () => {
 
 describe('remedyToRoute', () => {
   it('maps upgrade_plan to the plans catalog with the resource in the query string', () => {
-    expect(remedyToRoute('upgrade_plan', 'calendar_groups')).toEqual({
+    expect(remedyToRoute('upgrade_plan', 'appointment_types')).toEqual({
       remedy: 'upgrade_plan',
-      href: '/billing/plans?resource=calendar_groups',
-      resource: 'calendar_groups',
+      href: '/billing/plans?resource=appointment_types',
+      resource: 'appointment_types',
     });
   });
 
@@ -109,10 +109,10 @@ describe('remedyToRoute', () => {
 
   it('falls back an unrecognized remedy to the generic "manage billing" destination', () => {
     const unknown = 'some_future_remedy' as Remedy;
-    expect(remedyToRoute(unknown, 'calendar_groups')).toEqual({
+    expect(remedyToRoute(unknown, 'appointment_types')).toEqual({
       remedy: unknown,
       href: '/billing',
-      resource: 'calendar_groups',
+      resource: 'appointment_types',
     });
   });
 });

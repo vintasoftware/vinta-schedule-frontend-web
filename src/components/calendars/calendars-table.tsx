@@ -520,7 +520,7 @@ function CalendarsTableInner() {
   const { query, setPage } = useDataTableQuery();
 
   // There is no calendar detail page, so minting a link is a row action here
-  // rather than a page-header action (contrast group-detail-view.tsx, which
+  // rather than a page-header action (contrast appointment-type-detail-view.tsx, which
   // has a detail page to hang it on). A null (unresolved) permissions set
   // fails closed via canMintBookingLinkForCalendar itself, so no separate
   // "loading" gate is needed here.
@@ -528,7 +528,8 @@ function CalendarsTableInner() {
   // The table is already fed by useMyCalendars above (`owner: 'me'`-scoped),
   // so fetching owned ids too is only needed to gate the mint action for a
   // non-admin — an admin's mint access doesn't depend on ownership. Matches
-  // the sibling call sites (groups-table.tsx, groups/[id]/page.tsx), which
+  // the sibling call sites (appointment-types-table.tsx,
+  // appointment-types/[id]/page.tsx), which
   // also skip this fetch for an admin viewer.
   const isAdmin = permissions?.includes(PERMISSIONS.manageMembers) ?? false;
   const { ownedCalendarIds } = useOwnedCalendarIds({ enabled: !isAdmin });
