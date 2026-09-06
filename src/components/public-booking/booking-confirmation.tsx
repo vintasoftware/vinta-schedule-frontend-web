@@ -39,7 +39,7 @@
  *     from the mutation cache itself, only from the `event` prop it's given.
  *   - This component issues no navigation of its own (no `router.push` /
  *     `router.replace`) — the codes only ever appear inside the rendered
- *     `<Input readOnly>` value and the clipboard write a copy click
+ *     `<Textarea readOnly>` value and the clipboard write a copy click
  *     triggers.
  */
 
@@ -152,13 +152,29 @@ interface ManagementLinkRowProps {
  * read before copying, must not truncate — a single-line input clips a URL
  * this long behind its own fixed width with no way to see what's being
  * copied without scrolling inside it. Wrapping across a couple of lines
- * keeps the whole thing legible at once. */
+ * keeps the whole thing legible at once.
+ *
+ * A fixed `rows` still clips a realistic-length URL once it wraps past that
+ * row count (confirmed on the 375px viewport) — the textarea would scroll
+ * internally with no affordance that more is hidden, defeating the whole
+ * "read it before copying" point. So the height auto-grows to the content:
+ * on mount and whenever `url` changes, reset to `auto` (so a shrink is
+ * measured correctly) then set the explicit pixel height to `scrollHeight`.
+ * `min-h-[60px]` on the `Textarea` atom itself is the floor for a short URL. */
 function ManagementLinkRow({ label, url, testId }: ManagementLinkRowProps) {
   const [copied, setCopied] = React.useState(false);
   const [copyFailed, setCopyFailed] = React.useState(false);
   const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  React.useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [url]);
 
   React.useEffect(
     () => () => {
@@ -191,11 +207,11 @@ function ManagementLinkRow({ label, url, testId }: ManagementLinkRowProps) {
       </Text>
       <HStack gap={2} align='start'>
         <Textarea
+          ref={textareaRef}
           readOnly
           value={url}
-          rows={2}
           wrap='soft'
-          className='resize-none font-mono text-xs break-all'
+          className='resize-none overflow-hidden font-mono text-xs break-all'
           aria-label={`${label} link`}
           data-testid={`${testId}-link-input`}
         />

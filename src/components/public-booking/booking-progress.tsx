@@ -35,61 +35,63 @@ export function BookingProgress({ steps, currentStep }: BookingProgressProps) {
   if (steps.length === 0) return null;
 
   return (
-    <HStack
-      as='ol'
-      gap={1}
-      align='center'
-      wrap
-      data-testid='booking-progress'
-      aria-label='Booking progress'
-    >
-      {steps.map((label, index) => {
-        const isCurrent = index === currentStep;
-        const isDone = index < currentStep;
-        return (
-          <HStack
-            as='li'
-            key={label}
-            gap={2}
-            align='center'
-            aria-current={isCurrent ? 'step' : undefined}
-          >
+    <>
+      <HStack
+        as='ol'
+        gap={1}
+        align='center'
+        wrap
+        data-testid='booking-progress'
+        aria-label='Booking progress'
+      >
+        {steps.map((label, index) => {
+          const isCurrent = index === currentStep;
+          const isDone = index < currentStep;
+          return (
             <HStack
-              as='span'
+              as='li'
+              key={label}
+              gap={2}
               align='center'
-              justify='center'
-              width={20}
-              height={20}
-              radius='full'
-              border
-              aria-hidden
-              className={cn(
-                'text-[11px] leading-none font-medium',
-                isDone
-                  ? 'bg-primary border-primary text-primary-foreground'
-                  : isCurrent
-                    ? 'border-primary text-primary'
-                    : 'text-muted-foreground'
-              )}
+              aria-current={isCurrent ? 'step' : undefined}
             >
-              {isDone ? '✓' : index + 1}
+              <HStack
+                as='span'
+                align='center'
+                justify='center'
+                width={20}
+                height={20}
+                radius='full'
+                border
+                aria-hidden
+                className={cn(
+                  'text-[11px] leading-none font-medium',
+                  isDone
+                    ? 'bg-primary border-primary text-primary-foreground'
+                    : isCurrent
+                      ? 'border-primary text-primary'
+                      : 'text-muted-foreground'
+                )}
+              >
+                {isDone ? '✓' : index + 1}
+              </HStack>
+              <Text
+                size='xs'
+                weight={isCurrent ? 'medium' : 'normal'}
+                color={isCurrent ? 'foreground' : 'muted-foreground'}
+              >
+                {label}
+              </Text>
+              {index < steps.length - 1 ? (
+                <span aria-hidden className='bg-border h-px w-4' />
+              ) : null}
             </HStack>
-            <Text
-              size='xs'
-              weight={isCurrent ? 'medium' : 'normal'}
-              color={isCurrent ? 'foreground' : 'muted-foreground'}
-            >
-              {label}
-            </Text>
-            {index < steps.length - 1 ? (
-              <span aria-hidden className='bg-border h-px w-4' />
-            ) : null}
-          </HStack>
-        );
-      })}
-      <VisuallyHidden>
+          );
+        })}
+      </HStack>
+      <VisuallyHidden aria-live='polite'>
         Step {currentStep + 1} of {steps.length}
       </VisuallyHidden>
-    </HStack>
+    </>
   );
 }

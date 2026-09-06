@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import type { BookableSlotProposal } from '@/client';
-import { SlotPicker } from './slot-picker';
+import { SlotPicker, proposalKey } from './slot-picker';
 
 // ---------------------------------------------------------------------------
 // jsdom polyfills Radix's RadioGroup needs (same as public-booking-flow.test.tsx).
@@ -290,5 +290,96 @@ describe('SlotPicker', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith(second);
     expect(onSelect).not.toHaveBeenCalledWith(first);
+  });
+
+  // ---------------------------------------------------------------------
+  // `uniformDurationMinutes`'s "never lie" contract — see the module doc
+  // comment. These exercise it through the rendered UI rather than calling
+  // the function directly, so a regression in the WIRING (not just the pure
+  // helper) is caught too.
+  // ---------------------------------------------------------------------
+
+  it('renders each row’s OWN minutes, and no consolidated line, for a day with two different-length proposals', async () => {
+    const shorter: BookableSlotProposal = {
+      start_time: '2026-03-10T09:00:00.000Z',
+      end_time: '2026-03-10T09:30:00.000Z', // 30 min
+    };
+    const longer: BookableSlotProposal = {
+      start_time: '2026-03-10T10:00:00.000Z',
+      end_time: '2026-03-10T10:45:00.000Z', // 45 min
+    };
+
+    render(<SelectionHarness proposals={[shorter, longer]} />);
+
+    // Regression guard: if `uniformDurationMinutes` (or its wiring) ever
+    // consolidates unconditionally, the per-row minutes below stop
+    // rendering (they're gated on `dayUniformMinutes === null`) and this
+    // assertion fails.
+    expect(
+      within(
+        screen.getByTestId(`slot-option-${proposalKey(shorter)}`)
+      ).getByText('30 min')
+    ).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByTestId(`slot-option-${proposalKey(longer)}`)
+      ).getByText('45 min')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/min each/)).not.toBeInTheDocument();
+  });
+
+  it('renders one consolidated line, and no per-row minutes, for a day with uniform-length proposals', async () => {
+    const first: BookableSlotProposal = {
+      start_time: '2026-03-10T09:00:00.000Z',
+      end_time: '2026-03-10T09:30:00.000Z', // 30 min
+    };
+    const second: BookableSlotProposal = {
+      start_time: '2026-03-10T10:00:00.000Z',
+      end_time: '2026-03-10T10:30:00.000Z', // 30 min
+    };
+
+    render(<SelectionHarness proposals={[first, second]} />);
+
+    expect(screen.getByText('30 min each')).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByTestId(`slot-option-${proposalKey(first)}`)
+      ).queryByText('30 min')
+    ).not.toBeInTheDocument();
+    expect(
+      within(
+        screen.getByTestId(`slot-option-${proposalKey(second)}`)
+      ).queryByText('30 min')
+    ).not.toBeInTheDocument();
+  });
+
+  it('fires onTimezoneChange with the selected zone when the timezone combobox is used', async () => {
+    const user = userEvent.setup();
+    const onTimezoneChange = vi.fn();
+    const proposals: BookableSlotProposal[] = [
+      {
+        start_time: '2026-03-10T09:00:00.000Z',
+        end_time: '2026-03-10T09:30:00.000Z',
+      },
+    ];
+
+    render(
+      <SlotPicker
+        proposals={proposals}
+        timezone='UTC'
+        selectedSlot={null}
+        onSelect={vi.fn()}
+        onTimezoneChange={onTimezoneChange}
+      />
+    );
+
+    const trigger = screen.getByRole('combobox', { name: 'Change timezone' });
+    await user.click(trigger);
+    await user.click(
+      await screen.findByRole('option', { name: 'America/Denver' })
+    );
+
+    expect(onTimezoneChange).toHaveBeenCalledTimes(1);
+    expect(onTimezoneChange).toHaveBeenCalledWith('America/Denver');
   });
 });

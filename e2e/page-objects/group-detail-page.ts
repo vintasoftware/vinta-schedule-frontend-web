@@ -46,10 +46,6 @@ export class GroupDetailPage extends BasePage {
     return this.page.getByTestId('public-group-link-inactive-toggle');
   }
 
-  get grandfatheredDurationWarning() {
-    return this.page.getByTestId('grandfathered-duration-warning');
-  }
-
   /**
    * Sets the appointment length and turns "Accept public bookings" on, then
    * saves — a single `PATCH` carrying both fields
@@ -84,10 +80,6 @@ export class GroupDetailPage extends BasePage {
       );
     }
     return url;
-  }
-
-  get schedulingLinkButton() {
-    return this.page.getByRole('button', { name: 'Get scheduling link' });
   }
 
   get mintDialog(): MintBookingLinkDialogPart {

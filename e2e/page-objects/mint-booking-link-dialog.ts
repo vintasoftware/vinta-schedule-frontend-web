@@ -30,10 +30,6 @@ export class MintBookingLinkDialogPart {
     return this.page.getByTestId('done-button');
   }
 
-  get groupDurationRequiredNotice() {
-    return this.page.getByTestId('group-duration-required-notice');
-  }
-
   /** Submits the mint form (default expiry: never; default duration, when
    * the target needs one, is pre-filled by the dialog itself). */
   async submit(): Promise<void> {
