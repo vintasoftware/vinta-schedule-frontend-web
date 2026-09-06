@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fn, mocked } from 'storybook/test';
 // Auto-mocked by `@storybook/nextjs-vite`'s Next.js integration — no
 // `sb.mock` registration needed (unlike the data hook below).
-import { useSearchParams, ReadonlyURLSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import type { BookableSlotProposal } from '@/client';
 import { PublicReadFailureError } from '@/lib/booking-links/errors';
 // Mocked in .storybook/preview.tsx via `sb.mock(...)`; `mocked()` just types
@@ -11,6 +11,24 @@ import { PublicReadFailureError } from '@/lib/booking-links/errors';
 // drives a submit, which none of these do (see the note below).
 import { usePublicBookableSlots } from '@/hooks/booking-codes/use-public-bookable-slots';
 import { PublicBookingFlow } from './public-booking-flow';
+
+/**
+ * A stand-in for `next/navigation`'s `ReadonlyURLSearchParams` — every call
+ * site in this flow only ever reads `.get()`, and `URLSearchParams` already
+ * implements that. Constructed instead of importing the real class: the
+ * `@storybook/nextjs-vite` build's pre-bundled `next/navigation` mock does
+ * not re-export `ReadonlyURLSearchParams` at runtime (only the hooks it
+ * explicitly wraps), so importing it as a VALUE breaks every story in this
+ * file with "does not provide an export named 'ReadonlyURLSearchParams'".
+ * See the phase notes for the upstream evidence.
+ */
+function fakeSearchParams(
+  init?: ConstructorParameters<typeof URLSearchParams>[0]
+): ReturnType<typeof useSearchParams> {
+  return new URLSearchParams(init) as unknown as ReturnType<
+    typeof useSearchParams
+  >;
+}
 
 // This story covers the flow's READ states — the ones reachable without
 // driving a multi-step interaction (pick a slot → fill the attendee form →
@@ -52,7 +70,7 @@ const meta = {
       // Every calendar `book` link carries `?duration=` — most stories want
       // a valid one; the two duration stories below override it.
       mocked(useSearchParams).mockReturnValue(
-        new ReadonlyURLSearchParams(new URLSearchParams({ duration: '1800' }))
+        fakeSearchParams({ duration: '1800' })
       );
       return (
         <QueryClientProvider client={makeQueryClient()}>
@@ -145,9 +163,7 @@ export const SlotsLoadError: Story = {
 export const MissingDuration: Story = {
   decorators: [
     (Story) => {
-      mocked(useSearchParams).mockReturnValue(
-        new ReadonlyURLSearchParams(new URLSearchParams())
-      );
+      mocked(useSearchParams).mockReturnValue(fakeSearchParams());
       return <Story />;
     },
   ],
@@ -158,9 +174,7 @@ export const MalformedDuration: Story = {
   decorators: [
     (Story) => {
       mocked(useSearchParams).mockReturnValue(
-        new ReadonlyURLSearchParams(
-          new URLSearchParams({ duration: 'not-a-number' })
-        )
+        fakeSearchParams({ duration: 'not-a-number' })
       );
       return <Story />;
     },

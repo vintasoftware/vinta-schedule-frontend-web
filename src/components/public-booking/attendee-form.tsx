@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * AttendeeForm — collects the external attendee's contact details and
- * timezone for a public booking write.
+ * AttendeeForm — collects the external attendee's contact details for a
+ * public booking write.
  *
  * Field shape mirrors `BookingCodeExternalAttendee` exactly (checked against
  * the generated type, `@/client/types.gen.ts`): `email` is required, `name`
@@ -10,10 +10,14 @@
  * the created event is a fixed constant the flow supplies (see
  * `public-booking-flow.tsx`), not something an anonymous attendee picks.
  *
- * Timezone defaults to the browser's resolved zone
- * (`Intl.DateTimeFormat().resolvedOptions().timeZone`) with an explicit
- * override control, since `timezone` is required on the write and the
- * attendee may be booking on someone else's behalf in a different zone.
+ * TIMEZONE moved OUT of this form (polish pass) — it used to be a field
+ * here, discovered only after the attendee had already read every time on
+ * the slot picker in some other (browser-default) zone, so changing it here
+ * could retroactively contradict a time they'd already committed to. The
+ * zone is now chosen/changed on `slot-picker.tsx`, at the point where times
+ * are actually read, and threaded straight through as the flow's own
+ * `timezone` state — this form only displays it for reassurance
+ * (`timezone` prop), never edits it.
  */
 
 import * as React from 'react';
@@ -22,67 +26,32 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from 'vinta-schedule-design-system/ui/button';
 import { Input } from 'vinta-schedule-design-system/ui/input';
-import { Combobox } from 'vinta-schedule-design-system/ui/combobox';
 import {
   Form,
   FormField,
   FormItem,
   FormLabel,
   FormControl,
-  FormDescription,
   FormMessage,
   FormRootMessage,
 } from 'vinta-schedule-design-system/ui/form';
-import { FormLayout, HStack } from 'vinta-schedule-design-system/layout';
-
-// A reasonably complete fallback for environments where
-// `Intl.supportedValuesOf` isn't available (older engines / some test
-// runners) — see `timezoneOptions` below.
-const FALLBACK_TIMEZONES = [
-  'UTC',
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'America/Sao_Paulo',
-  'Europe/London',
-  'Europe/Paris',
-  'Europe/Berlin',
-  'Asia/Kolkata',
-  'Asia/Tokyo',
-  'Asia/Shanghai',
-  'Australia/Sydney',
-];
-
-/**
- * Every IANA zone the runtime knows about, via `Intl.supportedValuesOf` when
- * present (Node 18+ / evergreen browsers). Falls back to a short curated
- * list rather than throwing — a smaller picker beats a broken form.
- */
-function timezoneOptions(): { value: string; label: string }[] {
-  const supportedValuesOf = (
-    Intl as unknown as {
-      supportedValuesOf?: (key: string) => string[];
-    }
-  ).supportedValuesOf;
-  const zones =
-    typeof supportedValuesOf === 'function'
-      ? supportedValuesOf('timeZone')
-      : FALLBACK_TIMEZONES;
-  return zones.map((zone) => ({ value: zone, label: zone }));
-}
+import { FormLayout, HStack, Text } from 'vinta-schedule-design-system/layout';
+import { timezoneDisplayLabel } from '@/lib/booking-links/timezone-options';
 
 export const attendeeFormSchema = z.object({
   name: z.string().trim().max(200).optional(),
   email: z.email({ message: 'Enter a valid email address' }),
-  timezone: z.string().min(1, { message: 'Choose a timezone' }),
 });
 
 export type AttendeeFormValues = z.infer<typeof attendeeFormSchema>;
 
 export interface AttendeeFormProps {
-  /** Usually `Intl.DateTimeFormat().resolvedOptions().timeZone`. */
-  defaultTimezone: string;
+  /**
+   * The zone already chosen on the slot picker — shown here for
+   * reassurance only (see the module doc comment). Not editable in this
+   * form; the flow submits this same value alongside these form values.
+   */
+  timezone: string;
   isSubmitting?: boolean;
   onSubmit: (values: AttendeeFormValues) => void | Promise<void>;
   /** Return to slot selection — omitted hides the button. */
@@ -90,19 +59,16 @@ export interface AttendeeFormProps {
 }
 
 export function AttendeeForm({
-  defaultTimezone,
+  timezone,
   isSubmitting = false,
   onSubmit,
   onBack,
 }: AttendeeFormProps) {
-  const options = React.useMemo(() => timezoneOptions(), []);
-
   const form = useForm<AttendeeFormValues>({
     resolver: zodResolver(attendeeFormSchema),
     defaultValues: {
       name: '',
       email: '',
-      timezone: defaultTimezone,
     },
   });
 
@@ -153,30 +119,13 @@ export function AttendeeForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name='timezone'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Timezone</FormLabel>
-              <FormControl>
-                <Combobox
-                  id='attendee-timezone'
-                  options={options}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  placeholder='Select timezone'
-                  searchPlaceholder='Search timezones…'
-                />
-              </FormControl>
-              <FormDescription>
-                Defaults to your device&apos;s timezone — change it if
-                you&apos;re booking on someone else&apos;s behalf.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <Text
+          size='sm'
+          color='muted-foreground'
+          data-testid='attendee-form-timezone-note'
+        >
+          Booking in {timezoneDisplayLabel(timezone)}.
+        </Text>
 
         <HStack gap={2} justify='end'>
           {onBack ? (

@@ -105,13 +105,13 @@ export function CancelFlow({ code }: CancelFlowProps) {
     return (
       <Card data-testid='cancel-confirmation'>
         <CardHeader>
-          <HStack gap={2} align='center'>
-            <Icon icon={CheckCircle2} color='success' aria-hidden />
-            <CardTitle>Appointment cancelled</CardTitle>
-          </HStack>
+          <VStack gap={2} align='center' className='text-center'>
+            <Icon icon={CheckCircle2} color='success' size='xl' aria-hidden />
+            <CardTitle className='text-2xl'>Appointment cancelled</CardTitle>
+          </VStack>
         </CardHeader>
         <CardContent>
-          <Text color='muted-foreground'>
+          <Text color='muted-foreground' className='text-center'>
             Your appointment has been cancelled. This link no longer works.
           </Text>
         </CardContent>

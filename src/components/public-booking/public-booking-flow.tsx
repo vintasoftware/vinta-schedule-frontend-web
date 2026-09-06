@@ -67,6 +67,12 @@ import { SlotPicker, proposalDurationMinutes } from './slot-picker';
 import { AttendeeForm, type AttendeeFormValues } from './attendee-form';
 import { BookingConfirmation } from './booking-confirmation';
 import { LinkInvalid } from './link-invalid';
+import { BookingProgress } from './booking-progress';
+
+/** This flow's steps, in order — one fewer than the group flows (no
+ * "choose calendars" step), and rendered only while the attendee is still
+ * mid-flow (never on the confirmed/terminal screens, which return early). */
+const BOOKING_STEPS = ['Pick a time', 'Your details'];
 
 /**
  * How far ahead the slot search window looks. Not specified by the plan.
@@ -219,13 +225,12 @@ export function PublicBookingFlow({ code, slug }: PublicBookingFlowProps) {
           title: DEFAULT_PUBLIC_BOOKING_TITLE,
           start_time: selectedSlot.start_time,
           end_time: selectedSlot.end_time,
-          timezone: values.timezone,
+          timezone,
           external_attendee: values.name
             ? { email: values.email, name: values.name }
             : { email: values.email },
         },
       });
-      setTimezone(values.timezone);
       setConfirmedEvent(event);
       setStep('confirmed');
     } catch (err) {
@@ -342,6 +347,11 @@ export function PublicBookingFlow({ code, slug }: PublicBookingFlowProps) {
         Book an appointment
       </Heading>
 
+      <BookingProgress
+        steps={BOOKING_STEPS}
+        currentStep={step === 'select-slot' ? 0 : 1}
+      />
+
       {slotUnavailableNotice ? (
         <Alert variant='warning' data-testid='slot-unavailable-notice'>
           <Icon icon={TriangleAlert} size='sm' />
@@ -356,6 +366,7 @@ export function PublicBookingFlow({ code, slug }: PublicBookingFlowProps) {
           timezone={timezone}
           selectedSlot={selectedSlot}
           onSelect={handleSelectSlot}
+          onTimezoneChange={setTimezone}
           isLoading={slotsQuery.isLoading}
         />
       ) : (
@@ -367,7 +378,7 @@ export function PublicBookingFlow({ code, slug }: PublicBookingFlowProps) {
                   {zonedFormat(
                     selectedSlot.start_time,
                     timezone,
-                    'MMM d, yyyy, h:mm a'
+                    'MMM d, yyyy, h:mm a ZZZZ'
                   )}
                 </Text>
                 <Text size='sm' color='muted-foreground'>
@@ -377,7 +388,7 @@ export function PublicBookingFlow({ code, slug }: PublicBookingFlowProps) {
             </Card>
           ) : null}
           <AttendeeForm
-            defaultTimezone={timezone}
+            timezone={timezone}
             isSubmitting={bookEventMutation.isPending}
             onSubmit={handleAttendeeSubmit}
             onBack={() => setStep('select-slot')}

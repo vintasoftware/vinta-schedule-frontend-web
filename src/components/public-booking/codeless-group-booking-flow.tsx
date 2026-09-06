@@ -89,6 +89,16 @@ import { GroupSlotSelection } from './group-slot-selection';
 import { CodelessGroupNotFound } from './codeless-group-not-found';
 import { CodelessGroupUnavailable } from './codeless-group-unavailable';
 import { terminalErrorCopy } from './public-booking-flow';
+import { BookingProgress } from './booking-progress';
+
+/** Same three steps as the coded group flow (`public-group-booking-flow.tsx`'s
+ * `GROUP_BOOKING_STEPS`) — a codeless group booking is the same shape of
+ * journey, just addressed by slug instead of a code. */
+const CODELESS_GROUP_BOOKING_STEPS = [
+  'Pick a time',
+  'Choose calendars',
+  'Your details',
+];
 
 /** How far ahead the whole-group proposal search window looks — matches
  * every other public flow's default; see `public-booking-flow.tsx`'s
@@ -241,14 +251,13 @@ export function CodelessGroupBookingFlow({
           title: DEFAULT_PUBLIC_GROUP_BOOKING_TITLE,
           start_time: selectedProposal.start_time,
           end_time: selectedProposal.end_time,
-          timezone: values.timezone,
+          timezone,
           slot_selections: slotSelectionsPayload,
           external_attendee: values.name
             ? { email: values.email, name: values.name }
             : { email: values.email },
         },
       });
-      setTimezone(values.timezone);
       setConfirmedEvent(event);
       setStep('confirmed');
     } catch (err) {
@@ -354,11 +363,19 @@ export function CodelessGroupBookingFlow({
     );
   }
 
+  const currentStep =
+    step === 'select-proposal' ? 0 : step === 'select-group-slots' ? 1 : 2;
+
   return (
     <VStack gap={4}>
       <Heading level={1} size='xl'>
         Book an appointment
       </Heading>
+
+      <BookingProgress
+        steps={CODELESS_GROUP_BOOKING_STEPS}
+        currentStep={currentStep}
+      />
 
       {slotUnavailableNotice ? (
         <Alert
@@ -377,6 +394,7 @@ export function CodelessGroupBookingFlow({
           timezone={timezone}
           selectedSlot={selectedProposal}
           onSelect={handleSelectProposal}
+          onTimezoneChange={setTimezone}
           isLoading={proposalsQuery.isLoading || isLoadingAvailability}
         />
       ) : null}
@@ -438,7 +456,7 @@ export function CodelessGroupBookingFlow({
 
       {step === 'attendee-details' ? (
         <AttendeeForm
-          defaultTimezone={timezone}
+          timezone={timezone}
           isSubmitting={bookGroupEventMutation.isPending}
           onSubmit={handleAttendeeSubmit}
           onBack={() => setStep('select-group-slots')}

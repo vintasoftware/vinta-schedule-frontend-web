@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fn, mocked, userEvent, within, waitFor, expect } from 'storybook/test';
-import { useSearchParams, ReadonlyURLSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import type { BookableSlotProposal } from '@/client';
 import {
   PublicReadFailureError,
@@ -13,6 +13,21 @@ import { usePublicBookableSlots } from '@/hooks/booking-codes/use-public-bookabl
 import { usePublicGroupBookableSlots } from '@/hooks/booking-codes/use-public-group-booking';
 import { usePublicReschedule } from '@/hooks/booking-codes/use-public-reschedule';
 import { RescheduleFlow } from './reschedule-flow';
+
+/**
+ * A stand-in for `next/navigation`'s `ReadonlyURLSearchParams` — see
+ * `public-booking-flow.stories.tsx`'s identical helper for why this file
+ * constructs a plain `URLSearchParams` instead of importing the real class
+ * (the `@storybook/nextjs-vite` build's pre-bundled `next/navigation` mock
+ * does not re-export it at runtime).
+ */
+function fakeSearchParams(
+  init?: ConstructorParameters<typeof URLSearchParams>[0]
+): ReturnType<typeof useSearchParams> {
+  return new URLSearchParams(init) as unknown as ReturnType<
+    typeof useSearchParams
+  >;
+}
 
 // This story covers the READ states directly through the mocked hooks (same
 // split as `public-booking-flow.stories.tsx`), PLUS the terminal
@@ -54,9 +69,7 @@ const meta = {
       // and `?duration=` — most stories want a valid pair; the
       // MissingDuration story and the Group stories override this.
       mocked(useSearchParams).mockReturnValue(
-        new ReadonlyURLSearchParams(
-          new URLSearchParams({ target: 'calendar', duration: '1800' })
-        )
+        fakeSearchParams({ target: 'calendar', duration: '1800' })
       );
       return (
         <QueryClientProvider client={makeQueryClient()}>
@@ -110,7 +123,7 @@ export const GroupBookableSlots: Story = {
   decorators: [
     (Story) => {
       mocked(useSearchParams).mockReturnValue(
-        new ReadonlyURLSearchParams(new URLSearchParams({ target: 'group' }))
+        fakeSearchParams({ target: 'group' })
       );
       mocked(usePublicGroupBookableSlots).mockReturnValue({
         data: PROPOSALS,
@@ -170,7 +183,7 @@ export const MissingDuration: Story = {
   decorators: [
     (Story) => {
       mocked(useSearchParams).mockReturnValue(
-        new ReadonlyURLSearchParams(new URLSearchParams({ target: 'calendar' }))
+        fakeSearchParams({ target: 'calendar' })
       );
       return <Story />;
     },
