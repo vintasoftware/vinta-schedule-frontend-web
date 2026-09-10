@@ -46,7 +46,7 @@ describe('readOverLimitError', () => {
       resource: 'availability_windows',
       current_usage: 50,
       limit: 50,
-      detail: 'Organization is at its limit for availability windows.',
+      detail: 'You are at your limit for availability windows.',
       // Extra field some responses carry (e.g. the GraphQL batch mutation's
       // `remedy`) — present in the input but not asserted as part of the
       // typed shape below, to keep this test agnostic to fields the REST
@@ -59,7 +59,7 @@ describe('readOverLimitError', () => {
       resource: 'availability_windows',
       current_usage: 50,
       limit: 50,
-      detail: 'Organization is at its limit for availability windows.',
+      detail: 'You are at your limit for availability windows.',
     });
   });
 
@@ -150,7 +150,7 @@ describe('isNotFoundError', () => {
         resource: 'availability_windows',
         current_usage: 50,
         limit: 50,
-        detail: 'Organization is at its limit for availability windows.',
+        detail: 'You are at your limit for availability windows.',
       })
     ).toBe(false);
   });
@@ -208,7 +208,7 @@ describe('readNonFieldError', () => {
         resource: 'availability_windows',
         current_usage: 50,
         limit: 50,
-        detail: 'Organization is at its limit for availability windows.',
+        detail: 'You are at your limit for availability windows.',
       })
     ).toBeNull();
   });
@@ -247,7 +247,7 @@ describe('readBillingConflict', () => {
         resource: 'availability_windows',
         current_usage: 50,
         limit: 50,
-        detail: 'Organization is at its limit for availability windows.',
+        detail: 'You are at your limit for availability windows.',
       })
     ).toBeNull();
   });
@@ -629,7 +629,7 @@ describe('readFieldValidationErrors', () => {
         resource: 'availability_windows',
         current_usage: 50,
         limit: 50,
-        detail: 'Organization is at its limit.',
+        detail: 'You are at your limit.',
       })
     ).toBeNull();
   });

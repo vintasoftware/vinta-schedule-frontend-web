@@ -2147,7 +2147,7 @@ export const availableTimesExpandedFormattedListInfiniteOptions = (options: Opti
 /**
  * Create billing profile
  *
- * Create a new billing profile for the active organization.
+ * Create a new billing profile for the active scope.
  */
 export const billingProfileCreateBillingProfileCreateMutation = (options?: Partial<Options<BillingProfileCreateBillingProfileCreateData>>): UseMutationOptions<BillingProfileCreateBillingProfileCreateResponse, DefaultError, Options<BillingProfileCreateBillingProfileCreateData>> => {
     const mutationOptions: UseMutationOptions<BillingProfileCreateBillingProfileCreateResponse, DefaultError, Options<BillingProfileCreateBillingProfileCreateData>> = {
@@ -2166,7 +2166,7 @@ export const billingProfileCreateBillingProfileCreateMutation = (options?: Parti
 /**
  * Create billing profile
  *
- * Create a new billing profile for the active organization.
+ * Create a new billing profile for the active scope.
  */
 export const billingProfileCreateBillingProfileFormattedCreateMutation = (options?: Partial<Options<BillingProfileCreateBillingProfileFormattedCreateData>>): UseMutationOptions<BillingProfileCreateBillingProfileFormattedCreateResponse, DefaultError, Options<BillingProfileCreateBillingProfileFormattedCreateData>> => {
     const mutationOptions: UseMutationOptions<BillingProfileCreateBillingProfileFormattedCreateResponse, DefaultError, Options<BillingProfileCreateBillingProfileFormattedCreateData>> = {
@@ -2185,7 +2185,7 @@ export const billingProfileCreateBillingProfileFormattedCreateMutation = (option
 /**
  * Partially update billing profile
  *
- * Partially update the billing profile of the active organization.
+ * Partially update the billing profile of the active scope.
  */
 export const billingProfilePartialUpdateBillingProfilePartialUpdateMutation = (options?: Partial<Options<BillingProfilePartialUpdateBillingProfilePartialUpdateData>>): UseMutationOptions<BillingProfilePartialUpdateBillingProfilePartialUpdateResponse, DefaultError, Options<BillingProfilePartialUpdateBillingProfilePartialUpdateData>> => {
     const mutationOptions: UseMutationOptions<BillingProfilePartialUpdateBillingProfilePartialUpdateResponse, DefaultError, Options<BillingProfilePartialUpdateBillingProfilePartialUpdateData>> = {
@@ -2204,7 +2204,7 @@ export const billingProfilePartialUpdateBillingProfilePartialUpdateMutation = (o
 /**
  * Partially update billing profile
  *
- * Partially update the billing profile of the active organization.
+ * Partially update the billing profile of the active scope.
  */
 export const billingProfilePartialUpdateBillingProfileFormattedPartialUpdateMutation = (options?: Partial<Options<BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateData>>): UseMutationOptions<BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateResponse, DefaultError, Options<BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateData>> => {
     const mutationOptions: UseMutationOptions<BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateResponse, DefaultError, Options<BillingProfilePartialUpdateBillingProfileFormattedPartialUpdateData>> = {
@@ -2225,7 +2225,7 @@ export const billingProfileRetrieveBillingProfileRetrieveQueryKey = (options?: O
 /**
  * Retrieve billing profile
  *
- * Retrieve the billing profile of the active organization.
+ * Retrieve the billing profile of the active scope.
  */
 export const billingProfileRetrieveBillingProfileRetrieveOptions = (options?: Options<BillingProfileRetrieveBillingProfileRetrieveData>) => queryOptions<BillingProfileRetrieveBillingProfileRetrieveResponse, DefaultError, BillingProfileRetrieveBillingProfileRetrieveResponse, ReturnType<typeof billingProfileRetrieveBillingProfileRetrieveQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -2245,7 +2245,7 @@ export const billingProfileRetrieveBillingProfileFormattedRetrieveQueryKey = (op
 /**
  * Retrieve billing profile
  *
- * Retrieve the billing profile of the active organization.
+ * Retrieve the billing profile of the active scope.
  */
 export const billingProfileRetrieveBillingProfileFormattedRetrieveOptions = (options: Options<BillingProfileRetrieveBillingProfileFormattedRetrieveData>) => queryOptions<BillingProfileRetrieveBillingProfileFormattedRetrieveResponse, DefaultError, BillingProfileRetrieveBillingProfileFormattedRetrieveResponse, ReturnType<typeof billingProfileRetrieveBillingProfileFormattedRetrieveQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -2263,7 +2263,7 @@ export const billingProfileRetrieveBillingProfileFormattedRetrieveOptions = (opt
 /**
  * Update billing profile
  *
- * Update the billing profile of the active organization.
+ * Update the billing profile of the active scope.
  */
 export const billingProfileUpdateBillingProfileUpdateMutation = (options?: Partial<Options<BillingProfileUpdateBillingProfileUpdateData>>): UseMutationOptions<BillingProfileUpdateBillingProfileUpdateResponse, DefaultError, Options<BillingProfileUpdateBillingProfileUpdateData>> => {
     const mutationOptions: UseMutationOptions<BillingProfileUpdateBillingProfileUpdateResponse, DefaultError, Options<BillingProfileUpdateBillingProfileUpdateData>> = {
@@ -2282,7 +2282,7 @@ export const billingProfileUpdateBillingProfileUpdateMutation = (options?: Parti
 /**
  * Update billing profile
  *
- * Update the billing profile of the active organization.
+ * Update the billing profile of the active scope.
  */
 export const billingProfileUpdateBillingProfileFormattedUpdateMutation = (options?: Partial<Options<BillingProfileUpdateBillingProfileFormattedUpdateData>>): UseMutationOptions<BillingProfileUpdateBillingProfileFormattedUpdateResponse, DefaultError, Options<BillingProfileUpdateBillingProfileFormattedUpdateData>> => {
     const mutationOptions: UseMutationOptions<BillingProfileUpdateBillingProfileFormattedUpdateResponse, DefaultError, Options<BillingProfileUpdateBillingProfileFormattedUpdateData>> = {
@@ -2401,9 +2401,9 @@ export const billingAddOnsFormattedDestroyMutation = (options?: Partial<Options<
 export const billingPaymentProviderRetrieveQueryKey = (options?: Options<BillingPaymentProviderRetrieveData>) => createQueryKey('billingPaymentProviderRetrieve', options);
 
 /**
- * Get the active organization's payment provider
+ * Get the active scope's payment provider
  *
- * Returns the payment provider the active organization is pinned to (or the system default when unpinned) plus its browser-safe public credentials.
+ * Returns the payment provider the active scope is pinned to (or the system default when unpinned) plus its browser-safe public credentials.
  */
 export const billingPaymentProviderRetrieveOptions = (options?: Options<BillingPaymentProviderRetrieveData>) => queryOptions<BillingPaymentProviderRetrieveResponse, DefaultError, BillingPaymentProviderRetrieveResponse, ReturnType<typeof billingPaymentProviderRetrieveQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -2748,7 +2748,7 @@ export const billingUsageOccurrencesListQueryKey = (options?: Options<BillingUsa
  * ``GET /billing/usage/occurrences/`` -- the line-item ledger behind
  * post-paid charges: every ``MeteredOccurrence`` row in the caller's pooled
  * billing subtree, paginated and filterable by period, allowance side,
- * organization, and occurrence-start range, so a customer disputing an
+ * scope, and occurrence-start range, so a customer disputing an
  * invoice can tie every unit of money to a specific occurrence.
  *
  * **Stricter than every other read in this module.** ``BillingUsageViewSet``
@@ -2763,8 +2763,8 @@ export const billingUsageOccurrencesListQueryKey = (options?: Options<BillingUsa
  * resolved billing root -- the same two-step dance
  * ``SubscriptionViewSet.get_subscription`` and ``AddOnViewSet.create`` already
  * perform, and for the same reason their comments document:
- * ``has_permission`` cannot know *which* organization this read is for,
- * because ``request.organization`` is not resolved yet at that point in
+ * ``has_permission`` cannot know *which* scope this read is for,
+ * because ``request.scope`` is not resolved yet at that point in
  * ``TenantScopedViewMixin.initial()``'s ordering (see
  * ``IsBillingManager``'s docstring).
  */
@@ -2789,7 +2789,7 @@ export const billingUsageOccurrencesListInfiniteQueryKey = (options?: Options<Bi
  * ``GET /billing/usage/occurrences/`` -- the line-item ledger behind
  * post-paid charges: every ``MeteredOccurrence`` row in the caller's pooled
  * billing subtree, paginated and filterable by period, allowance side,
- * organization, and occurrence-start range, so a customer disputing an
+ * scope, and occurrence-start range, so a customer disputing an
  * invoice can tie every unit of money to a specific occurrence.
  *
  * **Stricter than every other read in this module.** ``BillingUsageViewSet``
@@ -2804,8 +2804,8 @@ export const billingUsageOccurrencesListInfiniteQueryKey = (options?: Options<Bi
  * resolved billing root -- the same two-step dance
  * ``SubscriptionViewSet.get_subscription`` and ``AddOnViewSet.create`` already
  * perform, and for the same reason their comments document:
- * ``has_permission`` cannot know *which* organization this read is for,
- * because ``request.organization`` is not resolved yet at that point in
+ * ``has_permission`` cannot know *which* scope this read is for,
+ * because ``request.scope`` is not resolved yet at that point in
  * ``TenantScopedViewMixin.initial()``'s ordering (see
  * ``IsBillingManager``'s docstring).
  */
@@ -2839,7 +2839,7 @@ export const billingUsageOccurrencesFormattedListQueryKey = (options: Options<Bi
  * ``GET /billing/usage/occurrences/`` -- the line-item ledger behind
  * post-paid charges: every ``MeteredOccurrence`` row in the caller's pooled
  * billing subtree, paginated and filterable by period, allowance side,
- * organization, and occurrence-start range, so a customer disputing an
+ * scope, and occurrence-start range, so a customer disputing an
  * invoice can tie every unit of money to a specific occurrence.
  *
  * **Stricter than every other read in this module.** ``BillingUsageViewSet``
@@ -2854,8 +2854,8 @@ export const billingUsageOccurrencesFormattedListQueryKey = (options: Options<Bi
  * resolved billing root -- the same two-step dance
  * ``SubscriptionViewSet.get_subscription`` and ``AddOnViewSet.create`` already
  * perform, and for the same reason their comments document:
- * ``has_permission`` cannot know *which* organization this read is for,
- * because ``request.organization`` is not resolved yet at that point in
+ * ``has_permission`` cannot know *which* scope this read is for,
+ * because ``request.scope`` is not resolved yet at that point in
  * ``TenantScopedViewMixin.initial()``'s ordering (see
  * ``IsBillingManager``'s docstring).
  */
@@ -2880,7 +2880,7 @@ export const billingUsageOccurrencesFormattedListInfiniteQueryKey = (options: Op
  * ``GET /billing/usage/occurrences/`` -- the line-item ledger behind
  * post-paid charges: every ``MeteredOccurrence`` row in the caller's pooled
  * billing subtree, paginated and filterable by period, allowance side,
- * organization, and occurrence-start range, so a customer disputing an
+ * scope, and occurrence-start range, so a customer disputing an
  * invoice can tie every unit of money to a specific occurrence.
  *
  * **Stricter than every other read in this module.** ``BillingUsageViewSet``
@@ -2895,8 +2895,8 @@ export const billingUsageOccurrencesFormattedListInfiniteQueryKey = (options: Op
  * resolved billing root -- the same two-step dance
  * ``SubscriptionViewSet.get_subscription`` and ``AddOnViewSet.create`` already
  * perform, and for the same reason their comments document:
- * ``has_permission`` cannot know *which* organization this read is for,
- * because ``request.organization`` is not resolved yet at that point in
+ * ``has_permission`` cannot know *which* scope this read is for,
+ * because ``request.scope`` is not resolved yet at that point in
  * ``TenantScopedViewMixin.initial()``'s ordering (see
  * ``IsBillingManager``'s docstring).
  */
@@ -2935,7 +2935,7 @@ export const billingUsagePeriodsListQueryKey = (options?: Options<BillingUsagePe
  * lines.
  *
  * Scoped to the caller's resolved pool exactly like ``BillingUsageViewSet``:
- * ``resolve_billing_root`` then ``get_pooled_organization_ids``, both
+ * ``resolve_billing_root`` then ``get_pooled_scope_ids``, both
  * resolved once in ``get_queryset()``. A pk outside that pool is filtered out
  * of the queryset before ``get_object()`` ever runs, so it 404s -- never
  * 403 -- and this endpoint never confirms the existence of another tenant's
@@ -2943,16 +2943,16 @@ export const billingUsagePeriodsListQueryKey = (options?: Options<BillingUsagePe
  *
  * ``IsAuthenticated`` only, matching ``GET /billing/usage/``'s
  * read-never-blocks rule: a closed statement is exactly the kind of read an
- * organization needs in order to resolve billing, including while
+ * scope needs in order to resolve billing, including while
  * ``RESTRICTED``.
  *
  * History is forward-only:
- * an organization with no closed periods yet gets ``200`` with an empty list,
- * never a ``404`` -- there is nothing wrong with that organization, cycle
+ * an scope with no closed periods yet gets ``200`` with an empty list,
+ * never a ``404`` -- there is nothing wrong with that scope, cycle
  * close simply has not run for it yet. A caller with **no active
- * organization** (``request.organization is None``) is a different state --
+ * scope** (``request.scope is None``) is a different state --
  * there is no pool to resolve a billing root against at all -- and gets
- * ``403``, matching ``GET /billing/usage/``'s ``_require_organization`` rule
+ * ``403``, matching ``GET /billing/usage/``'s ``_require_scope`` rule
  * rather than the empty-list state above.
  */
 export const billingUsagePeriodsListOptions = (options?: Options<BillingUsagePeriodsListData>) => queryOptions<BillingUsagePeriodsListResponse, DefaultError, BillingUsagePeriodsListResponse, ReturnType<typeof billingUsagePeriodsListQueryKey>>({
@@ -2981,7 +2981,7 @@ export const billingUsagePeriodsListInfiniteQueryKey = (options?: Options<Billin
  * lines.
  *
  * Scoped to the caller's resolved pool exactly like ``BillingUsageViewSet``:
- * ``resolve_billing_root`` then ``get_pooled_organization_ids``, both
+ * ``resolve_billing_root`` then ``get_pooled_scope_ids``, both
  * resolved once in ``get_queryset()``. A pk outside that pool is filtered out
  * of the queryset before ``get_object()`` ever runs, so it 404s -- never
  * 403 -- and this endpoint never confirms the existence of another tenant's
@@ -2989,16 +2989,16 @@ export const billingUsagePeriodsListInfiniteQueryKey = (options?: Options<Billin
  *
  * ``IsAuthenticated`` only, matching ``GET /billing/usage/``'s
  * read-never-blocks rule: a closed statement is exactly the kind of read an
- * organization needs in order to resolve billing, including while
+ * scope needs in order to resolve billing, including while
  * ``RESTRICTED``.
  *
  * History is forward-only:
- * an organization with no closed periods yet gets ``200`` with an empty list,
- * never a ``404`` -- there is nothing wrong with that organization, cycle
+ * an scope with no closed periods yet gets ``200`` with an empty list,
+ * never a ``404`` -- there is nothing wrong with that scope, cycle
  * close simply has not run for it yet. A caller with **no active
- * organization** (``request.organization is None``) is a different state --
+ * scope** (``request.scope is None``) is a different state --
  * there is no pool to resolve a billing root against at all -- and gets
- * ``403``, matching ``GET /billing/usage/``'s ``_require_organization`` rule
+ * ``403``, matching ``GET /billing/usage/``'s ``_require_scope`` rule
  * rather than the empty-list state above.
  */
 export const billingUsagePeriodsListInfiniteOptions = (options?: Options<BillingUsagePeriodsListData>) => infiniteQueryOptions<BillingUsagePeriodsListResponse, DefaultError, InfiniteData<BillingUsagePeriodsListResponse>, QueryKey<Options<BillingUsagePeriodsListData>>, number | Pick<QueryKey<Options<BillingUsagePeriodsListData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
@@ -3036,7 +3036,7 @@ export const billingUsagePeriodsFormattedListQueryKey = (options: Options<Billin
  * lines.
  *
  * Scoped to the caller's resolved pool exactly like ``BillingUsageViewSet``:
- * ``resolve_billing_root`` then ``get_pooled_organization_ids``, both
+ * ``resolve_billing_root`` then ``get_pooled_scope_ids``, both
  * resolved once in ``get_queryset()``. A pk outside that pool is filtered out
  * of the queryset before ``get_object()`` ever runs, so it 404s -- never
  * 403 -- and this endpoint never confirms the existence of another tenant's
@@ -3044,16 +3044,16 @@ export const billingUsagePeriodsFormattedListQueryKey = (options: Options<Billin
  *
  * ``IsAuthenticated`` only, matching ``GET /billing/usage/``'s
  * read-never-blocks rule: a closed statement is exactly the kind of read an
- * organization needs in order to resolve billing, including while
+ * scope needs in order to resolve billing, including while
  * ``RESTRICTED``.
  *
  * History is forward-only:
- * an organization with no closed periods yet gets ``200`` with an empty list,
- * never a ``404`` -- there is nothing wrong with that organization, cycle
+ * an scope with no closed periods yet gets ``200`` with an empty list,
+ * never a ``404`` -- there is nothing wrong with that scope, cycle
  * close simply has not run for it yet. A caller with **no active
- * organization** (``request.organization is None``) is a different state --
+ * scope** (``request.scope is None``) is a different state --
  * there is no pool to resolve a billing root against at all -- and gets
- * ``403``, matching ``GET /billing/usage/``'s ``_require_organization`` rule
+ * ``403``, matching ``GET /billing/usage/``'s ``_require_scope`` rule
  * rather than the empty-list state above.
  */
 export const billingUsagePeriodsFormattedListOptions = (options: Options<BillingUsagePeriodsFormattedListData>) => queryOptions<BillingUsagePeriodsFormattedListResponse, DefaultError, BillingUsagePeriodsFormattedListResponse, ReturnType<typeof billingUsagePeriodsFormattedListQueryKey>>({
@@ -3082,7 +3082,7 @@ export const billingUsagePeriodsFormattedListInfiniteQueryKey = (options: Option
  * lines.
  *
  * Scoped to the caller's resolved pool exactly like ``BillingUsageViewSet``:
- * ``resolve_billing_root`` then ``get_pooled_organization_ids``, both
+ * ``resolve_billing_root`` then ``get_pooled_scope_ids``, both
  * resolved once in ``get_queryset()``. A pk outside that pool is filtered out
  * of the queryset before ``get_object()`` ever runs, so it 404s -- never
  * 403 -- and this endpoint never confirms the existence of another tenant's
@@ -3090,16 +3090,16 @@ export const billingUsagePeriodsFormattedListInfiniteQueryKey = (options: Option
  *
  * ``IsAuthenticated`` only, matching ``GET /billing/usage/``'s
  * read-never-blocks rule: a closed statement is exactly the kind of read an
- * organization needs in order to resolve billing, including while
+ * scope needs in order to resolve billing, including while
  * ``RESTRICTED``.
  *
  * History is forward-only:
- * an organization with no closed periods yet gets ``200`` with an empty list,
- * never a ``404`` -- there is nothing wrong with that organization, cycle
+ * an scope with no closed periods yet gets ``200`` with an empty list,
+ * never a ``404`` -- there is nothing wrong with that scope, cycle
  * close simply has not run for it yet. A caller with **no active
- * organization** (``request.organization is None``) is a different state --
+ * scope** (``request.scope is None``) is a different state --
  * there is no pool to resolve a billing root against at all -- and gets
- * ``403``, matching ``GET /billing/usage/``'s ``_require_organization`` rule
+ * ``403``, matching ``GET /billing/usage/``'s ``_require_scope`` rule
  * rather than the empty-list state above.
  */
 export const billingUsagePeriodsFormattedListInfiniteOptions = (options: Options<BillingUsagePeriodsFormattedListData>) => infiniteQueryOptions<BillingUsagePeriodsFormattedListResponse, DefaultError, InfiniteData<BillingUsagePeriodsFormattedListResponse>, QueryKey<Options<BillingUsagePeriodsFormattedListData>>, number | Pick<QueryKey<Options<BillingUsagePeriodsFormattedListData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
@@ -3137,7 +3137,7 @@ export const billingUsagePeriodsRetrieveQueryKey = (options: Options<BillingUsag
  * lines.
  *
  * Scoped to the caller's resolved pool exactly like ``BillingUsageViewSet``:
- * ``resolve_billing_root`` then ``get_pooled_organization_ids``, both
+ * ``resolve_billing_root`` then ``get_pooled_scope_ids``, both
  * resolved once in ``get_queryset()``. A pk outside that pool is filtered out
  * of the queryset before ``get_object()`` ever runs, so it 404s -- never
  * 403 -- and this endpoint never confirms the existence of another tenant's
@@ -3145,16 +3145,16 @@ export const billingUsagePeriodsRetrieveQueryKey = (options: Options<BillingUsag
  *
  * ``IsAuthenticated`` only, matching ``GET /billing/usage/``'s
  * read-never-blocks rule: a closed statement is exactly the kind of read an
- * organization needs in order to resolve billing, including while
+ * scope needs in order to resolve billing, including while
  * ``RESTRICTED``.
  *
  * History is forward-only:
- * an organization with no closed periods yet gets ``200`` with an empty list,
- * never a ``404`` -- there is nothing wrong with that organization, cycle
+ * an scope with no closed periods yet gets ``200`` with an empty list,
+ * never a ``404`` -- there is nothing wrong with that scope, cycle
  * close simply has not run for it yet. A caller with **no active
- * organization** (``request.organization is None``) is a different state --
+ * scope** (``request.scope is None``) is a different state --
  * there is no pool to resolve a billing root against at all -- and gets
- * ``403``, matching ``GET /billing/usage/``'s ``_require_organization`` rule
+ * ``403``, matching ``GET /billing/usage/``'s ``_require_scope`` rule
  * rather than the empty-list state above.
  */
 export const billingUsagePeriodsRetrieveOptions = (options: Options<BillingUsagePeriodsRetrieveData>) => queryOptions<BillingUsagePeriodsRetrieveResponse, DefaultError, BillingUsagePeriodsRetrieveResponse, ReturnType<typeof billingUsagePeriodsRetrieveQueryKey>>({
@@ -3183,7 +3183,7 @@ export const billingUsagePeriodsFormattedRetrieveQueryKey = (options: Options<Bi
  * lines.
  *
  * Scoped to the caller's resolved pool exactly like ``BillingUsageViewSet``:
- * ``resolve_billing_root`` then ``get_pooled_organization_ids``, both
+ * ``resolve_billing_root`` then ``get_pooled_scope_ids``, both
  * resolved once in ``get_queryset()``. A pk outside that pool is filtered out
  * of the queryset before ``get_object()`` ever runs, so it 404s -- never
  * 403 -- and this endpoint never confirms the existence of another tenant's
@@ -3191,16 +3191,16 @@ export const billingUsagePeriodsFormattedRetrieveQueryKey = (options: Options<Bi
  *
  * ``IsAuthenticated`` only, matching ``GET /billing/usage/``'s
  * read-never-blocks rule: a closed statement is exactly the kind of read an
- * organization needs in order to resolve billing, including while
+ * scope needs in order to resolve billing, including while
  * ``RESTRICTED``.
  *
  * History is forward-only:
- * an organization with no closed periods yet gets ``200`` with an empty list,
- * never a ``404`` -- there is nothing wrong with that organization, cycle
+ * an scope with no closed periods yet gets ``200`` with an empty list,
+ * never a ``404`` -- there is nothing wrong with that scope, cycle
  * close simply has not run for it yet. A caller with **no active
- * organization** (``request.organization is None``) is a different state --
+ * scope** (``request.scope is None``) is a different state --
  * there is no pool to resolve a billing root against at all -- and gets
- * ``403``, matching ``GET /billing/usage/``'s ``_require_organization`` rule
+ * ``403``, matching ``GET /billing/usage/``'s ``_require_scope`` rule
  * rather than the empty-list state above.
  */
 export const billingUsagePeriodsFormattedRetrieveOptions = (options: Options<BillingUsagePeriodsFormattedRetrieveData>) => queryOptions<BillingUsagePeriodsFormattedRetrieveResponse, DefaultError, BillingUsagePeriodsFormattedRetrieveResponse, ReturnType<typeof billingUsagePeriodsFormattedRetrieveQueryKey>>({
@@ -3223,12 +3223,12 @@ export const billingUsageRetrieveUsageRetrieveQueryKey = (options?: Options<Bill
  *
  * ``GET /billing/usage/`` -- current usage against effective limits, per
  * resource, plus ``billing_state``, the plan snapshot, the current billing
- * period's bounds, the plan/add-on split of each ceiling, per-organization
+ * period's bounds, the plan/add-on split of each ceiling, per-scope
  * attribution across the caller's pooled subtree, and the overage accrued so
  * far this cycle. Resolved at the billing root, same as every other read in
  * this app.
  *
- * The "pull" half of "an organization can see where it stands". It reads
+ * The "pull" half of "an scope can see where it stands". It reads
  * usage through ``EntitlementService.effective_limit_from_resolved`` /
  * ``usage_breakdown_for_root`` -- pre-resolved entry points onto the
  * identical ``get_effective_limit`` / ``get_current_usage`` implementation
@@ -3239,9 +3239,9 @@ export const billingUsageRetrieveUsageRetrieveQueryKey = (options?: Options<Bill
  * warning can never disagree about a number.
  *
  * No permission beyond ``IsAuthenticated``, deliberately -- a read never
- * blocks, including for a ``RESTRICTED`` organization (a RESTRICTED
- * organization has its writes blocked and sync paused, never its reads; an
- * organization must be able to see exactly what it needs to resolve before it
+ * blocks, including for a ``RESTRICTED`` scope (a RESTRICTED
+ * scope has its writes blocked and sync paused, never its reads; an
+ * scope must be able to see exactly what it needs to resolve before it
  * can act on it).
  */
 export const billingUsageRetrieveUsageRetrieveOptions = (options?: Options<BillingUsageRetrieveUsageRetrieveData>) => queryOptions<BillingUsageRetrieveUsageRetrieveResponse, DefaultError, BillingUsageRetrieveUsageRetrieveResponse, ReturnType<typeof billingUsageRetrieveUsageRetrieveQueryKey>>({
@@ -3264,12 +3264,12 @@ export const billingUsageRetrieveUsageFormattedRetrieveQueryKey = (options: Opti
  *
  * ``GET /billing/usage/`` -- current usage against effective limits, per
  * resource, plus ``billing_state``, the plan snapshot, the current billing
- * period's bounds, the plan/add-on split of each ceiling, per-organization
+ * period's bounds, the plan/add-on split of each ceiling, per-scope
  * attribution across the caller's pooled subtree, and the overage accrued so
  * far this cycle. Resolved at the billing root, same as every other read in
  * this app.
  *
- * The "pull" half of "an organization can see where it stands". It reads
+ * The "pull" half of "an scope can see where it stands". It reads
  * usage through ``EntitlementService.effective_limit_from_resolved`` /
  * ``usage_breakdown_for_root`` -- pre-resolved entry points onto the
  * identical ``get_effective_limit`` / ``get_current_usage`` implementation
@@ -3280,9 +3280,9 @@ export const billingUsageRetrieveUsageFormattedRetrieveQueryKey = (options: Opti
  * warning can never disagree about a number.
  *
  * No permission beyond ``IsAuthenticated``, deliberately -- a read never
- * blocks, including for a ``RESTRICTED`` organization (a RESTRICTED
- * organization has its writes blocked and sync paused, never its reads; an
- * organization must be able to see exactly what it needs to resolve before it
+ * blocks, including for a ``RESTRICTED`` scope (a RESTRICTED
+ * scope has its writes blocked and sync paused, never its reads; an
+ * scope must be able to see exactly what it needs to resolve before it
  * can act on it).
  */
 export const billingUsageRetrieveUsageFormattedRetrieveOptions = (options: Options<BillingUsageRetrieveUsageFormattedRetrieveData>) => queryOptions<BillingUsageRetrieveUsageFormattedRetrieveResponse, DefaultError, BillingUsageRetrieveUsageFormattedRetrieveResponse, ReturnType<typeof billingUsageRetrieveUsageFormattedRetrieveQueryKey>>({

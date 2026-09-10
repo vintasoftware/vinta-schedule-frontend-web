@@ -73,7 +73,7 @@ const STARTER: BillingPlan = {
   slug: 'starter',
   name: 'Starter',
   is_active: true,
-  is_default_for_new_organizations: false,
+  is_default_for_new_scopes: false,
   monthly_price: '10.0000',
   annual_price: '100.0000',
   currency: 'USD',

@@ -585,9 +585,9 @@ export type BillingPeriodResourceUsage = {
      */
     overage_unit_price: string | null;
     /**
-     * Per-organization contribution to total, across the pooled subtree at close time. An organization that contributed nothing is omitted, never present with usage: 0. Ordered by organization_id ascending -- the identical shape GET /billing/usage/'s by_organization uses. Names are resolved at **read time** against the organizations table, so they reflect each organization's current name, not its name as of when this period closed -- this row has no name snapshot. An organization that no longer exists renders with name: "" rather than being dropped from the list; its count still counts toward total.
+     * Per-scope contribution to total, across the pooled subtree at close time. An scope that contributed nothing is omitted, never present with usage: 0. Ordered by scope_id ascending -- the identical shape GET /billing/usage/'s by_scope uses. Names are resolved at **read time** against the scopes table, so they reflect each scope's current name, not its name as of when this period closed -- this row has no name snapshot. An scope that no longer exists renders with name: "" rather than being dropped from the list; its count still counts toward total.
      */
-    by_organization: Array<UsageByOrganization>;
+    by_scope: Array<UsageByScope>;
 };
 
 /**
@@ -712,7 +712,7 @@ export type BillingPlan = {
     readonly slug: string;
     readonly name: string;
     readonly is_active: boolean;
-    readonly is_default_for_new_organizations: boolean;
+    readonly is_default_for_new_scopes: boolean;
     readonly monthly_price: string;
     readonly annual_price: string | null;
     readonly currency: string;
@@ -1393,9 +1393,9 @@ export type EffectiveLimitUsage = {
      */
     add_on_quantity: number;
     /**
-     * Per-organization attribution of current_usage across the caller's pooled billing subtree. An organization that contributed nothing is omitted, never present with usage: 0. Ordered by organization_id ascending.
+     * Per-scope attribution of current_usage across the caller's pooled billing subtree. An scope that contributed nothing is omitted, never present with usage: 0. Ordered by scope_id ascending.
      */
-    by_organization: Array<UsageByOrganization>;
+    by_scope: Array<UsageByScope>;
 };
 
 /**
@@ -1615,18 +1615,18 @@ export type MercadoPagoPublicCredentials = {
  * behind an overage charge, so a customer disputing an invoice can tie every
  * unit of money to a specific occurrence.
  *
- * ``event``/``organization`` are not model relations on ``MeteredOccurrence``
- * (``event_id`` is a soft reference; ``organization`` has no name of its own
+ * ``event``/``scope`` are not model relations on ``MeteredOccurrence``
+ * (``event_id`` is a soft reference; ``scope`` has no name of its own
  * here) -- both are built in ``to_representation`` from maps the view
  * resolves once per page and threads through ``context`` (``event_map``,
- * ``organization_names``), never a per-row query.
+ * ``scope_labels``), never a per-row query.
  */
 export type MeteredOccurrence = {
     readonly id: number;
     /**
-     * The organization this occurrence is attributed to.
+     * The scope this occurrence is attributed to.
      */
-    organization: MeteredOccurrenceOrganization;
+    scope: MeteredOccurrenceScope;
     /**
      * null when the referenced event no longer exists -- an expected state (a MeteredOccurrence outlives its event by design, see the model docstring), not an error. The charge still stands; unit_price is unaffected either way.
      */
@@ -1638,18 +1638,18 @@ export type MeteredOccurrence = {
 };
 
 /**
- * The organization a ledger row is attributed to -- ``GET
- * /billing/usage/occurrences/``'s ``organization`` field. Names are batch
+ * The scope a ledger row is attributed to -- ``GET
+ * /billing/usage/occurrences/``'s ``scope`` field. Names are batch
  * resolved by the view (``MeteredOccurrenceViewSet``) once per page, the
- * same pattern ``UsageByOrganizationSerializer`` uses.
+ * same pattern ``UsageByScopeSerializer`` uses.
  */
-export type MeteredOccurrenceOrganization = {
+export type MeteredOccurrenceScope = {
     /**
-     * pk of the attributed organization.
+     * pk of the attributed scope.
      */
     id: number;
     /**
-     * The attributed organization's name.
+     * The attributed scope's name.
      */
     name: string;
 };
@@ -2998,25 +2998,25 @@ export type UnavailableTimeWindow = {
 };
 
 /**
- * One organization's contribution to a pooled ``GET /billing/usage/`` figure.
+ * One scope's contribution to a pooled ``GET /billing/usage/`` figure.
  *
  * Sourced from ``EntitlementService.get_usage_breakdown`` / the ``usage_breakdown_for_root``
- * entry point it shares with ``CycleCloseService``. An organization in the pool
+ * entry point it shares with ``CycleCloseService``. An scope in the pool
  * that contributed **nothing** to this resource is **omitted from the list
  * entirely** -- never present with ``usage: 0`` -- matching that breakdown's
  * absent-not-zero contract.
  */
-export type UsageByOrganization = {
+export type UsageByScope = {
     /**
-     * pk of the contributing organization, within the caller's pooled billing subtree.
+     * pk of the contributing scope, within the caller's pooled billing subtree.
      */
-    organization_id: number;
+    scope_id: number;
     /**
-     * The contributing organization's name.
+     * The contributing scope's name.
      */
     name: string;
     /**
-     * This organization's share of the resource's usage.
+     * This scope's share of the resource's usage.
      */
     usage: number;
 };
@@ -3026,7 +3026,7 @@ export type UsageResponse = {
     /**
      * pk of the billing root this response was resolved against.
      */
-    billing_root_organization_id: number;
+    billing_root_scope_id: number;
     /**
      * The plan in force this cycle. null when there is no subscription.
      */
@@ -3583,17 +3583,17 @@ export type ExternalAttendeeWritable = {
  * behind an overage charge, so a customer disputing an invoice can tie every
  * unit of money to a specific occurrence.
  *
- * ``event``/``organization`` are not model relations on ``MeteredOccurrence``
- * (``event_id`` is a soft reference; ``organization`` has no name of its own
+ * ``event``/``scope`` are not model relations on ``MeteredOccurrence``
+ * (``event_id`` is a soft reference; ``scope`` has no name of its own
  * here) -- both are built in ``to_representation`` from maps the view
  * resolves once per page and threads through ``context`` (``event_map``,
- * ``organization_names``), never a per-row query.
+ * ``scope_labels``), never a per-row query.
  */
 export type MeteredOccurrenceWritable = {
     /**
-     * The organization this occurrence is attributed to.
+     * The scope this occurrence is attributed to.
      */
-    organization: MeteredOccurrenceOrganization;
+    scope: MeteredOccurrenceScope;
     /**
      * null when the referenced event no longer exists -- an expected state (a MeteredOccurrence outlives its event by design, see the model docstring), not an error. The charge still stands; unit_price is unaffected either way.
      */
@@ -6152,7 +6152,7 @@ export type BillingProfileCreateBillingProfileCreateData = {
 
 export type BillingProfileCreateBillingProfileCreateErrors = {
     /**
-     * This organization already has a billing profile. Not a `BillingError` and not routed through `vinta_billing.exception_handling` -- the body is DRF's `{'detail': ...}`, with no machine-readable `code`.
+     * This scope already has a billing profile. Not a `BillingError` and not routed through `vinta_billing.exception_handling` -- the body is DRF's `{'detail': ...}`, with no machine-readable `code`.
      */
     409: unknown;
 };
@@ -6180,7 +6180,7 @@ export type BillingProfileCreateBillingProfileFormattedCreateData = {
 
 export type BillingProfileCreateBillingProfileFormattedCreateErrors = {
     /**
-     * This organization already has a billing profile. Not a `BillingError` and not routed through `vinta_billing.exception_handling` -- the body is DRF's `{'detail': ...}`, with no machine-readable `code`.
+     * This scope already has a billing profile. Not a `BillingError` and not routed through `vinta_billing.exception_handling` -- the body is DRF's `{'detail': ...}`, with no machine-readable `code`.
      */
     409: unknown;
 };
@@ -6330,7 +6330,7 @@ export type BillingAddOnsCreateErrors = {
      */
     400: BillingErrorBody;
     /**
-     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). A deployment fault, not a bad request -- retrying the same call changes nothing until an operator configures the provider.
+     * The provider this scope resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). A deployment fault, not a bad request -- retrying the same call changes nothing until an operator configures the provider.
      */
     503: BillingErrorBody;
 };
@@ -6364,7 +6364,7 @@ export type BillingAddOnsFormattedCreateErrors = {
      */
     400: BillingErrorBody;
     /**
-     * The provider this organization resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). A deployment fault, not a bad request -- retrying the same call changes nothing until an operator configures the provider.
+     * The provider this scope resolves to is not configured in this deployment, so the one-time charge cannot be driven (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`). A deployment fault, not a bad request -- retrying the same call changes nothing until an operator configures the provider.
      */
     503: BillingErrorBody;
 };
@@ -6435,7 +6435,7 @@ export type BillingPaymentProviderRetrieveData = {
 
 export type BillingPaymentProviderRetrieveErrors = {
     /**
-     * No active organization.
+     * No active scope.
      */
     403: unknown;
     /**
@@ -6681,7 +6681,7 @@ export type BillingSubscriptionChangePlanCreateErrors = {
      */
     409: BillingErrorBody;
     /**
-     * A deployment fault, not a bad request -- the same call will fail identically until an operator fixes the deployment, so do not retry with different input. Either the provider this organization resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`), or the target plan is missing a `PlanLimit` row for a registered resource, so the downgrade has no well-defined ceiling to apply (`code: "incomplete_billing_plan"`, `IncompleteBillingPlanError`). Both are mapped centrally by `vinta_billing.exception_handling.billing_exception_handler`.
+     * A deployment fault, not a bad request -- the same call will fail identically until an operator fixes the deployment, so do not retry with different input. Either the provider this scope resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`), or the target plan is missing a `PlanLimit` row for a registered resource, so the downgrade has no well-defined ceiling to apply (`code: "incomplete_billing_plan"`, `IncompleteBillingPlanError`). Both are mapped centrally by `vinta_billing.exception_handling.billing_exception_handler`.
      */
     503: BillingErrorBody;
 };
@@ -6719,7 +6719,7 @@ export type BillingSubscriptionChangePlanFormattedCreateErrors = {
      */
     409: BillingErrorBody;
     /**
-     * A deployment fault, not a bad request -- the same call will fail identically until an operator fixes the deployment, so do not retry with different input. Either the provider this organization resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`), or the target plan is missing a `PlanLimit` row for a registered resource, so the downgrade has no well-defined ceiling to apply (`code: "incomplete_billing_plan"`, `IncompleteBillingPlanError`). Both are mapped centrally by `vinta_billing.exception_handling.billing_exception_handler`.
+     * A deployment fault, not a bad request -- the same call will fail identically until an operator fixes the deployment, so do not retry with different input. Either the provider this scope resolves to is not configured in this deployment (`code: "payment_provider_not_configured"`, `PaymentProviderNotConfiguredError`), or the target plan is missing a `PlanLimit` row for a registered resource, so the downgrade has no well-defined ceiling to apply (`code: "incomplete_billing_plan"`, `IncompleteBillingPlanError`). Both are mapped centrally by `vinta_billing.exception_handling.billing_exception_handler`.
      */
     503: BillingErrorBody;
 };
@@ -6795,7 +6795,7 @@ export type BillingSubscriptionRetryPaymentCreateErrors = {
      */
     402: BillingErrorBody;
     /**
-     * One of four conflicts: the subscription is not currently GRACE/RESTRICTED (`code: "retry_payment_not_applicable"`, `RetryPaymentNotApplicableError`); it has never attached a payment instrument at the provider (`code: "subscription_not_attached"`, `SubscriptionNotAttachedError` -- such an organization has never paid and belongs on `change-plan`'s first-upgrade path instead); the provider reports nothing actually owed for this subscription right now (`code: "no_outstanding_balance"`, `NoOutstandingBalanceError`); or the resolved provider has no verified balance-collection primitive to drive (`code: "collection_not_supported"`, `CollectionNotSupportedError` -- MercadoPago, as of this writing).
+     * One of four conflicts: the subscription is not currently GRACE/RESTRICTED (`code: "retry_payment_not_applicable"`, `RetryPaymentNotApplicableError`); it has never attached a payment instrument at the provider (`code: "subscription_not_attached"`, `SubscriptionNotAttachedError` -- such an scope has never paid and belongs on `change-plan`'s first-upgrade path instead); the provider reports nothing actually owed for this subscription right now (`code: "no_outstanding_balance"`, `NoOutstandingBalanceError`); or the resolved provider has no verified balance-collection primitive to drive (`code: "collection_not_supported"`, `CollectionNotSupportedError` -- MercadoPago, as of this writing).
      */
     409: BillingErrorBody;
 };
@@ -6836,7 +6836,7 @@ export type BillingSubscriptionRetryPaymentFormattedCreateErrors = {
      */
     402: BillingErrorBody;
     /**
-     * One of four conflicts: the subscription is not currently GRACE/RESTRICTED (`code: "retry_payment_not_applicable"`, `RetryPaymentNotApplicableError`); it has never attached a payment instrument at the provider (`code: "subscription_not_attached"`, `SubscriptionNotAttachedError` -- such an organization has never paid and belongs on `change-plan`'s first-upgrade path instead); the provider reports nothing actually owed for this subscription right now (`code: "no_outstanding_balance"`, `NoOutstandingBalanceError`); or the resolved provider has no verified balance-collection primitive to drive (`code: "collection_not_supported"`, `CollectionNotSupportedError` -- MercadoPago, as of this writing).
+     * One of four conflicts: the subscription is not currently GRACE/RESTRICTED (`code: "retry_payment_not_applicable"`, `RetryPaymentNotApplicableError`); it has never attached a payment instrument at the provider (`code: "subscription_not_attached"`, `SubscriptionNotAttachedError` -- such an scope has never paid and belongs on `change-plan`'s first-upgrade path instead); the provider reports nothing actually owed for this subscription right now (`code: "no_outstanding_balance"`, `NoOutstandingBalanceError`); or the resolved provider has no verified balance-collection primitive to drive (`code: "collection_not_supported"`, `CollectionNotSupportedError` -- MercadoPago, as of this writing).
      */
     409: BillingErrorBody;
 };
@@ -6894,9 +6894,9 @@ export type BillingUsageOccurrencesListData = {
          */
         ordering?: Array<'-occurrence_start' | 'occurrence_start'>;
         /**
-         * Only rows attributed to this organization. Must be inside the caller's pooled billing subtree -- an id outside it is a validation error, not an empty result.
+         * Only rows attributed to this scope. Must be inside the caller's pooled billing subtree -- an id outside it is a validation error, not an empty result.
          */
-        organization?: number;
+        scope?: number;
     };
     url: '/billing/usage/occurrences/';
 };
@@ -6951,9 +6951,9 @@ export type BillingUsageOccurrencesFormattedListData = {
          */
         ordering?: Array<'-occurrence_start' | 'occurrence_start'>;
         /**
-         * Only rows attributed to this organization. Must be inside the caller's pooled billing subtree -- an id outside it is a validation error, not an empty result.
+         * Only rows attributed to this scope. Must be inside the caller's pooled billing subtree -- an id outside it is a validation error, not an empty result.
          */
-        organization?: number;
+        scope?: number;
     };
     url: '/billing/usage/occurrences{format}';
 };

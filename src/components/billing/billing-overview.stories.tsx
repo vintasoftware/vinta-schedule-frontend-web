@@ -12,7 +12,7 @@ import { BillingOverview } from './billing-overview';
 
 const ACTIVE_USAGE: UsageResponse = {
   billing_state: 'active',
-  billing_root_organization_id: 1,
+  billing_root_scope_id: 1,
   plan: { slug: 'reseller', name: 'Reseller', currency: 'USD' },
   billing_period: {
     start: '2026-08-01T00:00:00Z',
@@ -28,7 +28,7 @@ const ACTIVE_USAGE: UsageResponse = {
       overage_unit_price: null,
       included_in_plan: 15,
       add_on_quantity: 5,
-      by_organization: [],
+      by_scope: [],
     },
     {
       resource_key: 'event_occurrences',
@@ -38,9 +38,9 @@ const ACTIVE_USAGE: UsageResponse = {
       overage_unit_price: '0.2500',
       included_in_plan: 500,
       add_on_quantity: 0,
-      by_organization: [
-        { organization_id: 1, name: 'Reseller Root', usage: 400 },
-        { organization_id: 2, name: 'Child Agency', usage: 112 },
+      by_scope: [
+        { scope_id: 1, name: 'Reseller Root', usage: 400 },
+        { scope_id: 2, name: 'Child Agency', usage: 112 },
       ],
     },
     {
@@ -51,14 +51,14 @@ const ACTIVE_USAGE: UsageResponse = {
       overage_unit_price: null,
       included_in_plan: null,
       add_on_quantity: 0,
-      by_organization: [],
+      by_scope: [],
     },
   ],
 };
 
 const FREE_USAGE: UsageResponse = {
   billing_state: 'free',
-  billing_root_organization_id: 1,
+  billing_root_scope_id: 1,
   plan: null,
   billing_period: null,
   estimated_overage_total: '0.0000',
@@ -71,7 +71,7 @@ const FREE_USAGE: UsageResponse = {
       overage_unit_price: null,
       included_in_plan: null,
       add_on_quantity: 0,
-      by_organization: [],
+      by_scope: [],
     },
   ],
 };

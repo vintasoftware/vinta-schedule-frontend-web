@@ -9,7 +9,7 @@ const BASE: BillingPeriodResourceUsage = {
   total: 118,
   limit_value: 100,
   overage_unit_price: '0.5000',
-  by_organization: [],
+  by_scope: [],
 };
 
 const meta = {
@@ -81,9 +81,9 @@ export const PooledReseller: Story = {
   args: {
     resource: {
       ...BASE,
-      by_organization: [
-        { organization_id: 1, name: 'Reseller Root', usage: 90 },
-        { organization_id: 2, name: 'Child Agency', usage: 28 },
+      by_scope: [
+        { scope_id: 1, name: 'Reseller Root', usage: 90 },
+        { scope_id: 2, name: 'Child Agency', usage: 28 },
       ],
     },
   },

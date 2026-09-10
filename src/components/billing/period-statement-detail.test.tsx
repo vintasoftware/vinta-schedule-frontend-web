@@ -30,7 +30,7 @@ const DETAIL: BillingPeriodSummaryDetail = {
       total: 125,
       limit_value: 100,
       overage_unit_price: '0.5000',
-      by_organization: [],
+      by_scope: [],
     },
     {
       resource_key: 'organization_members',
@@ -38,7 +38,7 @@ const DETAIL: BillingPeriodSummaryDetail = {
       total: 0,
       limit_value: 10,
       overage_unit_price: null,
-      by_organization: [],
+      by_scope: [],
     },
     {
       resource_key: 'appointment_types',
@@ -46,7 +46,7 @@ const DETAIL: BillingPeriodSummaryDetail = {
       total: null,
       limit_value: null,
       overage_unit_price: null,
-      by_organization: [],
+      by_scope: [],
     },
   ],
 };

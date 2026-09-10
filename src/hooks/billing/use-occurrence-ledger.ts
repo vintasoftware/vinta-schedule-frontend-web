@@ -10,7 +10,7 @@
  * state is Phase 8's concern).
  *
  * `billing_period_start` defaults to the current open period when omitted; an
- * `organization` outside the caller's pooled subtree is a validation error,
+ * `scope` outside the caller's pooled subtree is a validation error,
  * not an empty result.
  */
 
@@ -31,7 +31,7 @@ export function useOccurrenceLedger({
 }: {
   /**
    * Ledger filters: `billing_period_start`, `is_within_allowance`,
-   * `organization`, `occurrence_start_after` / `occurrence_start_before`,
+   * `scope`, `occurrence_start_after` / `occurrence_start_before`,
    * `ordering`, and `limit` / `offset` pagination (max 1000).
    */
   filters?: BillingUsageOccurrencesListData['query'];

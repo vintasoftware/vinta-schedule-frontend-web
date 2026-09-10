@@ -606,7 +606,7 @@ describe('AppLayout (integration)', () => {
       mockSubscriptionState(RESTRICTED_SUBSCRIPTION);
       const usage: UsageResponse = {
         billing_state: 'restricted',
-        billing_root_organization_id: 1,
+        billing_root_scope_id: 1,
         plan: { slug: 'team', name: 'Team', currency: 'USD' },
         billing_period: {
           start: '2026-08-01T00:00:00Z',

@@ -114,7 +114,7 @@ export function PeriodResourceRow({
           ) : null}
 
           <UsageByOrganization
-            byOrganization={resource.by_organization}
+            byScope={resource.by_scope}
             resourceLabel={label}
           />
         </VStack>

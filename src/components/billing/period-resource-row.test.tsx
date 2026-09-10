@@ -23,7 +23,7 @@ function makeResource(
     total: 118,
     limit_value: 100,
     overage_unit_price: '0.5000',
-    by_organization: [],
+    by_scope: [],
     ...overrides,
   };
 }
@@ -149,9 +149,9 @@ describe('PeriodResourceRow', () => {
     render(
       <PeriodResourceRow
         resource={makeResource({
-          by_organization: [
-            { organization_id: 1, name: 'Root', usage: 90 },
-            { organization_id: 2, name: 'Child Co', usage: 28 },
+          by_scope: [
+            { scope_id: 1, name: 'Root', usage: 90 },
+            { scope_id: 2, name: 'Child Co', usage: 28 },
           ],
         })}
         currency='USD'

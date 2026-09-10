@@ -91,7 +91,7 @@ function occurrence(
 ): MeteredOccurrence {
   return {
     id: 1,
-    organization: { id: 10, name: 'Acme Inc.' },
+    scope: { id: 10, name: 'Acme Inc.' },
     event: ledgerEvent(),
     occurrence_start: '2026-08-03T14:00:00Z',
     billing_period_start: '2026-08-01T00:00:00Z',
@@ -137,7 +137,7 @@ function mockUsage(usage: UsageResponse | null = null) {
 function makeUsage(overrides: Partial<UsageResponse> = {}): UsageResponse {
   return {
     billing_state: 'active',
-    billing_root_organization_id: 10,
+    billing_root_scope_id: 10,
     plan: {
       slug: 'team',
       name: 'Team',
@@ -292,9 +292,9 @@ describe('BillingOccurrencesPage (Phase 8)', () => {
             overage_unit_price: '0.5000',
             included_in_plan: 100,
             add_on_quantity: 0,
-            by_organization: [
-              { organization_id: 10, name: 'Acme Inc.', usage: 30 },
-              { organization_id: 11, name: 'Beta LLC', usage: 20 },
+            by_scope: [
+              { scope_id: 10, name: 'Acme Inc.', usage: 30 },
+              { scope_id: 11, name: 'Beta LLC', usage: 20 },
             ],
           },
         ],
@@ -308,12 +308,12 @@ describe('BillingOccurrencesPage (Phase 8)', () => {
     await user.click(screen.getByRole('option', { name: 'Beta LLC' }));
 
     await waitFor(() => {
-      expect(lastFilters()).toMatchObject({ organization: 11 });
+      expect(lastFilters()).toMatchObject({ scope: 11 });
     });
   });
 
   it('keeps the org filter mounted and clearable after the result set collapses to one org', async () => {
-    // Usage carries no `by_organization` attribution, so the org options come
+    // Usage carries no `by_scope` attribution, so the org options come
     // ONLY from the observed rows — the case where selecting an org collapses
     // the observed set (and `poolOrgs`) to length 1 and would otherwise unmount
     // the Select, stranding the user on one org.
@@ -321,18 +321,18 @@ describe('BillingOccurrencesPage (Phase 8)', () => {
 
     const acme = occurrence({
       id: 1,
-      organization: { id: 10, name: 'Acme Inc.' },
+      scope: { id: 10, name: 'Acme Inc.' },
     });
     const beta = occurrence({
       id: 2,
-      organization: { id: 11, name: 'Beta LLC' },
+      scope: { id: 11, name: 'Beta LLC' },
     });
     vi.mocked(useOccurrenceLedger).mockImplementation((args) => {
-      const org = args?.filters?.organization;
+      const org = args?.filters?.scope;
       const rows =
         org === undefined
           ? [acme, beta]
-          : [acme, beta].filter((row) => row.organization.id === org);
+          : [acme, beta].filter((row) => row.scope.id === org);
       return {
         occurrences: rows,
         totalCount: rows.length,
@@ -353,7 +353,7 @@ describe('BillingOccurrencesPage (Phase 8)', () => {
     await user.click(screen.getByRole('option', { name: 'Beta LLC' }));
 
     await waitFor(() => {
-      expect(lastFilters()).toMatchObject({ organization: 11 });
+      expect(lastFilters()).toMatchObject({ scope: 11 });
     });
 
     // The observed set has now collapsed to a single org, but the Select stays
@@ -364,7 +364,7 @@ describe('BillingOccurrencesPage (Phase 8)', () => {
     await user.click(screen.getByRole('option', { name: 'All organizations' }));
 
     await waitFor(() => {
-      expect(lastFilters()).not.toHaveProperty('organization');
+      expect(lastFilters()).not.toHaveProperty('scope');
     });
   });
 
@@ -373,7 +373,7 @@ describe('BillingOccurrencesPage (Phase 8)', () => {
       occurrences: [],
       isError: true,
       error: {
-        organization: [
+        scope: [
           'Select a valid choice. That organization is not in your pool.',
         ],
       },

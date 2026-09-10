@@ -27,7 +27,7 @@ import type { UsageResponse } from '@/client';
 
 const FIXTURE_USAGE: UsageResponse = {
   billing_state: 'free',
-  billing_root_organization_id: 1,
+  billing_root_scope_id: 1,
   plan: null,
   billing_period: null,
   estimated_overage_total: '0.0000',

@@ -60,7 +60,7 @@ const PLAN: BillingPlan = {
   slug: 'team',
   name: 'Team',
   is_active: true,
-  is_default_for_new_organizations: false,
+  is_default_for_new_scopes: false,
   monthly_price: '20.0000',
   annual_price: '200.0000',
   currency: 'USD',

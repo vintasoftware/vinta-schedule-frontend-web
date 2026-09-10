@@ -20,7 +20,7 @@ function makeLimit(
     overage_unit_price: null,
     included_in_plan: limit_value,
     add_on_quantity: 0,
-    by_organization: [],
+    by_scope: [],
   };
 }
 

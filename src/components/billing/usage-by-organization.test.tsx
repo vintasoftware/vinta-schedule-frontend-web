@@ -5,18 +5,18 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-import type { UsageByOrganization as UsageByOrganizationRow } from '@/client';
+import type { UsageByScope as UsageByScopeRow } from '@/client';
 import { UsageByOrganization } from './usage-by-organization';
 
-const TWO: UsageByOrganizationRow[] = [
-  { organization_id: 1, name: 'Reseller Root', usage: 7 },
-  { organization_id: 2, name: 'Child Studio', usage: 3 },
+const TWO: UsageByScopeRow[] = [
+  { scope_id: 1, name: 'Reseller Root', usage: 7 },
+  { scope_id: 2, name: 'Child Studio', usage: 3 },
 ];
 
 describe('UsageByOrganization', () => {
   it('renders nothing for an empty pool', () => {
     const { container } = render(
-      <UsageByOrganization byOrganization={[]} resourceLabel='Members' />
+      <UsageByOrganization byScope={[]} resourceLabel='Members' />
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -24,7 +24,7 @@ describe('UsageByOrganization', () => {
   it('renders nothing for a single-org pool', () => {
     const { container } = render(
       <UsageByOrganization
-        byOrganization={[{ organization_id: 1, name: 'Root', usage: 5 }]}
+        byScope={[{ scope_id: 1, name: 'Root', usage: 5 }]}
         resourceLabel='Members'
       />
     );
@@ -32,9 +32,7 @@ describe('UsageByOrganization', () => {
   });
 
   it('renders each contributing organization and its usage for a pool >1', () => {
-    render(
-      <UsageByOrganization byOrganization={TWO} resourceLabel='Members' />
-    );
+    render(<UsageByOrganization byScope={TWO} resourceLabel='Members' />);
 
     expect(screen.getByTestId('usage-by-organization')).toBeInTheDocument();
     expect(screen.getByText('Reseller Root')).toBeInTheDocument();

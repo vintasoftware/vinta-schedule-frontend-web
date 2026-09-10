@@ -22,12 +22,12 @@
  *      the row area renders the access-denied (or a validation message) state,
  *      NEVER the table — so a member can never see a ledger row.
  *
- * The `organization` filter is restricted to pool orgs only (options are sourced
- * from the usage `by_organization` breakdown + the observed rows' own orgs), so
+ * The `scope` filter is restricted to pool orgs only (options are sourced
+ * from the usage `by_scope` breakdown + the observed rows' own orgs), so
  * an id outside the caller's pooled subtree can never be selected. Filters:
  * `billing_period_start` (omitted → API defaults to the current period), an
  * overage-only toggle (`is_within_allowance=false`), an `occurrence_start` date
- * range, `organization`, and limit/offset pagination.
+ * range, `scope`, and limit/offset pagination.
  */
 
 import * as React from 'react';
@@ -74,10 +74,10 @@ const ALL_ORGS = 'all';
 
 /**
  * Reads a filter-validation message out of a thrown ledger error — an
- * out-of-pool `organization` id is a validation error (per the API contract),
+ * out-of-pool `scope` id is a validation error (per the API contract),
  * not an empty result, so we surface it distinctly from an access denial.
  * Handles both a DRF `non_field_errors` body and a per-field
- * `{ organization: ["..."] }` body. Returns `null` for anything else (e.g. a
+ * `{ scope: ["..."] }` body. Returns `null` for anything else (e.g. a
  * `403`), which then degrades to the access-denied state.
  */
 function readFilterValidationMessage(error: unknown): string | null {
@@ -89,7 +89,7 @@ function readFilterValidationMessage(error: unknown): string | null {
     return null;
   }
   const body = error as Record<string, unknown>;
-  const fieldError = body.organization;
+  const fieldError = body.scope;
   if (Array.isArray(fieldError) && typeof fieldError[0] === 'string') {
     return fieldError[0];
   }
@@ -147,9 +147,7 @@ export default function BillingOccurrencesPage() {
     ...(overageOnly ? { is_within_allowance: false } : {}),
     ...(startAfter ? { occurrence_start_after: startAfter } : {}),
     ...(startBefore ? { occurrence_start_before: startBefore } : {}),
-    ...(organization !== ALL_ORGS
-      ? { organization: Number(organization) }
-      : {}),
+    ...(organization !== ALL_ORGS ? { scope: Number(organization) } : {}),
   };
 
   // The ledger query is DISABLED for a member without `payments.manage_billing`:
@@ -165,18 +163,18 @@ export default function BillingOccurrencesPage() {
 
   const currency = usage?.plan?.currency ?? null;
 
-  // Pool orgs the filter may offer — sourced from the usage `by_organization`
+  // Pool orgs the filter may offer — sourced from the usage `by_scope`
   // attribution (pool-wide) plus the observed rows' own orgs. An id outside the
   // pool is never in either source, so it can never be selected.
   const poolOrgs = React.useMemo(() => {
     const byId = new Map<number, string>();
     for (const limit of usage?.limits ?? []) {
-      for (const org of limit.by_organization) {
-        byId.set(org.organization_id, org.name);
+      for (const org of limit.by_scope) {
+        byId.set(org.scope_id, org.name);
       }
     }
     for (const occurrence of occurrences) {
-      byId.set(occurrence.organization.id, occurrence.organization.name);
+      byId.set(occurrence.scope.id, occurrence.scope.name);
     }
     return [...byId.entries()]
       .map(([id, name]) => ({ id, name }))

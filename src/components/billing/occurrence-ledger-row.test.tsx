@@ -45,7 +45,7 @@ function occurrence(
 ): MeteredOccurrence {
   return {
     id: 1,
-    organization: { id: 10, name: 'Acme Inc.' },
+    scope: { id: 10, name: 'Acme Inc.' },
     event: ledgerEvent(),
     occurrence_start: '2026-08-03T14:00:00Z',
     billing_period_start: '2026-08-01T00:00:00Z',

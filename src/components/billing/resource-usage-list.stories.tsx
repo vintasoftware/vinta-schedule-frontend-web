@@ -12,7 +12,7 @@ const LIMITS: EffectiveLimitUsage[] = [
     overage_unit_price: null,
     included_in_plan: 8,
     add_on_quantity: 2,
-    by_organization: [],
+    by_scope: [],
   },
   {
     resource_key: 'event_occurrences',
@@ -22,9 +22,9 @@ const LIMITS: EffectiveLimitUsage[] = [
     overage_unit_price: '0.2500',
     included_in_plan: 500,
     add_on_quantity: 0,
-    by_organization: [
-      { organization_id: 1, name: 'Reseller Root', usage: 400 },
-      { organization_id: 2, name: 'Child Agency', usage: 112 },
+    by_scope: [
+      { scope_id: 1, name: 'Reseller Root', usage: 400 },
+      { scope_id: 2, name: 'Child Agency', usage: 112 },
     ],
   },
   {
@@ -35,7 +35,7 @@ const LIMITS: EffectiveLimitUsage[] = [
     overage_unit_price: null,
     included_in_plan: null,
     add_on_quantity: 0,
-    by_organization: [],
+    by_scope: [],
   },
 ];
 

@@ -159,10 +159,7 @@ export function ResourceUsageRow({
             </Text>
           ) : null}
 
-          <UsageByOrganization
-            byOrganization={limit.by_organization}
-            resourceLabel={label}
-          />
+          <UsageByOrganization byScope={limit.by_scope} resourceLabel={label} />
         </VStack>
       </CardContent>
     </Card>

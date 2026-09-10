@@ -155,7 +155,7 @@ const OVER_LIMIT_BODY = {
   resource: 'availability_windows',
   current_usage: 50,
   limit: 50,
-  detail: 'Organization is at its limit for availability windows.',
+  detail: 'You are at your limit for availability windows.',
 };
 
 function makeQueryClient() {

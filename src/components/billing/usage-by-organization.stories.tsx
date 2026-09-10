@@ -8,10 +8,10 @@ const meta = {
   tags: ['autodocs'],
   args: {
     resourceLabel: 'Event occurrences',
-    byOrganization: [
-      { organization_id: 1, name: 'Reseller Root', usage: 120 },
-      { organization_id: 2, name: 'Child Agency', usage: 45 },
-      { organization_id: 3, name: 'Downstream Studio', usage: 12 },
+    byScope: [
+      { scope_id: 1, name: 'Reseller Root', usage: 120 },
+      { scope_id: 2, name: 'Child Agency', usage: 45 },
+      { scope_id: 3, name: 'Downstream Studio', usage: 12 },
     ],
   },
 } satisfies Meta<typeof UsageByOrganization>;
@@ -26,7 +26,7 @@ export const PooledReseller: Story = {};
 export const SingleOrgHidden: Story = {
   name: 'Single-org pool (hidden)',
   args: {
-    byOrganization: [{ organization_id: 1, name: 'Root', usage: 42 }],
+    byScope: [{ scope_id: 1, name: 'Root', usage: 42 }],
   },
 };
 

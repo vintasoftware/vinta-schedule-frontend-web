@@ -43,7 +43,7 @@ import { BillingOverview } from './billing-overview';
 
 const USAGE: UsageResponse = {
   billing_state: 'active',
-  billing_root_organization_id: 1,
+  billing_root_scope_id: 1,
   plan: { slug: 'team', name: 'Team', currency: 'USD' },
   billing_period: {
     start: '2026-08-01T00:00:00Z',
@@ -60,7 +60,7 @@ const USAGE: UsageResponse = {
       overage_unit_price: null,
       included_in_plan: 100,
       add_on_quantity: 0,
-      by_organization: [],
+      by_scope: [],
     },
     // Postpaid (overage billed automatically) → no affordance, even for admin.
     {
@@ -71,7 +71,7 @@ const USAGE: UsageResponse = {
       overage_unit_price: '0.5000',
       included_in_plan: 100,
       add_on_quantity: 0,
-      by_organization: [],
+      by_scope: [],
     },
   ],
 } as unknown as UsageResponse;

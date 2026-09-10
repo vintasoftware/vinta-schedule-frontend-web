@@ -61,7 +61,7 @@ export function OccurrenceLedgerRow({
   return (
     <TableRow data-testid={`occurrence-row-${occurrence.id}`}>
       <TableCell data-testid='occurrence-row-organization'>
-        <Text size='sm'>{occurrence.organization.name}</Text>
+        <Text size='sm'>{occurrence.scope.name}</Text>
       </TableCell>
 
       <TableCell data-testid='occurrence-row-event'>

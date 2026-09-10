@@ -30,7 +30,7 @@ function occurrence(
 ): MeteredOccurrence {
   return {
     id: 1,
-    organization: { id: 10, name: 'Acme Inc.' },
+    scope: { id: 10, name: 'Acme Inc.' },
     event: ledgerEvent(),
     occurrence_start: '2026-08-03T14:00:00Z',
     billing_period_start: '2026-08-01T00:00:00Z',
@@ -59,7 +59,7 @@ export const WithOccurrences: Story = {
       occurrence({ id: 3 }),
       occurrence({
         id: 2,
-        organization: { id: 11, name: 'Beta LLC' },
+        scope: { id: 11, name: 'Beta LLC' },
         is_within_allowance: true,
         unit_price: '0.0000',
         event: ledgerEvent({

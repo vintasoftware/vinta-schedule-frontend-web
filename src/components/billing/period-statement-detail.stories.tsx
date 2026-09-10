@@ -22,9 +22,9 @@ const DETAIL: BillingPeriodSummaryDetail = {
       total: 125,
       limit_value: 100,
       overage_unit_price: '0.5000',
-      by_organization: [
-        { organization_id: 1, name: 'Reseller Root', usage: 100 },
-        { organization_id: 2, name: 'Child Agency', usage: 25 },
+      by_scope: [
+        { scope_id: 1, name: 'Reseller Root', usage: 100 },
+        { scope_id: 2, name: 'Child Agency', usage: 25 },
       ],
     },
     {
@@ -33,7 +33,7 @@ const DETAIL: BillingPeriodSummaryDetail = {
       total: 0,
       limit_value: 10,
       overage_unit_price: null,
-      by_organization: [],
+      by_scope: [],
     },
     {
       resource_key: 'appointment_types',
@@ -41,7 +41,7 @@ const DETAIL: BillingPeriodSummaryDetail = {
       total: null,
       limit_value: null,
       overage_unit_price: null,
-      by_organization: [],
+      by_scope: [],
     },
   ],
 };

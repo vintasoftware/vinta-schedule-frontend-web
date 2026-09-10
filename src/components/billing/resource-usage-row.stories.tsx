@@ -11,7 +11,7 @@ const BASE: EffectiveLimitUsage = {
   overage_unit_price: null,
   included_in_plan: 8,
   add_on_quantity: 2,
-  by_organization: [],
+  by_scope: [],
 };
 
 const meta = {
@@ -70,9 +70,9 @@ export const PooledReseller: Story = {
     limit: {
       ...BASE,
       resource_key: 'event_occurrences',
-      by_organization: [
-        { organization_id: 1, name: 'Reseller Root', usage: 3 },
-        { organization_id: 2, name: 'Child Agency', usage: 1 },
+      by_scope: [
+        { scope_id: 1, name: 'Reseller Root', usage: 3 },
+        { scope_id: 2, name: 'Child Agency', usage: 1 },
       ],
     },
   },
