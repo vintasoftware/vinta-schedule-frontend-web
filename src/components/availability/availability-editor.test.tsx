@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -745,7 +745,7 @@ describe('AvailabilityEditor', () => {
         ['SU', 6, 'sunday'],
       ];
 
-      const entries = BYDAY_OFFSETS.map(([byday, offset, _label], i) =>
+      const entries = BYDAY_OFFSETS.map(([byday, offset], i) =>
         makeWeeklyAvailableTime(i + 1, byday, '12:00', '20:00', offset)
       );
 
@@ -763,7 +763,7 @@ describe('AvailabilityEditor', () => {
       });
 
       // Spot-check all 7 weekday start inputs have value '12:00'
-      for (const [_byday, _offset, label] of BYDAY_OFFSETS) {
+      for (const [, , label] of BYDAY_OFFSETS) {
         const input = screen.getByLabelText(
           new RegExp(`${label} window 1 start time`, 'i')
         ) as HTMLInputElement;
