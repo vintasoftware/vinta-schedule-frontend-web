@@ -2,9 +2,11 @@
  * useAvailableTimes tests.
  *
  * Covers:
- * - List reads: useQuery wraps availableTimesList correctly
+ * - List reads: useQuery wraps availableTimesList, filtered to the calendar
  * - Batch update: availableTimesBatchCreate is called with the operations and
  *   target calendar; the resulting list is returned to the caller
+ * - Default calendar: with no calendarId, reads the default calendar; with no
+ *   default, never lists unfiltered
  * - Error propagation: batch rejection surfaces to the caller
  */
 
@@ -23,6 +25,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     ...original,
     availableTimesList: vi.fn(),
     availableTimesBatchCreate: vi.fn(),
+    calendarDefaultRetrieve: vi.fn(),
   };
 });
 
@@ -33,6 +36,7 @@ vi.mock('sonner', () => ({
 import {
   availableTimesList,
   availableTimesBatchCreate,
+  calendarDefaultRetrieve,
 } from '@/client/sdk.gen';
 import { useAvailableTimes } from './use-available-times';
 import type {
@@ -45,6 +49,8 @@ import type {
 // Fixtures
 // ---------------------------------------------------------------------------
 
+const CALENDAR_ID = 23;
+
 const FIXTURE_AVAILABLE_TIME: AvailableTime = {
   id: 1,
   start_time: '2024-01-01T09:00:00',
@@ -56,7 +62,7 @@ const FIXTURE_AVAILABLE_TIME: AvailableTime = {
   recurrence_id: null,
   created: '2024-01-01T00:00:00Z',
   modified: '2024-01-01T00:00:00Z',
-  calendar: 1,
+  calendar: CALENDAR_ID,
 };
 
 const FIXTURE_PAGINATED_LIST: PaginatedAvailableTimeList = {
@@ -100,6 +106,19 @@ function makeBatchResponse(
   } as unknown as Awaited<ReturnType<typeof availableTimesBatchCreate>>;
 }
 
+function makeDefaultCalendarResponse(
+  status: number,
+  id?: number
+): Awaited<ReturnType<typeof calendarDefaultRetrieve>> {
+  const calendar = id === undefined ? undefined : { id };
+  return {
+    data: calendar,
+    response: new Response(calendar ? JSON.stringify(calendar) : null, {
+      status,
+    }),
+  } as unknown as Awaited<ReturnType<typeof calendarDefaultRetrieve>>;
+}
+
 function makeQueryWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -134,7 +153,7 @@ describe('useAvailableTimes', () => {
       );
 
       const { Wrapper } = makeQueryWrapper();
-      const { result } = renderHook(() => useAvailableTimes(), {
+      const { result } = renderHook(() => useAvailableTimes(CALENDAR_ID), {
         wrapper: Wrapper,
       });
 
@@ -142,6 +161,24 @@ describe('useAvailableTimes', () => {
 
       expect(result.current.availableTimes).toHaveLength(1);
       expect(result.current.availableTimes[0].id).toBe(1);
+    });
+
+    it('reads only the given calendar', async () => {
+      vi.mocked(availableTimesList).mockResolvedValue(
+        makeListResponse(FIXTURE_PAGINATED_LIST)
+      );
+
+      const { Wrapper } = makeQueryWrapper();
+      const { result } = renderHook(() => useAvailableTimes(CALENDAR_ID), {
+        wrapper: Wrapper,
+      });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      expect(availableTimesList).toHaveBeenCalledOnce();
+      expect(vi.mocked(availableTimesList).mock.calls[0][0]?.query).toEqual({
+        calendar: CALENDAR_ID,
+      });
     });
 
     it('returns empty array when list is empty', async () => {
@@ -156,7 +193,7 @@ describe('useAvailableTimes', () => {
       );
 
       const { Wrapper } = makeQueryWrapper();
-      const { result } = renderHook(() => useAvailableTimes(), {
+      const { result } = renderHook(() => useAvailableTimes(CALENDAR_ID), {
         wrapper: Wrapper,
       });
 
@@ -171,7 +208,7 @@ describe('useAvailableTimes', () => {
       );
 
       const { Wrapper } = makeQueryWrapper();
-      const { result } = renderHook(() => useAvailableTimes(), {
+      const { result } = renderHook(() => useAvailableTimes(CALENDAR_ID), {
         wrapper: Wrapper,
       });
 
@@ -195,7 +232,7 @@ describe('useAvailableTimes', () => {
       );
 
       const { Wrapper } = makeQueryWrapper();
-      const { result } = renderHook(() => useAvailableTimes(), {
+      const { result } = renderHook(() => useAvailableTimes(CALENDAR_ID), {
         wrapper: Wrapper,
       });
 
@@ -211,14 +248,14 @@ describe('useAvailableTimes', () => {
               rrule_string: 'FREQ=WEEKLY;BYDAY=MO',
             },
           ],
-          3
+          CALENDAR_ID
         );
       });
 
       expect(availableTimesBatchCreate).toHaveBeenCalledOnce();
       const callArg = vi.mocked(availableTimesBatchCreate).mock.calls[0][0];
       const body = callArg.body as AvailableTimeBatch;
-      expect(body.calendar).toBe(3);
+      expect(body.calendar).toBe(CALENDAR_ID);
       expect(body.operations).toHaveLength(2);
       expect(body.operations[0]).toEqual({ action: 'delete', id: 7 });
       expect(body.operations[1].rrule_string).toBe('FREQ=WEEKLY;BYDAY=MO');
@@ -233,7 +270,7 @@ describe('useAvailableTimes', () => {
       );
 
       const { Wrapper } = makeQueryWrapper();
-      const { result } = renderHook(() => useAvailableTimes(), {
+      const { result } = renderHook(() => useAvailableTimes(CALENDAR_ID), {
         wrapper: Wrapper,
       });
 
@@ -253,12 +290,52 @@ describe('useAvailableTimes', () => {
       expect(returned[0].id).toBe(1);
     });
 
-    it('defaults calendar to null when omitted', async () => {
+    it('returns the resulting list when the backend sends a bare array', async () => {
       vi.mocked(availableTimesList).mockResolvedValue(
         makeListResponse(FIXTURE_PAGINATED_LIST)
       );
-      vi.mocked(availableTimesBatchCreate).mockResolvedValue(
-        makeBatchResponse([])
+      // The real endpoint returns `AvailableTime[]`, not the paginated
+      // envelope the generated type declares.
+      vi.mocked(availableTimesBatchCreate).mockResolvedValue({
+        data: [FIXTURE_AVAILABLE_TIME],
+        response: new Response(JSON.stringify([FIXTURE_AVAILABLE_TIME]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      } as unknown as Awaited<ReturnType<typeof availableTimesBatchCreate>>);
+
+      const { Wrapper } = makeQueryWrapper();
+      const { result } = renderHook(() => useAvailableTimes(CALENDAR_ID), {
+        wrapper: Wrapper,
+      });
+
+      let returned: AvailableTime[] = [];
+      await act(async () => {
+        returned = await result.current.batchUpdate([
+          {
+            action: 'create',
+            start_time: '2024-01-01T09:00:00',
+            end_time: '2024-01-01T17:00:00',
+            timezone: 'UTC',
+          },
+        ]);
+      });
+
+      expect(returned).toEqual([FIXTURE_AVAILABLE_TIME]);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Default calendar (no calendarId)
+  // -------------------------------------------------------------------------
+
+  describe('default calendar', () => {
+    it('reads the default calendar when no calendarId is given', async () => {
+      vi.mocked(calendarDefaultRetrieve).mockResolvedValue(
+        makeDefaultCalendarResponse(200, CALENDAR_ID)
+      );
+      vi.mocked(availableTimesList).mockResolvedValue(
+        makeListResponse(FIXTURE_PAGINATED_LIST)
       );
 
       const { Wrapper } = makeQueryWrapper();
@@ -266,13 +343,26 @@ describe('useAvailableTimes', () => {
         wrapper: Wrapper,
       });
 
-      await act(async () => {
-        await result.current.batchUpdate([{ action: 'delete', id: 1 }]);
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.calendarId).toBe(CALENDAR_ID);
+      expect(vi.mocked(availableTimesList).mock.calls[0][0]?.query).toEqual({
+        calendar: CALENDAR_ID,
+      });
+    });
+
+    it('never lists unfiltered when there is no default calendar', async () => {
+      vi.mocked(calendarDefaultRetrieve).mockResolvedValue(
+        makeDefaultCalendarResponse(404)
+      );
+
+      const { Wrapper } = makeQueryWrapper();
+      const { result } = renderHook(() => useAvailableTimes(null), {
+        wrapper: Wrapper,
       });
 
-      const callArg = vi.mocked(availableTimesBatchCreate).mock.calls[0][0];
-      const body = callArg.body as AvailableTimeBatch;
-      expect(body.calendar).toBeNull();
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.calendarId).toBeNull();
+      expect(availableTimesList).not.toHaveBeenCalled();
     });
   });
 
@@ -290,7 +380,7 @@ describe('useAvailableTimes', () => {
       );
 
       const { Wrapper } = makeQueryWrapper();
-      const { result } = renderHook(() => useAvailableTimes(), {
+      const { result } = renderHook(() => useAvailableTimes(CALENDAR_ID), {
         wrapper: Wrapper,
       });
 
