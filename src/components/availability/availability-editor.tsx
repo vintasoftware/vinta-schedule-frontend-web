@@ -525,9 +525,8 @@ function AdHocSection({ form, disabled }: AdHocSectionProps) {
 
 export interface AvailabilityEditorProps {
   /**
-   * Optional calendar id to associate each created window with.
-   * Pass null to create windows unlinked from a specific calendar
-   * (the backend scopes them to the member).
+   * The calendar whose available times are loaded and saved.
+   * Omit/null → the caller's default calendar.
    */
   calendarId?: number | null;
 }
@@ -540,8 +539,13 @@ export function AvailabilityEditor({
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : 'UTC';
 
-  const { batchUpdate, isPending, availableTimes, isLoading } =
-    useAvailableTimes();
+  const {
+    calendarId: resolvedCalendarId,
+    batchUpdate,
+    isPending,
+    availableTimes,
+    isLoading,
+  } = useAvailableTimes(calendarId);
 
   const weekdays = weekdayMatrix();
 
@@ -568,7 +572,7 @@ export function AvailabilityEditor({
   }, [isLoading, availableTimes, form]);
 
   async function onSubmit(values: AvailabilityFormSchema) {
-    const payload = buildPayload(values, timezone, calendarId);
+    const payload = buildPayload(values, timezone, resolvedCalendarId);
 
     // Atomic full-replace: delete every existing stored window, then create the
     // desired set. The form's matrix doesn't track per-row ids, so a clean
@@ -600,7 +604,8 @@ export function AvailabilityEditor({
     try {
       // Update the delete-baseline from the response so the next save replaces
       // these rows instead of re-creating them.
-      const newList = await batchUpdate(operations, calendarId);
+      // Save to the calendar the rows were read from, so the deletes target it.
+      const newList = await batchUpdate(operations, resolvedCalendarId);
       setSavedTimes(newList);
       toast.success('Availability saved', {
         description:

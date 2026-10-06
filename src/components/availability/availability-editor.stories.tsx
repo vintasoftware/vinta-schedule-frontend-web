@@ -39,7 +39,7 @@ type Story = StoryObj<typeof meta>;
 // ---------------------------------------------------------------------------
 
 /**
- * Default story — no calendar id (member-level availability).
+ * Default story — no calendar id: reads and saves the caller's default calendar.
  */
 export const Default: Story = {
   args: {

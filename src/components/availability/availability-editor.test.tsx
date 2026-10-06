@@ -9,10 +9,11 @@
  * - Submit button is disabled while pending
  * - Success toast is shown
  * - Error toast is shown when bulk-create fails
+ * - No calendarId → reads and saves the default calendar
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -33,6 +34,7 @@ vi.mock('@/client/sdk.gen', async (importOriginal) => {
     ...original,
     availableTimesList: vi.fn(),
     availableTimesBatchCreate: vi.fn(),
+    calendarDefaultRetrieve: vi.fn(),
   };
 });
 
@@ -47,6 +49,7 @@ vi.mock('sonner', () => ({
 import {
   availableTimesList,
   availableTimesBatchCreate,
+  calendarDefaultRetrieve,
 } from '@/client/sdk.gen';
 import { toast } from 'sonner';
 import { AvailabilityEditor } from './availability-editor';
@@ -69,7 +72,9 @@ function makeQueryClient() {
   });
 }
 
-function renderEditor(calendarId?: number | null) {
+const CALENDAR_ID = 23;
+
+function renderEditor(calendarId: number | null = CALENDAR_ID) {
   const queryClient = makeQueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -145,7 +150,7 @@ function makeWeeklyAvailableTime(
     recurrence_id: null,
     created: '2024-01-01T00:00:00Z',
     modified: '2024-01-01T00:00:00Z',
-    calendar: null,
+    calendar: CALENDAR_ID,
     recurrence_rule: {
       id: id * 100,
       frequency: 'WEEKLY' as const,
@@ -155,6 +160,19 @@ function makeWeeklyAvailableTime(
       modified: '2024-01-01T00:00:00Z',
     },
   };
+}
+
+function makeDefaultCalendarResponse(
+  status: number,
+  id?: number
+): Awaited<ReturnType<typeof calendarDefaultRetrieve>> {
+  const calendar = id === undefined ? undefined : { id };
+  return {
+    data: calendar,
+    response: new Response(calendar ? JSON.stringify(calendar) : null, {
+      status,
+    }),
+  } as unknown as Awaited<ReturnType<typeof calendarDefaultRetrieve>>;
 }
 
 function makeBatchResponse(
@@ -536,6 +554,46 @@ describe('AvailabilityEditor', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Default calendar (regression: the editor read every calendar's rows,
+  // saved against the default, and the batch 400'd on the foreign ids)
+  // -------------------------------------------------------------------------
+
+  describe('default calendar', () => {
+    it('loads and saves the default calendar when no calendarId is given', async () => {
+      const user = userEvent.setup();
+      vi.mocked(calendarDefaultRetrieve).mockResolvedValue(
+        makeDefaultCalendarResponse(200, CALENDAR_ID)
+      );
+      vi.mocked(availableTimesBatchCreate).mockResolvedValue(
+        makeBatchResponse()
+      );
+
+      renderEditor(null);
+
+      await waitFor(() =>
+        expect(
+          screen.getAllByRole('button', { name: /^add$/i }).length
+        ).toBeGreaterThan(0)
+      );
+      expect(vi.mocked(availableTimesList).mock.calls[0][0]?.query).toEqual(
+        expect.objectContaining({ calendar: CALENDAR_ID })
+      );
+
+      await user.click(screen.getAllByRole('button', { name: /^add$/i })[0]);
+      await user.click(
+        screen.getByRole('button', { name: /save availability/i })
+      );
+
+      await waitFor(() =>
+        expect(availableTimesBatchCreate).toHaveBeenCalledOnce()
+      );
+      const body = vi.mocked(availableTimesBatchCreate).mock.calls[0][0]
+        .body as AvailableTimeBatch;
+      expect(body.calendar).toBe(CALENDAR_ID);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Submit disabled while pending
   // -------------------------------------------------------------------------
 
@@ -687,7 +745,7 @@ describe('AvailabilityEditor', () => {
         ['SU', 6, 'sunday'],
       ];
 
-      const entries = BYDAY_OFFSETS.map(([byday, offset, _label], i) =>
+      const entries = BYDAY_OFFSETS.map(([byday, offset], i) =>
         makeWeeklyAvailableTime(i + 1, byday, '12:00', '20:00', offset)
       );
 
@@ -705,7 +763,7 @@ describe('AvailabilityEditor', () => {
       });
 
       // Spot-check all 7 weekday start inputs have value '12:00'
-      for (const [_byday, _offset, label] of BYDAY_OFFSETS) {
+      for (const [, , label] of BYDAY_OFFSETS) {
         const input = screen.getByLabelText(
           new RegExp(`${label} window 1 start time`, 'i')
         ) as HTMLInputElement;
@@ -725,7 +783,7 @@ describe('AvailabilityEditor', () => {
         recurrence_id: null,
         created: '2024-01-01T00:00:00Z',
         modified: '2024-01-01T00:00:00Z',
-        calendar: null,
+        calendar: CALENDAR_ID,
       };
 
       vi.mocked(availableTimesList).mockResolvedValue(

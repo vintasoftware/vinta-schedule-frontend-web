@@ -1,5 +1,10 @@
 /**
- * useAvailableTimes — data hook for available-time windows.
+ * useAvailableTimes — data hook for one calendar's available-time windows.
+ *
+ * Reads are filtered to one calendar: `calendarId` when given, otherwise the
+ * caller's default calendar. Unfiltered, the list returns every calendar's rows,
+ * and the editor would then try to delete rows the batch (which only touches
+ * one calendar) rejects.
  *
  * Writes go through the atomic batch endpoint:
  *   POST /available-times/batch/
@@ -25,8 +30,13 @@ import {
   availableTimesListQueryKey,
   availableTimesBatchCreateMutation,
 } from '@/client/@tanstack/react-query.gen';
-import type { AvailableTime, AvailableTimeOperation } from '@/client';
+import type {
+  AvailableTime,
+  AvailableTimeOperation,
+  AvailableTimesListData,
+} from '@/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDefaultCalendar } from '@/hooks/calendars/use-default-calendar';
 
 // ---------------------------------------------------------------------------
 // Query key — exported so other mutations can invalidate it.
@@ -38,11 +48,32 @@ export const AVAILABLE_TIMES_QUERY_KEY = availableTimesListQueryKey();
 // useAvailableTimes
 // ---------------------------------------------------------------------------
 
-export function useAvailableTimes() {
+/**
+ * @param calendarId - the calendar to read; omit/null → the caller's default
+ *   calendar.
+ */
+export function useAvailableTimes(calendarId: number | null = null) {
   const queryClient = useQueryClient();
 
+  // ---- Calendar ------------------------------------------------------------
+  const usesDefault = calendarId === null;
+  const defaultCalendarQuery = useDefaultCalendar({ enabled: usesDefault });
+  const resolvedCalendarId = usesDefault
+    ? (defaultCalendarQuery.defaultCalendar?.id ?? null)
+    : calendarId;
+
   // ---- Read ----------------------------------------------------------------
-  const availableTimesQuery = useQuery(availableTimesListOptions());
+  // `calendar` is a real filter (added at runtime by the backend filterset), so
+  // drf-spectacular misses it and the generated query type lacks it.
+  const availableTimesQuery = useQuery({
+    ...availableTimesListOptions({
+      query: {
+        calendar: resolvedCalendarId ?? undefined,
+      } as AvailableTimesListData['query'],
+    }),
+    // Never list unfiltered: wait until there is a calendar to filter by.
+    enabled: resolvedCalendarId !== null,
+  });
 
   const availableTimes = availableTimesQuery.data?.results ?? [];
 
@@ -77,13 +108,27 @@ export function useAvailableTimes() {
     });
     // The batch returns the resulting full list — callers use it as the new
     // delete-baseline so a subsequent save doesn't re-create the same rows.
-    return res?.results ?? [];
+    // The backend returns a bare array, while the generated type claims a
+    // paginated `{ results }` envelope (drf-spectacular wraps list actions).
+    // Reading only `.results` yields an empty baseline and duplicates rows on
+    // the next save, so accept both shapes.
+    const data = res as unknown as
+      | AvailableTime[]
+      | { results?: AvailableTime[] }
+      | undefined;
+    if (Array.isArray(data)) return data;
+    return data?.results ?? [];
   };
 
   return {
+    // The calendar the rows were read from (null: no default calendar yet).
+    calendarId: resolvedCalendarId,
+
     // Query state
     availableTimes,
-    isLoading: availableTimesQuery.isLoading,
+    isLoading:
+      (usesDefault && defaultCalendarQuery.isLoading) ||
+      availableTimesQuery.isLoading,
     isError: availableTimesQuery.isError,
     error: availableTimesQuery.error,
     availableTimesQuery,
